@@ -43,6 +43,8 @@ fluent(active, [robot], boolean).
 % for now we just tread paint as a boolean attribute
 fluent(painted, [item], boolean).
 
+constant(robot_radius, [robot], float).
+constant(gravity, [], float).
 % poss
 
 

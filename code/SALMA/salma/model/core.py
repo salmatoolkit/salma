@@ -202,10 +202,13 @@ class Fluent(object):
     
     valueRange = property(getValueRange, setValueRange)
     
-    
-    
-    
-    
+
+
+
+class Constant(Fluent):
+    def __init__(self, name, fluentType, params, **kwargs):
+        Fluent.__init__(self, name, fluentType, params, **kwargs)
+
     
     
 class Action(object):

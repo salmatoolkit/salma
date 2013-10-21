@@ -8,7 +8,7 @@ from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions
 from salma.model.core import Agent, Entity, Fluent, Action, \
     DeterministicAction, StochasticAction, StepwiseStochasticAction, \
-    RandomActionOutcome, ExogenousAction
+    RandomActionOutcome, ExogenousAction, Constant
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
@@ -49,6 +49,8 @@ class WorldTest(unittest.TestCase):
         world.addFluent(Fluent("carrying", "bool", [("r", "robot"), ("i", "item")]))
         world.addFluent(Fluent("painted", "bool", [("i", "item")]))
 
+        world.addConstant(Constant('gravity', 'float', []))
+        world.addConstant(Constant('robot_radius', 'float', [('r', 'robot')]))
         world.addAction(DeterministicAction('move_right', [('r', 'robot')]))
         world.addAction(DeterministicAction('move_down', [('r', 'robot')]))
         world.addAction(DeterministicAction('grab', [('r', 'robot'), ('i', 'item')]))
@@ -799,7 +801,8 @@ class WorldTest(unittest.TestCase):
 
         l = world.checkFluentInitialization()
         expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'coffee']), ('carrying', ['rob1', 'chocolate']),
-                    ('xpos', ['rob1']), ('painted', ['coffee']), ('painted', ['chocolate'])]
+                    ('xpos', ['rob1']), ('painted', ['coffee']), ('painted', ['chocolate']),
+                    ('gravity', []), ('robot_radius', ['rob1'])]
         for e in expected:
             self.assertTrue(e in l)
 
@@ -807,12 +810,31 @@ class WorldTest(unittest.TestCase):
         world.setFluentValue('xpos', ['rob1'], 10)
         l = world.checkFluentInitialization()
         expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'coffee']), ('carrying', ['rob1', 'chocolate']),
-                    ('painted', ['coffee']), ('painted', ['chocolate'])]
+                    ('painted', ['coffee']), ('painted', ['chocolate']),
+                    ('gravity', []), ('robot_radius', ['rob1'])]
         for e in expected:
             self.assertTrue(e in l)
         self.assertEqual(len(l), len(expected))
 
-        world.setFluentValue('carrying', ['rob1','coffee'], True)
+        world.setFluentValue('carrying', ['rob1', 'coffee'], True)
+        l = world.checkFluentInitialization()
+        expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'chocolate']),
+                    ('painted', ['coffee']), ('painted', ['chocolate']),
+                    ('gravity', []), ('robot_radius', ['rob1'])]
+        for e in expected:
+            self.assertTrue(e in l)
+        self.assertEqual(len(l), len(expected))
+
+        world.setConstantValue('gravity', [], 9.81)
+        l = world.checkFluentInitialization()
+        expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'chocolate']),
+                    ('painted', ['coffee']), ('painted', ['chocolate']),
+                    ('robot_radius', ['rob1'])]
+        for e in expected:
+            self.assertTrue(e in l)
+        self.assertEqual(len(l), len(expected))
+
+        world.setConstantValue('robot_radius', ['rob1'], 20.0)
         l = world.checkFluentInitialization()
         expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'chocolate']),
                     ('painted', ['coffee']), ('painted', ['chocolate'])]

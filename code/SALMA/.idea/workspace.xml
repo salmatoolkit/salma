@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="99ed79f1-595f-463b-9b36-baa8ca6d0f7c" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/salma/test/itertest.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/SALMA.iml" afterPath="$PROJECT_DIR$/.idea/SALMA.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/salma/model/core.py" afterPath="$PROJECT_DIR$/salma/model/core.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ecl-test/domaindesc.ecl" afterPath="$PROJECT_DIR$/ecl-test/domaindesc.ecl" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/salma/test/itertest.py" afterPath="$PROJECT_DIR$/salma/test/itertest.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/salma/model/world.py" afterPath="$PROJECT_DIR$/salma/model/world.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/salma/test/worldtest.py" afterPath="$PROJECT_DIR$/salma/test/worldtest.py" />
@@ -21,8 +22,8 @@
     <SUITE FILE_PATH="coverage/SALMAS$WorldTest.coverage" NAME="WorldTest Coverage Results" MODIFIED="1381790919196" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/SALMAS$visualizer.coverage" NAME="visualizer Coverage Results" MODIFIED="1381789788107" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/salmas/test" />
     <SUITE FILE_PATH="coverage/SALMAS$basic_animation_example.coverage" NAME="basic_animation_example Coverage Results" MODIFIED="1381788787805" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/salmas/test" />
-    <SUITE FILE_PATH="coverage/SALMA$WorldTest.coverage" NAME="WorldTest Coverage Results" MODIFIED="1382383678038" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
-    <SUITE FILE_PATH="coverage/SALMA$itertest.coverage" NAME="itertest Coverage Results" MODIFIED="1382380071754" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/salma/test" />
+    <SUITE FILE_PATH="coverage/SALMA$WorldTest.coverage" NAME="WorldTest Coverage Results" MODIFIED="1382397616956" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/SALMA$itertest.coverage" NAME="itertest Coverage Results" MODIFIED="1382396849895" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/salma/test" />
     <SUITE FILE_PATH="coverage/SALMAS$pyclptest.coverage" NAME="pyclptest Coverage Results" MODIFIED="1381789675167" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/salmas/test" />
     <SUITE FILE_PATH="coverage/SALMAS$eclp_engine_test.coverage" NAME="eclp_engine_test Coverage Results" MODIFIED="1381789831879" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/salmas/test" />
     <SUITE FILE_PATH="coverage/SALMAS$worldtest.coverage" NAME="worldtest Coverage Results" MODIFIED="1381790042506" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/salmas/test" />
@@ -67,7 +68,6 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/salmas/model/procedure.py" />
         <option value="$PROJECT_DIR$/salmas/test/ASCENS_robotic_scenario1.py" />
         <option value="$PROJECT_DIR$/salmas/test/ExogenousActionTest.py" />
         <option value="$PROJECT_DIR$/salmas/test/position_animator.py" />
@@ -80,9 +80,10 @@
         <option value="$PROJECT_DIR$/salmas/engine.py" />
         <option value="$PROJECT_DIR$/salmas/test/worldtest.py" />
         <option value="$PROJECT_DIR$/.idea/.name" />
+        <option value="$PROJECT_DIR$/salma/model/core.py" />
         <option value="$PROJECT_DIR$/salma/test/itertest.py" />
-        <option value="$PROJECT_DIR$/salma/model/world.py" />
         <option value="$PROJECT_DIR$/salma/test/worldtest.py" />
+        <option value="$PROJECT_DIR$/salma/model/world.py" />
       </list>
     </option>
   </component>
@@ -168,7 +169,7 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="test" />
+              <option name="myItemId" value="model" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -598,7 +599,11 @@
       <created>1382370971435</created>
       <updated>1382370971435</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="added method for checking fluent initialization">
+      <created>1382383738464</created>
+      <updated>1382383738464</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -630,14 +635,14 @@
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32962447" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32998565" sideWeight="0.7719054" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3991655" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25824964" sideWeight="0.42698193" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.29902643" sideWeight="0.27474892" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24964131" sideWeight="0.26482213" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32884097" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32962447" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24964131" sideWeight="0.50486785" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.27474892" sideWeight="0.50486785" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.49513212" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24964131" sideWeight="0.7009736" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.27474892" sideWeight="0.7009736" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29902643" sideWeight="0.7252511" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -657,11 +662,12 @@
     <MESSAGE value="adapting some test paths. worldtest is running ok" />
     <MESSAGE value="apdapted test run config" />
     <MESSAGE value="minor fix in ECliPSe test" />
-    <option name="LAST_COMMIT_MESSAGE" value="minor fix in ECliPSe test" />
+    <MESSAGE value="added method for checking fluent initialization" />
+    <option name="LAST_COMMIT_MESSAGE" value="added method for checking fluent initialization" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="1" />
+      <option name="time" value="2" />
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
@@ -700,23 +706,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/salma/test/itertest.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="9" column="38" selection-start="177" selection-end="177" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="255">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/salma/model/procedure.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="354" column="60" selection-start="11795" selection-end="11795" vertical-scroll-proportion="0.8367953" vertical-offset="5736" max-vertical-offset="9061">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/salma/model/world.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="688" column="67" selection-start="23381" selection-end="23381" vertical-scroll-proportion="0.0" vertical-offset="11328" max-vertical-offset="15504">
           <folding />
         </state>
       </provider>
@@ -728,9 +720,39 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$USER_HOME$/.PyCharm30/system/python_stubs/-610317846/itertools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="356" column="8" selection-start="12018" selection-end="12018" vertical-scroll-proportion="0.3320158" vertical-offset="5884" max-vertical-offset="13889">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salma/model/core.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="210" column="0" selection-start="6881" selection-end="6881" vertical-scroll-proportion="0.36129034" vertical-offset="3283" max-vertical-offset="8007">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salma/model/world.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="146" column="29" selection-start="4364" selection-end="4364" vertical-scroll-proportion="0.0" vertical-offset="2232" max-vertical-offset="15283">
+          <folding>
+            <element signature="e#50#66#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/salma/test/itertest.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="13" column="0" selection-start="169" selection-end="169" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="357">
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/salma/test/worldtest.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="817" column="72" selection-start="29231" selection-end="29231" vertical-scroll-proportion="0.5964392" vertical-offset="13688" max-vertical-offset="14280">
+        <state line="333" column="53" selection-start="12063" selection-end="12063" vertical-scroll-proportion="0.51046026" vertical-offset="5417" max-vertical-offset="14654">
           <folding>
             <element signature="e#0#14#0" expanded="true" />
           </folding>
