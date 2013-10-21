@@ -20,7 +20,7 @@ init_scenario :-
 	setDomain(boundary, [worldbounds]),
 	setDomain(light_sensor, LightSensors),
 	setDomain(distance_sensor, DistanceSensors),
-	setDomain(drop, [main_goal]),
+	setDomain(drop_zone, [main_goal]),
 	setDomain(robot,[rob1,rob2]),
 	setDomain(wavelength,[red, green, blue]),
 	setDomain(drop_zone, [main_goal]),
