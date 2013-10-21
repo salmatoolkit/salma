@@ -91,16 +91,12 @@ class World(Entity):
     def createNewWorld():
         World.__instance = World()    
         return World.__instance
-    
-    
-    
-    
-    def __initializeFluent(self, fluent):
+
+
+    def enumerateFluentInstances(self, fluent):
         '''
-        Creates samples for the fluent instance for each combination
-            of parameter values.
+        :type fluent: Fluent
         '''
-        # list of domain lists
         candidates = []
         candidateIndexes = []
         for p in fluent.parameters:
@@ -108,20 +104,18 @@ class World(Entity):
             # if the parameter's domain is empty, leave
             if len(dom) == 0:
                 return
-            
+
             candidates.append(list(dom))
             candidateIndexes.append(0)
-        # todo: handle fluents without parameters
+            # todo: handle fluents without parameters
         finished = False
         while not finished:
             paramSelection = []
             for i, c in enumerate(candidates):
                 paramSelection.append(c[candidateIndexes[i]].id)
-            # TODO get meta model 
-            value = fluent.generateSample(self.__evaluationContext, paramSelection)
-            World.logicsEngine.setFluentValue(fluent.name, paramSelection, value)
-            
-            # increment first position similar to binary counter 
+            yield paramSelection
+
+            # increment first position similar to binary counter
             if len(candidateIndexes) > 0:
                 candidateIndexes[0] += 1
                 # propagate increment
@@ -135,8 +129,33 @@ class World(Entity):
                             candidateIndexes[i + 1] += 1
             else:
                 finished = True
+
+
+    def __initializeFluent(self, fluent):
+        '''
+        Creates samples for the fluent instance for each combination
+            of parameter values.
+        '''
+        # list of domain lists
+        for paramSelection in self.enumerateFluentInstances(fluent):
+            value = fluent.generateSample(self.__evaluationContext, paramSelection)
+            World.logicsEngine.setFluentValue(fluent.name, paramSelection, value)
+
+
                         
-               
+
+    def checkFluentInitialization(self):
+        uninitialized_instances = []
+        for fluent in self.__fluents.values():
+            """:type fluent: Fluent """
+            for paramSelection in self.enumerateFluentInstances(fluent):
+                v = self.getFluentValue(fluent.name, paramSelection)
+                if v is None:
+                    uninitialized_instances.append((fluent.name, paramSelection))
+        return uninitialized_instances
+
+
+
             
     def __makeFluentAccessFunction(self, fluentName):
         def __f(*params):
