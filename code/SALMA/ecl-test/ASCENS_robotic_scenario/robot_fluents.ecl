@@ -100,7 +100,7 @@ getItemInRangePosition(Robot, Item, S) :-
 	
 
 item_sensor_value(R, V, do2(A,S)) :- 
-	A = sense_for_item(R) ->
+	A = update_item_sensor(R) ->
 		getItemInRangePosition(R, V, S)
 		;
 		item_sensor_value(R, V, S).

@@ -35,6 +35,7 @@
 
 % action declaration
 primitive_action(tick,[]).
+primitive_action(nop,[]).
 fluent(time,[], integer).
 time(T,do2(A,S)) :-
 		time(TOld, S),
@@ -43,10 +44,11 @@ time(T,do2(A,S)) :-
 		;
 			T  is TOld
 		).
-			
+		
 time(T, s0) :- get_current(time, [], T).		
 time(T, slast) :- get_last(time, [], T).	
 poss(tick, _) :- true.
+poss(nop, _) :- true.
 
 
 last_initialized :- fail.

@@ -12,6 +12,7 @@ from salma.model.distributions import Distribution, \
     ArgumentIdentityDistribution, UniformDistribution
 
 from .procedure import ControlNode, ActionExecution, ProcedureRegistry
+from salma.model.world import World
 
 
 class Entity(object):
@@ -250,6 +251,9 @@ class DeterministicAction(Action):
         
         
 class RandomActionOutcome(object):
+
+
+
     '''
     Determines the action and distributions for each parameter.
     
@@ -260,6 +264,8 @@ class RandomActionOutcome(object):
     '''
     def __init__(self, actionName, paramDistributionSpecs):
         '''
+
+        :rtype : object
         actionName: the actionName
         paramDistributionSpecs: list of (paramName, ParamDistribution) tuples
         '''
@@ -298,8 +304,7 @@ class RandomActionOutcome(object):
                 
         return (self.__actionName, args)
 
-    
-
+NOP_OUTCOME = RandomActionOutcome('nop', [])
 class StochasticAction(Action):
     def __init__(self, name, params, outcomeSelector, immediate=False):
         '''
@@ -399,7 +404,6 @@ class StepwiseStochasticAction(StochasticAction):
             start += spec[0]
     
     
-
 
 
 class ExogenousAction(object):

@@ -44,7 +44,7 @@ primitive_action(update_distance_sensor,[robot, distance_sensor, float]). % robo
 primitive_action(update_velocity,[robot, float, float]).
 primitive_action(grab,[robot,item]). % pick_up could be a action that takes some time
 primitive_action(drop,[robot,item]).
-primitive_action(sense_for_item,[robot]).
+primitive_action(update_item_sensor,[robot]).
 primitive_action(set_target_wavelength,[robot, wavelength]).
 primitive_action(activate_light,[light_source]).
 primitive_action(deactivate_light,[light_source]).
