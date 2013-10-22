@@ -854,3 +854,5 @@ class WorldTest(unittest.TestCase):
 #     print(loader, tests, pattern)
 #     return suite()
 
+if __name__ == '__main__':
+    unittest.main()

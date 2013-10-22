@@ -12,7 +12,6 @@ from salma.model.distributions import Distribution, \
     ArgumentIdentityDistribution, UniformDistribution
 
 from .procedure import ControlNode, ActionExecution, ProcedureRegistry
-from salma.model.world import World
 
 
 class Entity(object):
