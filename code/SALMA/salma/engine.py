@@ -879,8 +879,7 @@ class EclipseCLPEngine(Engine):
                         t)
         
         return self.__convertValueFromEngineResult(t.value())
-        
-    
+
     def queryPersistentProperty(self, propertyName):
         rawStatus = pyclp.Var()
         rawT = pyclp.Var()
@@ -900,6 +899,20 @@ class EclipseCLPEngine(Engine):
                                                                                   propertyName,
                                                                                   str(rawStatus.value())))
         return (status, time)
-        
-    
-        
+
+    def load_declarations(self):
+        fluents = pyclp.Var()
+        self.__callGoal('get_declared_fluents', fluents)
+        converted_fluents = []
+
+        for f in fluents.value():
+            name = self.__convertValueFromEngineResult(f[0])
+            params = self.__convertValueFromEngineResult(f[1])
+            type = self.__convertValueFromEngineResult(f[2])
+            converted_fluents.append((name,params,type))
+        return {'fluents' : converted_fluents}
+
+
+
+
+

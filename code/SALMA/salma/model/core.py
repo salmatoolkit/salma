@@ -149,7 +149,7 @@ class Fluent(object):
     def __init__(self, name, fluentType, params, **kwargs):
         '''
         params contains pairs of name-sort
-        fluentType: either entity sort or int, float or bool
+        fluentType: either entity sort or integer, float or boolean
         '''
         
         self.__name = name
@@ -157,7 +157,7 @@ class Fluent(object):
         self.__params = params
         
                 
-        if fluentType == "int" or fluentType == "float":
+        if fluentType == "integer" or fluentType == "float":
             self.__valueRange = kwargs['range'] if 'range' in kwargs else Fluent.DEFAULT_RANGE
         else:
             self.__valueRange = None

@@ -54,12 +54,12 @@ class WorldTest2(unittest.TestCase):
     def setUp(self):
         World.createNewWorld()
         world = World.getInstance()
-        world.addFluent(Fluent("xpos", "int", [("r", "robot")], range=(0, 1000)))
-        world.addFluent(Fluent("ypos", "int", [("r", "robot")], range=(0, 1000)))
+        world.addFluent(Fluent("xpos", "integer", [("r", "robot")], range=(0, 1000)))
+        world.addFluent(Fluent("ypos", "integer", [("r", "robot")], range=(0, 1000)))
 
-        world.addFluent(Fluent("carrying", "bool", [("r", "robot"), ("i", "item")]))
+        world.addFluent(Fluent("carrying", "boolean", [("r", "robot"), ("i", "item")]))
         
-        world.addFluent(Fluent("active", "bool", ["r", "robot"]))
+        world.addFluent(Fluent("active", "boolean", ["r", "robot"]))
         world.addAction(DeterministicAction('move_right', [('r', 'robot')]))
         world.addAction(DeterministicAction('move_down', [('r', 'robot')]))
         world.addAction(DeterministicAction('grab', [('r', 'robot'), ('i', 'item')]))
@@ -80,7 +80,7 @@ class WorldTest2(unittest.TestCase):
                                        ('r2', 'robot')
                                       ],
                                       BernoulliDistribution(WorldTest2.P_COLLISION),
-                                      [('severity', UniformDistribution('int', valueRange=(0, 100)))]                                     
+                                      [('severity', UniformDistribution('integer', valueRange=(0, 100)))]
                                       )
         
         

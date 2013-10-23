@@ -41,7 +41,7 @@ class ExogenousActionTest(unittest.TestCase):
         
         class MyDist(Distribution):
             def __init__(self):
-                Distribution.__init__(self, 'bool')
+                Distribution.__init__(self, 'boolean')
             
             def generateSample(self, domainMetaModel, stateContext, paramValues):
                 rob = paramValues[0]

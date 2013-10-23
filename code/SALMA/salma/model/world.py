@@ -69,7 +69,7 @@ class World(Entity):
         if World.logicsEngine is None:
             raise SMCException("Engine not set when creating world.")
         World.logicsEngine.reset()
-        self.addFluent(Fluent("time", "int", [], range=(0, sys.maxsize)))
+        self.addFluent(Fluent("time", "integer", [], range=(0, sys.maxsize)))
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
 

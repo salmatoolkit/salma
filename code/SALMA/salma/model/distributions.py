@@ -12,7 +12,7 @@ from salma.model.evaluationcontext import EvaluationContext
 class Distribution(object):
     def __init__(self, sort, valueRange = None):
         self.__sort = sort
-        if (sort in ('int', 'float')) and (valueRange == None):
+        if (sort in ('integer', 'float')) and (valueRange == None):
             raise(SMCException(
                     "No value range specified for uniform distribution of sort {}".format(sort)))
          
@@ -40,11 +40,11 @@ class UniformDistribution(Distribution):
         Distribution.__init__(self, sort, valueRange)
          
     def generateSample(self, evaluationContext, paramValues):
-        if self.sort is 'int':
+        if self.sort is 'integer':
             return random.randint(*(self.valueRange))
         elif self.sort is 'float':
             return random.uniform(*(self.valueRange))
-        elif self.sort is 'bool':
+        elif self.sort is 'boolean':
             return random.choice([True, False])
         else:
             # user defined sort      
@@ -73,7 +73,7 @@ class ArgumentIdentityDistribution(Distribution):
      
 class BernoulliDistribution(Distribution):
     def __init__(self, probability):
-        Distribution.__init__(self, 'bool')
+        Distribution.__init__(self, 'boolean')
         self.__probability = probability
         
     @property

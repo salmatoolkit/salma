@@ -67,9 +67,9 @@ class SequentialHypothesisTestTest(unittest.TestCase):
     def setUp(self):
         World.createNewWorld()
         world = World.getInstance()
-        world.addFluent(Fluent("xpos", "int", [("o", "object")], range=(0, 1000)))
+        world.addFluent(Fluent("xpos", "integer", [("o", "object")], range=(0, 1000)))
 
-        world.addFluent(Fluent("carrying", "bool", [("r", "robot"), ("i", "item")]))
+        world.addFluent(Fluent("carrying", "boolean", [("r", "robot"), ("i", "item")]))
         
         world.addAction(DeterministicAction('move_right', [('r', 'robot')]))
         world.addAction(DeterministicAction('grab', [('r', 'robot'), ('i', 'item')]))
