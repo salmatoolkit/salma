@@ -156,6 +156,21 @@ class World(Entity):
         return (uninitialized_fluent_instances, uninitialized_constant_instances)
 
 
+    def checkActionInitialization(self):
+        uninitialized_stochastic_actions = []
+        uninitialized_exogenous_actions1 = []
+        uninitialized_exogenous_actions2 = []
+        for action in filter(lambda a : isinstance(a, StochasticAction), self.__actions.values()):
+            if action.getOutcomeSelector() is None:
+                uninitialized_stochastic_actions.append(action)
+        for exoaction in self.__exogenousActions.values():
+            if exoaction.get_occurance_distribution() is None:
+                uninitialized_exogenous_actions1.append(exoaction)
+            if exoaction.get
+
+
+
+
     def __makeFluentAccessFunction(self, fluentName):
         def __f(*params):
             return self.getFluentValue(fluentName, params)

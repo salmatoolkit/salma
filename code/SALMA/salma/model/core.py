@@ -439,13 +439,10 @@ class ExogenousAction(object):
     
     def generateInstance(self, evaluationContext, entityCombination):
         '''
-        
         :param domainMetaModel: DomainMetaModel
         :param stateContext: StateContext
         '''
         args = list(entityCombination)
-        
-        
         # : :type distribution: Distribution
         for distribution in self.__qualifyingParamDistributions:
             val = distribution.generateSample(evaluationContext, args)
