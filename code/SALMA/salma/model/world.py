@@ -138,6 +138,9 @@ class World(Entity):
 
 
     def checkFluentInitialization(self):
+        '''
+        :rtype : (list, list)
+        '''
         uninitialized_fluent_instances = []
         uninitialized_constant_instances = []
         for fluent in self.__fluents.values():
@@ -166,7 +169,9 @@ class World(Entity):
         for exoaction in self.__exogenousActions.values():
             if exoaction.get_occurance_distribution() is None:
                 uninitialized_exogenous_actions1.append(exoaction)
-            if exoaction.get
+            if len(exoaction.qualifying_param_types) != len(exoaction.get_qualifying_param_distributions()):
+                uninitialized_exogenous_actions2.append(exoaction)
+        return (uninitialized_stochastic_actions, uninitialized_exogenous_actions1, uninitialized_exogenous_actions2)
 
 
 
@@ -216,10 +221,10 @@ class World(Entity):
             self.addConstant(Constant(c[0],c[2],c[1]))
         for pa in declarations['primitive_actions']:
             immediate = pa[0] in declarations['immediate_actions']
-            self.addAction(DeterministicAction(pa[0],pa[1]), immediate)
+            self.addAction(DeterministicAction(pa[0],pa[1], immediate))
         for sa in declarations['stochastic_actions']:
             immediate = sa[0] in declarations['immediate_actions']
-            self.addAction(DeterministicAction(sa[0],sa[1]), immediate)
+            self.addAction(StochasticAction(sa[0],sa[1], outcomeSelector=None, immediate=immediate))
         for ea in declarations['exogenous_actions']:
             self.addExogenousAction(ExogenousAction(ea[0], ea[1], ea[2]))
 
@@ -457,7 +462,7 @@ class World(Entity):
         :param fluentName: str
         :param fluentParams: parameters
         '''
-        if not self.__initialized: self.initialize()
+        if not self.__initialized: self.initialize(False)
         # we don't check if the fluent has been registered for performance reasons
         fv = World.logicsEngine.getFluentValue(fluentName, *fluentParams)
         if fv == None:

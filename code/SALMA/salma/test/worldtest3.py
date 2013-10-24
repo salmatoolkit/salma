@@ -44,12 +44,29 @@ class WorldTest3(unittest.TestCase):
         World.createNewWorld()
         world = World.getInstance()
 
+
     def test_load_declaration(self):
         world = World.getInstance()
-        engine = World.logicsEngine
-        ''':type : EclipseCLPEngine'''
-        r = engine.load_declarations()
-        print(r)
+        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
+                  ActionExecution("move_right", [Entity.SELF]))
+        proc = Procedure("main", [], w)
 
+        agent1 = Agent("rob1", "robot", proc)
+        world.addAgent(agent1)
+        world.addEntity(Entity("item1","item"))
+        world.addEntity(Entity("item2","item"))
+        world.load_declarations()
+        world.initialize(False)
+        fl, const = world.checkFluentInitialization()
+        print(fl)
+        print(const)
+
+        a, a2, a3 = world.checkActionInitialization()
+        print("---------")
+        print(a)
+        print(a2)
+        print(a3)
+        print("----")
+        print(world.getAllActions())
 if __name__ == '__main__':
     unittest.main()

@@ -33,7 +33,7 @@ exogenous_action(accidental_drop, [robot, item], []).
 
 exogenous_action(collision, [robot, robot], [integer]).
 
-%stochastic_action(jump, [robot]).
+stochastic_action(jump, [robot]).
 
 
 % fluent declaration: fluent_name, [arg_domains], value_domain

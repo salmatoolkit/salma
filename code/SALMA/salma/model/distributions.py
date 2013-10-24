@@ -48,7 +48,7 @@ class UniformDistribution(Distribution):
             return random.choice([True, False])
         else:
             # user defined sort      
-            domain = evaluationContext.getdomain(self.sort)
+            domain = evaluationContext.getDomain(self.sort)
             sample = random.choice(list(domain))
             return sample
         

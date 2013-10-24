@@ -415,6 +415,10 @@ class ExogenousAction(object):
     def entity_param_types(self):
         return self.__entity_param_types
 
+    @property
+    def qualifying_param_types(self):
+        return self.__qualifying_param_types
+
     def get_occurance_distribution(self):
         return self.__occuranceDistribution
 
