@@ -7,7 +7,7 @@ from salma.SMCException import SMCException
 from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions
 from salma.model.core import Agent, Entity, Fluent, Action, \
-    DeterministicAction, StochasticAction, StepwiseStochasticAction, \
+    DeterministicAction, StochasticAction, \
     RandomActionOutcome, ExogenousAction, Constant
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution

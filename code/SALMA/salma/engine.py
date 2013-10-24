@@ -8,6 +8,7 @@ import logging
 import numbers
 
 import pyclp
+from vis.cvisual import cone
 
 from salma.SMCException import SMCException
 from .constants import *
@@ -259,10 +260,18 @@ class Engine(object):
         change time.
         
         :param propertyName: str
+        :rtype tuple
         '''
         raise NotImplementedError()
     
-    
+    def load_declarations(self):
+        '''
+        Compiles all declarations of fluents, constants and actions from the ECLiPSe model. Returns a
+        dict with the category as key and a list of tuples as value. The keys are:
+        fluents, constants, primitive_actions, stochastic_actions, exogenous_actions.
+
+        :rtype dict
+        '''
     
 def createParamTerms(*params, **kwargs):
     '''
@@ -900,17 +909,40 @@ class EclipseCLPEngine(Engine):
                                                                                   str(rawStatus.value())))
         return (status, time)
 
-    def load_declarations(self):
-        fluents = pyclp.Var()
-        self.__callGoal('get_declared_fluents', fluents)
-        converted_fluents = []
 
-        for f in fluents.value():
-            name = self.__convertValueFromEngineResult(f[0])
-            params = self.__convertValueFromEngineResult(f[1])
-            type = self.__convertValueFromEngineResult(f[2])
-            converted_fluents.append((name,params,type))
-        return {'fluents' : converted_fluents}
+    def __load_declaration(self, load_function):
+        """
+        :rtype : list
+        """
+        entries = pyclp.Var()
+        self.__callGoal(load_function, entries)
+        converted_entries = []
+
+        for entry in entries.value():
+            args = []
+            for arg in entry:
+                args.append(self.__convertValueFromEngineResult(arg))
+            converted_entries.append(tuple(args))
+
+        return converted_entries
+
+    def load_declarations(self):
+        fluents = self.__load_declaration('get_declared_fluents')
+        constants = self.__load_declaration('get_declared_constants')
+        primitive_actions = self.__load_declaration('get_declared_primitive_actions')
+        stochastic_actions = self.__load_declaration('get_declared_stochastic_actions')
+        exogenous_actions = self.__load_declaration('get_declared_exogenous_actions')
+        immediate_actions = list(map(lambda e : e[0],
+                                self.__load_declaration('get_declared_immediate_actions')))
+        return {'fluents' : fluents,
+                'constants' : constants,
+                'primitive_actions' : primitive_actions,
+                'stochastic_actions' : stochastic_actions,
+                'exogenous_actions' : exogenous_actions,
+                'immediate_actions' : immediate_actions
+                }
+
+
 
 
 
