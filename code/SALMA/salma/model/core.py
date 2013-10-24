@@ -146,15 +146,15 @@ class Fluent(object):
     DEFAULT_RANGE = (0, sys.maxsize)
     
     
-    def __init__(self, name, fluentType, params, **kwargs):
+    def __init__(self, name, fluentType, param_types, **kwargs):
         '''
-        params contains pairs of name-sort
+        params contains pairs of name-sort of just sorts
         fluentType: either entity sort or integer, float or boolean
         '''
         
         self.__name = name
         self.__fluentType = fluentType
-        self.__params = params
+        self.__param_types = param_types
         
                 
         if fluentType == "integer" or fluentType == "float":
@@ -183,13 +183,9 @@ class Fluent(object):
         
         
     def getParameters(self):
-        return self.__params
+        return self.__param_types
     
-    def getParamTypeByName(self, paramName):
-        for param in self.__params:
-            if param[0] == paramName:
-                return param[1]
-            
+
     def getName(self): return self.__name
     def getFluentType(self): return self.__fluentType
     
@@ -206,20 +202,20 @@ class Fluent(object):
 
 
 class Constant(Fluent):
-    def __init__(self, name, fluentType, params, **kwargs):
-        Fluent.__init__(self, name, fluentType, params, **kwargs)
+    def __init__(self, name, fluentType, param_types, **kwargs):
+        Fluent.__init__(self, name, fluentType, param_types, **kwargs)
 
     
     
 class Action(object):
     
-    def __init__(self, name, params, immediate=False):
+    def __init__(self, name, parameter_types, immediate=False):
         '''
-        params: list of (name,sort) tuples
+        params: list of param sorts
         blocking: if true, the action's precondition (poss) will be evaluated before it is actually executed 
         '''
         self.__name = name
-        self.__params = params
+        self.__params = parameter_types
         self.__immediate = immediate
         
     @property
@@ -237,21 +233,19 @@ class Action(object):
     def immediate(self):
         return self.__immediate
 
-    def getParamTypeByName(self, paramName):
-        for param in self.__params:
-            if param[0] == paramName:
-                return param[1]
-    
+    @immediate.setter
+    def immediate(self, is_immediate):
+        self.__immediate = is_immediate
+
+
 class DeterministicAction(Action):
-    def __init__(self, name, params, immediate=False):
-        Action.__init__(self, name, params, immediate)
+    def __init__(self, name, parameter_types, immediate=False):
+        Action.__init__(self, name, parameter_types, immediate)
 
 
         
         
 class RandomActionOutcome(object):
-
-
 
     '''
     Determines the action and distributions for each parameter.
@@ -265,17 +259,20 @@ class RandomActionOutcome(object):
         '''
 
         :rtype : object
+        :type actionName: str
+        :type paramDistributionSpecs: list
+
         actionName: the actionName
-        paramDistributionSpecs: list of (paramName, ParamDistribution) tuples
+        paramDistributionSpecs: list of ParamDistribution objects
+
         '''
         self.__actionName = actionName
         
         self.__paramDistributionSpecs = []
         for i, param in enumerate(paramDistributionSpecs):
-            paramName = param[0]
-            distr = (param[1] if isinstance(param[1], Distribution) 
+            distr = (param if isinstance(param, Distribution)
                                 else ArgumentIdentityDistribution(i))  
-            self.__paramDistributionSpecs.append((paramName, distr))            
+            self.__paramDistributionSpecs.append(distr)
         
     @property
     def actionName(self):
@@ -291,11 +288,9 @@ class RandomActionOutcome(object):
         '''
         args = []
         
-        for pdistSpec in self.__paramDistributionSpecs:
-            # pName = pdistSpec[0]
-            pDistrib = pdistSpec[1]
+        for pdistrib in self.__paramDistributionSpecs:
             # generateSample(self, domainMetaModel, paramValues):
-            val = pDistrib.generateSample(evaluationContext, paramValues)
+            val = pdistrib.generateSample(evaluationContext, paramValues)
             if isinstance(val, Entity):
                 args.append(val.id)
             else:
@@ -304,105 +299,80 @@ class RandomActionOutcome(object):
         return (self.__actionName, args)
 
 NOP_OUTCOME = RandomActionOutcome('nop', [])
+
 class StochasticAction(Action):
-    def __init__(self, name, params, outcomeSelector, immediate=False):
+    def __init__(self, name, parameter_types, outcomeSelector = None, immediate=False):
         '''
         :type name: str
-        :type params: list
+        :type parameter_types: list
         :type outcomeSelector: function
         
         outcomeSelector signature: (domainMetaModel, stateContext, paramValues)
         '''
-        Action.__init__(self, name, params, immediate)
+        Action.__init__(self, name, parameter_types, immediate)
         self.__outcomeSelector = outcomeSelector
-        
+
+    def getOutcomeSelector(self):
+        return self.__outcomeSelector
+
+    def setOutcomeSelector(self, selector):
+        self.__outcomeSelector = selector
     
     def generateOutcome(self, evaluationContext, paramValues):
         '''
         Returns a concrete sample as a (action, params) tuple.
         '''
+
         outcome = self.__outcomeSelector(evaluationContext, paramValues)
         return outcome.generateSample(evaluationContext, paramValues)
-    
-    
-    
-    
-class ParametricStochasticAction(StochasticAction):
+
+def parametric_stochastic_action(actionName, paramDistributionSpecs):
     '''
-    A stochastic action that is parametric in the sense that there is only one outcome 
+    Creates a stochastic action outcome selector that is parametric in the sense that there is only one outcome
     specification.
     '''
-    def __init__(self, actionName, paramDistributionSpecs, immediate=False):
-        params = []
-        for param in paramDistributionSpecs:
-            paramName = param[0]
-            paramSort = param[1].sort if isinstance(param[1], Distribution) else param[1]
-            params.append((paramName, paramSort))
-        StochasticAction.__init__(self, actionName, params, self.__selectOutcome, immediate)
-        self.__outcome = RandomActionOutcome(actionName, paramDistributionSpecs)
-  
-    def __selectOutcome(self, evaluationContext, paramValues):
-        return self.__outcome
+    params = []
+    for param in paramDistributionSpecs:
+        paramSort = param.sort if isinstance(param, Distribution) else param
+        params.append(paramSort)
+    __outcome = RandomActionOutcome(actionName, paramDistributionSpecs)
+    def __selectOutcome(evaluationContext, paramValues):
+        return __outcome
+    return __selectOutcome
 
-
-
-class UniformStochasticAction(StochasticAction):
+def uniform_stochastic_action(outcomes):
     '''
-    stochastic 
+    outcomes: list of RandomActionOutcome instances
+    :type outcomes: list
     '''
-    def __init__(self, name, params, outcomes, immediate=False):
-        '''
-        outcomes: list of RandomActionOutcome instances
-        '''
-        # TODO think about proper way to generalize
-                
-        StochasticAction.__init__(self, name, params, self.__selectOutcome, immediate)
-        
-        self.__outcomes = outcomes     
-        
-    
-    def __selectOutcome(self, evaluationContext, paramValues):
-        return random.choice(self.__outcomes)
+    __outcomes = outcomes
 
+    def __selectOutcome(evaluationContext, paramValues):
+        return random.choice(__outcomes)
+
+    return __selectOutcome
             
-class StepwiseStochasticAction(StochasticAction):
+def stepwise_stochastic_action(outcomes_with_probabilities):
     '''
-    stochastic 
+    outcomes_with_probabilities: list of (probability, RandomActionOutcome) tuples
     '''
-    def __init__(self, name, params, outcomes, immediate=False):
-        '''
-        outcomes: list of (probability, RandomActionOutcome) tuples
-        '''
-        # TODO think about proper way to generalize
-                
-        StochasticAction.__init__(self, name, params, self.__selectOutcome, immediate)
-        
-        self.__outcomes = outcomes
-        self.__validateDistribution()
-        
-        
-        
-    def __validateDistribution(self):
-        s = sum(map(lambda x: x[0], self.__outcomes))
-        if s != 1.0:
-            raise(SMCException(
-                    "Invalid probability distribution for stochastic action {}: probability sum was {} but should be 1.".format(
-                                                                                                                        self.name, s)))
-        
-    
-    def __selectOutcome(self, evaluationContext, paramValues):
-        '''
-        Selects the core.RandomActionOutcome that will then be used to generate the concrete sample.
-        This is meant to be used as a template method and overridden in subclasses.
-        '''
+
+    __outcomes_with_probabilities = outcomes_with_probabilities
+    s = sum(map(lambda x: x[0], __outcomes_with_probabilities))
+    if s != 1.0:
+        raise(SMCException(
+                "Invalid probability distribution: probability sum was {} but should be 1.".format(s)))
+
+    def __selectOutcome(evaluationContext, paramValues):
         r = random.uniform(0, 1)
         start = 0
-        for spec in self.__outcomes:
+        for spec in __outcomes_with_probabilities:
             if (r >= start) and  (r < start + spec[0]):
                 return spec[1]
             start += spec[0]
-    
-    
+        return None
+    return __selectOutcome
+
 
 
 class ExogenousAction(object):
@@ -410,29 +380,28 @@ class ExogenousAction(object):
     # : :type __qualifyingParamDistributions: list
     __qualifyingParamDistributions = []
     
-    def __init__(self, actionName, entityParams, occuranceDistribution, qualifyingParamDistributions):
+    def __init__(self, actionName, entity_param_types, qualifying_param_types, occuranceDistribution = None,
+                 qualifyingParamDistributions = []):
         '''
         actionName: the actionName
         :type actionName: str
         
         entityParams: list of (paramName, sort) tuples
-        :type entityParams: list
+        :type entity_param_types: list
                 
         occuranceDistribution: Distribution that receives a combination of entity values as parameters and decides whether the
             exogeneous action should occur for this combination
             
         :type occuranceDistribution: Distribution
-        qualifyingParamDistributions: list of (paramName, ParamDistribution) tuples
+        qualifyingParamDistributions: list of ParamDistribution
         :type qualifyingParamDistributions: list
             
         '''
         self.__actionName = actionName
         
-        
-        self.__entityParams = entityParams
-        
-        self.__occuranceDistribution = occuranceDistribution           
-            
+        self.__entity_param_types = entity_param_types
+        self.__qualifying_param_types = qualifying_param_types
+        self.__occuranceDistribution = occuranceDistribution
         
         self.__qualifyingParamDistributions = qualifyingParamDistributions
         
@@ -441,7 +410,28 @@ class ExogenousAction(object):
     @property
     def actionName(self):
         return self.__actionName
-    
+
+    @property
+    def entity_param_types(self):
+        return self.__entity_param_types
+
+    def get_occurance_distribution(self):
+        return self.__occuranceDistribution
+
+    def set_occurance_distribution(self, distrib):
+        '''
+        :type distrib: Distribution
+        '''
+        self.__occuranceDistribution = distrib
+
+    def get_qualifying_param_distributions(self):
+        return self.__qualifyingParamDistributions
+
+    def set_qualifying_param_distributions(self, distribs):
+        '''
+        :type distribs: list
+        '''
+        self.__qualifyingParamDistributions = distribs
     
     def shouldHappen(self, evaluationContext, paramValues):
         return self.__occuranceDistribution.generateSample(evaluationContext, paramValues)
@@ -457,7 +447,7 @@ class ExogenousAction(object):
         
         
         # : :type distribution: Distribution
-        for _, distribution in self.__qualifyingParamDistributions:
+        for distribution in self.__qualifyingParamDistributions:
             val = distribution.generateSample(evaluationContext, args)
             args.append(val)
             

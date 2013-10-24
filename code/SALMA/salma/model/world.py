@@ -14,7 +14,7 @@ import pyclp
 from salma import constants
 from salma.SMCException import SMCException
 from salma.constants import *
-from salma.model.core import Entity, Agent, Constant
+from salma.model.core import Entity, Agent, Constant, DeterministicAction, ExogenousAction
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ActionExecution
 
@@ -94,7 +94,7 @@ class World(Entity):
         candidates = []
         candidateIndexes = []
         for p in fluent.parameters:
-            dom = self.getDomain(p[1])
+            dom = self.getDomain(p)
             # if the parameter's domain is empty, leave
             if len(dom) == 0:
                 yield []
@@ -138,15 +138,22 @@ class World(Entity):
 
 
     def checkFluentInitialization(self):
-        uninitialized_instances = []
+        uninitialized_fluent_instances = []
+        uninitialized_constant_instances = []
         for fluent in self.__fluents.values():
             """:type fluent: Fluent """
             for paramSelection in self.enumerateFluentInstances(fluent):
+                instance = None
                 v = (self.getConstantValue(fluent.name, paramSelection) if isinstance(fluent, Constant)
                      else self.getFluentValue(fluent.name, paramSelection))
                 if v is None:
-                    uninitialized_instances.append((fluent.name, paramSelection))
-        return uninitialized_instances
+                    instance = (fluent.name, paramSelection)
+                if isinstance(fluent, Constant):
+                    uninitialized_constant_instances.append(instance)
+                else:
+                    uninitialized_fluent_instances.append(instance)
+
+        return (uninitialized_fluent_instances, uninitialized_constant_instances)
 
 
     def __makeFluentAccessFunction(self, fluentName):
@@ -177,6 +184,29 @@ class World(Entity):
     def sampleFluentValues(self):
         for fluent in itertools.filterfalse(lambda f: f.name == 'time', self.__fluents.values()):
             self.__initializeFluent(fluent)
+
+    def load_declarations(self):
+        '''
+        Loads the declarations from the domain specification and initializes fluents, constants, and actions.
+        '''
+        # fluentName -> core.Fluent
+        self.__fluents = dict()
+        # actionName -> core.Action
+        self.__actions = dict()
+        self.__exogenousActions = dict()
+        declarations = World.logicsEngine.load_declarations()
+        for f in declarations['fluents']:
+            self.addFluent(Fluent(f[0], f[2], f[1]))
+        for c in declarations['constants']:
+            self.addConstant(Constant(c[0],c[2],c[1]))
+        for pa in declarations['primitive_actions']:
+            immediate = pa[0] in declarations['immediate_actions']
+            self.addAction(DeterministicAction(pa[0],pa[1]), immediate)
+        for sa in declarations['stochastic_actions']:
+            immediate = sa[0] in declarations['immediate_actions']
+            self.addAction(DeterministicAction(sa[0],sa[1]), immediate)
+        for ea in declarations['exogenous_actions']:
+            self.addExogenousAction(ExogenousAction(ea[0], ea[1], ea[2]))
 
     def initialize(self, sampleFluentValues=True):
         '''
@@ -292,6 +322,29 @@ class World(Entity):
         if action.name in self.__actions:
             del self.__actions[action.name]
 
+    def getAction(self, action_name):
+        try:
+            return self.__actions[action.name]
+        except KeyError:
+            raise(SMCException("Action {} not registered.".format(action_name)))
+
+    def setOutcomeSelector(self, action_name, selector):
+        '''
+        Sets the outcome selector function for the stochastic action with the given name.
+        :param action_name:
+        :param selector:
+
+        :type action_name: str
+        '''
+        action = self.getAction(action_name)
+        if not isinstance(action, StochasticAction):
+            raise(SMCException("Action {} is not a stochastic action.".format(action_name)))
+        action.setOutcomeSelector(selector)
+
+    def getAllActions(self):
+        return self.__actions.values()
+
+
     def addExogenousAction(self, exogenousAction):
         ':type exogenousAction: ExogenousAction'
         self.__exogenousActions[exogenousAction.actionName] = exogenousAction
@@ -301,6 +354,28 @@ class World(Entity):
         if exogenousAction.actionName in self.__exogenousActions:
             del self.__exogenousActions[exogenousAction.actionName]
 
+    def getExogenousAction(self, action_name):
+        '''
+        :rtype: salma.model.core.ExogenousAction
+        '''
+
+        try:
+            return self.__exogenousActions[action_name]
+        except KeyError:
+            raise(SMCException("Unregistered exogenous action {}.".format(action_name)))
+
+    def getAllExogenousActions(self):
+        return self.__exogenousActions.values()
+
+    def configureExogenousAction(self, action_name, occurance_distribution, qualifying_parameter_distributions):
+        '''
+        :type action_name: str
+        :type occurance_distribution: salma.model.distributions.Distribution
+        :type qualifying_parameter_distributions: list
+        '''
+        act = self.getExogenousAction(action_name)
+        act.set_occurance_distribution(occurance_distribution)
+        act.set_qualifying_param_distributions(qualifying_parameter_distributions)
 
     def getSorts(self):
         return self.__domainMap.keys()
@@ -316,8 +391,10 @@ class World(Entity):
         Adds a core.Fluent object to the metamodel.
         
         fluent: core.Fluent object
+
         '''
         self.__fluents[fluent.name] = fluent
+
 
     def addConstant(self, con):
         self.addFluent(con)
