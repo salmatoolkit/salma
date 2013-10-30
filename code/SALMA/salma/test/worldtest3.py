@@ -45,7 +45,7 @@ class WorldTest3(unittest.TestCase):
         world = World.getInstance()
 
 
-    def test_load_declaration(self):
+    def test_load_declaration_empty(self):
         world = World.getInstance()
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
                   ActionExecution("move_right", [Entity.SELF]))
@@ -53,20 +53,41 @@ class WorldTest3(unittest.TestCase):
 
         agent1 = Agent("rob1", "robot", proc)
         world.addAgent(agent1)
-        world.addEntity(Entity("item1","item"))
-        world.addEntity(Entity("item2","item"))
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
         world.load_declarations()
         world.initialize(False)
         fl, const = world.checkFluentInitialization()
         print(fl)
         print(const)
-
+        self.assertEqual(len(fl), 7)
+        self.assertEqual(len(const), 2)
         a, a2, a3 = world.checkActionInitialization()
         print("---------")
         print(a)
         print(a2)
         print(a3)
+        self.assertEqual(len(a), 1)
+        self.assertEqual(len(a2), 2)
+        self.assertEqual(len(a3), 1)
         print("----")
         print(world.getAllActions())
+        self.assertEqual(len(list(world.getAllActions())), 12)
+
+
+    def test_load_declaration_full(self):
+        world = World.getInstance()
+        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
+                  ActionExecution("move_right", [Entity.SELF]))
+        proc = Procedure("main", [], w)
+
+        agent1 = Agent("rob1", "robot", proc)
+        world.addAgent(agent1)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.load_declarations()
+        world.initialize(False)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -151,10 +151,10 @@ class World(Entity):
                      else self.getFluentValue(fluent.name, paramSelection))
                 if v is None:
                     instance = (fluent.name, paramSelection)
-                if isinstance(fluent, Constant):
-                    uninitialized_constant_instances.append(instance)
-                else:
-                    uninitialized_fluent_instances.append(instance)
+                    if isinstance(fluent, Constant):
+                        uninitialized_constant_instances.append(instance)
+                    else:
+                        uninitialized_fluent_instances.append(instance)
 
         return (uninitialized_fluent_instances, uninitialized_constant_instances)
 
@@ -235,6 +235,7 @@ class World(Entity):
         2. Sets ups the a new initial situation by creating samples for the fluent instance for each combination
             of parameter values.
         '''
+        # TODO: decouple init of domains from sampling
         World.logicsEngine.reset()
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
