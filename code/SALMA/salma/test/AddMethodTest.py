@@ -10,6 +10,24 @@ class Agent(object):
         print("setting {} = {}".format(key,value))
         object.__setattr__(self, key, value)
 
+class Entity:
+    '''
+    :param name:
+    :return:
+    '''
+    def __init__(self, name):
+        '''
+        :param name:
+        :return:
+        '''
+        self.name = name
+
+    def __dir__(self):
+        l = []
+        for i in range(5):
+            l.append(self.name + "_" + str(i))
+        return l
+
 class AddMethodTest(unittest.TestCase):
     def test_something(self):
         a1 = Agent("chris")
