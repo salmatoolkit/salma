@@ -14,12 +14,13 @@ import pyclp
 from salma import constants
 from salma.SMCException import SMCException
 from salma.constants import *
-from salma.model.core import Entity, Agent, Constant, DeterministicAction, ExogenousAction
+from salma.model.actions import StochasticAction
+from salma.model.core import Entity, Agent, Constant
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ActionExecution
 
 from ..statistics import SequentialAcceptanceTest
-from .core import Agent, Entity, Fluent, StochasticAction
+from .core import Agent, Entity, Fluent
 from .procedure import Variable, ActionExecution
 
 
@@ -137,7 +138,7 @@ class World(Entity):
             World.logicsEngine.setFluentValue(fluent.name, paramSelection, value)
 
 
-    def checkFluentInitialization(self):
+    def check_fluent_initialization(self):
         '''
         :rtype : (list, list)
         '''
@@ -159,7 +160,7 @@ class World(Entity):
         return (uninitialized_fluent_instances, uninitialized_constant_instances)
 
 
-    def checkActionInitialization(self):
+    def check_action_initialization(self):
         uninitialized_stochastic_actions = []
         uninitialized_exogenous_actions1 = []
         uninitialized_exogenous_actions2 = []
@@ -176,20 +177,20 @@ class World(Entity):
 
 
 
-    def __makeFluentAccessFunction(self, fluentName):
+    def __make_fluent_access_function(self, fluentName):
         def __f(*params):
             return self.getFluentValue(fluentName, params)
 
         return __f
 
 
-    def __createExpressionContext(self):
+    def __create_expression_context(self):
 
         self.__expressionContext = dict()
 
         #: :type fluent: Fluent
         for fluent in self.__fluents.values():
-            self.__expressionContext[fluent.name] = self.__makeFluentAccessFunction(fluent.name)
+            self.__expressionContext[fluent.name] = self.__make_fluent_access_function(fluent.name)
 
         def __fluentChangeClock(fluentName, *params):
             return self.getFluentChangeTime(fluentName, params)
@@ -201,7 +202,7 @@ class World(Entity):
         self.__expressionContext['actionClock'] = __actionClock
 
 
-    def sampleFluentValues(self):
+    def sample_fluent_values(self):
         for fluent in itertools.filterfalse(lambda f: f.name == 'time', self.__fluents.values()):
             self.__initializeFluent(fluent)
 
@@ -266,13 +267,13 @@ class World(Entity):
         World.logicsEngine.setFluentValue('time', [], 0)
 
         if sampleFluentValues:
-            self.sampleFluentValues()
+            self.sample_fluent_values()
 
         self.__initialized = True
         self.__persistentPropertiesInitialized = False
-        self.__createExpressionContext()
+        self.__create_expression_context()
 
-    def isFinished(self):
+    def is_finished(self):
         '''
         Returns true if every registered agent has finished already.
         '''
@@ -345,22 +346,10 @@ class World(Entity):
 
     def getAction(self, action_name):
         try:
-            return self.__actions[action.name]
+            return self.__actions[action_name]
         except KeyError:
             raise(SMCException("Action {} not registered.".format(action_name)))
 
-    def setOutcomeSelector(self, action_name, selector):
-        '''
-        Sets the outcome selector function for the stochastic action with the given name.
-        :param action_name:
-        :param selector:
-
-        :type action_name: str
-        '''
-        action = self.getAction(action_name)
-        if not isinstance(action, StochasticAction):
-            raise(SMCException("Action {} is not a stochastic action.".format(action_name)))
-        action.setOutcomeSelector(selector)
 
     def getAllActions(self):
         return self.__actions.values()
@@ -624,7 +613,7 @@ class World(Entity):
         step_num = 0
         verdict = NONDET
         toplevel_results = scheduled_results = failedRegularActions = []
-        while (not self.isFinished()) and (verdict == NONDET):
+        while (not self.is_finished()) and (verdict == NONDET):
             (_, verdict, toplevel_results, scheduled_results, _, failedRegularActions) = self.step()
             step_num += 1
         return (verdict,
@@ -648,7 +637,7 @@ class World(Entity):
         verdict = NONDET
         toplevel_results = scheduled_results = failedRegularActions = []
         c1 = c2 = time.clock()
-        while not self.isFinished():
+        while not self.is_finished():
             (_, verdict, toplevel_results, scheduled_results, _, failedRegularActions) = self.step()
 
             c2 = time.clock()

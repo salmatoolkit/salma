@@ -7,7 +7,7 @@ from salma.SMCException import SMCException
 from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions
 from salma.model.core import Agent, Entity, Fluent, Action, \
-    DeterministicAction, StochasticAction, StepwiseStochasticAction, \
+    DeterministicAction, StochasticAction,  \
     RandomActionOutcome, ExogenousAction, Constant
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
@@ -307,7 +307,7 @@ class WorldTest(unittest.TestCase):
             print("Try {}".format(i))
             print("-" * 50)
             world.reset()
-            world.sampleFluentValues()
+            world.sample_fluent_values()
             world.printState()
 
 
@@ -799,7 +799,7 @@ class WorldTest(unittest.TestCase):
         world.addAgent(rob1)
         world.initialize(False)
 
-        l = world.checkFluentInitialization()
+        l = world.check_fluent_initialization()
         expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'coffee']), ('carrying', ['rob1', 'chocolate']),
                     ('xpos', ['rob1']), ('painted', ['coffee']), ('painted', ['chocolate']),
                     ('gravity', []), ('robot_radius', ['rob1'])]
@@ -808,7 +808,7 @@ class WorldTest(unittest.TestCase):
 
         self.assertEqual(len(l), len(expected))
         world.setFluentValue('xpos', ['rob1'], 10)
-        l = world.checkFluentInitialization()
+        l = world.check_fluent_initialization()
         expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'coffee']), ('carrying', ['rob1', 'chocolate']),
                     ('painted', ['coffee']), ('painted', ['chocolate']),
                     ('gravity', []), ('robot_radius', ['rob1'])]
@@ -817,7 +817,7 @@ class WorldTest(unittest.TestCase):
         self.assertEqual(len(l), len(expected))
 
         world.setFluentValue('carrying', ['rob1', 'coffee'], True)
-        l = world.checkFluentInitialization()
+        l = world.check_fluent_initialization()
         expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'chocolate']),
                     ('painted', ['coffee']), ('painted', ['chocolate']),
                     ('gravity', []), ('robot_radius', ['rob1'])]
@@ -826,7 +826,7 @@ class WorldTest(unittest.TestCase):
         self.assertEqual(len(l), len(expected))
 
         world.setConstantValue('gravity', [], 9.81)
-        l = world.checkFluentInitialization()
+        l = world.check_fluent_initialization()
         expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'chocolate']),
                     ('painted', ['coffee']), ('painted', ['chocolate']),
                     ('robot_radius', ['rob1'])]
@@ -835,7 +835,7 @@ class WorldTest(unittest.TestCase):
         self.assertEqual(len(l), len(expected))
 
         world.setConstantValue('robot_radius', ['rob1'], 20.0)
-        l = world.checkFluentInitialization()
+        l = world.check_fluent_initialization()
         expected = [('ypos', ['rob1']), ('carrying', ['rob1', 'chocolate']),
                     ('painted', ['coffee']), ('painted', ['chocolate'])]
         for e in expected:

@@ -83,4 +83,4 @@ class BernoulliDistribution(Distribution):
     def generateSample(self, evaluationContext, paramValues):
         r = random.uniform(0,1)
         return r <= self.__probability
-        
+
