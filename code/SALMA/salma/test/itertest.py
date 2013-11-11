@@ -10,7 +10,14 @@ def genTest(n):
 
 
 
-
+def makeGreeter(name):
+    __msg = "Hello " + name
+    def __greeter(my_name):
+        print(__msg + " here is " + my_name)
+    return __greeter
 
 for x in genTest(-5):
     print("{} - {}".format(x[0],x[1]))
+
+g = makeGreeter("Mary")
+g("Pete")

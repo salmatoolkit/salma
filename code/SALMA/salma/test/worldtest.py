@@ -43,11 +43,11 @@ class WorldTest(unittest.TestCase):
     def setUp(self):
         World.createNewWorld()
         world = World.getInstance()
-        world.addFluent(Fluent("xpos", "int", [("r", "robot")], range=(0, 1000)))
-        world.addFluent(Fluent("ypos", "int", [("r", "robot")], range=(0, 1000)))
+        world.addFluent(Fluent("xpos", "integer", [("r", "robot")], range=(0, 1000)))
+        world.addFluent(Fluent("ypos", "integer", [("r", "robot")], range=(0, 1000)))
 
-        world.addFluent(Fluent("carrying", "bool", [("r", "robot"), ("i", "item")]))
-        world.addFluent(Fluent("painted", "bool", [("i", "item")]))
+        world.addFluent(Fluent("carrying", "boolean", [("r", "robot"), ("i", "item")]))
+        world.addFluent(Fluent("painted", "boolean", [("i", "item")]))
 
         world.addConstant(Constant('gravity', 'float', []))
         world.addConstant(Constant('robot_radius', 'float', [('r', 'robot')]))
@@ -315,8 +315,8 @@ class WorldTest(unittest.TestCase):
         outcome1 = RandomActionOutcome('land_on',
                                        [
                                            ('rob', ArgumentIdentityDistribution(0)),
-                                           ('x', UniformDistribution('int', (100, 500))),
-                                           ('y', UniformDistribution('int', (0, 200)))
+                                           ('x', UniformDistribution('integer', (100, 500))),
+                                           ('y', UniformDistribution('integer', (0, 200)))
                                        ])
 
         outcome2 = RandomActionOutcome('crash',
@@ -334,7 +334,7 @@ class WorldTest(unittest.TestCase):
         jumpAction = StepwiseStochasticAction('jump',
                                               [
                                                   ('rob', 'robot'),
-                                                  ('height', 'int')
+                                                  ('height', 'integer')
                                               ],
                                               [
                                                   (0.5, outcome1),
@@ -381,7 +381,7 @@ class WorldTest(unittest.TestCase):
         jumpAction = StochasticAction('jump',
                                       [
                                           ('rob', 'robot'),
-                                          ('height', 'int')
+                                          ('height', 'integer')
                                       ],
                                       sampler
         )
@@ -460,7 +460,7 @@ class WorldTest(unittest.TestCase):
                                              ('r2', 'robot')
                                          ],
                                          BernoulliDistribution(0.7),
-                                         [('severity', UniformDistribution('int', valueRange=(0, 100)))]
+                                         [('severity', UniformDistribution('integer', valueRange=(0, 100)))]
         )
 
         world.addExogenousAction(dropEvent)
@@ -708,7 +708,7 @@ class WorldTest(unittest.TestCase):
     def testProcedureCall(self):
         world = World.getInstance()
         transportToX = Procedure("transportToX",
-                                 [("r1", "robot"), ("i", "item"), ("targetX", "int")],
+                                 [("r1", "robot"), ("i", "item"), ("targetX", "integer")],
                                  Sequence(
                                      [
                                          ActionExecution("grab", [Variable("r1"), Variable("i")]),

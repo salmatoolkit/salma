@@ -109,7 +109,7 @@ class RoboticScenario(unittest.TestCase):
         world.addFluent(Fluent("xpos", "float", [("r", "robot")], range=(20, 480)))
         world.addFluent(Fluent("ypos", "float", [("r", "robot")], range=(20, 480)))
 
-        world.addFluent(Fluent("attached", "bool", [("r", "robot"), ("i", "item")]))
+        world.addFluent(Fluent("attached", "boolean", [("r", "robot"), ("i", "item")]))
 
         world.addFluent(Fluent("direction", "float", [("r", "robot")], range=(0, 2 * math.pi)))
         world.addFluent(Fluent("velocity", "float", [("r", "robot")], range=(0, 5.0)))
@@ -120,7 +120,7 @@ class RoboticScenario(unittest.TestCase):
 
         world.addFluent(Fluent("item_sensor_value", "item", [("r", "robot")]))
         world.addFluent(Fluent("target_wavelength", "wavelength", [("r", "robot")]))
-        world.addFluent(Fluent("light_active", "bool", [("l", "light_source")]))
+        world.addFluent(Fluent("light_active", "boolean", [("l", "light_source")]))
 
         update_direction = ParametricStochasticAction('update_direction',
                                                       [

@@ -16,9 +16,11 @@
 
 % primitive_action(name, param-types)
 :- dynamic primitive_action/2.
+% declares that a primitive action is immediate
+:- dynamic immediate_action/1.
 :- dynamic stochastic_action/2.
-% exogenous_action(name, param-types)
-:- dynamic exogenous_action/2.
+% exogenous_action(name, qualifying-params, augmenting-params)
+:- dynamic exogenous_action/3.
 :- dynamic last_initialized/0.
 % clock for primitive and exogenous actions
 % action_clock(name, params, clock_vlaue)
@@ -36,6 +38,8 @@
 % action declaration
 primitive_action(tick,[]).
 primitive_action(nop,[]).
+immediate_action(nop).
+
 fluent(time,[], integer).
 time(T,do2(A,S)) :-
 		time(TOld, S),
@@ -342,3 +346,17 @@ get_all_exogenous_action_instances(Candidates) :-
 		C = A : CandidatesForAction
 	).
 
+get_declared_fluents(Fluents) :-
+	findall(f(FName,Params,Type),fluent(FName,Params,Type),Fluents).
+	
+get_declared_constants(Constants) :-
+	findall(c(CName,Params,Type),constant(CName,Params,Type),Constants).
+	
+get_declared_primitive_actions(Actions) :-
+	findall(pa(AName,Params),primitive_action(AName,Params),Actions).
+get_declared_stochastic_actions(Actions) :-
+	findall(pa(AName,Params),stochastic_action(AName,Params),Actions).	
+get_declared_exogenous_actions(Actions) :-
+	findall(ea(AName,P1,P2),exogenous_action(AName,P1,P2),Actions).
+get_declared_immediate_actions(ImmediateActions) :-
+	findall(ia(AName), immediate_action(AName), ImmediateActions).
