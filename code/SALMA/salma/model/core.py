@@ -15,7 +15,10 @@ from .procedure import ControlNode, ActionExecution, ProcedureRegistry
 
 
 class Entity(object):
-    
+    """
+    Base class for all passive and active (agents) entities of the system. Stores an unique id and a sort name.
+    Entities have to be added via World.add after loading the declaration but before calling World.initialize.
+    """
     SELF = 'self'
     
     def __init__(self, entityId, sortName):
@@ -35,7 +38,9 @@ class Entity(object):
     
 
 class Agent(Entity):
-    
+    """
+    An agent is an active entity that has a control procedure.
+    """
     def __init__(self, entityId, sortName, controlProcedure, procedureRegistry = None):
         '''
         controlProcedure:procedure.Procedure
