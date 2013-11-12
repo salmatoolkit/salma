@@ -671,9 +671,7 @@ class EclipseCLPEngine(Engine):
                 entry[varName] = self.__convertValueFromEngineResult(valueCombination[index])
             refinedResult.append(entry)
         return refinedResult
-    
-    
-    
+
     def selectFirst(self, predicateName, *params, **kwargs):
         variables, indices, selectCall = self.__prepareSelectEntities(predicateName, *params, **kwargs)
         selectCall.post_goal()
@@ -695,10 +693,6 @@ class EclipseCLPEngine(Engine):
         
         
         return entry       
-    
-    
-    
-    
 
     def createPlan(self, procedureName, *params, **kwargs):
         variables, indices, paramTerms = self.__prepareIndexedFreeParams(
@@ -711,7 +705,6 @@ class EclipseCLPEngine(Engine):
                            pyclp.Atom(procedureName),
                            pyclp.PList(paramTerms),
                            plan)
-        
         
         g.post_goal()
         
@@ -730,8 +723,7 @@ class EclipseCLPEngine(Engine):
         valueCombination = dict()
         for varName, index in indices.items():
             valueCombination[varName] = self.__convertValueFromEngineResult(variables[index].value())
-        
-        
+
         translatedPlan = []
         #: :type action: pyclp.Compound
         for action in plan.value():
@@ -744,10 +736,6 @@ class EclipseCLPEngine(Engine):
         
         return (translatedPlan, valueCombination)        
 
-   
-    
-    
-    
     def defineDomain(self, sortName, objectIds):
         self.__currentState = None
         
@@ -757,10 +745,7 @@ class EclipseCLPEngine(Engine):
                         pyclp.Atom(sortName),
                         pyclp.PList(refinedEntities), 
                         errorMsg = "Error defining domain for sort %s" % sortName)
-    
-        
-    
-    
+
     def initSortHierarchy(self):
         domVar = pyclp.Var()
         self.__callGoal('init_sort_hierarchy', domVar,
@@ -785,8 +770,7 @@ class EclipseCLPEngine(Engine):
                         pyclp.PList(pterms + [vterm]))
                                
         self.__constants[(constantName, tuple(constantParams))] = value
-        
-    
+
     def getConstantValue(self, constantName, constantParams):
         v = None
         try:
@@ -794,8 +778,7 @@ class EclipseCLPEngine(Engine):
         except KeyError:
             return None
         return v
-    
-    
+
     def isConstantDefined(self, constantName, constantParams):
         return (constantName, tuple(constantParams)) in self.__constants
                      
@@ -818,8 +801,7 @@ class EclipseCLPEngine(Engine):
             for r in result:
                 resultDict[str(r[1])] = EclipseCLPEngine.__verdictMapping[str(r[0])]
         return resultDict
-            
-        
+
     @staticmethod
     def __translateScheduledEvaluationResults(result):
         resultDict = dict()
@@ -831,8 +813,7 @@ class EclipseCLPEngine(Engine):
                 resultDict[(str(key[0]), key[3])] = verdict
             
         return resultDict
-    
-    
+
     def registerProperty(self, propertyName, formula):
         compiledFormula = pyclp.Var()
         self.__callGoal('register_property_str', pyclp.Atom(propertyName), formula, compiledFormula)
@@ -840,8 +821,7 @@ class EclipseCLPEngine(Engine):
         
     def getProperties(self):
         return self.__properties.copy()
-        
-                        
+
     def getExogenousActionCandidates(self):
         '''
         Returns a list of form [actionName : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
@@ -866,8 +846,7 @@ class EclipseCLPEngine(Engine):
             result[actionName] = instances
             
         return result
-        
-        
+
     def getActionClock(self, actionName, params):
         pterms = createParamTerms(params)
         t = pyclp.Var()
@@ -877,8 +856,7 @@ class EclipseCLPEngine(Engine):
                         t)
         
         return self.__convertValueFromEngineResult(t.value())
-    
-        
+
     def getFluentChangeTime(self, fluentName, params):
         pterms = createParamTerms(params)
         t = pyclp.Var()
@@ -908,7 +886,6 @@ class EclipseCLPEngine(Engine):
                                                                                   propertyName,
                                                                                   str(rawStatus.value())))
         return (status, time)
-
 
     def __load_declaration(self, load_function):
         """

@@ -12,6 +12,7 @@ from salma.model.distributions import Distribution, \
     ArgumentIdentityDistribution, UniformDistribution
 
 from .procedure import ControlNode, ActionExecution, ProcedureRegistry
+from .evaluationcontext import EvaluationContext
 
 
 class Entity(object):
@@ -147,15 +148,17 @@ class Agent(Entity):
         
                
 class Fluent(object):
-    
+    """
+    Represents a fluent.
+    """
     DEFAULT_RANGE = (0, sys.maxsize)
     
     
-    def __init__(self, name, fluentType, param_types, **kwargs):
-        '''
-        params contains pairs of name-sort of just sorts
-        fluentType: either entity sort or integer, float or boolean
-        '''
+    def __init__(self, name, fluentType, param_types, value_range=DEFAULT_RANGE, distribution=None):
+        """
+        :param fluentType: the type of the value the fluent stores. This is boolean for relational fluents.
+        :param param_types:  a list of types for all of the fluent's parameters
+        """
         
         self.__name = name
         self.__fluentType = fluentType
@@ -163,55 +166,66 @@ class Fluent(object):
         
                 
         if fluentType == "integer" or fluentType == "float":
-            self.__valueRange = kwargs['range'] if 'range' in kwargs else Fluent.DEFAULT_RANGE
+            self.__valueRange = value_range
         else:
             self.__valueRange = None
-        self.__distribution = (kwargs['distribution']
-                               if 'distribution' in kwargs
+
+        self.__distribution = (distribution if not distribution is None
                                else UniformDistribution(
                                     self.__fluentType, self.__valueRange))
-        
-        
-        
-        
-    
-    def setDistribution(self, distribution):
-        self.__distribution = distribution
-    
-    def getDistribution(self): 
+    @property
+    def distribution(self):
+        """
+        The distribution that is used to sample a value for a particular fluent instance.
+        :rtype: Distribution
+        """
         return self.__distribution
-    
-    # def generateSample(self, fluentType, valueRange, domainMetaModel, paramValues):
+
+    @distribution.setter
+    def distribution(self, distribution):
+        """
+        :type distribution: Distribution
+        """
+        self.__distribution = distribution
         
-    def generateSample(self, evaluationContext, paramValues): 
+    def generateSample(self, evaluationContext, paramValues):
+        """
+        Generates a sample for the fluent instance that is specified by paramValues.
+        :type evaluationContext: EvaluationContext
+        :type paramValues: list
+        :rtype: object
+        """
         return self.__distribution.generateSample(evaluationContext, paramValues)
         
-        
-    def getParameters(self):
+    @property
+    def parameters(self):
         return self.__param_types
+
+    @property
+    def name(self):
+        return self.__name
+
+    @property
+    def fluentType(self): return self.__fluentType
     
 
-    def getName(self): return self.__name
-    def getFluentType(self): return self.__fluentType
-    
-    name = property(getName)
-    fluentType = property(getFluentType) 
-    parameters = property(getParameters)
-    
-    def getValueRange(self): return self.__valueRange
-    def setValueRange(self, valueRange): self.__valueRange = valueRange
-    
-    valueRange = property(getValueRange, setValueRange)
-    
+    @property
+    def valueRange(self):
+        return self.__valueRange
 
+    @valueRange.setter
+    def valueRange(self, valueRange):
+        self.__valueRange = valueRange
 
 
 class Constant(Fluent):
-    def __init__(self, name, fluentType, param_types, **kwargs):
+    """
+    Represents a constant, i.e. a special kind of fluent that is not changed in progression.
+    """
+    def __init__(self, name, fluentType, param_types, value_range=Fluent.DEFAULT_RANGE, distribution=None):
         Fluent.__init__(self, name, fluentType, param_types, **kwargs)
 
-    
-    
+
 class Action(object):
     
     def __init__(self, name, parameter_types, immediate=False):
@@ -229,9 +243,10 @@ class Action(object):
     
     @property
     def parameters(self):
-        '''
-        returns the parameter list as a list of tuples in the format (name, type)
-        '''
+        """
+        Returns the action's parameter types.
+        :rtype: list
+        """
         return self.__params
 
     @property
