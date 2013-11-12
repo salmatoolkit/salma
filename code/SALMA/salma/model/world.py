@@ -14,7 +14,7 @@ import pyclp
 from salma import constants
 from salma.SMCException import SMCException
 from salma.constants import *
-from salma.model.actions import StochasticAction
+from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction
 from salma.model.core import Entity, Agent, Constant
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ActionExecution
@@ -29,9 +29,14 @@ moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
 
 class World(Entity):
-    '''
-    classdocs
-    '''
+    """
+    Singleton class that acts as the *center of the simulation*. The domain model is loaded with load_declaration and
+    all actions can be configured using the appropriate configuration classes. The configuration can then be checked with
+    several check_* methods. After that, the domain models are set up with initialize, optionally also generating a randomized
+    initial situation by sampling values for all fluent and constant instances. Additionally, the fluent and constant values
+    can also be manipulated with
+
+    """
 
     # singleton reference
     # : :type logicsEngine: Engine
@@ -45,13 +50,12 @@ class World(Entity):
 
     __instance = None
 
-
     def __init__(self):
         Entity.__init__(self, World.ENTITY_ID, World.SORT_NAME)
 
         # fluentName -> core.Fluent
         self.__fluents = dict()
-        # actionName -> core.Action
+        # action_name -> core.Action
         self.__actions = dict()
 
         self.__exogenousActions = dict()
@@ -170,7 +174,7 @@ class World(Entity):
         for exoaction in self.__exogenousActions.values():
             if exoaction.get_occurance_distribution() is None:
                 uninitialized_exogenous_actions1.append(exoaction)
-            if len(exoaction.qualifying_param_types) != len(exoaction.get_qualifying_param_distributions()):
+            if len(exoaction.stochastic_param_types) != len(exoaction.get_qualifying_param_distributions()):
                 uninitialized_exogenous_actions2.append(exoaction)
         return (uninitialized_stochastic_actions, uninitialized_exogenous_actions1, uninitialized_exogenous_actions2)
 
@@ -212,7 +216,7 @@ class World(Entity):
         '''
         # fluentName -> core.Fluent
         self.__fluents = dict()
-        # actionName -> core.Action
+        # action_name -> core.Action
         self.__actions = dict()
         self.__exogenousActions = dict()
         declarations = World.logicsEngine.load_declarations()
@@ -357,12 +361,12 @@ class World(Entity):
 
     def addExogenousAction(self, exogenousAction):
         ':type exogenousAction: ExogenousAction'
-        self.__exogenousActions[exogenousAction.actionName] = exogenousAction
+        self.__exogenousActions[exogenousAction.action_name] = exogenousAction
 
     def removeExogenousAction(self, exogenousAction):
         ':type exogenousAction: ExogenousAction'
-        if exogenousAction.actionName in self.__exogenousActions:
-            del self.__exogenousActions[exogenousAction.actionName]
+        if exogenousAction.action_name in self.__exogenousActions:
+            del self.__exogenousActions[exogenousAction.action_name]
 
     def getExogenousAction(self, action_name):
         '''
@@ -481,7 +485,7 @@ class World(Entity):
     def __translateActionExecution(self, agent, actionExecution):
         '''
         Generates a ground deterministic action outcome from the given ActionExecution as a 
-        (actionName, [groundParams]) tuple. If actionExecution refers to a stochastic action,
+        (action_name, [groundParams]) tuple. If actionExecution refers to a stochastic action,
         an outcome is generated according to the distribution that was defined for the action.
         The agent's evaluation context is used for generating an outcome.
         
@@ -526,8 +530,8 @@ class World(Entity):
             if actionName in self.__exogenousActions:
                 ea = self.__exogenousActions[actionName]
                 for params in combinations:
-                    if ea.shouldHappen(self.__evaluationContext, params):
-                        instance = ea.generateInstance(self.__evaluationContext, params)
+                    if ea.should_happen(self.__evaluationContext, params):
+                        instance = ea.generate_instance(self.__evaluationContext, params)
                         eaInstances.append(instance)
         return eaInstances
 

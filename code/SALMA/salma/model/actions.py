@@ -1,7 +1,7 @@
 import random
 from salma.SMCException import SMCException
 from salma.model.core import Action, Entity
-from salma.model.distributions import Distribution, ArgumentIdentityDistribution, UniformDistribution
+from salma.model.distributions import Distribution, ArgumentIdentityDistribution, UniformDistribution, NormalDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
 
 
@@ -21,7 +21,7 @@ class RandomActionOutcome(object):
 
     def __init__(self, action_name, param_distribution_specs=[]):
         """
-        :param actionName: the actionName
+        :param action_name: the action_name
         :param paramDistributionSpecs: list of ParamDistribution objects
 
         :type action_name: str
@@ -31,9 +31,9 @@ class RandomActionOutcome(object):
 
         self.__param_distribution_specs = []
         for i, param in enumerate(param_distribution_specs):
-            distr = (param if isinstance(param, Distribution)
-                     else ArgumentIdentityDistribution(i))
-            self.__param_distribution_specs.append(distr)
+            dist = (param if isinstance(param, Distribution)
+                    else ArgumentIdentityDistribution(param, i))
+            self.__param_distribution_specs.append(dist)
 
     @property
     def action_name(self):
@@ -45,24 +45,24 @@ class RandomActionOutcome(object):
 
     def generate_sample(self, evaluationContext, paramValues):
         """
-        generates a tuple with the form (actionName, params)
+        generates a tuple with the form (action_name, params)
         """
         args = []
 
-        for pdistrib in self.__param_distribution_specs:
+        for pdist in self.__param_distribution_specs:
             # generateSample(self, domainMetaModel, paramValues):
-            val = pdistrib.generateSample(evaluationContext, paramValues)
+            val = pdist.generateSample(evaluationContext, paramValues)
             if isinstance(val, Entity):
                 args.append(val.id)
             else:
                 args.append(val)
 
-        return (self.__actionName, args)
+        return self.__actionName, args
 
     def add_param(self, param):
         """
         Adds a parameter specification. If param is a string instead of a Distribution object, an
-        ArgumentIdentityDisribution is created.
+        ArgumentIdentityDisribution is created with param used as sort.
 
         :param param: the parameter to add, either a sort name or a Distribution
         :return: self for chaining
@@ -70,21 +70,30 @@ class RandomActionOutcome(object):
         :rtype: RandomActionOutcome
         """
         i = len(self.__param_distribution_specs)
-        distr = (param if isinstance(param, Distribution)
-                 else ArgumentIdentityDistribution(i))
-        self.__param_distribution_specs.append(distr)
+        dist = (param if isinstance(param, Distribution)
+                else ArgumentIdentityDistribution(param, i))
+        self.__param_distribution_specs.append(dist)
         return self
 
-    def id_param(self, param_sort):
+    def fixed_param(self, param_sort):
         i = len(self.__param_distribution_specs)
-        self.__param_distribution_specs.append(ArgumentIdentityDistribution(i))
+        self.__param_distribution_specs.append(ArgumentIdentityDistribution(param_sort, i))
         return self
 
     def uniform_param(self, sort, value_range=None):
-        d = UniformDistribution(sort,value_range)
+        d = UniformDistribution(sort, value_range)
         self.__param_distribution_specs.append(d)
         return self
 
+    def bernoulli_param(self, probability):
+        d = BernoulliDistribution(probability)
+        self.__param_distribution_specs.append(d)
+        return self
+
+    def normal_param(self, sort, mu, sigma):
+        d = NormalDistribution(sort, mu, sigma)
+        self.__param_distribution_specs.append(d)
+        return self
 
     def check(self, action_dict):
         """
@@ -111,8 +120,6 @@ class RandomActionOutcome(object):
                         i, self.action_name, action.parameters[i], self.param_distributions[i].sort
                     ))
         return wrong_types
-
-
 
 
 NOP_OUTCOME = RandomActionOutcome('nop', [])
@@ -178,7 +185,6 @@ class StochasticActionConfiguration:
         :type outcomes: list
         """
         self.__outcomes = outcomes.copy()
-
 
     def select_outcome(self, evaluationContext, paramValues):
         """
@@ -271,6 +277,9 @@ class Parametric(StochasticActionConfiguration):
     def select_outcome(self, evaluationContext, paramValues):
         return self.outcomes[0]
 
+    def create_outcome(self, action_name):
+        self.outcomes = [RandomActionOutcome(action_name)]
+        return self.outcomes[0]
 
     @property
     def outcome(self):
@@ -319,6 +328,11 @@ class Stepwise(StochasticActionConfiguration):
         self.__outcome_specs.append((probability, outcome))
         return self
 
+    def create_outcome(self, action_name, probability):
+        outcome = RandomActionOutcome(action_name)
+        self.__outcome_specs.append((probability, outcome))
+        return outcome
+
     def select_outcome(self, evaluationContext, paramValues):
         r = random.uniform(0, 1)
         start = 0
@@ -344,34 +358,34 @@ class ExogenousAction(object):
     # : :type __qualifyingParamDistributions: list
     __qualifyingParamDistributions = []
 
-    def __init__(self, actionName, entity_param_types, qualifying_param_types, configuration=None):
+    def __init__(self, action_name, entity_param_types, stochastic_param_types, configuration=None):
         """
-        actionName: the actionName
-        :type actionName: str
+        action_name: the action_name
+        :type action_name: str
 
         :param entityParams: list of (paramName, sort) tuples
 
         :type entity_param_types: list
-        :type qualifying_param_types: list
+        :type stochastic_param_types: list
 
         """
-        self.__actionName = actionName
+        self.__action_name = action_name
         self.__entity_param_types = entity_param_types
-        self.__qualifying_param_types = qualifying_param_types
+        self.__stochastic_param_types = stochastic_param_types
         self.__configuration = configuration
 
 
     @property
-    def actionName(self):
-        return self.__actionName
+    def action_name(self):
+        return self.__action_name
 
     @property
     def entity_param_types(self):
         return self.__entity_param_types
 
     @property
-    def qualifying_param_types(self):
-        return self.__qualifying_param_types
+    def stochastic_param_types(self):
+        return self.__stochastic_param_types
 
     @property
     def config(self):
@@ -389,27 +403,25 @@ class ExogenousAction(object):
         self.__configuration = config
         self.__configuration.exogenous_action = self
 
-    def shouldHappen(self, evaluationContext, paramValues):
-        return self.config.occurrence_distribution.generateSample(evaluationContext, paramValues)
+    def should_happen(self, evaluation_context, param_values):
+        return self.config.occurrence_distribution.generateSample(evaluation_context, param_values)
 
-
-
-    def generateInstance(self, evaluationContext, entityCombination):
+    def generate_instance(self, evaluation_context, entity_combination):
         """
-        :type evaluationContext: EvaluationContext
-        :type entityCombination: list
+        :type evaluation_context: EvaluationContext
+        :type entity_combination: list
         """
-        args = list(entityCombination)
+        args = list(entity_combination)
         # : :type distribution: Distribution
         for distribution in self.config.stochastic_param_distributions:
-            val = distribution.generateSample(evaluationContext, args)
+            val = distribution.generateSample(evaluation_context, args)
             args.append(val)
 
-        refinedArgs = list(map(
+        refined_args = list(map(
             lambda a: a.getId() if isinstance(a, Entity) else a,
             args)
         )
-        return self.__actionName, refinedArgs
+        return self.__action_name, refined_args
 
 
 class ExogenousActionConfiguration:
@@ -422,7 +434,7 @@ class ExogenousActionConfiguration:
         :param stochastic_param_distributions: a list of distributions for the non-entity parameters that will be sampled after
             the exogenous action instance has been chosen to happen.
 
-        :type occuranceDistribution: Distribution
+        :type occurrence_distribution: Distribution
         :type stochastic_param_distributions: list
         """
         self.__exogenous_action = None
@@ -447,59 +459,82 @@ class ExogenousActionConfiguration:
         problems = []
         if self.__occurrence_distribution is None:
             problems.append(
-                "No occurance probability distribution specified for exogenous action %s ." % self.__exogenous_action.actionName)
+                "No occurance probability distribution specified for exogenous action %s ." % self.__exogenous_action.action_name)
         if isinstance(self.occurrence_distribution, Distribution):
             if self.occurrence_distribution.sort != "boolean":
                 problems.append(
                     "Wrong type for occurrence distribution of exogenous action {}: was {} but must be boolean.".format(
-                        self.exogenous_action.actionName, self.occurrence_distribution.sort
+                        self.exogenous_action.action_name, self.occurrence_distribution.sort
                     ))
 
-        if len(self.__stochastic_param_distributions) != len(self.exogenous_action.qualifying_param_types):
+        if len(self.__stochastic_param_distributions) != len(self.exogenous_action.stochastic_param_types):
             return [
                 "Wrong number of stochastic parameters for exogenous action {}: expected {} but was {}.".format(
-                    self.exogenous_action.actionName,
-                    len(self.exogenous_action.qualifying_param_types),
+                    self.exogenous_action.action_name,
+                    len(self.exogenous_action.stochastic_param_types),
                     len(self.__stochastic_param_distributions))]
 
         wrong_types = []
         for i in range(len(self.__stochastic_param_distributions)):
-            if self.__stochastic_param_distributions[i].sort != self.exogenous_action.qualifying_param_types[i]:
+            if self.__stochastic_param_distributions[i].sort != self.exogenous_action.stochastic_param_types[i]:
                 wrong_types.append(
                     "Wrong type for stochastic parameter no. {} of exogenous action {}: expected {} but was {}.".format(
-                        i, self.exogenous_action.actionName,
-                        self.exogenous_action.qualifying_param_types[i] ,
+                        i, self.exogenous_action.action_name,
+                        self.exogenous_action.stochastic_param_types[i],
                         self.__stochastic_param_distributions[i].sort
                     ))
         return wrong_types
 
     @property
     def occurrence_distribution(self):
+        """
+        The distribution that determines whether or not an exogenous action should happen.
+        :rtype: Distribution
+        """
         return self.__occurrence_distribution
 
     @occurrence_distribution.setter
-    def occurrence_distribution(self, distrib):
-        '''
-        :type distrib: Distribution
-        '''
-        self.__occurrence_distribution = distrib
+    def occurrence_distribution(self, distribution):
+        """
+        :type distribution: Distribution
+        """
+        self.__occurrence_distribution = distribution
 
     @property
     def stochastic_param_distributions(self):
         return self.__stochastic_param_distributions
 
     @stochastic_param_distributions.setter
-    def stochastic_param_distributions(self, distribs):
-        '''
-        :type distribs: list
-        '''
-        self.__stochastic_param_distributions = distribs.copy()
+    def stochastic_param_distributions(self, distributions):
+        """
+        :type distributions: list
+        """
+        self.__stochastic_param_distributions = distributions.copy()
 
     def add_param(self, distribution):
         """
         :param distribution: the distribution
         :return: self for chaining
+
+        :type distribution: Distribution
+        :rtype: ExogenousActionConfiguration
         """
         self.__stochastic_param_distributions.append(distribution)
+        return self
+
+    def uniform_param(self, sort, value_range=None):
+        d = UniformDistribution(sort, value_range)
+        self.__stochastic_param_distributions.append(d)
+        return self
+
+    def bernoulli_param(self, probability):
+        d = BernoulliDistribution(probability)
+        self.__stochastic_param_distributions.append(d)
+        return self
+
+    def normal_param(self, sort, mu, sigma):
+        d = NormalDistribution(sort, mu, sigma)
+        self.__stochastic_param_distributions.append(d)
+        return self
 
 

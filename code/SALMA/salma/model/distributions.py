@@ -58,17 +58,16 @@ class ArgumentIdentityDistribution(Distribution):
     '''
     passes the specified argument through
     '''
-    def __init__(self, paramIndex):
-        Distribution.__init__(self, None, None)
-        self.__paramIndex = paramIndex
+    def __init__(self, sort, param_index):
+        Distribution.__init__(self, sort, None)
+        self.__param_index = param_index
 
     @property
-    def paramIndex(self):
-        return self.__paramIndex
-
+    def param_index(self):
+        return self.__param_index
     
-    def generateSample(self, evaluationContext, paramValues):
-        return paramValues[self.__paramIndex]
+    def generateSample(self, evaluation_context, param_values):
+        return param_values[self.__param_index]
     
      
 class BernoulliDistribution(Distribution):
@@ -83,4 +82,32 @@ class BernoulliDistribution(Distribution):
     def generateSample(self, evaluationContext, paramValues):
         r = random.uniform(0,1)
         return r <= self.__probability
+
+
+class NormalDistribution(Distribution):
+    def __init__(self, sort, mu, sigma):
+        if sort not in ["float", "integer"]:
+            raise SMCException("Trying to use normal distribution for sort %s but only integer or float allowed." % sort)
+        super().__init__(sort, (float("-inf"), float("inf")))
+        self.__mu = mu
+        self.__sigma = sigma
+
+    @property
+    def mu(self):
+        return self.__mu
+
+    @property
+    def sigma(self):
+        return self.__sigma
+
+    def generateSample(self, evaluationContext, paramValues):
+        val = random.normalvariate(self.__mu, self.__sigma)
+        if self.sort == "integer":
+            return round(val)
+        else:
+            return val
+
+
+
+
 

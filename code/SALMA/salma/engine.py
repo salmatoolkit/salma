@@ -56,9 +56,11 @@ class FluentValue(object):
         s += " = " + str(self.__value) 
         return s
     
-    
 
 class Engine(object):
+    """
+    Abstract
+    """
     def getCurrentState(self):
         '''
         returns a list of FluentValue objects.
@@ -225,7 +227,7 @@ class Engine(object):
         
     def getExogenousActionCandidates(self):
         '''
-        Returns a list of form [actionName : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
+        Returns a list of form [action_name : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
         '''
         raise NotImplementedError()
     
@@ -260,27 +262,28 @@ class Engine(object):
         change time.
         
         :param propertyName: str
-        :rtype tuple
+        :rtype: tuple
         '''
         raise NotImplementedError()
     
     def load_declarations(self):
-        '''
+        """
         Compiles all declarations of fluents, constants and actions from the ECLiPSe model. Returns a
         dict with the category as key and a list of tuples as value. The keys are:
         fluents, constants, primitive_actions, stochastic_actions, exogenous_actions.
 
-        :rtype dict
-        '''
+        :rtype: dict
+        """
+        raise NotImplementedError()
     
 def createParamTerms(*params, **kwargs):
-    '''
+    """
     Converts the parameters in params into proper values for PyCLP goal calls.
-    - 0 --> zero since strange PyCLP behavior
-    - True --> true
-    -nested tuples with len > 1: ('op', x, y, ...) --> pyclp.Compound with 'op' as functor
-        and x,y,... converted by recursive call to createParamTerms.
-    '''
+    * 0 --> zero since strange PyCLP behavior
+    * True --> true
+    * -nested tuples with len > 1: ('op', x, y, ...) --> pyclp.Compound with 'op' as functor
+    and x,y,... converted by recursive call to createParamTerms.
+    """
     paramTerms = []
     for p in params:
         term = None
@@ -824,7 +827,7 @@ class EclipseCLPEngine(Engine):
 
     def getExogenousActionCandidates(self):
         '''
-        Returns a list of form [actionName : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
+        Returns a list of form [action_name : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
         '''
         candidates = pyclp.Var()
         self.__callGoal('get_all_exogenous_action_instances', candidates)
@@ -919,9 +922,6 @@ class EclipseCLPEngine(Engine):
                 'immediate_actions' : immediate_actions
                 }
 
-
-
-
-
+__all__ = ["Engine", "EclipseCLPEngine", "FluentValue", "createParamTerms", "createTerm"]
 
 
