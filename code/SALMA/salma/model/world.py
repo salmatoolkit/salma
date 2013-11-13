@@ -141,11 +141,12 @@ class World(Entity):
             value = fluent.generateSample(self.__evaluationContext, paramSelection)
             World.logicsEngine.setFluentValue(fluent.name, paramSelection, value)
 
-
     def check_fluent_initialization(self):
-        '''
-        :rtype : (list, list)
-        '''
+        """
+        Checks whether all instances of all declared fluents and constants are initialized correctly.
+        :return: tuple with (uninitialized_fluent_instances, uninitialized_constant_instances)
+        :rtype: tuple
+        """
         uninitialized_fluent_instances = []
         uninitialized_constant_instances = []
         for fluent in self.__fluents.values():
@@ -161,32 +162,37 @@ class World(Entity):
                     else:
                         uninitialized_fluent_instances.append(instance)
 
-        return (uninitialized_fluent_instances, uninitialized_constant_instances)
-
+        return uninitialized_fluent_instances, uninitialized_constant_instances
 
     def check_action_initialization(self):
-        uninitialized_stochastic_actions = []
-        uninitialized_exogenous_actions1 = []
-        uninitialized_exogenous_actions2 = []
-        for action in filter(lambda a : isinstance(a, StochasticAction), self.__actions.values()):
-            if action.getOutcomeSelector() is None:
-                uninitialized_stochastic_actions.append(action)
-        for exoaction in self.__exogenousActions.values():
-            if exoaction.get_occurance_distribution() is None:
-                uninitialized_exogenous_actions1.append(exoaction)
-            if len(exoaction.stochastic_param_types) != len(exoaction.get_qualifying_param_distributions()):
-                uninitialized_exogenous_actions2.append(exoaction)
-        return (uninitialized_stochastic_actions, uninitialized_exogenous_actions1, uninitialized_exogenous_actions2)
+        """
+        Checks whether all stochastic and exogenous actions have been configured correctly.
+        :return: tuple with (problematic_stochastic_actions, problematic_exogenous_actions) where each is a list of
+        tuples with (action, promblem_list)
 
+        :rtype: tuple
+        """
+        problematic_stochastic_actions = []
+        problematic_exogenous_actions = []
 
+        for action in filter(lambda a: isinstance(a, StochasticAction), self.__actions.values()):
+            assert isinstance(action, StochasticAction)
+            problems = action.config.check(self.__actions)
+            if len(problems) > 0:
+                problematic_stochastic_actions.append((action, problems))
 
+        for exo_action in self.__exogenousActions.values():
+            assert isinstance(exo_action, ExogenousAction)
+            problems = exo_action.config.check()
+            if len(problems) > 0:
+                problematic_exogenous_actions.append((exo_action, problems))
 
-    def __make_fluent_access_function(self, fluentName):
+        return problematic_stochastic_actions, problematic_exogenous_actions
+
+    def __make_fluent_access_function(self, fluent_name):
         def __f(*params):
-            return self.getFluentValue(fluentName, params)
-
+            return self.getFluentValue(fluent_name, params)
         return __f
-
 
     def __create_expression_context(self):
 
@@ -211,9 +217,9 @@ class World(Entity):
             self.__initializeFluent(fluent)
 
     def load_declarations(self):
-        '''
+        """
         Loads the declarations from the domain specification and initializes fluents, constants, and actions.
-        '''
+        """
         # fluentName -> core.Fluent
         self.__fluents = dict()
         # action_name -> core.Action
