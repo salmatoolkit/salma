@@ -55,7 +55,7 @@ class SequentialHypothesisTestTest(unittest.TestCase):
     def setUpClass(cls):
         domainFileName = "kroiss_aamas2014_domaindesc.ecl"
         try:
-            World.logicsEngine = EclipseCLPEngine("../test/" + domainFileName)
+            World.set_logic_engine(EclipseCLPEngine("../test/" + domainFileName))
         except SMCException as e:
             print(e)
             raise
@@ -65,8 +65,8 @@ class SequentialHypothesisTestTest(unittest.TestCase):
         logger.addHandler(ch)
         
     def setUp(self):
-        World.createNewWorld()
-        world = World.getInstance()
+        World.create_new_world()
+        world = World.instance()
         world.addFluent(Fluent("xpos", "integer", [("o", "object")], range=(0, 1000)))
 
         world.addFluent(Fluent("carrying", "boolean", [("r", "robot"), ("i", "item")]))
@@ -88,7 +88,7 @@ class SequentialHypothesisTestTest(unittest.TestCase):
         
         
     def __placeAgentsInColumn(self, x):
-        world = World.getInstance()
+        world = World.instance()
         # y = 10
              
         # : :type r: Agent 
@@ -115,7 +115,7 @@ class SequentialHypothesisTestTest(unittest.TestCase):
     
     
     def setNoOneCarriesAnything(self):
-        world = World.getInstance()
+        world = World.instance()
         robots = world.getDomain('robot')
         items = world.getDomain('item')
         for r in robots:
@@ -130,7 +130,7 @@ class SequentialHypothesisTestTest(unittest.TestCase):
     @withHeader
     def testScenario(self):
         
-        world = World.getInstance()  # : :type world: World 
+        world = World.instance()  # : :type world: World
         
         
         for i in range(1,4):    

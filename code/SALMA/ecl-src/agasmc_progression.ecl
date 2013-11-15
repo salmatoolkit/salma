@@ -355,7 +355,7 @@ get_declared_constants(Constants) :-
 get_declared_primitive_actions(Actions) :-
 	findall(pa(AName,Params),primitive_action(AName,Params),Actions).
 get_declared_stochastic_actions(Actions) :-
-	findall(pa(AName,Params),stochastic_action(AName,Params),Actions).	
+	findall(pa(AName,Params,Outcomes),stochastic_action(AName,Params,Outcomes),Actions).	
 get_declared_exogenous_actions(Actions) :-
 	findall(ea(AName,P1,P2),exogenous_action(AName,P1,P2),Actions).
 get_declared_immediate_actions(ImmediateActions) :-

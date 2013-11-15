@@ -30,8 +30,8 @@ class WorldTest3(unittest.TestCase):
     def setUpClass(cls):
         print(os.getcwd())
         try:
-            World.logicsEngine = EclipseCLPEngine("../../ecl-test/domaindesc.ecl",
-                                                  "../../ecl-test/example_procedures.ecl")
+            World.set_logic_engine(EclipseCLPEngine("../../ecl-test/domaindesc.ecl",
+                                                  "../../ecl-test/example_procedures.ecl"))
         except SMCException as e:
             print(e)
             raise
@@ -41,12 +41,12 @@ class WorldTest3(unittest.TestCase):
         logger.addHandler(ch)
 
     def setUp(self):
-        World.createNewWorld()
-        world = World.getInstance()
+        World.create_new_world()
+        world = World.instance()
 
 
     def test_load_declaration_empty(self):
-        world = World.getInstance()
+        world = World.instance()
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
                   ActionExecution("move_right", [Entity.SELF]))
         proc = Procedure("main", [], w)
@@ -76,7 +76,7 @@ class WorldTest3(unittest.TestCase):
 
 
     def test_load_declaration_full(self):
-        world = World.getInstance()
+        world = World.instance()
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
                   ActionExecution("move_right", [Entity.SELF]))
         proc = Procedure("main", [], w)

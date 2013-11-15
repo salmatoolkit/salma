@@ -48,7 +48,27 @@ class B(Foo):
             print("B-foo: " + self.name + " - " + msg)
         return  __f
 
+class C:
+    __statprop = 42
 
+    @staticmethod
+    def set_statprop(p):
+        C.__statprop = p
+
+    @property
+    def prop(self):
+        return self.__statprop
+
+
+    @staticmethod
+    def statprop():
+        return C.__statprop
+
+    def complex_prop(self):
+        """
+        :rtype (int, B)
+        """
+        return 42, B("chris")
 def foo(name, *params):
     print(len(params))
     print(params)
@@ -65,3 +85,14 @@ if __name__ == "__main__":
     b.foo("hi")
     b.prepare()
     b.foo("hi")
+
+    c1 = C()
+    c2 = C()
+    print(c1.prop)
+    print(c2.prop)
+    C.set_statprop(100)
+    print(c1.prop)
+    print(c2.prop)
+    print(C.statprop)
+
+    print(c1.complex_prop()[1].name)

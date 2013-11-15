@@ -62,7 +62,7 @@ class Robot(Agent):
         Agent.__init__(self, entityId, 'robot', controlProcedure)
 
     def initialize(self, overwriteFluents=False):
-        world = World.getInstance()
+        world = World.instance()
         world.setConstantValue('object_radius', [self.id], self.__radius)
 
         if overwriteFluents:
@@ -79,7 +79,7 @@ class Robot(Agent):
             world.setFluentValue('distance_sensor_value', [self.id, d.id], 0.0)
 
     def getMainFluents(self):
-        world = World.getInstance()
+        world = World.instance()
         mf = dict()
         mf['xpos'] = world.getFluentValue('xpos', [self.id])
         mf['ypos'] = world.getFluentValue('ypos', [self.id])
@@ -90,8 +90,8 @@ class RoboticScenario(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            World.logicsEngine = EclipseCLPEngine("../test/ASCENS_robotic_scenario/ASCENS_robotic_domain.ecl",
-                                                  "../test/ASCENS_robotic_scenario/ASCENS_robotic_scenario_01.ecl")
+            World.set_logic_engine(EclipseCLPEngine("../test/ASCENS_robotic_scenario/ASCENS_robotic_domain.ecl",
+                                                  "../test/ASCENS_robotic_scenario/ASCENS_robotic_scenario_01.ecl"))
         except SMCException as e:
             print(e)
             raise
@@ -104,8 +104,8 @@ class RoboticScenario(unittest.TestCase):
         self.dataFile = None
         self.dataBuffer = None
 
-        World.createNewWorld()
-        world = World.getInstance()
+        World.create_new_world()
+        world = World.instance()
         world.addFluent(Fluent("xpos", "float", [("r", "robot")], range=(20, 480)))
         world.addFluent(Fluent("ypos", "float", [("r", "robot")], range=(20, 480)))
 
@@ -205,7 +205,7 @@ class RoboticScenario(unittest.TestCase):
 
     def initBasicScenario(self, numOfRobots, randomize=True, lightSources=[]):
 
-        world = World.getInstance()
+        world = World.instance()
         for i in range(numOfRobots):
             r = Robot('rob' + str(i + 2), 0.0, 0.0, 0.0, 0.0)
             world.addAgent(r)
@@ -264,7 +264,7 @@ class RoboticScenario(unittest.TestCase):
 
     #@unittest.skip
     def testScenario(self):
-        world = World.getInstance()
+        world = World.instance()
         #         rob1 = Robot("rob1", 200, 200, 2, math.radians(45))
         #         rob2 = Robot("rob2", 50, 50, 2, math.radians(270))
         #         rob3 = Robot("rob3", 400, 50, 2, math.radians(0))
@@ -292,7 +292,7 @@ class RoboticScenario(unittest.TestCase):
 
     @unittest.skip
     def test_DirectionArbiter(self):
-        world = World.getInstance()
+        world = World.instance()
 
         seq = Sequence([
             Iterate(EvaluationContext.ECLP_FUNCTION, 'isSortOf',
@@ -349,7 +349,7 @@ class RoboticScenario(unittest.TestCase):
         self.showSensors(rob1.id)
 
     def showSensors(self, robotId):
-        world = World.getInstance()
+        world = World.instance()
         distance_sensors = world.getDomain('distance_sensor')
         sensorValues = []
         for ds in distance_sensors:

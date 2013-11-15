@@ -33,18 +33,17 @@ class Distribution(object):
         '''
         raise NotImplementedError()
     
-    
-    
+
 class UniformDistribution(Distribution):
     def __init__(self, sort, valueRange = None):
         Distribution.__init__(self, sort, valueRange)
          
     def generateSample(self, evaluationContext, paramValues):
-        if self.sort is 'integer':
+        if self.sort == 'integer':
             return random.randint(*(self.valueRange))
-        elif self.sort is 'float':
+        elif self.sort == 'float':
             return random.uniform(*(self.valueRange))
-        elif self.sort is 'boolean':
+        elif self.sort == 'boolean':
             return random.choice([True, False])
         else:
             # user defined sort      
@@ -55,9 +54,9 @@ class UniformDistribution(Distribution):
   
   
 class ArgumentIdentityDistribution(Distribution):
-    '''
-    passes the specified argument through
-    '''
+    """
+    Creates a stub distribution that passes the specified argument through.
+    """
     def __init__(self, sort, param_index):
         Distribution.__init__(self, sort, None)
         self.__param_index = param_index

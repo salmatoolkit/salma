@@ -8,8 +8,6 @@ import logging
 import numbers
 
 import pyclp
-from vis.cvisual import cone
-
 from salma.SMCException import SMCException
 from .constants import *
 

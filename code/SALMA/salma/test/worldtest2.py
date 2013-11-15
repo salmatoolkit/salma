@@ -42,7 +42,7 @@ class WorldTest2(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            World.logicsEngine = EclipseCLPEngine("../test/domaindesc.ecl")
+            World.set_logic_engine(EclipseCLPEngine("../test/domaindesc.ecl"))
         except SMCException as e:
             print(e)
             raise
@@ -52,8 +52,8 @@ class WorldTest2(unittest.TestCase):
         logger.addHandler(ch)
         
     def setUp(self):
-        World.createNewWorld()
-        world = World.getInstance()
+        World.create_new_world()
+        world = World.instance()
         world.addFluent(Fluent("xpos", "integer", [("r", "robot")], range=(0, 1000)))
         world.addFluent(Fluent("ypos", "integer", [("r", "robot")], range=(0, 1000)))
 
@@ -89,7 +89,7 @@ class WorldTest2(unittest.TestCase):
         
         
     def __placeAgentsInColumn(self, x):
-        world = World.getInstance()
+        world = World.instance()
         y = 10
              
         # : :type r: Agent 
@@ -127,7 +127,7 @@ class WorldTest2(unittest.TestCase):
     
     
     def setNoOneCarriesAnything(self):
-        world = World.getInstance()
+        world = World.instance()
         robots = world.getDomain('robot')
         items = world.getDomain('item')
         for r in robots:
@@ -142,7 +142,7 @@ class WorldTest2(unittest.TestCase):
     @withHeader
     def testScenario(self):
         
-        world = World.getInstance()  # : :type world: World 
+        world = World.instance()  # : :type world: World
         
         
         for i in range(1,3):    

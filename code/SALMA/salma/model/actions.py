@@ -1,3 +1,4 @@
+from argparse import _ActionsContainer
 import random
 from salma.SMCException import SMCException
 from salma.model.core import Action, Entity
@@ -46,15 +47,18 @@ class RandomActionOutcome(object):
     def param_distributions(self):
         return self.__param_distribution_specs
 
-    def generate_sample(self, evaluationContext, paramValues):
+    def generate_sample(self, evaluation_context, param_values):
         """
-        generates a tuple with the form (action_name, params)
+        Generates a concrete outcome as a tuple with the form (action_name, params)
+        :type evaluation_context: EvaluationContext
+        :type param_values: list of object
+        :rtype: (str, list of object)
         """
         args = []
 
         for pdist in self.__param_distribution_specs:
             # generateSample(self, domainMetaModel, paramValues):
-            val = pdist.generateSample(evaluationContext, paramValues)
+            val = pdist.generateSample(evaluation_context, param_values)
             if isinstance(val, Entity):
                 args.append(val.id)
             else:
@@ -102,36 +106,35 @@ class RandomActionOutcome(object):
         """
         Checks if the parameter distributions are consistent with the declaration of the primitive action.
         :param action_dict: a dict that contains all declared actions referenced by name.
-        :return: None if everything is OK, otherwise a list of strings describing problems.
+        :return: Empty list if everything is OK, otherwise a list of strings describing problems.
+
+        :type action_dict: dict of (str, Action)
+        :rtype: list of tuple
         """
         if self.action_name not in action_dict:
-            return ["Primitive action %s not registered." % self.action_name]
+            return [("random_action_outcome.unregistered_action", self.action_name)]
             #:type action: Action
         action = action_dict[self.action_name]
         if len(self.param_distributions) != len(action.parameters):
-            return [
-                "Wrong number of parameters for action outcome {}: expected {} but was {}.".format(
-                    self.action_name,
-                    len(action.parameters),
-                    len(self.param_distributions))]
-
-        wrong_types = []
+            return [("random_action_outcome.wrong_param_count",
+                     self.action_name, len(action.parameters), len(self.param_distributions))]
+        problems = []
         for i in range(len(self.param_distributions)):
             if self.param_distributions[i].sort != action.parameters[i]:
-                wrong_types.append(
-                    "Wrong type for parameter no. {} of action outcome {}: expected {} but was {}.".format(
-                        i, self.action_name, action.parameters[i], self.param_distributions[i].sort
-                    ))
-        return wrong_types
+                problems.append(
+                    ("random_action_outcome.wrong_param_type",
+                     self.action_name, i, action.parameters[i], self.param_distributions[i].sort
+                    )
+                )
+        return problems
 
 
 NOP_OUTCOME = RandomActionOutcome('nop', [])
 
 
-class StochasticActionConfiguration:
+class OutcomeSelectionStrategy:
     def __init__(self):
         self.__action = None
-        self.__outcomes = []
         pass
 
     @property
@@ -149,46 +152,6 @@ class StochasticActionConfiguration:
         """
         self.__action = action
 
-    def add_outcome(self, outcome):
-        """
-        Adds a prepared RandomActionOutcome.
-        :return: a reference to self for chaining.
-
-        :type outcome: RandomActionOutcome
-        :rtype: Uniform
-        """
-        self.__outcomes.append(outcome)
-        return self
-
-    def create_outcome(self, action_name):
-        """
-        Creates a new unconfigured action outcome for the given promitive action. The outcome
-        is added to the outcome list and returned for configuration.
-
-        :param action_name: the name of the primitive action
-        :return: the outcome
-
-        :type action_name: str
-        :rtype: RandomActionOutcome
-        """
-        outcome = RandomActionOutcome(action_name)
-        self.__outcomes.append(outcome)
-        return outcome
-
-    @property
-    def outcomes(self):
-        """
-        :rtype: list
-        """
-        return self.__outcomes
-
-    @outcomes.setter
-    def outcomes(self, outcomes):
-        """
-        :type outcomes: list
-        """
-        self.__outcomes = outcomes.copy()
-
     def select_outcome(self, evaluationContext, paramValues):
         """
         Selects a RandomActionOutcome.
@@ -205,158 +168,213 @@ class StochasticActionConfiguration:
 
     def check(self, action_dict):
         """
-        Checks if the configuration is consitent.
+        Checks if the configuration is consistent.
         :return: None if consistent or a list of problem description
 
-        :type action_dict: dict
+        :type action_dict: dict of (str, Action)
+        :rtype: list of tuple
         """
-        if self.__outcomes is None or len(self.__outcomes) == 0:
-            return ["No outcome specified."]
-        problems = []
-        for o in self.__outcomes:
-            problems.extend(o.check(action_dict))
-        return problems
+        return []
 
 
 class StochasticAction(Action):
-    def __init__(self, name, parameter_types, config=None, immediate=False):
-        '''
+    def __init__(self, name, parameter_types, outcomes, selection_strategy=None, immediate=False):
+        """
         Represents a stochastic action. Action instances are created when the declaration is read and
         added to the world's action registry. The outcome and parameter distribution can then be set with the
         associated configuration.
 
+        :param outcomes: list of RandomActionOutcome objects
         :type name: str
-        :type parameter_types: list
-        :type config: StochasticActionConfiguration
-        '''
+        :type parameter_types: list of str
+        :type outcomes: list of RandomActionOutcome
+        :type selection_strategy: OutcomeSelectionStrategy
+        :type immediate: bool
+        """
         Action.__init__(self, name, parameter_types, immediate)
-        self.__config = config
+        self.__selection_strategy = selection_strategy
+        #: :type: dict of (str, RandomActionOutcome)
+        self.__outcomes = dict()
+
+        for outcome in outcomes:
+            self.__outcomes[outcome.action_name] = outcome
+        self.__outcome_list = list(self.__outcomes.values())
 
     @property
-    def config(self):
+    def selection_strategy(self):
         """
         :return: the configuration object
-        :rtype: StochasticActionConfiguration
+        :rtype: OutcomeSelectionStrategy
         """
-        return self.__config
+        return self.__selection_strategy
 
-    @config.setter
-    def config(self, conf):
+    @selection_strategy.setter
+    def selection_strategy(self, strategy):
         """
-        :type conf: StochasticActionConfiguration
+        :type strategy: OutcomeSelectionStrategy
         """
-        if self.__config is not None:
-            self.__config.action = None
-        self.__config = conf
-        self.__config.action = self
+        if self.__selection_strategy is not None:
+            self.__selection_strategy.action = None
+        self.__selection_strategy = strategy
+        self.__selection_strategy.action = self
 
-    def generateOutcome(self, evaluationContext, paramValues):
-        '''
+    @property
+    def outcomes(self):
+        """
+        :rtype: list of RandomActionOutcome
+        """
+        return self.__outcome_list
+
+    def outcome(self, action_name):
+        """
+        Returns the outcome for the given action name.
+        :raises SMCException if no outcome is registered with the given action name.
+        :type action_name: str
+        :rtype: RandomActionOutcome
+        """
+        try:
+            return self.__outcomes[action_name]
+        except KeyError:
+            raise SMCException(
+                "No outcome with action name {} has been declared for stochastic action {}.".format(
+                    action_name, self.name)
+            )
+
+    def add_outcome(self, outcome):
+        """
+        Adds an outcome.
+        NOTE: This action should be used very carefully since it introduces deviance from the domain
+        specification.
+
+        :type outcome: RandomActionOutcome
+        """
+        self.__outcomes[outcome.action_name] = outcome
+        self.__outcome_list = list(self.__outcomes.values())
+
+    def generateOutcome(self, evaluation_context, param_values):
+        """
         Returns a concrete sample as a (action, params) tuple.
 
-        :type evaluationContext: EvaluationContext
-        :type paramValues: list
-        :rtype: tuple
-        '''
-        outcome = self.config.select_outcome(evaluationContext, paramValues)
-        return outcome.generate_sample(evaluationContext, paramValues)
+        :type evaluation_context: EvaluationContext
+        :type param_values: list of object
+        :rtype: (str, list of object)
+        """
+        outcome = self.selection_strategy.select_outcome(evaluation_context, param_values)
+        return outcome.generate_sample(evaluation_context, param_values)
+
+    def check(self, action_dict):
+        """
+        Checks if the outcome selection configuration and the outcomes are configured properly.
+        :return: a list of problems
+        :type action_dict: dict of (str, Action)
+        :rtype: list of tuple
+        """
+        if self.__outcomes is None or len(self.__outcomes) == 0:
+            return ["stochastic_action.no_outcome"]
+        if self.selection_strategy is None:
+            return ["stochastic_action.no_selection_strategy"]
+        problems = []
+        problems.extend(self.selection_strategy.check(action_dict))
+        for o in self.__outcomes.values():
+            problems.extend(o.check(action_dict))
+        return problems
 
     def __str__(self):
         return "StochasticAction({},{})".format(self.name, self.parameters)
 
 
-class Parametric(StochasticActionConfiguration):
-    def __init__(self, action_name, params=[]):
-        """
-        Creates a stochastic action outcome selector that is parametric in the sense that there is only one outcome
-        specification.
-
-        :param action_name: the name of the action outcome
-        :param params: the list of parameters, either sort name or Distribution
-
-        :type action_name: str
-        :type params: list
-        """
-        super().__init__()
-        self.outcomes = [RandomActionOutcome(action_name, params)]
-
-    def select_outcome(self, evaluationContext, paramValues):
-        return self.outcomes[0]
-
-    def create_outcome(self, action_name):
-        self.outcomes = [RandomActionOutcome(action_name)]
-        return self.outcomes[0]
-
-    @property
-    def outcome(self):
-        return self.outcomes[0]
-
-
-class Uniform(StochasticActionConfiguration):
-    def __init__(self, outcomes=None):
-        super().__init__()
-        if not outcomes is None:
-            self.outcomes = outcomes
-
-    def select_outcome(self, evaluationContext, paramValues):
-        return random.choice(self.outcomes)
-
-    def add_outcome(self, action_name, params):
-        """
-        Adds an outcome that is defined by an action name and parameter distributions.
-        :return: a reference to self for chaining.
-
-        :type action_name: str
-        :type params: list
-        :rtype: Uniform
-        """
-        outcome = RandomActionOutcome(action_name, params)
-        return self.add_outcome(outcome)
-
-
-class Stepwise(StochasticActionConfiguration):
+class Deterministic(OutcomeSelectionStrategy):
+    """
+    Creates a trivial deterministic stochastic action outcome selector that is parametric in the sense that there
+    is only one outcome specification.
+    """
     def __init__(self):
         super().__init__()
-        # __outcome_specs is a list of (probability, outcome) tuples.
-        self.__outcome_specs = []
-
-    def add_outcome(self, probability, outcome):
-        """
-        Adds an action outcome with the given probability.
-
-        :param probability: the probability with which outcome occurs.
-        :param outcome: the action outcome
-        :type probability: int
-        :type outcome: RandomActionOutcome
-
-        :rtype: Stepwise
-        """
-        self.__outcome_specs.append((probability, outcome))
-        return self
-
-    def create_outcome(self, action_name, probability):
-        outcome = RandomActionOutcome(action_name)
-        self.__outcome_specs.append((probability, outcome))
-        return outcome
 
     def select_outcome(self, evaluationContext, paramValues):
-        r = random.uniform(0, 1)
-        start = 0
-        for spec in self.__outcome_specs:
-            if (r >= start) and (r < start + spec[0]):
-                return spec[1]
-            start += spec[0]
-        return None
+        return self.action.outcomes[0]
 
     def check(self, action_dict):
-        if self.__outcome_specs is None or len(self.__outcome_specs) == 0:
-            return ["No outcome specified."]
-        problems = []
-        s = sum(map(lambda x: x[0], self.__outcome_specs))
+        problems = super().check(action_dict)
+        if len(self.action.outcomes) != 1:
+            problems.append("outcome_selection_strategy.deterministic.more_than_one_outcome")
+        return problems
+
+
+class Uniform(OutcomeSelectionStrategy):
+    """
+    Creates an outcome selection strategy that chooses one outcome uniformly from the list of outcomes.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def select_outcome(self, evaluationContext, paramValues):
+        return random.choice(self.action.outcomes)
+
+
+class Stepwise(OutcomeSelectionStrategy):
+    """
+    Creates a selection strategy where a selection probability is given for each outcome.
+    """
+    def __init__(self, probabilities=[]):
+        """
+        :param probabilities: a list of (action_name, probability)
+        :type probabilities: list of (str, float)
+        """
+        super().__init__()
+        #: :type: dict of (str, float)
+        self.__probabilities = dict()
+        for p in probabilities:
+            self.__probabilities[p[0]] = p[1]
+
+    @property
+    def probabilities(self):
+        """
+        The selection properties for all action outcome.
+        :rtype: dict of (str, float)
+        """
+        return self.__probabilities
+
+    def set_probability(self, action_name, probability):
+        """
+        Sets the selection probability for the given action.
+        :type action_name: str
+        :type probability: float
+        """
+        self.__probabilities[action_name] = probability
+
+    def probability(self, action_name : str) -> float:
+        """
+        Returns the selection probability for the given action.
+        """
+        try:
+            return self.__probabilities[action_name]
+        except KeyError:
+            raise SMCException("No probability specified for action {}.".format(action_name))
+
+    def select_outcome(self, evaluation_context, param_values):
+        r = random.uniform(0, 1)
+        start = 0
+        for action, probability in self.__probabilities.items():
+            if (r >= start) and (r < start + probability):
+                return self.action.outcome(action)
+            start += probability
+        raise(SMCException("No outcome could be selected, r = {}, probabilities = {}".format(r,self.__probabilities)))
+
+    def check(self, action_dict):
+        """
+        :type action_dict: dict of (str, Action)
+        :rtype: list of tuple
+        """
+        problems = super().check(action_dict)
+        for outcome in self.action.outcomes:
+            if not outcome.action_name in self.__probabilities:
+                problems.append(("outcome_selection_strategy.stepwise.no_prob_for_outcome", outcome.action_name))
+
+        s = sum(self.__probabilities.values())
         if s != 1.0:
-            problems.append("Invalid probability distribution: probability sum was {} but should be 1.".format(s))
-        for spec in self.__outcome_specs:
-            problems.extend(spec[1].check(action_dict))
+            problems.append(("outcome_selection_strategy.stepwise.wrong_prob_sum", s))
+
         return problems
 
 
@@ -378,7 +396,7 @@ class ExogenousAction(object):
         self.__action_name = action_name
         self.__entity_param_types = entity_param_types
         self.__stochastic_param_types = stochastic_param_types
-        self.__configuration = configuration
+        self.__configuration = configuration if not configuration is None else ExogenousActionConfiguration()
 
 
     @property

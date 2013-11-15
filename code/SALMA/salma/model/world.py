@@ -14,11 +14,11 @@ import pyclp
 from salma import constants
 from salma.SMCException import SMCException
 from salma.constants import *
-from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction
+from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, Deterministic, Uniform, ExogenousActionConfiguration
 from salma.model.core import Entity, Agent, Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ActionExecution
-
+from ..engine import Engine
 from ..statistics import SequentialAcceptanceTest
 from .core import Agent, Entity, Fluent
 from .procedure import Variable, ActionExecution
@@ -35,18 +35,28 @@ class World(Entity):
     several check_* methods. After that, the domain models are set up with initialize, optionally also generating a randomized
     initial situation by sampling values for all fluent and constant instances. Additionally, the fluent and constant values
     can also be manipulated with
-
     """
 
-    # singleton reference
-    # : :type logicsEngine: Engine
-    logicsEngine = None
+    __logic_engine = None
+
+    @staticmethod
+    def logic_engine():
+        """
+        The world's logic engine.
+        :rtype: Engine
+        """
+        return World.__logic_engine
+
+    @staticmethod
+    def set_logic_engine(engine):
+        """
+        Sets the static logic engine reference.
+        :type engine: Engine
+        """
+        World.__logic_engine = engine
 
     SORT_NAME = 'world'
     ENTITY_ID = 'world'
-
-    def getLogicsEngine(self):
-        return World.logicsEngine
 
     __instance = None
 
@@ -71,9 +81,9 @@ class World(Entity):
         self.__finished = False
         self.__initialized = False
 
-        if World.logicsEngine is None:
+        if World.logic_engine() is None:
             raise SMCException("Engine not set when creating world.")
-        World.logicsEngine.reset()
+        World.logic_engine().reset()
         self.addFluent(Fluent("time", "integer", []))
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
@@ -87,7 +97,7 @@ class World(Entity):
         return self.__expressionContext
 
     @staticmethod
-    def createNewWorld():
+    def create_new_world():
         """
         Creates a new instance for the singleton World and returns it.
         :rtype: World
@@ -95,14 +105,13 @@ class World(Entity):
         World.__instance = World()
         return World.__instance
 
-
-    def enumerateFluentInstances(self, fluent):
+    def enumerate_fluent_instances(self, fluent):
         """
         Creates an iterator for instances of the given fluent
         :type fluent: Fluent
         """
         candidates = []
-        candidateIndexes = []
+        candidate_indexes = []
         for p in fluent.parameters:
             dom = self.getDomain(p)
             # if the parameter's domain is empty, leave
@@ -110,28 +119,28 @@ class World(Entity):
                 yield []
                 return
             candidates.append(list(dom))
-            candidateIndexes.append(0)
+            candidate_indexes.append(0)
 
             # todo: handle fluents without parameters
         finished = False
         while not finished:
-            paramSelection = []
+            param_selection = []
             for i, c in enumerate(candidates):
-                paramSelection.append(c[candidateIndexes[i]].id)
-            yield paramSelection
+                param_selection.append(c[candidate_indexes[i]].id)
+            yield param_selection
 
             # increment first position similar to binary counter
-            if len(candidateIndexes) > 0:
-                candidateIndexes[0] += 1
+            if len(candidate_indexes) > 0:
+                candidate_indexes[0] += 1
                 # propagate increment
                 for i, c in enumerate(candidates):
-                    if candidateIndexes[i] > len(c) - 1:
+                    if candidate_indexes[i] > len(c) - 1:
                         # stop at the last candidate list = parameter position
                         if i == len(candidates) - 1:
                             finished = True
                         else:
-                            candidateIndexes[i] = 0
-                            candidateIndexes[i + 1] += 1
+                            candidate_indexes[i] = 0
+                            candidate_indexes[i + 1] += 1
             else:
                 finished = True
 
@@ -143,21 +152,21 @@ class World(Entity):
         :type fluent: Fluent
         """
         # list of domain lists
-        for paramSelection in self.enumerateFluentInstances(fluent):
+        for paramSelection in self.enumerate_fluent_instances(fluent):
             value = fluent.generateSample(self.__evaluationContext, paramSelection)
-            World.logicsEngine.setFluentValue(fluent.name, paramSelection, value)
+            World.logic_engine().setFluentValue(fluent.name, paramSelection, value)
 
     def check_fluent_initialization(self):
         """
         Checks whether all instances of all declared fluents and constants are initialized correctly.
         :return: tuple with (uninitialized_fluent_instances, uninitialized_constant_instances)
-        :rtype: tuple
+        :rtype: (list of (str, list), list of (str, list))
         """
         uninitialized_fluent_instances = []
         uninitialized_constant_instances = []
         for fluent in self.__fluents.values():
             """:type fluent: Fluent """
-            for paramSelection in self.enumerateFluentInstances(fluent):
+            for paramSelection in self.enumerate_fluent_instances(fluent):
                 instance = None
                 v = (self.getConstantValue(fluent.name, paramSelection) if isinstance(fluent, Constant)
                      else self.getFluentValue(fluent.name, paramSelection))
@@ -183,12 +192,9 @@ class World(Entity):
 
         for action in filter(lambda a: isinstance(a, StochasticAction), self.__actions.values()):
             assert isinstance(action, StochasticAction)
-            if action.config is None:
-                problematic_stochastic_actions.append((action, ["uninitialized"]))
-            else:
-                problems = action.config.check(self.__actions)
-                if len(problems) > 0:
-                    problematic_stochastic_actions.append((action, problems))
+            problems = action.check(self.__actions)
+            if len(problems) > 0:
+                problematic_stochastic_actions.append((action, problems))
 
         for exo_action in self.__exogenousActions.values():
             assert isinstance(exo_action, ExogenousAction)
@@ -204,6 +210,7 @@ class World(Entity):
     def __make_fluent_access_function(self, fluent_name):
         def __f(*params):
             return self.getFluentValue(fluent_name, params)
+
         return __f
 
     def __create_expression_context(self):
@@ -230,6 +237,23 @@ class World(Entity):
         for fluent in itertools.filterfalse(lambda f: f.name == 'time', self.__fluents.values()):
             self.__initialize_fluent(fluent)
 
+    def __load_stochastic_action_declarations(self, declarations, immediate_action_names):
+        """
+        Loads the stochastic declarations and creates StochasticAction objects accordingly.
+        :type declarations: list of (str, list of object, list of str)
+        :type immediate_action_names: list of str
+        """
+        for sa in declarations:
+            immediate = sa[0] in immediate_action_names
+            param_names = sa[1]
+            outcome_names = sa[2]
+            outcomes = []
+            for o_name in outcome_names:
+                outcomes.append(RandomActionOutcome(o_name))
+            strategy = Deterministic() if len(outcomes) == 1 else Uniform()
+            action = StochasticAction(sa[0], param_names, outcomes, strategy, immediate)
+            self.addAction(action)
+
     def load_declarations(self):
         """
         Loads the declarations from the domain specification and initializes fluents, constants, and actions.
@@ -239,17 +263,18 @@ class World(Entity):
         # action_name -> core.Action
         self.__actions = dict()
         self.__exogenousActions = dict()
-        declarations = World.logicsEngine.load_declarations()
+        declarations = World.logic_engine().load_declarations()
         for f in declarations['fluents']:
             self.addFluent(Fluent(f[0], f[2], f[1]))
         for c in declarations['constants']:
-            self.addConstant(Constant(c[0],c[2],c[1]))
+            self.addConstant(Constant(c[0], c[2], c[1]))
         for pa in declarations['primitive_actions']:
             immediate = pa[0] in declarations['immediate_actions']
             self.addAction(DeterministicAction(pa[0], pa[1], immediate))
-        for sa in declarations['stochastic_actions']:
-            immediate = sa[0] in declarations['immediate_actions']
-            self.addAction(StochasticAction(sa[0], sa[1], config=None, immediate=immediate))
+
+        self.__load_stochastic_action_declarations(declarations["stochastic_actions"],
+                                                   declarations["immediate_actions"])
+
         for ea in declarations['exogenous_actions']:
             self.addExogenousAction(ExogenousAction(ea[0], ea[1], ea[2]))
 
@@ -257,23 +282,22 @@ class World(Entity):
         """
         1. Sets up domains, i.e. defines the sets of entity objects for each sort.
 
-        2. Sets ups the a new initial situation by creating samples for the fluent instance for each combination
+        2. Optionally sets ups the a new initial situation by creating samples for the fluent instance for each combination
             of parameter values.
         """
-        # TODO: decouple init of domains from sampling
-        World.logicsEngine.reset()
+        World.logic_engine().reset()
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
         for sort in self.__domainMap.keys():
             oids = []
             for entity in self.__domainMap[sort]:
                 oids.append(entity.id)
-            World.logicsEngine.defineDomain(sort, oids)
+            World.logic_engine().defineDomain(sort, oids)
 
         #keep entityId->entity maps (__entities & __agents)
         self.__domainMap = dict()
 
-        domain_map_from_eclipse = World.logicsEngine.initSortHierarchy()
+        domain_map_from_eclipse = World.logic_engine().initSortHierarchy()
 
         for sort, domain in domain_map_from_eclipse.items():
             self.__domainMap[sort] = set()
@@ -285,7 +309,7 @@ class World(Entity):
                     raise SMCException("No Entity instance registered for {}:{}".format(entityId, sort))
                 self.__domainMap[sort].add(entity)
 
-        World.logicsEngine.setFluentValue('time', [], 0)
+        World.logic_engine().setFluentValue('time', [], 0)
 
         if sample_fluent_values:
             self.sample_fluent_values()
@@ -414,11 +438,11 @@ class World(Entity):
         try:
             return self.__actions[action_name]
         except KeyError:
-            raise(SMCException("Action {} not registered.".format(action_name)))
+            raise (SMCException("Action {} not registered.".format(action_name)))
 
     def get_stochastic_action(self, action_name):
         """
-        Returns the stochatsic action with the given name.
+        Returns the stochastic action with the given name.
         :type action_name: str
         :rtype: StochasticAction
         """
@@ -449,249 +473,300 @@ class World(Entity):
         try:
             del self.__exogenousActions[exogenousAction.action_name]
         except KeyError:
-             raise(SMCException("Trying to erase unregistered exogenous action {}.".format(exogenousAction.action_name)))
+            raise (
+            SMCException("Trying to erase unregistered exogenous action {}.".format(exogenousAction.action_name)))
 
-    def getExogenousAction(self, action_name):
+    def get_exogenous_action(self, action_name):
         """
         Returns the exogenous action with the given name.
-        :raises: SMCException if
-        :param action_name:
-        :return:
+        :raises: SMCException if there is no exogenous action with the given name.
+        :type action_name: str
+        :rtype: ExogenousAction
         """
-
         try:
             return self.__exogenousActions[action_name]
         except KeyError:
-            raise(SMCException("Unregistered exogenous action {}.".format(action_name)))
+            raise (SMCException("Unregistered exogenous action {}.".format(action_name)))
 
-    def getAllExogenousActions(self):
+    def get_exogenous_actions(self):
+        """
+        Returns a list view on all exogenous actions.
+        :rtype: list of ExogenousAction
+        """
         return self.__exogenousActions.values()
 
-
-
     def getSorts(self):
+        """
+        Returns a key view of all sort names.
+        :rtype: builtins.key_values
+        """
         return self.__domainMap.keys()
 
-    def getDomain(self, sortName):
-        if sortName in self.__domainMap:
-            return self.__domainMap[sortName]
-        else:
-            raise (SMCException("Sort {} not declared.".format(sortName)))
+    def getDomain(self, sort_name):
+        """
+        Returns the list of all entities that make the domain of the given sort.
+        :type sort_name: str
+        :rtype: list
+        """
+        try:
+            return self.__domainMap[sort_name]
+        except KeyError:
+            raise (SMCException("Sort {} not declared.".format(sort_name)))
 
     def addFluent(self, fluent):
-        '''
+        """
         Adds a core.Fluent object to the metamodel.
-        
-        fluent: core.Fluent object
-
-        '''
+        NOTE: this method should normally not be called directly but is automatically called in World.load_declarations().
+        :type fluent: Fluent
+        """
         self.__fluents[fluent.name] = fluent
 
-
     def addConstant(self, con):
+        """
+        Adds a constant to the metamodel.
+        NOTE: this method should normally not be called directly but is automatically called in World.load_declarations().
+        :type con: Constant
+        """
         self.addFluent(con)
 
     def getFluents(self):
-        '''
-        Returns all fluents currently registerd in the metamodel as a list of core.Fluent objects.
-        return
-        '''
+        """
+        Returns a list view of all fluents currently registered in the metamodel as a list of core.Fluent objects.
+        This list also included constants.
+        :rtype: builtins.dict_values
+        """
         return self.__fluents.values()
 
     def getConstants(self):
+        """
+        Returns a list of all registered constants.
+        :rtype: list
+        """
         return filter(lambda e: isinstance(e, Constant), self.__fluents.values())
 
     def getFluent(self, fluentName):
-        '''
+        """
         Returns the core.Fluent object associated by the given fluent name or None if such a fluent
         hasn't been registered.
-        '''
+        :type fluentName: str
+        :rtype: Fluent
+        """
         if fluentName in self.__fluents:
             return self.__fluents[fluentName]
         else:
             return None
 
     def getConstant(self, constantName):
+        """
+        Returns the core.Constant object associated by the given constant name or None if such a constant
+        hasn't been registered.
+        :raises: SMCException if a fluent has been registered with the given name that is not a constant.
+        :type constantName: str
+        :rtype: Constant
+        """
         c = self.getFluent(constantName)
-        if (c is None) or (not isinstance(c, Constant)):
+        if c is None:
             return None
+        elif not isinstance(c, Constant):
+            raise SMCException("Fluent {} is not a constant.".format(constantName))
         else:
             return c
 
-
     @staticmethod
-    def getInstance():
-        '''
+    def instance():
+        """
+        Returns the singleton instance of the World.
         :rtype: World
-        '''
+        """
         if World.__instance is None:
             World.__instance = World()
         return World.__instance
 
-
-    def getFluentValue(self, fluentName, fluentParams):
-        '''
-        :param fluentName: str
-        :param fluentParams: parameters
-        '''
-        if not self.__initialized: self.initialize(False)
+    def getFluentValue(self, fluent_name, fluent_params):
+        """
+        Returns the current value of the fluent instance that is given by the fluent name and the parameter list.
+        :type fluent_name: str
+        :type fluent_params: list
+        :rtype: object
+        """
         # we don't check if the fluent has been registered for performance reasons
-        fv = World.logicsEngine.getFluentValue(fluentName, *fluentParams)
-        if fv == None:
+        fv = World.logic_engine().getFluentValue(fluent_name, *fluent_params)
+        if fv is None:
             return None
         else:
             return fv.value
 
     def getTime(self):
+        """
+        Returns the current value of the fluent 'time'.
+        :rtype: int
+        """
         return self.getFluentValue('time', [])
 
-
     def getConstantValue(self, constantName, constantParams):
-        if not self.__initialized: self.initialize()
-        return World.logicsEngine.getConstantValue(constantName, constantParams)
-
+        """
+        Returns the current value of the given constant instance.
+        :type constantName: str
+        :type constantParams: list
+        :rtype: object
+        """
+        return World.logic_engine().getConstantValue(constantName, constantParams)
 
     def setFluentValue(self, fluentName, fluentParams, value):
-        if not self.__initialized: self.initialize()
-        World.logicsEngine.setFluentValue(fluentName, fluentParams, value)
+        """
+        Sets the current value for the given fluent instance.
+        :type fluentName: str
+        :type fluentParams: list
+        :type value: object
+        """
+        World.logic_engine().setFluentValue(fluentName, fluentParams, value)
 
     def setConstantValue(self, constantName, constantParams, value):
-        if not self.__initialized: self.initialize()
-        World.logicsEngine.setConstantValue(constantName, constantParams, value)
+        """
+        Sets the current value for the given constant instance.
+        :type constantName: str
+        :type constantParams: list
+        :type value: object
+        """
+        World.logic_engine().setConstantValue(constantName, constantParams, value)
 
 
-    def __translateActionExecution(self, agent, actionExecution):
-        '''
-        Generates a ground deterministic action outcome from the given ActionExecution as a 
-        (action_name, [groundParams]) tuple. If actionExecution refers to a stochastic action,
+    def __translate_action_execution(self, agent, action_execution):
+        """
+        Generates a ground deterministic action outcome from the given ActionExecution as a
+        (action_name, [ground_params]) tuple. If actionExecution refers to a stochastic action,
         an outcome is generated according to the distribution that was defined for the action.
         The agent's evaluation context is used for generating an outcome.
-        
-        :type agent: Agent
-        :type actionExecution: ActionExecution
-        :rtype (str, list) 
-        '''
 
+        :return: (str, list)
+        :raises: SMCException if action is not registered.
+
+        :type agent: Agent
+        :type action_execution: ActionExecution
+        :rtype: tuple
+        """
         try:
-            action = self.__actions[actionExecution.actionName]
+            action = self.__actions[action_execution.actionName]
         except KeyError:
             raise (
                 SMCException("Trying to execute unregistered action: {}".format(
-                    actionExecution.actionName)))
+                    action_execution.actionName)))
 
-        groundParams = agent.evaluationContext.resolve(*actionExecution.actionParameters)
+        ground_params = agent.evaluationContext.resolve(*action_execution.actionParameters)
 
         if isinstance(action, StochasticAction):
-            return action.generateOutcome(agent.evaluationContext, groundParams)
+            return action.generateOutcome(agent.evaluationContext, ground_params)
         else:
-            return (actionExecution.actionName, groundParams)
+            return (action_execution.actionName, ground_params)
 
     @staticmethod
-    def __getActionNameFromTerm(actionTerm):
-        '''
-        :param actionTerm: (pyclp.Atom, pyclp.Compound)
-        :rtype str
-        '''
-        if isinstance(actionTerm, pyclp.Compound):
-            return actionTerm.functor()
+    def __get_action_name_from_term(action_term):
+        """
+        Extracts the action name from the given term. This is either the functor if action_term is a Compound or
+        the string representation of action_term.
+        :param action_term: (pyclp.Atom, pyclp.Compound)
+        :rtype: str
+        """
+        if isinstance(action_term, pyclp.Compound):
+            return action_term.functor()
         else:
-            return str(actionTerm)
+            return str(action_term)
 
-
-    def getExogenousActionInstances(self):
-        candidates = World.logicsEngine.getExogenousActionCandidates()
-        eaInstances = []
+    def get_exogenous_action_instances(self):
+        """
+        Creates a list of all exogenous action instances (see ExogenusAction.generate_instance) for
+        all possible candidates. The list of possible candidates is calculated by calling
+        Engine.getExogenousActionCandidates() first. Then ExogenousAction.shouldHappen() is used to
+        select instances that should occur.
+        :rtype: list
+        """
+        candidates = World.logic_engine().getExogenousActionCandidates()
+        ea_instances = []
         for candidate in candidates.items():
-            actionName = candidate[0]
+            action_name = candidate[0]
             combinations = candidate[1]
             # just ignore if the ex action is not registered
-            if actionName in self.__exogenousActions:
-                ea = self.__exogenousActions[actionName]
+            if action_name in self.__exogenousActions:
+                ea = self.__exogenousActions[action_name]
                 for params in combinations:
                     if ea.should_happen(self.__evaluationContext, params):
                         instance = ea.generate_instance(self.__evaluationContext, params)
-                        eaInstances.append(instance)
-        return eaInstances
-
+                        ea_instances.append(instance)
+        return ea_instances
 
     def step(self):
-        '''
+        """
         Performs one discrete time step for all agents and runs the progression.
-        '''
-        if not self.__initialized: self.initialize()
 
-        actions = []  # list of tuples: (actionExecution, params)
+        :returns: self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, failed_regular_actions
+        :rtype: tuple
+        """
+        actions = []  # list of tuples: (action_execution, params)
 
         # gather actions
-
-
-        newStep = True
+        new_step = True
         while True:
             self.__finished = True
-            immediateActions = []
+            immediate_actions = []
             for agent in self.__agents.values():
                 if not agent.isFinished():
                     self.__finished = False
-                    actionExecution = agent.step(newStep)
-                    if actionExecution != None:
-                        act = self.__translateActionExecution(agent, actionExecution)
+                    action_execution = agent.step(new_step)
+                    if action_execution is not None:
+                        act = self.__translate_action_execution(agent, action_execution)
 
                         if act[0] in self.__actions and self.__actions[act[0]].immediate:
-                            immediateActions.append(act)
+                            immediate_actions.append(act)
                         else:
                             actions.append(act)
                             agent.setPendingAction(act)
-
                             # progress immediate actions without succeeding time step
                             # leave loop only if we don't have any immediate actions left
-            if len(immediateActions) == 0:
+            if len(immediate_actions) == 0:
                 break
-            newStep = False
-            random.shuffle(immediateActions)
-            failedActions = World.logicsEngine.progress(immediateActions)
+            new_step = False
+            random.shuffle(immediate_actions)
+            failed_actions = World.logic_engine().progress(immediate_actions)
             if moduleLogger.isEnabledFor(logging.DEBUG):
-                moduleLogger.debug("Progressed immediately: %s", immediateActions)
-            if len(failedActions) > 0:
-                return (self.__finished, NOT_OK, {}, {}, immediateActions, failedActions)
+                moduleLogger.debug("Progressed immediately: %s", immediate_actions)
+            if len(failed_actions) > 0:
+                return self.__finished, NOT_OK, {}, {}, immediate_actions, failed_actions
 
-                # TODO: add events
-                # : :type exAct: ExogenousAction
+        ex_act_instances = self.get_exogenous_action_instances()
 
-        exActInstances = self.getExogenousActionInstances()
+        if ex_act_instances is not None:
+            actions.extend(ex_act_instances)
 
-        if exActInstances != None:
-            actions.extend(exActInstances)
-
-
-        # shuffle actions as means for achieving fairness
-        failedRegularActions = []
+        # regular action means non-exogenous actions
+        failed_regular_actions = []
 
         if len(actions) > 0:
+            # shuffle actions as means for achieving fairness
             random.shuffle(actions)
-            failedActions = World.logicsEngine.progress(actions)
+            failed_actions = World.logic_engine().progress(actions)
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug("Progressed: %s", actions)
 
-            failedRegularActions = list(
-                itertools.filterfalse(lambda fa: World.__getActionNameFromTerm(fa) in self.__exogenousActions,
-                                      failedActions))
+            failed_regular_actions = list(
+                itertools.filterfalse(lambda fa: World.__get_action_name_from_term(fa) in self.__exogenousActions,
+                                      failed_actions))
 
-        if len(failedRegularActions) > 0:
-            return (self.__finished, NOT_OK, {}, {}, actions, failedRegularActions)
+        if len(failed_regular_actions) > 0:
+            return self.__finished, NOT_OK, {}, {}, actions, failed_regular_actions
 
-        overallVerdict, toplevel_results, scheduled_results = World.logicsEngine.evaluationStep()
-        # it's or if events fail but if regular actions fail, we're in trouble! 
-
-
+        overall_verdict, toplevel_results, scheduled_results = World.logic_engine().evaluationStep()
+        # it's or if events fail but if regular actions fail, we're in trouble!
 
         # TODO: distinguish between actions that take time and actions that don't
         # execute all non-time actions before taking a time step
-
-
-        return (self.__finished, overallVerdict, toplevel_results, scheduled_results, actions, [])
-
+        return self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
 
     def runExperiment(self):
+        """
+        Runs the experiment that has been set up until a verdict can be determined or the world has finished.
+        :return: (verdict, dict(steps, toplevel_results, scheduled_results, failedRegularActions))
+        :rtype: tuple
+        """
         step_num = 0
         verdict = NONDET
         toplevel_results = scheduled_results = failedRegularActions = []
@@ -703,18 +778,16 @@ class World(Entity):
                  'toplevel_results': toplevel_results,
                  'scheduled_results': scheduled_results,
                  'failedActions': failedRegularActions
-                }
-        )
-
+                })
 
     def runUntilFinished(self, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
-        '''
+        """
         Repeatedly runs World.step() until either the world's finished flag becomes true or
         either the step or time limit is reached.
-        
-        :param maxSteps: int   
+
+        :param maxSteps: int
         :param maxRealTime: datetime.timedelta
-        '''
+        """
         step_num = 0
         verdict = NONDET
         toplevel_results = scheduled_results = failedRegularActions = []
@@ -750,24 +823,23 @@ class World(Entity):
         )
 
     def reset(self):
-        World.logicsEngine.reset(False, False) # don't remove formulas!
+        World.logic_engine().reset(False, False) # don't remove formulas!
         self.__evaluationContext = LocalEvaluationContext(self, None)
-        World.logicsEngine.setFluentValue('time', [], 0)
+        World.logic_engine().setFluentValue('time', [], 0)
         #: :type agent: Agent
         for agent in self.getAgents():
             agent.restart()
 
-
     def runRepetitions(self, numberOfRepetitions):
         # save state
-        currentState = list(World.logicsEngine.getCurrentState())
+        currentState = list(World.logic_engine().getCurrentState())
         results = [] # list of True/False
 
         # TODO: also reset agents
 
         for i in range(0, numberOfRepetitions):
             self.reset()
-            World.logicsEngine.restoreState(currentState)
+            World.logic_engine().restoreState(currentState)
 
             res = self.runExperiment()
             verdict = res[0] == constants.OK
@@ -775,23 +847,22 @@ class World(Entity):
             print("Experiment #{} --> {}".format(i + 1, verdict))
 
         self.reset()
-        World.logicsEngine.restoreState(currentState)
+        World.logic_engine().restoreState(currentState)
 
         return results
-
 
     def runSequentialHypothesisTest(self, p0, p1, alpha, beta):
 
         seqTest = SequentialAcceptanceTest(p0, p1, alpha, beta)
 
-        currentState = list(World.logicsEngine.getCurrentState())
+        currentState = list(World.logic_engine().getCurrentState())
         result = None
         m = 0
         verdicts = []
         numberOfDefects = 0
         while result is None:
             self.reset()
-            World.logicsEngine.restoreState(currentState)
+            World.logic_engine().restoreState(currentState)
 
             res = self.runExperiment()
             verdict = res[0] == constants.OK
@@ -805,27 +876,24 @@ class World(Entity):
             result = seqTest.checkAcceptance(m, numberOfDefects)
 
         self.reset()
-        World.logicsEngine.restoreState(currentState)
+        World.logic_engine().restoreState(currentState)
 
         return (result, m)
 
-
     def printState(self):
         if not self.__initialized: self.initialize()
-        state = World.logicsEngine.getCurrentState()
+        state = World.logic_engine().getCurrentState()
         for f in state:
             print(f)
-
 
     def registerProperty(self, propertyName, formula):
         '''
         Registers the given formula under the given name. 
         '''
-        World.logicsEngine.registerProperty(propertyName, formula)
+        World.logic_engine().registerProperty(propertyName, formula)
 
     def getProperties(self):
-        return World.logicsEngine.getProperties()
-
+        return World.logic_engine().getProperties()
 
     def getActionClock(self, actionName, params):
         '''
@@ -838,7 +906,7 @@ class World(Entity):
         
         :rtype: int
         '''
-        return self.logicsEngine.getActionClock(actionName, params)
+        return self.logic_engine().getActionClock(actionName, params)
 
     def getFluentChangeTime(self, fluentName, params):
         '''
@@ -850,7 +918,7 @@ class World(Entity):
         :param fluentName: str
         :param params: list
         '''
-        return self.logicsEngine.getFluentChangeTime(fluentName, params)
+        return self.logic_engine().getFluentChangeTime(fluentName, params)
 
     def queryPersistentProperty(self, propertyName):
         '''
@@ -859,7 +927,7 @@ class World(Entity):
         
         :param propertyName: str
         '''
-        return self.logicsEngine.queryPersistentProperty(propertyName)
+        return self.logic_engine().queryPersistentProperty(propertyName)
 
 
 # -------------------------------------------------------------------------------------- 
@@ -876,18 +944,18 @@ class LocalEvaluationContext(EvaluationContext):
         resolvedParams = self.resolve(*params)
         result = None
         if sourceType == EvaluationContext.FLUENT:
-            result = World.getInstance().getFluentValue(source, resolvedParams)
+            result = World.instance().getFluentValue(source, resolvedParams)
             if result == None:
                 raise SMCException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
         elif sourceType == EvaluationContext.ECLP_FUNCTION:
-            result = World.logicsEngine.evaluateCondition(source, *resolvedParams)
+            result = World.logic_engine().evaluateCondition(source, *resolvedParams)
         elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
-            result = World.logicsEngine.evaluateCondition(source, *resolvedParams, situation='s0')
+            result = World.logic_engine().evaluateCondition(source, *resolvedParams, situation='s0')
         elif sourceType == EvaluationContext.CONSTANT:
             result = bool(World.getConstantValue(source, resolvedParams))
         elif sourceType == EvaluationContext.PYTHON_EXPRESSION:
 
-            ctx = World.getInstance().getExpressionContext().copy()
+            ctx = World.instance().getExpressionContext().copy()
             ctx.update(self.__variableBindings)
             ctx['params'] = params
             result = eval(source, ctx)
@@ -900,18 +968,18 @@ class LocalEvaluationContext(EvaluationContext):
         resolvedParams = self.resolve(*params)
         result = None
         if sourceType == EvaluationContext.FLUENT:
-            fv = World.getInstance().getFluentValue(source, resolvedParams)
+            fv = World.instance().getFluentValue(source, resolvedParams)
             if fv == None:
                 raise SMCException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
             result = fv
         elif sourceType == EvaluationContext.ECLP_FUNCTION:
-            result = World.logicsEngine.evaluateFunctionGoal(source, *resolvedParams)
+            result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams)
         elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
-            result = World.logicsEngine.evaluateFunctionGoal(source, *resolvedParams, situation='s0')
+            result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams, situation='s0')
         elif sourceType == EvaluationContext.CONSTANT:
-            result = World.getInstance.getConstantValue(source, resolvedParams)
+            result = World.instance.getConstantValue(source, resolvedParams)
         elif sourceType == EvaluationContext.PYTHON_EXPRESSION:
-            ctx = World.getInstance().getExpressionContext().copy()
+            ctx = World.instance().getExpressionContext().copy()
             ctx.update(self.__variableBindings)
             ctx['params'] = params
             result = eval(source, ctx)
@@ -924,7 +992,7 @@ class LocalEvaluationContext(EvaluationContext):
 
     def getFluentValue(self, fluentName, *params):
         resolvedParams = self.resolve(*params)
-        fv = World.getInstance().getFluentValue(fluentName, resolvedParams)
+        fv = World.instance().getFluentValue(fluentName, resolvedParams)
         if fv == None:
             raise SMCException("No value found for fluent: {0}({1}).".format(fluentName, resolvedParams))
         return fv
@@ -969,7 +1037,7 @@ class LocalEvaluationContext(EvaluationContext):
         '''
         returns the entity with the given id
         '''
-        return World.getInstance().getEntityById(entityId)
+        return World.instance().getEntityById(entityId)
 
 
     def selectAll(self, predicateType, predicateName, *params):
@@ -983,7 +1051,7 @@ class LocalEvaluationContext(EvaluationContext):
 
         sit = 's0' if predicateType in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
 
-        resultList = World.logicsEngine.selectAll(predicateName, *resolvedParams, situation=sit)
+        resultList = World.logic_engine().selectAll(predicateName, *resolvedParams, situation=sit)
         refinedResult = []
 
         #: :type valueCombination: dict 
@@ -1011,7 +1079,7 @@ class LocalEvaluationContext(EvaluationContext):
 
         sit = 's0' if predicateType in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
 
-        result = World.logicsEngine.selectFirst(predicateName, *resolvedParams, situation=sit)
+        result = World.logic_engine().selectFirst(predicateName, *resolvedParams, situation=sit)
         if result is None:
             return None
 
@@ -1031,8 +1099,8 @@ class LocalEvaluationContext(EvaluationContext):
 
     def createPlan(self, procedureName, *params):
         resolvedParams = self.resolve(*params)
-        plan, values = World.logicsEngine.createPlan(procedureName,
-                                                     *resolvedParams)
+        plan, values = World.logic_engine().createPlan(procedureName,
+                                                       *resolvedParams)
         if values is None:
             return (None, None)
 
@@ -1056,8 +1124,8 @@ class LocalEvaluationContext(EvaluationContext):
         return LocalEvaluationContext(self.__contextEntity, self)
 
     def getSorts(self):
-        return World.getInstance().getSorts()
+        return World.instance().getSorts()
 
     def getDomain(self, sortName):
-        return World.getInstance().getDomain(sortName)
+        return World.instance().getDomain(sortName)
     
