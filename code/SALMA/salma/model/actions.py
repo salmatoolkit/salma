@@ -9,6 +9,9 @@ class DeterministicAction(Action):
     def __init__(self, name, parameter_types, immediate=False):
         Action.__init__(self, name, parameter_types, immediate)
 
+    def __str__(self):
+        return "DeterministicAction({},{})".format(self.name, self.parameters)
+
 
 class RandomActionOutcome(object):
     """
@@ -258,6 +261,9 @@ class StochasticAction(Action):
         outcome = self.config.select_outcome(evaluationContext, paramValues)
         return outcome.generate_sample(evaluationContext, paramValues)
 
+    def __str__(self):
+        return "StochasticAction({},{})".format(self.name, self.parameters)
+
 
 class Parametric(StochasticActionConfiguration):
     def __init__(self, action_name, params=[]):
@@ -422,6 +428,9 @@ class ExogenousAction(object):
             args)
         )
         return self.__action_name, refined_args
+
+    def __str__(self):
+        return "ExogenousAction({},{})".format(self.action_name, self.entity_param_types, self.stochastic_param_types)
 
 
 class ExogenousActionConfiguration:

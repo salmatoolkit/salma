@@ -15,7 +15,7 @@ from salma import constants
 from salma.SMCException import SMCException
 from salma.constants import *
 from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction
-from salma.model.core import Entity, Agent, Constant
+from salma.model.core import Entity, Agent, Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ActionExecution
 
@@ -74,7 +74,7 @@ class World(Entity):
         if World.logicsEngine is None:
             raise SMCException("Engine not set when creating world.")
         World.logicsEngine.reset()
-        self.addFluent(Fluent("time", "integer", [], range=(0, sys.maxsize)))
+        self.addFluent(Fluent("time", "integer", []))
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
 
@@ -88,14 +88,19 @@ class World(Entity):
 
     @staticmethod
     def createNewWorld():
+        """
+        Creates a new instance for the singleton World and returns it.
+        :rtype: World
+        """
         World.__instance = World()
         return World.__instance
 
 
     def enumerateFluentInstances(self, fluent):
-        '''
+        """
+        Creates an iterator for instances of the given fluent
         :type fluent: Fluent
-        '''
+        """
         candidates = []
         candidateIndexes = []
         for p in fluent.parameters:
@@ -130,12 +135,13 @@ class World(Entity):
             else:
                 finished = True
 
-
-    def __initializeFluent(self, fluent):
-        '''
+    def __initialize_fluent(self, fluent):
+        """
         Creates samples for the fluent instance for each combination
             of parameter values.
-        '''
+
+        :type fluent: Fluent
+        """
         # list of domain lists
         for paramSelection in self.enumerateFluentInstances(fluent):
             value = fluent.generateSample(self.__evaluationContext, paramSelection)
@@ -177,15 +183,21 @@ class World(Entity):
 
         for action in filter(lambda a: isinstance(a, StochasticAction), self.__actions.values()):
             assert isinstance(action, StochasticAction)
-            problems = action.config.check(self.__actions)
-            if len(problems) > 0:
-                problematic_stochastic_actions.append((action, problems))
+            if action.config is None:
+                problematic_stochastic_actions.append((action, ["uninitialized"]))
+            else:
+                problems = action.config.check(self.__actions)
+                if len(problems) > 0:
+                    problematic_stochastic_actions.append((action, problems))
 
         for exo_action in self.__exogenousActions.values():
             assert isinstance(exo_action, ExogenousAction)
-            problems = exo_action.config.check()
-            if len(problems) > 0:
-                problematic_exogenous_actions.append((exo_action, problems))
+            if exo_action.config is None:
+                problematic_exogenous_actions.append((exo_action, ["uninitialized"]))
+            else:
+                problems = exo_action.config.check()
+                if len(problems) > 0:
+                    problematic_exogenous_actions.append((exo_action, problems))
 
         return problematic_stochastic_actions, problematic_exogenous_actions
 
@@ -211,10 +223,12 @@ class World(Entity):
         self.__expressionContext['fluentClock'] = __fluentChangeClock
         self.__expressionContext['actionClock'] = __actionClock
 
-
     def sample_fluent_values(self):
+        """
+        Creates samples for all instances of all fluents except 'time'
+        """
         for fluent in itertools.filterfalse(lambda f: f.name == 'time', self.__fluents.values()):
-            self.__initializeFluent(fluent)
+            self.__initialize_fluent(fluent)
 
     def load_declarations(self):
         """
@@ -232,20 +246,20 @@ class World(Entity):
             self.addConstant(Constant(c[0],c[2],c[1]))
         for pa in declarations['primitive_actions']:
             immediate = pa[0] in declarations['immediate_actions']
-            self.addAction(DeterministicAction(pa[0],pa[1], immediate))
+            self.addAction(DeterministicAction(pa[0], pa[1], immediate))
         for sa in declarations['stochastic_actions']:
             immediate = sa[0] in declarations['immediate_actions']
-            self.addAction(StochasticAction(sa[0],sa[1], outcomeSelector=None, immediate=immediate))
+            self.addAction(StochasticAction(sa[0], sa[1], config=None, immediate=immediate))
         for ea in declarations['exogenous_actions']:
             self.addExogenousAction(ExogenousAction(ea[0], ea[1], ea[2]))
 
-    def initialize(self, sampleFluentValues=True):
-        '''
+    def initialize(self, sample_fluent_values=True):
+        """
         1. Sets up domains, i.e. defines the sets of entity objects for each sort.
-        
+
         2. Sets ups the a new initial situation by creating samples for the fluent instance for each combination
             of parameter values.
-        '''
+        """
         # TODO: decouple init of domains from sampling
         World.logicsEngine.reset()
         self.__evaluationContext = LocalEvaluationContext(self, None)
@@ -259,24 +273,21 @@ class World(Entity):
         #keep entityId->entity maps (__entities & __agents)
         self.__domainMap = dict()
 
-        domainMapFromEclipse = World.logicsEngine.initSortHierarchy()
+        domain_map_from_eclipse = World.logicsEngine.initSortHierarchy()
 
-        for sort, domain in domainMapFromEclipse.items():
-
+        for sort, domain in domain_map_from_eclipse.items():
             self.__domainMap[sort] = set()
-
             for entityId in domain:
                 entity = None
                 try:
                     entity = self.__entities[entityId]
                 except KeyError:
                     raise SMCException("No Entity instance registered for {}:{}".format(entityId, sort))
-
                 self.__domainMap[sort].add(entity)
 
         World.logicsEngine.setFluentValue('time', [], 0)
 
-        if sampleFluentValues:
+        if sample_fluent_values:
             self.sample_fluent_values()
 
         self.__initialized = True
@@ -284,20 +295,25 @@ class World(Entity):
         self.__create_expression_context()
 
     def is_finished(self):
-        '''
+        """
         Returns true if every registered agent has finished already.
-        '''
 
+        :rtype: bool
+        """
         return self.__finished
 
-
     def getAllEntities(self):
+        """
+        Returns all registered entities, i.e. passive entities and agents.
+        :rtype: list
+        """
         return self.__entities.values()
 
     def getAgents(self, sort=None):
-        '''
+        """
         Returns a list of all agents, optionally restricted to the given sort.
-        '''
+        :rtype: list
+        """
         entities = self.getAllEntities() if sort is None else self.getDomain(sort)
         result = []
         for e in entities:
@@ -305,12 +321,22 @@ class World(Entity):
                 result.append(e)
         return result
 
-
     def getEntityById(self, entityId):
-        return self.__entities[entityId]
-
+        """
+        Returns the entity with the given id or None if no entity with that id is found.
+        :type entityId: str
+        :rtype: Entity
+        """
+        if not entityId in self.__entities:
+            return None
+        else:
+            return self.__entities[entityId]
 
     def addEntity(self, entity):
+        """
+        Adds the given entity to the registry
+        :type entity: Entity
+        """
         self.__entities[entity.id] = entity
         if isinstance(entity, Agent):
             self.__agents[entity.id] = entity
@@ -319,14 +345,21 @@ class World(Entity):
         else:
             self.__domainMap[entity.sortName] = set([entity])
 
-
     def addAgent(self, agent):
+        """
+        Adds the given agent to the entity registry and set this world instance as the agent's evaluation context.
+        :type agent: Agent
+        """
         self.addEntity(agent)
         agent.setEvaluationContext(LocalEvaluationContext(agent, None))
 
-
     def removeEntity(self, entity):
-
+        """
+        Removes the given entity from the registry.
+        :param entity: can either be an Entity or a string that specifies the id
+        :type entity: Entity
+        :raises: an SMCException if the given entity was not found in the registry.
+        """
         if not entity.sortName in self.__domainMap:
             raise SMCException("Trying to remove entity {} with unregistered sort {}".format(
                 entity.id, entity.sortName))
@@ -342,42 +375,89 @@ class World(Entity):
                 raise SMCException("Trying to remove unregistered agent {} from agent list.".format(entity.id))
                 # empty sorts are left in the domain map
 
-
     def removeAgent(self, agent):
+        """
+        Removes the given agent and sets its evaluation context to None.
+        :type agent: Agent
+        """
         self.removeEntity(agent)
         agent.evaluationContext = None
 
     def addAction(self, action):
+        """
+        Adds the given action to the action registry. This method is mostly not called directly but automatically
+        by load_declaration.
+
+        :type action: Action
+        """
         self.__actions[action.name] = action
 
     def removeAction(self, action):
-        if action.name in self.__actions:
+        """
+        Removes the given action.
+        :raises SMCException if action is unregistered.
+        :type action: Action
+        """
+        try:
             del self.__actions[action.name]
+        except KeyError:
+            raise SMCException("Trying to remove unregistered action %s ." % action.name)
+
 
     def getAction(self, action_name):
+        """
+        Returns the action (either deterministic or stochastic) with the given name.
+        :raises SMCException if action is unregistered.
+        :type action_name: str
+        :rtype: Action
+        """
         try:
             return self.__actions[action_name]
         except KeyError:
             raise(SMCException("Action {} not registered.".format(action_name)))
 
+    def get_stochastic_action(self, action_name):
+        """
+        Returns the stochatsic action with the given name.
+        :type action_name: str
+        :rtype: StochasticAction
+        """
+        a = self.getAction(action_name)
+        if not isinstance(a, StochasticAction):
+            raise SMCException("Action %s is not stochastic." % action_name)
+        return a
 
     def getAllActions(self):
+        """
+        Returns a list with all registered deterministic and stochastic actions.
+        :rtype: list
+        """
         return self.__actions.values()
 
-
     def addExogenousAction(self, exogenousAction):
-        ':type exogenousAction: ExogenousAction'
+        """
+        Registers the given exogenous action. Normally this method is called automatically by load_declarations().
+        :type exogenousAction: ExogenousAction
+        """
         self.__exogenousActions[exogenousAction.action_name] = exogenousAction
 
     def removeExogenousAction(self, exogenousAction):
-        ':type exogenousAction: ExogenousAction'
-        if exogenousAction.action_name in self.__exogenousActions:
+        """
+        Removes the given exogenous action.
+        :type exogenousAction: ExogenousAction
+        """
+        try:
             del self.__exogenousActions[exogenousAction.action_name]
+        except KeyError:
+             raise(SMCException("Trying to erase unregistered exogenous action {}.".format(exogenousAction.action_name)))
 
     def getExogenousAction(self, action_name):
-        '''
-        :rtype: salma.model.core.ExogenousAction
-        '''
+        """
+        Returns the exogenous action with the given name.
+        :raises: SMCException if
+        :param action_name:
+        :return:
+        """
 
         try:
             return self.__exogenousActions[action_name]
@@ -387,15 +467,7 @@ class World(Entity):
     def getAllExogenousActions(self):
         return self.__exogenousActions.values()
 
-    def configureExogenousAction(self, action_name, occurance_distribution, qualifying_parameter_distributions):
-        '''
-        :type action_name: str
-        :type occurance_distribution: salma.model.distributions.Distribution
-        :type qualifying_parameter_distributions: list
-        '''
-        act = self.getExogenousAction(action_name)
-        act.set_occurance_distribution(occurance_distribution)
-        act.set_qualifying_param_distributions(qualifying_parameter_distributions)
+
 
     def getSorts(self):
         return self.__domainMap.keys()

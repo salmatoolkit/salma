@@ -1,4 +1,5 @@
 import logging
+import pprint
 import unittest
 from scipy.odr.__odrpack import odr_stop
 
@@ -6,9 +7,8 @@ from salma import constants
 from salma.SMCException import SMCException
 from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions
-from salma.model.core import Agent, Entity, Fluent, Action, \
-    DeterministicAction, StochasticAction, \
-    RandomActionOutcome, ExogenousAction, Constant
+from salma.model.core import Agent, Entity, Fluent, Action, Constant
+from salma.model.actions import StochasticAction, DeterministicAction
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
@@ -62,14 +62,14 @@ class WorldTest3(unittest.TestCase):
         print(const)
         self.assertEqual(len(fl), 7)
         self.assertEqual(len(const), 2)
-        a, a2, a3 = world.check_action_initialization()
+        a, a2 = world.check_action_initialization()
         print("---------")
-        print(a)
-        print(a2)
-        print(a3)
+        for act in a:
+            print(str(act[0]) + " : " + str(act[1]))
+        for act in a2:
+            print(str(act[0]) + " : " + str(act[1]))
         self.assertEqual(len(a), 1)
         self.assertEqual(len(a2), 2)
-        self.assertEqual(len(a3), 1)
         print("----")
         print(world.getAllActions())
         self.assertEqual(len(list(world.getAllActions())), 12)

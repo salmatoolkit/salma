@@ -152,18 +152,23 @@ class Fluent(object):
     Represents a fluent.
     """
     DEFAULT_RANGE = (0, sys.maxsize)
-    
-    
+
     def __init__(self, name, fluentType, param_types, value_range=DEFAULT_RANGE, distribution=None):
         """
         :param fluentType: the type of the value the fluent stores. This is boolean for relational fluents.
         :param param_types:  a list of types for all of the fluent's parameters
+
+        :type name: str
+        :type fluentType: str
+        :type param_types: list
+        :type value_range: tuple
+        :type distribution: Distribution
+        :type default_value: object
         """
         
         self.__name = name
         self.__fluentType = fluentType
         self.__param_types = param_types
-        
                 
         if fluentType == "integer" or fluentType == "float":
             self.__valueRange = value_range
@@ -223,7 +228,7 @@ class Constant(Fluent):
     Represents a constant, i.e. a special kind of fluent that is not changed in progression.
     """
     def __init__(self, name, fluentType, param_types, value_range=Fluent.DEFAULT_RANGE, distribution=None):
-        Fluent.__init__(self, name, fluentType, param_types, **kwargs)
+        Fluent.__init__(self, name, fluentType, param_types, value_range, distribution)
 
 
 class Action(object):

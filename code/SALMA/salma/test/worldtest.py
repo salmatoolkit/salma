@@ -6,9 +6,9 @@ from salma import constants
 from salma.SMCException import SMCException
 from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions
-from salma.model.core import Agent, Entity, Fluent, Action, \
-    DeterministicAction, StochasticAction,  \
-    RandomActionOutcome, ExogenousAction, Constant
+from salma.model.core import Agent, Entity, Fluent, Action, Constant
+from salma.model.actions import DeterministicAction, StochasticAction,  \
+    RandomActionOutcome, ExogenousAction
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
@@ -43,19 +43,7 @@ class WorldTest(unittest.TestCase):
     def setUp(self):
         World.createNewWorld()
         world = World.getInstance()
-        world.addFluent(Fluent("xpos", "integer", [("r", "robot")], range=(0, 1000)))
-        world.addFluent(Fluent("ypos", "integer", [("r", "robot")], range=(0, 1000)))
-
-        world.addFluent(Fluent("carrying", "boolean", [("r", "robot"), ("i", "item")]))
-        world.addFluent(Fluent("painted", "boolean", [("i", "item")]))
-
-        world.addConstant(Constant('gravity', 'float', []))
-        world.addConstant(Constant('robot_radius', 'float', [('r', 'robot')]))
-        world.addAction(DeterministicAction('move_right', [('r', 'robot')]))
-        world.addAction(DeterministicAction('move_down', [('r', 'robot')]))
-        world.addAction(DeterministicAction('grab', [('r', 'robot'), ('i', 'item')]))
-        world.addAction(DeterministicAction('drop', [('r', 'robot'), ('i', 'item')]))
-        world.addAction(DeterministicAction('paint', [('r', 'robot'), ('i', 'item')]))
+        world.load_declarations()
 
         world.addEntity(Entity("coffee", "item"))
         world.addEntity(Entity("chocolate", "item"))
@@ -70,7 +58,6 @@ class WorldTest(unittest.TestCase):
         agent = Agent(robotId, "robot", Procedure("main", [], seq))
         return agent
 
-
     def setNoOneCarriesAnything(self):
         world = World.getInstance()
         robots = world.getDomain('robot')
@@ -78,7 +65,6 @@ class WorldTest(unittest.TestCase):
         for r in robots:
             for i in items:
                 world.setFluentValue('carrying', [r.id, i.id], False)
-
 
     @withHeader
     def testWorldStepExplicit(self):
@@ -248,7 +234,7 @@ class WorldTest(unittest.TestCase):
         self.assertEqual(agent.evaluationContext.resolve(Variable('myX'))[0], 20)
 
     @withHeader
-    def testEvaluate_PythonExression(self):
+    def test_evaluate_python_expression(self):
         world = World.getInstance()
 
         # run from (x,y) to (y,y)
@@ -300,6 +286,8 @@ class WorldTest(unittest.TestCase):
     @withHeader
     def testRandomizeFluents(self):
         world = World.getInstance()
+        world.getFluent("xpos")
+
         world.addAgent(self.createRightMovingRobot('rob3'))
         world.addAgent(self.createRightMovingRobot('rob4'))
 
@@ -309,7 +297,6 @@ class WorldTest(unittest.TestCase):
             world.reset()
             world.sample_fluent_values()
             world.printState()
-
 
     def generateOutcomes(self):
         outcome1 = RandomActionOutcome('land_on',
