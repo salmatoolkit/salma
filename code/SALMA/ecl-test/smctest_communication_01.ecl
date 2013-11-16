@@ -1,7 +1,6 @@
 :- ['../ecl-src/agasmc'].
 :- ['domaindesc3'].
 
-
 domain(robot,D) :-
         D=[rob1,rob2,rob3].
 
@@ -19,6 +18,7 @@ init :-
 	set_current(global_msg_queue, [], []),
 	domain(robot,Robots),
 	domain(item, Items),
+	init_sort_hierarchy(_),
 	(foreach(R, Robots), param(Items) do
 		set_current(velocity_x, [R], 0),
 		set_current(velocity_y, [R], 0),

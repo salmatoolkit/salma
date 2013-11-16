@@ -221,8 +221,7 @@ progress_sequential(ActionSequence, FailedActions) :-
 	).
  
 
- 
-
+% TODO: optionally add constraints to ensure that all args are different? 
 choose_arguments(Fluent, Arguments) :-
     fluent(Fluent,ArgDoms,_),
     (
