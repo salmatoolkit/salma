@@ -249,8 +249,8 @@ class WorldTest(unittest.TestCase):
         self.setNoOneCarriesAnything()
 
         world.runUntilFinished()
-        self.assertEqual(agent.evaluationContext.resolve(Variable('myY'))[0], 20)
-        self.assertEqual(agent.evaluationContext.resolve(Variable('myX'))[0], 20)
+        self.assertEqual(agent.evaluation_context.resolve(Variable('myY'))[0], 20)
+        self.assertEqual(agent.evaluation_context.resolve(Variable('myX'))[0], 20)
 
     @withHeader
     def test_evaluate_python_expression(self):
@@ -296,10 +296,10 @@ class WorldTest(unittest.TestCase):
 
         world.runUntilFinished()
 
-        self.assertEqual(agent.evaluationContext.resolve(Variable("x"))[0], 6)
-        self.assertEqual(agent.evaluationContext.resolve(Variable("y"))[0], 45)
-        self.assertEqual(agent.evaluationContext.resolve(Variable("z"))[0], 42)
-        self.assertEqual(agent.evaluationContext.resolve(Variable("z2"))[0], 25)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("x"))[0], 6)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("y"))[0], 45)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], 42)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], 25)
 
 
     @withHeader
@@ -537,12 +537,12 @@ class WorldTest(unittest.TestCase):
     def testSelectAll(self):
         world = World.instance()
         agent1, agent2, grabMap = self.setupSelectionContext()
-        res1 = agent1.evaluationContext.selectAll(EvaluationContext.FLUENT, "carrying",
+        res1 = agent1.evaluation_context.selectAll(EvaluationContext.FLUENT, "carrying",
                                                   ('r', 'robot'), ('i', 'item'))
         self.assertListEqual(res1, [])
         world.runUntilFinished()
 
-        res2 = agent1.evaluationContext.selectAll(EvaluationContext.FLUENT, "carrying",
+        res2 = agent1.evaluation_context.selectAll(EvaluationContext.FLUENT, "carrying",
                                                   ('r', 'robot'), ('i', 'item'))
 
         self.assertEqual(len(res2), 2)
@@ -569,12 +569,12 @@ class WorldTest(unittest.TestCase):
     def testSelectFirst(self):
         world = World.instance()
         agent1, agent2, grabMap = self.setupSelectionContext()
-        res1 = agent1.evaluationContext.selectFirst(EvaluationContext.FLUENT, "carrying",
+        res1 = agent1.evaluation_context.selectFirst(EvaluationContext.FLUENT, "carrying",
                                                     ('r', 'robot'), ('i', 'item'))
         self.assertIsNone(res1)
         world.runUntilFinished()
 
-        res2 = agent1.evaluationContext.selectFirst(EvaluationContext.FLUENT, "carrying",
+        res2 = agent1.evaluation_context.selectFirst(EvaluationContext.FLUENT, "carrying",
                                                     ('r', 'robot'), ('i', 'item'))
 
         self.assertIsInstance(res2, dict)
@@ -657,8 +657,8 @@ class WorldTest(unittest.TestCase):
 
         self.assertEqual(len(paintedItems), 1)
         self.assertEqual(paintedItems[0],
-                         agent.evaluationContext.getEntity(
-                             agent.evaluationContext.resolve(Variable("i", "item"))[0]
+                         agent.evaluation_context.getEntity(
+                             agent.evaluation_context.resolve(Variable("i", "item"))[0]
                          )
         )
 
@@ -727,7 +727,7 @@ class WorldTest(unittest.TestCase):
         world.runUntilFinished()
         world.printState()
 
-        resolvedValues = agent.evaluationContext.resolve(
+        resolvedValues = agent.evaluation_context.resolve(
             Variable("r"),
             Variable("i"),
             Variable("plan"))

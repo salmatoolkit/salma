@@ -378,8 +378,12 @@ class Wait(ControlNode):
     
     def reset(self, evaluationContext):
         pass
-  
+
+
 class ActionExecution(ControlNode):
+    """
+    A control node that represents the execution of an action.
+    """
     def __init__(self, actionName, actionParameters):
         '''
         actionParameters can be terms, need metamodel for that. Terms have to be evaluated first to ground them.

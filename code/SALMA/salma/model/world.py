@@ -375,7 +375,7 @@ class World(Entity):
         :type agent: Agent
         """
         self.addEntity(agent)
-        agent.setEvaluationContext(LocalEvaluationContext(agent, None))
+        agent.evaluation_context = LocalEvaluationContext(agent, None)
 
     def removeEntity(self, entity):
         """
@@ -405,7 +405,7 @@ class World(Entity):
         :type agent: Agent
         """
         self.removeEntity(agent)
-        agent.evaluationContext = None
+        agent.evaluation_context = None
 
     def addAction(self, action):
         """
@@ -643,7 +643,7 @@ class World(Entity):
 
         :type agent: Agent
         :type action_execution: ActionExecution
-        :rtype: tuple
+        :rtype: (str, list)
         """
         try:
             action = self.__actions[action_execution.actionName]
@@ -652,12 +652,12 @@ class World(Entity):
                 SMCException("Trying to execute unregistered action: {}".format(
                     action_execution.actionName)))
 
-        ground_params = agent.evaluationContext.resolve(*action_execution.actionParameters)
+        ground_params = agent.evaluation_context.resolve(*action_execution.actionParameters)
 
         if isinstance(action, StochasticAction):
-            return action.generateOutcome(agent.evaluationContext, ground_params)
+            return action.generateOutcome(agent.evaluation_context, ground_params)
         else:
-            return (action_execution.actionName, ground_params)
+            return action_execution.actionName, ground_params
 
     @staticmethod
     def __get_action_name_from_term(action_term):
@@ -709,7 +709,7 @@ class World(Entity):
             self.__finished = True
             immediate_actions = []
             for agent in self.__agents.values():
-                if not agent.isFinished():
+                if not agent.is_finished():
                     self.__finished = False
                     action_execution = agent.step(new_step)
                     if action_execution is not None:
@@ -719,7 +719,7 @@ class World(Entity):
                             immediate_actions.append(act)
                         else:
                             actions.append(act)
-                            agent.setPendingAction(act)
+                            agent.set_pending_action(act)
                             # progress immediate actions without succeeding time step
                             # leave loop only if we don't have any immediate actions left
             if len(immediate_actions) == 0:
