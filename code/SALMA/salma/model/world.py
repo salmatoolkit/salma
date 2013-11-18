@@ -506,7 +506,7 @@ class World(Entity):
         """
         Returns the list of all entities that make the domain of the given sort.
         :type sort_name: str
-        :rtype: list
+        :rtype: list of Entity
         """
         try:
             return self.__domainMap[sort_name]
@@ -833,9 +833,8 @@ class World(Entity):
     def runRepetitions(self, numberOfRepetitions):
         # save state
         currentState = list(World.logic_engine().getCurrentState())
-        results = [] # list of True/False
+        results = []  # list of True/False
 
-        # TODO: also reset agents
 
         for i in range(0, numberOfRepetitions):
             self.reset()

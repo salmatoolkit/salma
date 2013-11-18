@@ -52,7 +52,7 @@ convert_args(Args, Vars) :-
 
 % Creates domain membership constraints for the given parameters.
 % 
-% Params: list of (variable : type) pairs
+% Params: list of (variable : type) pairs or ground values
 % ConstrainedParams: list of variables.
 create_param_constraints(Params, ConstrainedParams) :-
 	(foreach(P, Params), foreach(PTerm, ConstrainedParams) do
@@ -71,12 +71,14 @@ create_param_constraints(Params, ConstrainedParams) :-
 % values together with typed variables. For each typed variable, a domain constraint is 
 % established before the predicate call.
 % Params: list of either ground values or (Variable : Type) tuples.
-	
 select_entities(Predicate, Params) :-
 	create_param_constraints(Params, ConstrainedParams),
 	T =.. [Predicate | ConstrainedParams],
 	call(T).
-	
+
+% Attempts to create a valid plan for a procedure call with the
+% given parameters. The paramer list can contain ground values or
+% typed finite domain variables given as (Var : Sort). 
 create_procedure_plan(Procedure, Params, Plan) :-
 	create_param_constraints(Params, ConstrainedParams),
 	T =.. [Procedure | ConstrainedParams],

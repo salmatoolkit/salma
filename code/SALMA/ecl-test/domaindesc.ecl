@@ -64,7 +64,9 @@ poss(grab(R,I), S) :- test_ad_hoc(
 
 poss(drop(R,I), S) :- carrying(R,I,S).
 poss(accidental_drop(R,I), S) :- carrying(R,I,S).
-poss(collision(R1, R2, _), S) :- R1 \= R2, xpos(R1, X, S), xpos(R2, X, S), ypos(R1, Y, S), ypos(R2, Y, S).
+poss(collision(R1, R2, _), S) :- 
+	R1 \= R2, xpos(R1, X, S), xpos(R2, X, S), 
+	ypos(R1, Y, S), ypos(R2, Y, S).
 
 
 % land_on and crash are meant as outcome for stochastic action jump
@@ -119,6 +121,9 @@ carrying(Rob, Item, do2(A,S)) :-
 
 active(Rob, do2(A,S)) :-
 	A \= crash(Rob),
+	% assume that collision iwth intensity of higher than 50 leads
+	% to destruction
+	not (A = collision(R1, R2, I), member(Rob, [R1, R2]), I >= 50),
 	active(Rob, S).
 	
 	
