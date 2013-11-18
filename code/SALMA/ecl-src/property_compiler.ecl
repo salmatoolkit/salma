@@ -167,6 +167,9 @@ compile_constraints_term(T, Out, Situation) :-
 		var(T),
 		Out = T, !
 		;
+		T = possible(GologProg),
+		Out = possible(GologProg, Situation), !
+		;		
 		functor(T, Functor, N),		
 		(
 			% for fluents we assume that the arguments are either atoms or variables
@@ -178,7 +181,7 @@ compile_constraints_term(T, Out, Situation) :-
 			;			
 			% handle comparison
 			
-			member(Functor, [>,<,>=,=<,==]),
+			member(Functor, [>,<,>=,=<,==, =\=]),
 			% we assume that there are two subterms	
 			T =.. [_ | Subterms],
 			create_constraint(Functor, Subterms, Out, Situation), ! 
