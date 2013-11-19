@@ -323,8 +323,8 @@ class WorldTest(unittest.TestCase):
         """
         land_on = jump_action.outcome("land_on")
         land_on.map_param("r", "r")
-        land_on.uniform_param("integer", (100, 500))
-        land_on.uniform_param("integer", (0, 200))
+        land_on.uniform_param("x", (100, 500))
+        land_on.uniform_param("y", (0, 200))
 
         crash = jump_action.outcome("crash")
         crash.map_param("r", "r")
