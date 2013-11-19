@@ -1,5 +1,12 @@
+:- dynamic xpos/3, ypos/3, carrying/3, active/2, painted/2,
+	worst_time/2,
+	robot_radius/2,
+	gravity/1,
+	wcet/2.
+
 sorts([component, knowledge_item, ensemble, process,
 		runnable]).
+
 
 		
 fluent(local_knowledge, [component, knowledge_item], value).
@@ -48,3 +55,9 @@ belief(C1, C2, KItem, Val, do2(A,S)) :-
 	;
 		Val = OldVal
 	).
+
+local_knowledge(Component, KnowledgeItem, Value, do2(A,S)) :-
+	A = update_knowledge(Component, KnowledgeItem, Value), !
+	;
+	local_knowledge(Component, KnowledgeItem, Value, S).
+	

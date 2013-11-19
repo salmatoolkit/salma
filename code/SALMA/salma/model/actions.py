@@ -443,23 +443,21 @@ class Stepwise(OutcomeSelectionStrategy):
 
 
 class ExogenousAction(object):
-    # : :type __qualifyingParamDistributions: list
-    __qualifyingParamDistributions = []
-
-    def __init__(self, action_name, entity_param_types, stochastic_param_types, configuration=None):
+    """
+    Represents an exogenous action, i.e. an event from the environment.
+    """
+    def __init__(self, action_name, entity_params, stochastic_params, configuration=None):
         """
-        action_name: the action_name
+        :param action_name: the action_name
+        :param entity_params and stochastic_params: list of (param-name, sort) tuples
+
         :type action_name: str
-
-        :param entityParams: list of (paramName, sort) tuples
-
-        :type entity_param_types: list
-        :type stochastic_param_types: list
-
+        :type entity_params: list of (str, str)
+        :type stochastic_params: list of (str, str)
         """
         self.__action_name = action_name
-        self.__entity_param_types = entity_param_types
-        self.__stochastic_param_types = stochastic_param_types
+        self.__entity_params = entity_params
+        self.__stochastic_params = stochastic_params
         self.__configuration = configuration if not configuration is None else ExogenousActionConfiguration()
 
 
@@ -469,11 +467,11 @@ class ExogenousAction(object):
 
     @property
     def entity_param_types(self):
-        return self.__entity_param_types
+        return self.__entity_params
 
     @property
     def stochastic_param_types(self):
-        return self.__stochastic_param_types
+        return self.__stochastic_params
 
     @property
     def config(self):

@@ -6,13 +6,13 @@ calc_cost(VarList, VarCosts, Cost) :-
 		V = 0 -> C2 is C1 + VC ; C2 is C1
 	).
 	
-calc_solution(X,Y,Z,V,W) :- (X or Y or Z) and ((neg V) or (neg W)),
-	labeling([X,Y,Z,V,W]).
+calc_solution(X, Y, Z, V, W) :- (X or Y or Z) and ((neg V) or (neg W)),
+	labeling([X, Y, Z, V, W]).
 
-solution_with_cost(X,Y,Z,V,W,VarCosts,Cost) :-
-	calc_solution(X,Y,Z,V,W),
-	calc_cost([X,Y,Z,V,W], VarCosts, Cost).
+solution_with_cost(X, Y, Z, V, W, VarCosts, Cost) :-
+	calc_solution(X, Y, Z, V, W),
+	calc_cost([X, Y, Z, V, W], VarCosts, Cost).
 
-best_solution(X,Y,Z,V,W,VarCosts,Cost) :-
-	minimize(solution_with_cost(X,Y,Z,V,W,VarCosts,Cost), Cost).
+best_solution(X, Y, Z, V, W, VarCosts, Cost) :-
+	minimize(solution_with_cost(X, Y, Z, V, W, VarCosts, Cost), Cost).
 	
