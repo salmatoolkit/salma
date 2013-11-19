@@ -322,12 +322,12 @@ class WorldTest(unittest.TestCase):
         :type jump_action: StochasticAction
         """
         land_on = jump_action.outcome("land_on")
-        land_on.fixed_param("robot")
+        land_on.map_param("r", "r")
         land_on.uniform_param("integer", (100, 500))
         land_on.uniform_param("integer", (0, 200))
 
         crash = jump_action.outcome("crash")
-        crash.fixed_param("robot")
+        crash.map_param("r", "r")
 
 
     @withHeader
@@ -748,6 +748,9 @@ class WorldTest(unittest.TestCase):
         self.assertTrue(['rob1', 'chocolate'] in l)
         self.assertEqual(len(l), 2)
 
+        l = list(world.enumerate_fluent_instances(world.getFluent("time")))
+        self.assertEqual(len(l), 1)
+        self.assertListEqual([[]],l)
 
     @withHeader
     def testCheckFluentInitialization(self):

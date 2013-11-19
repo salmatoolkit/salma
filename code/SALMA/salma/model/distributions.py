@@ -9,22 +9,23 @@ import random
 from salma.SMCException import SMCException
 from salma.model.evaluationcontext import EvaluationContext
 
+
 class Distribution(object):
-    def __init__(self, sort, valueRange = None):
+    DEFAULT_MAX_VALUE = 1000
+    DEFAULT_MIN_VALUE = 1000
+    def __init__(self, sort, value_range=None):
         self.__sort = sort
-        if (sort in ('integer', 'float')) and (valueRange == None):
-            raise(SMCException(
-                    "No value range specified for uniform distribution of sort {}".format(sort)))
-         
-        self.__valueRange = valueRange
-    
+        self.__value_range = value_range
+        if (sort in ('integer', 'float')) and (value_range is None):
+            self.__value_range = (Distribution.DEFAULT_MIN_VALUE, Distribution.DEFAULT_MAX_VALUE)
+
     @property
     def sort(self):
         return self.__sort
     
     @property
-    def valueRange(self):
-        return self.__valueRange
+    def value_range(self):
+        return self.__value_range
     
     def generateSample(self, evaluationContext, paramValues):
         '''
@@ -35,14 +36,14 @@ class Distribution(object):
     
 
 class UniformDistribution(Distribution):
-    def __init__(self, sort, valueRange = None):
-        Distribution.__init__(self, sort, valueRange)
+    def __init__(self, sort, value_range = None):
+        Distribution.__init__(self, sort, value_range)
          
     def generateSample(self, evaluationContext, paramValues):
         if self.sort == 'integer':
-            return random.randint(*(self.valueRange))
+            return random.randint(*(self.value_range))
         elif self.sort == 'float':
-            return random.uniform(*(self.valueRange))
+            return random.uniform(*(self.value_range))
         elif self.sort == 'boolean':
             return random.choice([True, False])
         else:
@@ -51,8 +52,7 @@ class UniformDistribution(Distribution):
             sample = random.choice(list(domain))
             return sample
         
-  
-  
+
 class ArgumentIdentityDistribution(Distribution):
     """
     Creates a stub distribution that passes the specified argument through.

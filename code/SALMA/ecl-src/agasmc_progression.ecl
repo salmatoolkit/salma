@@ -14,7 +14,7 @@
 :- dynamic derived_fluent/3.
 :- dynamic poss/2.
 
-% primitive_action(name, param-types)
+% primitive_action(name, params=[name:sort,...])
 :- dynamic primitive_action/2.
 % declares that a primitive action is immediate
 :- dynamic immediate_action/1.
@@ -223,13 +223,14 @@ progress_sequential(ActionSequence, FailedActions) :-
 
 % TODO: optionally add constraints to ensure that all args are different? 
 choose_arguments(Fluent, Arguments) :-
-    fluent(Fluent,ArgDoms,_),
+    fluent(Fluent,Args,_),
     (
-     foreach(InArg,ArgDoms),
+     foreach(InArg,Args),
      foreach(OutArg, Arguments)
     do
     (
-     domain(InArg, Entities),
+	 InArg = _ : InArgSort,
+     domain(InArgSort, Entities),
      member(E, Entities),
      OutArg = E
     )).

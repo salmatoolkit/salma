@@ -175,30 +175,32 @@ class Fluent(object):
     """
     DEFAULT_RANGE = (0, sys.maxsize)
 
-    def __init__(self, name, fluentType, param_types, value_range=DEFAULT_RANGE, distribution=None):
+    def __init__(self, name, fluent_type, params, value_range=DEFAULT_RANGE, distribution=None):
         """
-        :param fluentType: the type of the value the fluent stores. This is boolean for relational fluents.
-        :param param_types:  a list of types for all of the fluent's parameters
+        :param fluent_type: the type of the value the fluent stores. This is boolean for relational fluents.
+        :param params:  a list of (name, type) tuples for all of the fluent's parameters
 
         :type name: str
-        :type fluentType: str
-        :type param_types: list
+        :type fluent_type: str
+        :type params: list of (str, str)
         :type value_range: tuple
         :type distribution: Distribution
         """
 
         self.__name = name
-        self.__fluentType = fluentType
-        self.__param_types = param_types
+        self.__fluentType = fluent_type
+        self.__params = params
+        self.__param_indices = dict()
+        for i, p in enumerate(params):
+            self.__param_indices[p[0]] = i
 
-        if fluentType == "integer" or fluentType == "float":
+        if fluent_type == "integer" or fluent_type == "float":
             self.__valueRange = value_range
         else:
             self.__valueRange = None
 
         self.__distribution = (distribution if not distribution is None
-                               else UniformDistribution(
-            self.__fluentType, self.__valueRange))
+                               else UniformDistribution(self.__fluentType, self.__valueRange))
 
     @property
     def distribution(self):
@@ -227,10 +229,34 @@ class Fluent(object):
     @property
     def parameters(self):
         """
-        The fluent's parameter types.
-        :rtype: list of str
+        The fluent's parameters as (name, type) tuples.
+        :rtype: list of (str, str)
         """
-        return self.__param_types
+        return self.__params
+
+    def get_parameter_index(self, parameter_name):
+        """
+        Returns the index (i.e. position) of the parameter with the given name.
+        :raises SMCException: if no parameter with the given name exists.
+        :param parameter_name: the name of the parameter
+        :type parameter_name: str
+        :rtype: int
+        """
+        try:
+            i = self.__param_indices[parameter_name]
+            return i
+        except KeyError:
+            raise SMCException("Unknown parameter {} for fluent {}.".format(parameter_name, self.__name))
+
+    def get_parameter_type(self, parameter_name):
+        """
+        Returns the type of the parameter with the given name.
+        :raises SMCException: if no parameter with the given name exists.
+        :type parameter_name: str
+        :rtype: str
+        """
+        i = self.get_parameter_index(parameter_name)
+        return self.__params[i][i]
 
     @property
     def name(self):
@@ -270,8 +296,8 @@ class Constant(Fluent):
     Represents a constant, i.e. a special kind of fluent that is not changed in progression.
     """
 
-    def __init__(self, name, fluentType, param_types, value_range=Fluent.DEFAULT_RANGE, distribution=None):
-        Fluent.__init__(self, name, fluentType, param_types, value_range, distribution)
+    def __init__(self, name, fluent_type, params, value_range=Fluent.DEFAULT_RANGE, distribution=None):
+        Fluent.__init__(self, name, fluent_type, params, value_range, distribution)
 
 
 class Action(object):
@@ -281,15 +307,18 @@ class Action(object):
     World.load_declarations(). It it therefore uncommon to create Action instances manually.
     """
 
-    def __init__(self, name, parameter_types, immediate=False):
+    def __init__(self, name, parameters, immediate=False):
         """
         :type name: str
-        :type parameter_types: list of str
+        :type parameters: list of (str, str)
         :type immediate: bool
         TODO: blocking: if true, the action's precondition (poss) will be evaluated before it is actually executed
         """
         self.__name = name
-        self.__params = parameter_types
+        self.__params = parameters
+        self.__param_indices = dict()
+        for i, p in enumerate(parameters):
+            self.__param_indices[p[0]] = i
         self.__immediate = immediate
 
     @property
@@ -303,10 +332,34 @@ class Action(object):
     @property
     def parameters(self):
         """
-        Returns the action's parameter types.
-        :rtype: list of str
+        Returns the action's parameters as (name, type) tuples.
+        :rtype: list of (str, str)
         """
         return self.__params
+
+    def get_parameter_index(self, parameter_name):
+        """
+        Returns the index (i.e. position) of the parameter with the given name.
+        :raises SMCException: if no parameter with the given name exists.
+        :param parameter_name: the name of the parameter
+        :type parameter_name: str
+        :rtype: int
+        """
+        try:
+            i = self.__param_indices[parameter_name]
+            return i
+        except KeyError:
+            raise SMCException("Unknown parameter {} for fluent {}.".format(parameter_name, self.__name))
+
+    def get_parameter_type(self, parameter_name):
+        """
+        Returns the type of the parameter with the given name.
+        :raises SMCException: if no parameter with the given name exists.
+        :type parameter_name: str
+        :rtype: str
+        """
+        i = self.get_parameter_index(parameter_name)
+        return self.__params[i][1]
 
     @property
     def immediate(self):

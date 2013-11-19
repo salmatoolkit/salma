@@ -404,7 +404,7 @@ class EclipseCLPEngine(Engine):
             for p in params:
                 if p is not None:
                     try:
-                        readableParams.append(self.__convertValueFromEngineResult(p))
+                        readableParams.append(self.__convert_value_from_engine_result(p))
                     except:
                         moduleLogger.warn("Can't convert parameter in __callGoal.")
                 else:
@@ -437,20 +437,25 @@ class EclipseCLPEngine(Engine):
             self.__callGoal("reset_agasmc", erorMsg = "Can't reset main module.")    
        
         self.__callGoal("init_domaindesc", erorMsg = "Can't initialize domain description.")
-        
-    
-    def __convertValueFromEngineResult(self, rawValue):
-        if isinstance(rawValue, pyclp.Var):
-            return self.__convertValueFromEngineResult(rawValue.value())
-        elif isinstance(rawValue, numbers.Number):
-            return rawValue
-        elif isinstance(rawValue, (pyclp.PList, list, tuple)):
+
+    def __convert_value_from_engine_result(self, raw_value):
+        if isinstance(raw_value, pyclp.Var):
+            return self.__convert_value_from_engine_result(raw_value.value())
+        elif isinstance(raw_value, pyclp.Compound):
+            # handle name : type arguments
+            if raw_value.functor() == ':' and raw_value.arity() == 2:
+                return str(raw_value[0]), str(raw_value[1])
+            else:
+                return str(raw_value)
+        elif isinstance(raw_value, numbers.Number):
+            return raw_value
+        elif isinstance(raw_value, (pyclp.PList, list, tuple)):
             result = []
-            for e in rawValue:
-                result.append(self.__convertValueFromEngineResult(e))
+            for e in raw_value:
+                result.append(self.__convert_value_from_engine_result(e))
             return result
         else:
-            result = str(rawValue)
+            result = str(raw_value)
             if result == "true": 
                 return True
             elif result == "false":
@@ -474,9 +479,9 @@ class EclipseCLPEngine(Engine):
             fluentParams = []
            
             for j in range(1, x[0].arity()):
-                fluentParams.append(self.__convertValueFromEngineResult(x[0][j]))
+                fluentParams.append(self.__convert_value_from_engine_result(x[0][j]))
                 
-            fluentValue =  self.__convertValueFromEngineResult(x[1])
+            fluentValue =  self.__convert_value_from_engine_result(x[1])
             fv = FluentValue(fluentName, fluentParams, fluentValue)
             self.__currentState[(fluentName, tuple(fluentParams))] = fv    
         
@@ -669,7 +674,7 @@ class EclipseCLPEngine(Engine):
         for valueCombination in resultList.value():
             entry = dict()
             for varName, index in indices.items():
-                entry[varName] = self.__convertValueFromEngineResult(valueCombination[index])
+                entry[varName] = self.__convert_value_from_engine_result(valueCombination[index])
             refinedResult.append(entry)
         return refinedResult
 
@@ -690,7 +695,7 @@ class EclipseCLPEngine(Engine):
         pyclp.cut() # throw away all but the first result
         entry = dict()
         for varName, index in indices.items():
-            entry[varName] = self.__convertValueFromEngineResult(variables[index].value())
+            entry[varName] = self.__convert_value_from_engine_result(variables[index].value())
         
         
         return entry       
@@ -723,7 +728,7 @@ class EclipseCLPEngine(Engine):
         pyclp.cut() # throw away all but the first result
         valueCombination = dict()
         for varName, index in indices.items():
-            valueCombination[varName] = self.__convertValueFromEngineResult(variables[index].value())
+            valueCombination[varName] = self.__convert_value_from_engine_result(variables[index].value())
 
         translatedPlan = []
         #: :type action: pyclp.Compound
@@ -731,7 +736,7 @@ class EclipseCLPEngine(Engine):
             actionName = action.functor()
             actionParams = []
             for ap in action:
-                actionParams.append(self.__convertValueFromEngineResult(ap))
+                actionParams.append(self.__convert_value_from_engine_result(ap))
             
             translatedPlan.append(tuple([actionName] + actionParams))            
         
@@ -757,8 +762,8 @@ class EclipseCLPEngine(Engine):
         result = dict()
         #: :type dom: pyclp.Compound
         for dom in domList:
-            sort = self.__convertValueFromEngineResult(dom[0])
-            entities = self.__convertValueFromEngineResult(dom[1])
+            sort = self.__convert_value_from_engine_result(dom[0])
+            entities = self.__convert_value_from_engine_result(dom[1])
             result[sort] = entities
         return result
         
@@ -856,7 +861,7 @@ class EclipseCLPEngine(Engine):
                         pyclp.PList(pterms),
                         t)
         
-        return self.__convertValueFromEngineResult(t.value())
+        return self.__convert_value_from_engine_result(t.value())
 
     def getFluentChangeTime(self, fluentName, params):
         pterms = createParamTerms(params)
@@ -866,7 +871,7 @@ class EclipseCLPEngine(Engine):
                         pyclp.PList(pterms),
                         t)
         
-        return self.__convertValueFromEngineResult(t.value())
+        return self.__convert_value_from_engine_result(t.value())
 
     def queryPersistentProperty(self, propertyName):
         rawStatus = pyclp.Var()
@@ -876,7 +881,7 @@ class EclipseCLPEngine(Engine):
                         rawStatus,
                         rawT)
         s = self.__verdictMapping[str(rawStatus.value())]
-        time = self.__convertValueFromEngineResult(rawT.value())
+        time = self.__convert_value_from_engine_result(rawT.value())
         if s == OK:
             status = True
         elif s == NOT_OK:
@@ -899,7 +904,7 @@ class EclipseCLPEngine(Engine):
         for entry in entries.value():
             args = []
             for arg in entry:
-                args.append(self.__convertValueFromEngineResult(arg))
+                args.append(self.__convert_value_from_engine_result(arg))
             converted_entries.append(tuple(args))
 
         return converted_entries

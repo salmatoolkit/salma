@@ -12,40 +12,40 @@ sorts([robot, item, object]).
 subsorts([robot, item], object).
 
 
-primitive_action(move_right,[robot]).
-primitive_action(move_left,[robot]).
-primitive_action(move_down,[robot]).
-primitive_action(move_up,[robot]).
+primitive_action(move_right,[r:robot]).
+primitive_action(move_left, [r:robot]).
+primitive_action(move_down, [r:robot]).
+primitive_action(move_up, [r:robot]).
 
-primitive_action(grab,[robot,item]).
-primitive_action(drop,[robot,item]).
+primitive_action(grab, [r:robot, i:item]).
+primitive_action(drop, [robot,item]).
 % land_on and crash are meant as outcome for stochastic action jump
-primitive_action(land_on, [robot, integer, integer]).
+primitive_action(land_on, [r:robot, x:integer, y:integer]).
 
 
-primitive_action(crash, [robot]).
+primitive_action(crash, [r:robot]).
 
-primitive_action(paint, [robot, item]).
+primitive_action(paint, [r:robot, i:item]).
 
 
 % distinguish between discriminating entity parameters and additional "augmenting" parameters
-exogenous_action(accidental_drop, [robot, item], []).
+exogenous_action(accidental_drop, [r:robot, i:item], []).
 
-exogenous_action(collision, [robot, robot], [integer]).
+exogenous_action(collision, [r1:robot, r2:robot], [severity:integer]).
 
-stochastic_action(jump, [robot, float], [land_on, crash]).
+stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
 
 
 % fluent declaration: fluent_name, [arg_domains], value_domain
 
-fluent(xpos, [robot], integer).
-fluent(ypos, [robot], integer).
-fluent(carrying, [robot, item], boolean).
-fluent(active, [robot], boolean).
+fluent(xpos, [r:robot], integer).
+fluent(ypos, [r:robot], integer).
+fluent(carrying, [r:robot, i:item], boolean).
+fluent(active, [r:robot], boolean).
 % for now we just tread paint as a boolean attribute
-fluent(painted, [item], boolean).
+fluent(painted, [i:item], boolean).
 
-constant(robot_radius, [robot], float).
+constant(robot_radius, [r:robot], float).
 constant(gravity, [], float).
 % poss
 

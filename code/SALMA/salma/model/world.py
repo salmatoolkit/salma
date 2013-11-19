@@ -1,12 +1,11 @@
-'''
+"""
 Created on 21.05.2013
 
 @author: christian
-'''
+"""
 import itertools
 import logging
 import random
-import sys
 import datetime
 import time
 import pyclp
@@ -14,10 +13,9 @@ import pyclp
 from salma import constants
 from salma.SMCException import SMCException
 from salma.constants import *
-from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, Deterministic, Uniform, ExogenousActionConfiguration
-from salma.model.core import Entity, Agent, Constant, Action
+from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, Deterministic, Uniform
+from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ActionExecution
 from ..engine import Engine
 from ..statistics import SequentialAcceptanceTest
 from .core import Agent, Entity, Fluent
@@ -109,11 +107,12 @@ class World(Entity):
         """
         Creates an iterator for instances of the given fluent
         :type fluent: Fluent
+        :rtype: list of list of str
         """
         candidates = []
         candidate_indexes = []
         for p in fluent.parameters:
-            dom = self.getDomain(p)
+            dom = self.getDomain(p[1])
             # if the parameter's domain is empty, leave
             if len(dom) == 0:
                 yield []
@@ -245,13 +244,14 @@ class World(Entity):
         """
         for sa in declarations:
             immediate = sa[0] in immediate_action_names
-            param_names = sa[1]
+            params = sa[1]
             outcome_names = sa[2]
             outcomes = []
             for o_name in outcome_names:
-                outcomes.append(RandomActionOutcome(o_name))
+                outcome_action = self.getAction(o_name)
+                outcomes.append(RandomActionOutcome(outcome_action))
             strategy = Deterministic() if len(outcomes) == 1 else Uniform()
-            action = StochasticAction(sa[0], param_names, outcomes, strategy, immediate)
+            action = StochasticAction(sa[0], params, outcomes, strategy, immediate)
             self.addAction(action)
 
     def load_declarations(self):
