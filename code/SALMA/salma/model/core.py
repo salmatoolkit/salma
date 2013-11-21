@@ -349,7 +349,7 @@ class Action(object):
             i = self.__param_indices[parameter_name]
             return i
         except KeyError:
-            raise SMCException("Unknown parameter {} for fluent {}.".format(parameter_name, self.__name))
+            raise SMCException("Unknown parameter {} for action {}.".format(parameter_name, self.__name))
 
     def get_parameter_type(self, parameter_name):
         """
