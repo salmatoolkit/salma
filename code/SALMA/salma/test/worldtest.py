@@ -43,6 +43,7 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
             else:
                 return self.action.outcome("land_on")
 
+
 class WorldTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -421,10 +422,11 @@ class WorldTest(unittest.TestCase):
         drop = world.get_exogenous_action("accidental_drop")
         drop.config.occurrence_distribution = BernoulliDistribution(0.7)
 
-        collisionEvent = world.get_exogenous_action("collision")
+        collision_event = world.get_exogenous_action("collision")
 
-        collisionEvent.config.occurrence_distribution = BernoulliDistribution(0.7)
-        collisionEvent.config.uniform_param("integer", value_range=(0, 100))
+        collision_event.config.occurrence_distribution = BernoulliDistribution(0.7)
+        #collision_event.config.uniform_param("integer", value_range=(0, 100))
+        collision_event.config.uniform_param("severity", value_range=(0,100))
 
         seq = Sequence([
             ActionExecution("move_right", [Entity.SELF]),

@@ -1,6 +1,5 @@
 from argparse import _ActionsContainer
 import random
-from Cython.Includes.libcpp.utility import pair
 from salma.SMCException import SMCException
 from salma.model.core import Action, Entity
 from salma.model.distributions import Distribution, ArgumentIdentityDistribution, UniformDistribution, NormalDistribution, BernoulliDistribution
@@ -30,19 +29,19 @@ class RandomActionOutcome(object):
         :param param_distribution_specs: list of (name, Distribution) or (name, sort) tuples
 
         :type outcome_action: DeterministicAction
-        :type param_distribution_specs: list of tuple
+        :type param_distribution_specs: list of (str, object)
         """
+        #: :type : DeterministicAction
         self.__outcome_action = outcome_action
         #: :type : StochasticAction
         self.__stochastic_action = None
 
-        #  list of (name, Distribution) tuples
-        #: :type : list of (str, Distribution)
-        self.__param_distribution_specs = []
+        #: :type : list of Distribution
+        self.__param_distributions = []
 
         # create default uniform distributions with Distribution's default value range
         for p in outcome_action.parameters:
-            self.__param_distribution_specs.append((p[0], UniformDistribution(p[1])))
+            self.__param_distributions.append(UniformDistribution(p[1]))
 
         for i, param in enumerate(param_distribution_specs):
             dist = None
@@ -52,7 +51,7 @@ class RandomActionOutcome(object):
             else:
                 # if the second argument in the tuple is not a distribution, it has to be a sort name
                 dist = ArgumentIdentityDistribution(param[1], i)
-            self.__param_distribution_specs[index][1] = dist
+            self.__param_distributions[index] = dist
 
     @property
     def action_name(self):
@@ -73,17 +72,10 @@ class RandomActionOutcome(object):
     @property
     def param_distributions(self):
         """
-        The list of (name, Distribution) tuples.
-        :rtype: list of (str, Distribution)
+        The list of Distributions for the action's parameters.
+        :rtype: list of Distribution
         """
-        return self.__param_distribution_specs
-
-    def set_stochastic_action(self, sa):
-        """
-        Sets the stochastic action for which this outcome is defined.
-        :type sa: StochasticAction
-        """
-        self.__stochastic_action = sa
+        return self.__param_distributions
 
     @property
     def stochastic_action(self):
@@ -92,6 +84,13 @@ class RandomActionOutcome(object):
         :rtype: StochasticAction
         """
         return self.__stochastic_action
+
+    @stochastic_action.setter
+    def stochastic_action(self, sa):
+        """
+        :type sa: StochasticAction
+        """
+        self.__stochastic_action = sa
 
     def generate_sample(self, evaluation_context, param_values):
         """
@@ -102,15 +101,15 @@ class RandomActionOutcome(object):
         """
         args = []
 
-        for pdist in self.__param_distribution_specs:
+        for p_dist in self.__param_distributions:
             # generateSample(self, domainMetaModel, paramValues):
-            val = pdist.generateSample(evaluation_context, param_values)
+            val = p_dist.generateSample(evaluation_context, param_values)
             if isinstance(val, Entity):
                 args.append(val.id)
             else:
                 args.append(val)
 
-        return self.__outcome_action, args
+        return self.__outcome_action.name, args
 
     def set_param_distribution(self, param_name, distribution):
         """
@@ -122,7 +121,7 @@ class RandomActionOutcome(object):
         :rtype: RandomActionOutcome
         """
         i = self.__outcome_action.get_parameter_index(param_name)
-        self.__param_distribution_specs[i][1] = distribution
+        self.__param_distributions[i] = distribution
         return self
 
     def map_param(self, stochastic_action_param, outcome_param):
@@ -138,7 +137,7 @@ class RandomActionOutcome(object):
         i1 = self.stochastic_action.get_parameter_index(stochastic_action_param)
         i2 = self.outcome_action.get_parameter_index(outcome_param)
         param_sort = self.outcome_action.parameters[i2][1]
-        self.__param_distribution_specs[i2][1] = ArgumentIdentityDistribution(param_sort, i1)
+        self.__param_distributions[i2] = ArgumentIdentityDistribution(param_sort, i1)
         return self
 
     def uniform_param(self, outcome_param, value_range=None):
@@ -150,20 +149,20 @@ class RandomActionOutcome(object):
         i = self.outcome_action.get_parameter_index(outcome_param)
         param_sort = self.outcome_action.parameters[i][1]
         d = UniformDistribution(param_sort, value_range)
-        self.__param_distribution_specs[i][1] = d
+        self.__param_distributions[i] = d
         return self
 
     def bernoulli_param(self, outcome_param, probability):
         i = self.outcome_action.get_parameter_index(outcome_param)
         d = BernoulliDistribution(probability)
-        self.__param_distribution_specs[i][1] = d
+        self.__param_distributions[i] = d
         return self
 
     def normal_param(self, outcome_param, mu, sigma):
         i = self.outcome_action.get_parameter_index(outcome_param)
         param_sort = self.outcome_action.parameters[i][1]
         d = NormalDistribution(param_sort, mu, sigma)
-        self.__param_distribution_specs[i][1] = d
+        self.__param_distributions[i] = d
         return self
 
     def check(self, action_dict):
@@ -191,9 +190,6 @@ class RandomActionOutcome(object):
                     )
                 )
         return problems
-
-
-NOP_OUTCOME = RandomActionOutcome('nop', [])
 
 
 class OutcomeSelectionStrategy:
@@ -315,6 +311,7 @@ class StochasticAction(Action):
         """
         self.__outcomes[outcome.action_name] = outcome
         self.__outcome_list = list(self.__outcomes.values())
+        outcome.stochastic_action = self
 
     def generateOutcome(self, evaluation_context, param_values):
         """

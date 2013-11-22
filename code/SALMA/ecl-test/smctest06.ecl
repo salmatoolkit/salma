@@ -15,6 +15,7 @@ init :-
 	set_current(ypos, [rob1], 20),
 	set_current(xpos, [rob2], 50),
 	set_current(ypos, [rob2], 50),
+	set_current(carrying, [rob1, item1], true),
 	set_current(time, [], 0).
 	
 

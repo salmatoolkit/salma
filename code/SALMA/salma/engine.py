@@ -829,9 +829,9 @@ class EclipseCLPEngine(Engine):
         return self.__properties.copy()
 
     def getExogenousActionCandidates(self):
-        '''
+        """
         Returns a list of form [action_name : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
-        '''
+        """
         candidates = pyclp.Var()
         self.__callGoal('get_all_exogenous_action_instances', candidates)
         result = dict()

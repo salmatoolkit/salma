@@ -17,7 +17,7 @@ from salma.test.testhelpers import withHeader
 
 def printValue(value):
     print("Val: ", value)
-    return (ControlNode.CONTINUE, None)
+    return ControlNode.CONTINUE, None
 
 
 class WorldTest2(unittest.TestCase):
@@ -52,7 +52,7 @@ class WorldTest2(unittest.TestCase):
             "accidental_drop").config.occurrence_distribution = BernoulliDistribution(WorldTest2.P_DROP)
         collision_event = world.get_exogenous_action("collision")
         collision_event.config.occurrence_distribution = BernoulliDistribution(WorldTest2.P_COLLISION)
-        collision_event.config.uniform_param("integer", value_range=(0, 100))
+        collision_event.config.uniform_param("severity", value_range=(0, 100))
 
     def __place_agents_in_column(self, x):
         world = World.instance()
@@ -67,7 +67,6 @@ class WorldTest2(unittest.TestCase):
         """
         Creates a simple agent that grabs an item wit id item+num and keeps moving right as long as the agent is active
         """
-
         main_seq = Sequence()
         inner_seq = Sequence()
         inner_seq.addChild(ActionExecution("move_right", [Entity.SELF]))
@@ -101,16 +100,19 @@ class WorldTest2(unittest.TestCase):
         self.__place_agents_in_column(10)
         self.set_no_one_carries_anything()
 
-        world.registerProperty("f", ("forall([r,robot], "
-                                     "forall([i,item], "
-                                     "implies("
-                                     "occur(grab(r,i)),"
-                                     "until(25,"
-                                     "carrying(r,i),"
-                                     "xpos(r) > 20)"
-                                     ")"
-                                     ")"
-                                     ")"))
+        f_str = """
+forall([r,robot],
+    forall([i,item],
+        implies(
+            occur(grab(r,i)),
+            until(25,
+                carrying(r,i),
+                xpos(r) > 20)
+        )
+)
+)
+"""
+        world.registerProperty("f", f_str)
 
         #world.registerProperty("f", "forall([r,robot], xpos(r) > 1)")
         #

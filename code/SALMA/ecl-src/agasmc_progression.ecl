@@ -321,22 +321,22 @@ situation2action_list(do2(A,S), L) :-
 	
 	
 
-possible_action_instance(Action, EntityDomainNames, PossibleInstanceArgs) :-
-	(foreach(DomainName, EntityDomainNames), foreach(Arg, PossibleInstanceArgs) do
+possible_action_instance(ActionName, PossibleInstanceArgs) :-
+	exogenous_action(ActionName, EntityParams, StochasticParams),
+	(foreach(Param, EntityParams), foreach(Arg, PossibleInstanceArgs) do
+		Param = _ : DomainName,
 		domain(DomainName, Domain),
 		member(Arg, Domain)
 	), 
-	exogenous_action(Action, _, ParamDomains),
-	(foreach(_, ParamDomains), fromto(PossibleInstanceArgs, In, Out, TestArgs) do
+	% generate variable stochastic params to check possibility
+	(foreach(_, StochasticParams), fromto(PossibleInstanceArgs, In, Out, TestArgs) do
 		append(In, [_], Out)
 	),
-	
-	ActionTerm =.. [Action | TestArgs],
+	ActionTerm =.. [ActionName | TestArgs],
 	poss(ActionTerm, s0).
 	
 get_exogenous_action_instances(ActionName, Candidates) :-
-	exogenous_action(ActionName, EntityDomains, _),
-	findall(InstanceArgs, possible_action_instance(ActionName, EntityDomains, InstanceArgs), Candidates).
+	findall(InstanceArgs, possible_action_instance(ActionName, InstanceArgs), Candidates).
 		
 
 get_all_exogenous_action_instances(Candidates) :-
