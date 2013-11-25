@@ -1,6 +1,6 @@
 :- dynamic xpos/3, ypos/3, carrying/3, active/2, painted/2,
-	robot_radius/1,
-	gravity/0.
+	robot_radius/2,
+	gravity/1.
 
 % domain description for worldtest.py
 
