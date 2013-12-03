@@ -9,12 +9,14 @@
 	distanceFromEntrance/3,		
 	% state fluents
 	atBuildingEntrance/2, insideBuilding/2, 
+	inFreeField/2,
 	exploringBuilding/2, leavingBuilding/2, conscious/2,
 	stuck/2, closeToFire/2,
 	gpsAvailable/2, 
 	gpsWorking/2,
 	%constants
-	groupLeaderOf/2.
+	groupLeaderOf/2,
+	maxDistInBuilding/1.
 
 sorts([firefighter, groupMember, groupLeader, ensemble, knowledgeItem,
 		beliefItem]).
@@ -43,12 +45,14 @@ fluent(distanceFromEntrance, [gm:groupMember], integer).
 
 % qualitative state fluents
 
+fluent(inFreeField, [gm:groupMember], boolean).
 fluent(exploringBuilding, [gm:groupMember], boolean).
 fluent(leavingBuilding, [gm:groupMember], boolean).
 fluent(conscious, [gm:groupMember], boolean).
 fluent(closeToFire, [gm:groupMember], boolean).
 fluent(stuck, [gm:groupMember], boolean).
 fluent(gpsAvailable, [gm:groupMember], boolean).
+fluent(gpsWorking, [gm:groupMember], boolean).
 fluent(usingBreathingApparatus, [gm:groupMember], boolean).
 
 derived_fluent(knows, [f:firefighter, ki:knowledgeItem], boolean).
@@ -58,9 +62,9 @@ derived_fluent(atBuildingEntrance, [gm:groupMember], boolean).
 constant(groupLeaderOf, [gl:groupLeader, gm:groupMember], boolean).
 
 % GM mission actions
-primitive_action(departFromBuilding, [gm:groupMember]).
 primitive_action(startExploringBuilding, [gm:groupMember]).
 primitive_action(startLeavingBuilding, [gm:groupMember]).
+primitive_action(departFromBuilding, [gm:groupMember]).
 
 % sense actions
 primitive_action(sense, [f:firefighter, ki:knowledgeItem]).
@@ -70,6 +74,7 @@ primitive_action(exchangeData, [gl:groupLeader, gm:groupMember]).
 primitive_action(setGMsInDanger, [gl:groupLeader, gms:list]).
 
 exogenous_action(arriveAtBuilding, [gm:groupMember], []).
+
 exogenous_action(enterFireRange, [gm:groupMember], []).
 exogenous_action(leaveFireRange, [gm:groupMember], []).
 exogenous_action(getStuck, [gm:groupMember], []).
@@ -79,6 +84,9 @@ exogenous_action(wakeUp, [gm:groupMember], []).
 exogenous_action(loseGPSSignal, [gm:groupMember], []).
 exogenous_action(regainGPSSignal, [gm:groupMember], []).
 exogenous_action(breakGPS, [gm:groupMember], []).
+
+
+
 
 % SUCCESSOR STATE AXIOMS 
 % ======================
@@ -160,7 +168,7 @@ acceleration(GM, Acc, do2(A,S)) :-
 	A = tick ->
 		(
 			(stuck(GM, S), ! ; 
-				not conscious(GM, S)) ->
+				not conscious(GM, do2(A,S))) ->
 				Acc is 0
 			;
 				Acc is (1-2*frandom) * 10.
@@ -178,10 +186,10 @@ distanceFromEntrance(GM, Dist, do2(A,S)) :-
 		conscious(GM, S),		
 		(			
 			exploringBuilding(GM, S),
-			Dist is OldDist + 1, !
+			Dist is min(OldDist + 1, maxDistInBuilding), !
 			;
 			leavingBuilding(GM, S),
-			Dist is OldDist - 1, !
+			Dist is max(OldDist - 1, 0),!
 		), !
 		;
 		Dist is OldDist
@@ -198,8 +206,57 @@ insideBuilding(GM, S) :-
 exploringBuilding(GM, do2(A,S)) :-
 	A = startExploringBuilding(GM), !
 	;
-	
+	A \= startLeavingBuilding(GM),
+	exploringBuilding(GM, S), !.
 
+leavingBuilding(GM, do2(A,S)) :-
+	(
+		A = startLeavingBuilding(GM), !
+		;
+		leavingBuilding(GM, S)
+	),
+	distanceFromEntrance(GM, Dist, do2(A,S)),
+	Dist > 0.
+	
+inFreeField(GM, do2(A,S)) :-
+	A = departFromBuilding(GM), !
+	;
+	A \= arriveAtBuilding(GM),
+	inFreeField(GM, S).
+
+	
+conscious(GM, do2(A,S)) :-
+	A = wakeUp(GM), !
+	;
+	A \= passOut(GM),
+	conscious(GM, S).
+
+closeToFire(GM, do2(A,S)) :-
+	A = enterFireRange(GM), !
+	;
+	A \= leaveFireRange(GM),
+	closeToFire(GM, S).
+
+stuck(GM, do2(A, S)) :-
+	A = getStuck(GM), !
+	;
+	A \= breakFree(GM),
+	stuck(GM, S).
+
+gpsAvailable(GM, do2(A, S)) :-
+	A = regainGPSSignal(GM), !
+	;
+	A \= loseGPSSignal(GM),
+	A \= breakGPS(GM),
+	gpsAvailable(GM, S).
+
+gpsWorking(GM, do2(A, S)) :-
+	A \= breakGPS(GM),
+	gpsWorking(GM, S).
+
+
+
+	
 	
 	
 
