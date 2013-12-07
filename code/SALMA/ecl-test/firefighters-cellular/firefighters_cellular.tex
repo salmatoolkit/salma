@@ -1,0 +1,37 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[ampersand]{easylist}
+\usepackage{makeidx}
+\usepackage{todonotes}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+
+\title{Simulating and Analyzing a Firefighting Scenario with SALMA}
+
+\author{Christian Kroiss}
+
+\date{December 2013}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+TBD
+\end{abstract}
+
+\section{Introduction}
+TBD
+
+\section{Scenario Overview}
+\begin{easylist}[itemize]
+& The world is represented as a 2D space that is segmented into quadratic cells.
+& Each cell has a state that can consist of several state fluents like fire, smoke, avg_temperature,
+etc.
+& Firefighters have integer 2D coordinates that specify their position within the bounds of a cell.
+& Firefighters move along integer coordinates, thus entering and exiting cells as they move.
+& Firefighters start from the center of a cell and move to the center of the destination cell. This can be seen as "forgetting" the exact position.
+
+\end{easylist}
+\end{document}
