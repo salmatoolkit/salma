@@ -7,7 +7,7 @@
 	posY/3,
 	vX/3,
 	vY/3,
-	cell/3,
+	cell/3, % c(Col, Row), starting with cell c(0,0)
 	destinationCell/3, % destination term: c(Col,Row)
 	% state fluents
 	movingToDestination/2,
@@ -23,7 +23,8 @@
 	%constants
 	groupLeaderOf/2,
 	cellWidth/1, cellHeight/1,
-	cellColumnCount/1, cellRowCount/1.
+	cellColumnCount/1, cellRowCount/1,
+	speedInCell/3.
 	
 
 sorts([firefighter, groupMember, groupLeader, ensemble, knowledgeItem,
@@ -62,7 +63,11 @@ derived_fluent(knows, [f:firefighter, ki:knowledgeItem], boolean).
 derived_fluent(cell, [gm:groupMember], term).
 
 constant(groupLeaderOf, [gl:groupLeader, gm:groupMember], boolean).
+constant(speedInCell, [x:cellXPos, y:cellYPos], integer).
 
+
+primitive_action(setDestinationCell, [gm:groupMember, x:cellXPos,
+											y:cellYPos]).
 % sense actions
 primitive_action(sense, [f:firefighter, ki:knowledgeItem]).
 
@@ -183,17 +188,36 @@ posX(GM, X, do2(A, S)) :-
 posY(GM, Y, do2(A, S)) :-
 	posY(GM, OldY, S),
 	(A = tick ->
-		vX(GM, VY, S),
+		vY(GM, VY, S),
 		Y is OldY + VY
 		;
 		Y is OldY
 	).	
 	
+vX(GM, VX, do2(A,S)) :-
+	(not conscious(GM, do2(A,S)), ! 
+		; 
+	stuck(GM, do2(A,S))),
+	VX is 0, !
+	;
+	
 cell(GM, Cell, S) :-
 	posX(GM, X, S),
 	posY(GM, Y, S),
+	ColNum is div(X, cellWidth),
+	RowNum is div(Y, cellHeight),
+	Cell = c(ColNum, RowNum).
 	
-destinationCell	
+destinationCell(GM, Cell, do2(A,S)) :-
+	(A = setDestinationCell(GM, Col, Row) ->
+		Cell = c(Col, Row)
+		;
+		destinationCell(GM, Cell, S)
+	).
+
+
+	
+	
 	
 	
 
