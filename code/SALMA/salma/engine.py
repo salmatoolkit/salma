@@ -769,6 +769,7 @@ class EclipseCLPEngine(Engine):
         
     def setConstantValue(self, constantName, constantParams, value):
         # remember: the constant has to be defined as dynamic in Eclipse
+        # the constant value is kept in "python space"
         self.__currentState = None
         pterms = createParamTerms(*constantParams)
         vterm = createParamTerms(value)[0]

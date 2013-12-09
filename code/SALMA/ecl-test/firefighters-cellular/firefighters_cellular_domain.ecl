@@ -9,6 +9,7 @@
 	vY/3,
 	cell/3, % c(Col, Row), starting with cell c(0,0)
 	destinationCell/3, % destination term: c(Col,Row)
+	temperature/3,
 	% state fluents
 	movingToDestination/2,
 	extinguishing/2,
@@ -21,7 +22,7 @@
 	smokeInCell/3,
 	cellIndoors/3,	
 	%constants
-	groupLeaderOf/2,
+	groupLeader/3, % defines the groupLeader
 	cellWidth/1, cellHeight/1,
 	cellColumnCount/1, cellRowCount/1,
 	speedInCell/3.
@@ -43,31 +44,37 @@ fluent(knowledgeTimeStamp, [f:firefighter, ki:knowledgeItem], integer).
 % fluents that describe the real situation of the firefighter
 fluent(posX, [gm:groupMember], integer).
 fluent(posY, [gm:groupMember], integer).
-fluent(vX, [gm:groupMember], integer).
-fluent(vY, [gm:groupMember], integer).
 fluent(destinationCell, [gm:groupMember], term).
-fluent(temperature, [gm:groupMember], integer).
 
+% cell state
 
-
+fluent(fireInCell, [x:cellXPos, y:cellYPos], boolean).
+fluent(smokeInCell, [x:cellXPos, y:cellYPos], boolean).
 
 % qualitative state fluents
 
 fluent(conscious, [gm:groupMember], boolean).
 fluent(stuck, [gm:groupMember], boolean).
-fluent(gpsAvailable, [gm:groupMember], boolean).
 fluent(gpsWorking, [gm:groupMember], boolean).
 
 
 derived_fluent(knows, [f:firefighter, ki:knowledgeItem], boolean).
 derived_fluent(cell, [gm:groupMember], term).
+derived_fluent(vX, [gm:groupMember], integer).
+derived_fluent(vY, [gm:groupMember], integer).
+derived_fluent(temperature, [gm:groupMember], integer).
+derived_fluent(gpsAvailable, [gm:groupMember], boolean).
 
-constant(groupLeaderOf, [gl:groupLeader, gm:groupMember], boolean).
+constant(groupLeader, [gm:groupMember], groupLeader).
 constant(speedInCell, [x:cellXPos, y:cellYPos], integer).
+constant(cellIndoors, [x:cellXPos, y:cellYPos], boolean).
 
 
 primitive_action(setDestinationCell, [gm:groupMember, x:cellXPos,
 											y:cellYPos]).
+primitive_action(startExtinguishing, [gm:groupMember]).			
+primitive_action(stopExtinguishing, [gm:groupMember]).									
+											
 % sense actions
 primitive_action(sense, [f:firefighter, ki:knowledgeItem]).
 
@@ -79,8 +86,6 @@ exogenous_action(getStuck, [gm:groupMember], []).
 exogenous_action(breakFree, [gm:groupMember], []).
 exogenous_action(passOut, [gm:groupMember], []).
 exogenous_action(wakeUp, [gm:groupMember], []).
-exogenous_action(loseGPSSignal, [gm:groupMember], []).
-exogenous_action(regainGPSSignal, [gm:groupMember], []).
 exogenous_action(breakGPS, [gm:groupMember], []).
 
 
@@ -102,7 +107,7 @@ knowledgeValue(F, gmsInDanger, Val, do2(A,S)) :-
 
 knowledgeValue(F, nearbyGMInDanger, Val, do2(A,S)) :-
 	A = exchangeData(GL, F),
-	groupLeaderOf(GL, F),
+	groupLeader(F, GL),
 	knowledgeValue(F, gmsInDanger, GMsInDanger, S),
 	(length(GMsInDanger) > 0 ->	Val = true ; Val = false), !
 	;
@@ -126,7 +131,7 @@ knowledgeTimeStamp(F, gmsInDanger, TimeStamp, do2(A,S)) :-
 
 knowledgeTimeStamp(F, nearbyGMInDanger, TimeStamp, do2(A,S)) :-
 	A = exchangeData(GL, F),
-	groupLeaderOf(GL, F),
+	groupLeader(F, GL),
 	time(TimeStamp, S), !
 	;
 	knowledgeTimeStamp(F, nearbyGMInDanger, TimeStamp, S), !.
@@ -146,8 +151,9 @@ knowledgeTimeStamp(F, KI, TimeStamp, do2(A,S)) :-
 			knowledgeTimeStamp(F, KI, TimeStamp, S)
 	), !.	
 	
-temperature(GM, Temp, do2(A,S)) :-
-	closeToFire(GM, do2(A,S)) ->
+temperature(GM, Temp, S) :-
+	cell(GM, Cell, S),
+	
 		Temp is 65
 	;
 		Temp is 25.
@@ -165,17 +171,16 @@ stuck(GM, do2(A, S)) :-
 	A \= breakFree(GM),
 	stuck(GM, S).
 
-gpsAvailable(GM, do2(A, S)) :-
-	A = regainGPSSignal(GM), !
-	;
-	A \= loseGPSSignal(GM),
-	A \= breakGPS(GM),
-	gpsAvailable(GM, S).
 
 gpsWorking(GM, do2(A, S)) :-
 	A \= breakGPS(GM),
 	gpsWorking(GM, S).
 
+gpsAvailable(GM, S) :-
+	gpsWorking(GM, S),
+	cell(GM, 
+
+	
 posX(GM, X, do2(A, S)) :-
 	posX(GM, OldX, S),
 	(A = tick ->
@@ -194,12 +199,26 @@ posY(GM, Y, do2(A, S)) :-
 		Y is OldY
 	).	
 	
-vX(GM, VX, do2(A,S)) :-
-	(not conscious(GM, do2(A,S)), ! 
+vX(GM, VX, S) :-
+	(not conscious(GM, S), ! 
 		; 
-	stuck(GM, do2(A,S))),
+	stuck(GM, S),
 	VX is 0, !
 	;
+	cell(GM, Cell, S),
+	Cell = c(ColNum, RowNum),
+	speedInCell(ColNum, RowNum, VX).
+
+	
+vY(GM, VY, S) :-
+	(not conscious(GM, S), ! 
+		; 
+	stuck(GM, S),
+	VY is 0, !
+	;
+	cell(GM, Cell, S),
+	Cell = c(ColNum, RowNum),
+	speedInCell(ColNum, RowNum, VY).
 	
 cell(GM, Cell, S) :-
 	posX(GM, X, S),
@@ -214,7 +233,6 @@ destinationCell(GM, Cell, do2(A,S)) :-
 		;
 		destinationCell(GM, Cell, S)
 	).
-
 
 	
 	

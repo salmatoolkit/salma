@@ -88,7 +88,9 @@ create_procedure_plan(Procedure, Params, Plan) :-
 setDomain(Domain, Entities) :-
 	convert_args(Entities, Entities2),
 	assert(domain(Domain, D) :- D = Entities2).
-	
+
+% sets value for the given constant instance. A boolean constant must have a value parameter,
+% too.
 setConstant(ConstantName, Params) :-
 	convert_args(Params, Params2),
 	T =.. [ConstantName | Params2],
