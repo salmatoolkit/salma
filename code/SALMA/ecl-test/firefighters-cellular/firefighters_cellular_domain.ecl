@@ -2,24 +2,33 @@
 	knows/3,
 	knowledgeValue/4,
 	knowledgeTimeStamp/4,
-	% real world
-	position/3, temperature/3, 
-	oxygenLevel/3, 	
-	acceleration/3, 
-	distanceFromEntrance/3,		
+	% firefighter real situation
+	posX/3, % x and y 
+	posY/3,
+	vX/3,
+	vY/3,
+	cell/3, % c(Col, Row), starting with cell c(0,0)
+	destinationCell/3, % destination term: c(Col,Row)
 	% state fluents
-	atBuildingEntrance/2, insideBuilding/2, 
-	inFreeField/2,
-	exploringBuilding/2, leavingBuilding/2, conscious/2,
-	stuck/2, closeToFire/2,
+	movingToDestination/2,
+	extinguishing/2,
+	conscious/2,
+	stuck/2, % moving = not stuck
 	gpsAvailable/2, 
 	gpsWorking/2,
+	% cell
+	fireInCell/3,
+	smokeInCell/3,
+	cellIndoors/3,	
 	%constants
 	groupLeaderOf/2,
-	maxDistInBuilding/1.
+	cellWidth/1, cellHeight/1,
+	cellColumnCount/1, cellRowCount/1,
+	speedInCell/3.
+	
 
 sorts([firefighter, groupMember, groupLeader, ensemble, knowledgeItem,
-		beliefItem]).
+		beliefItem, cellXPos, cellYPos]).
 	
 subsorts([groupMember, groupLeader], firefighter).
 
@@ -31,41 +40,34 @@ domain(knowledgeItem, [position, temperature, oxygenLevel,
 fluent(knowledgeValue, [f:firefighter, ki:knowledgeItem], term).
 fluent(knowledgeTimeStamp, [f:firefighter, ki:knowledgeItem], integer).
 
-% fluents that describe the real situation
-
+% fluents that describe the real situation of the firefighter
+fluent(posX, [gm:groupMember], integer).
+fluent(posY, [gm:groupMember], integer).
+fluent(vX, [gm:groupMember], integer).
+fluent(vY, [gm:groupMember], integer).
+fluent(destinationCell, [gm:groupMember], term).
 fluent(temperature, [gm:groupMember], integer).
 
-fluent(oxygenLevel, [gm:groupMember], integer).
 
-fluent(acceleration, [gm:groupMember], integer).
 
-% this grows when exploring, i.e. we assume that 
-% the firefighter gradually moves deeper into the building
-fluent(distanceFromEntrance, [gm:groupMember], integer).
 
 % qualitative state fluents
 
-fluent(inFreeField, [gm:groupMember], boolean).
-fluent(exploringBuilding, [gm:groupMember], boolean).
-fluent(leavingBuilding, [gm:groupMember], boolean).
 fluent(conscious, [gm:groupMember], boolean).
-fluent(closeToFire, [gm:groupMember], boolean).
 fluent(stuck, [gm:groupMember], boolean).
 fluent(gpsAvailable, [gm:groupMember], boolean).
 fluent(gpsWorking, [gm:groupMember], boolean).
-fluent(usingBreathingApparatus, [gm:groupMember], boolean).
+
 
 derived_fluent(knows, [f:firefighter, ki:knowledgeItem], boolean).
-derived_fluent(insideBuilding, [gm:groupMember], boolean).
-derived_fluent(atBuildingEntrance, [gm:groupMember], boolean).
+derived_fluent(cell, [gm:groupMember], term).
 
 constant(groupLeaderOf, [gl:groupLeader, gm:groupMember], boolean).
+constant(speedInCell, [x:cellXPos, y:cellYPos], integer).
 
-% GM mission actions
-primitive_action(startExploringBuilding, [gm:groupMember]).
-primitive_action(startLeavingBuilding, [gm:groupMember]).
-primitive_action(departFromBuilding, [gm:groupMember]).
 
+primitive_action(setDestinationCell, [gm:groupMember, x:cellXPos,
+											y:cellYPos]).
 % sense actions
 primitive_action(sense, [f:firefighter, ki:knowledgeItem]).
 
@@ -73,10 +75,6 @@ primitive_action(exchangeData, [gl:groupLeader, gm:groupMember]).
 
 primitive_action(setGMsInDanger, [gl:groupLeader, gms:list]).
 
-exogenous_action(arriveAtBuilding, [gm:groupMember], []).
-
-exogenous_action(enterFireRange, [gm:groupMember], []).
-exogenous_action(leaveFireRange, [gm:groupMember], []).
 exogenous_action(getStuck, [gm:groupMember], []).
 exogenous_action(breakFree, [gm:groupMember], []).
 exogenous_action(passOut, [gm:groupMember], []).
@@ -154,88 +152,12 @@ temperature(GM, Temp, do2(A,S)) :-
 	;
 		Temp is 25.
 
-oxygenLevel(GM, Level, do2(A,S)) :-
-	oxygenLevel(GM, OldLevel, S),
-	(
-		A = tick,
-		usingBreathingApparatur(GM, S),
-		Level is OldLevel - 1, !
-		;
-		Level is OldLevel
-	), !.
-		
-acceleration(GM, Acc, do2(A,S)) :-
-	A = tick ->
-		(
-			(stuck(GM, S), ! ; 
-				not conscious(GM, do2(A,S))) ->
-				Acc is 0
-			;
-				Acc is (1-2*frandom) * 10.
-		)
-	;
-	acceleration(GM, Acc, S).
-		
-distanceFromEntrance(GM, Dist, do2(A,S)) :-
-	A = arriveAtBuilding(GM), Dist is 0, !
-	;
-	distanceFromEntrance(GM, OldDist, S),
-	(
-		A = tick,
-		not stuck(GM, S),
-		conscious(GM, S),		
-		(			
-			exploringBuilding(GM, S),
-			Dist is min(OldDist + 1, maxDistInBuilding), !
-			;
-			leavingBuilding(GM, S),
-			Dist is max(OldDist - 1, 0),!
-		), !
-		;
-		Dist is OldDist
-	).
-			
-atBuildingEntrance(GM, S) :- 
-	distanceFromEntrance(GM, Dist, S),
-	Dist is 0.
-
-insideBuilding(GM, S) :-
-	distanceFromEntrance(GM, Dist, S),
-	Dist > 0.
-
-exploringBuilding(GM, do2(A,S)) :-
-	A = startExploringBuilding(GM), !
-	;
-	A \= startLeavingBuilding(GM),
-	exploringBuilding(GM, S), !.
-
-leavingBuilding(GM, do2(A,S)) :-
-	(
-		A = startLeavingBuilding(GM), !
-		;
-		leavingBuilding(GM, S)
-	),
-	distanceFromEntrance(GM, Dist, do2(A,S)),
-	Dist > 0.
-	
-inFreeField(GM, do2(A,S)) :-
-	A = departFromBuilding(GM), !
-	;
-	A \= arriveAtBuilding(GM),
-	inFreeField(GM, S).
-
 	
 conscious(GM, do2(A,S)) :-
 	A = wakeUp(GM), !
 	;
 	A \= passOut(GM),
 	conscious(GM, S).
-
-closeToFire(GM, do2(A,S)) :-
-	A = enterFireRange(GM), !
-	;
-	A \= leaveFireRange(GM),
-	closeToFire(GM, S).
 
 stuck(GM, do2(A, S)) :-
 	A = getStuck(GM), !
@@ -254,17 +176,53 @@ gpsWorking(GM, do2(A, S)) :-
 	A \= breakGPS(GM),
 	gpsWorking(GM, S).
 
+posX(GM, X, do2(A, S)) :-
+	posX(GM, OldX, S),
+	(A = tick ->
+		vX(GM, VX, S),
+		X is OldX + VX
+		;
+		X is OldX
+	).
+
+posY(GM, Y, do2(A, S)) :-
+	posY(GM, OldY, S),
+	(A = tick ->
+		vY(GM, VY, S),
+		Y is OldY + VY
+		;
+		Y is OldY
+	).	
+	
+vX(GM, VX, do2(A,S)) :-
+	(not conscious(GM, do2(A,S)), ! 
+		; 
+	stuck(GM, do2(A,S))),
+	VX is 0, !
+	;
+	
+cell(GM, Cell, S) :-
+	posX(GM, X, S),
+	posY(GM, Y, S),
+	ColNum is div(X, cellWidth),
+	RowNum is div(Y, cellHeight),
+	Cell = c(ColNum, RowNum).
+	
+destinationCell(GM, Cell, do2(A,S)) :-
+	(A = setDestinationCell(GM, Col, Row) ->
+		Cell = c(Col, Row)
+		;
+		destinationCell(GM, Cell, S)
+	).
 
 
 	
 	
 	
-
-
 	
 
 
-
+	
 
 
 

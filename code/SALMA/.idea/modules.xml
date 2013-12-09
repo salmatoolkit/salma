@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/SALMA.iml" filepath="$PROJECT_DIR$/.idea/SALMA.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../experiments/pysidelab/.idea/pysidelab.iml" filepath="$PROJECT_DIR$/../experiments/pysidelab/.idea/pysidelab.iml" />
     </modules>
   </component>
 </project>

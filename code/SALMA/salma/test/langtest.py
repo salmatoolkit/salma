@@ -19,14 +19,21 @@ class Person(object):
         return "{} {}".format(SPECIES, self.__name) 
 
 class Man(Person):
-    def __init__(self, hasBeard, name, age):
+    def __init__(self, has_beard, name, age):
         Person.__init__(self, name, age)
-        self.__hasBeard = hasBeard
+        self.__hasBeard = has_beard
+        self.say_what = self.say_name
+
     @property
     def hasBeard(self):
         return self.__hasBeard
-  
-  
+
+    def say_something(self):
+        self.say_what()
+
+    def say_name(self):
+        print(self.name)
+
 
 var2 = 42 
 def foo(var1):
@@ -49,4 +56,7 @@ if __name__ == "__main__":
     bar(y=2,x=1,z=7, b=8)
     foo(12)
     print(str(var2))
-    
+    say = theMan.say_something
+    say()
+    say2 = Man.say_something
+    say2(theMan)
