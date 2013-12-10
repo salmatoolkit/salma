@@ -1,17 +1,10 @@
-'''
-Created on 21.05.2013
-
-@author: kroiss
-'''
-
-import random
 import sys
-
+import salma.model.process as process
 from salma.SMCException import SMCException
 from salma.model.distributions import Distribution, \
     ArgumentIdentityDistribution, UniformDistribution
 
-from .procedure import ControlNode, ActionExecution, ProcedureRegistry, Procedure
+from .procedure import ProcedureRegistry
 from .evaluationcontext import EvaluationContext
 
 
@@ -38,192 +31,26 @@ class Entity(object):
         return ':'.join((str(self.__id), self.__sortName))
 
 
-class Process(object):
-    """
-    A process has a procedure and defines its scheduling properties. Processes can either be periodic, triggered
-    by some condition, or one-shot, which is defined in the corresponding subclasses.
-    """
-
-    IDLE, RUNNING, BLOCKED, EXECUTING_ACTION = [1, 2, 3, 4]
-
-    def __init__(self, agent, procedure):
-        """
-        Creates a process with the given procedure that is owned by the given agent.
-        :type agent: Agent
-        :type procedure: Procedure
-        """
-        self.__agent = agent
-        self.__state = Process.IDLE
-        self.__procedure = procedure
-        self.__currentControlNode = procedure.body
-        self.__currentEvaluationContext = self.agent.evaluation_context
-        self.__pending_action = None
-        self.__
-
-    @property
-    def state(self):
-        """
-        The state of the process, i.e. IDLE, RUNNING
-        :rtype: int
-        """
-        return self.__state
-
-    @property
-    def agent(self):
-        """
-        The agent that owns this process.
-        :rtype: Agent
-        """
-        return self.__agent
-
-    @property
-    def procedure(self):
-        """
-        The procedure that defines the behaviour of the process.
-         :rtype: Procedure
-        """
-        return self.__procedure
-
-    @property
-    def process_id(self):
-        return self.__procedure.name + "@" + self.__agent.id
-
-
-    @property
-    def current_evaluation_context(self):
-        """
-        :rtype: EvaluationContext
-        """
-        return self.__currentEvaluationContext
-
-    def get_pending_action(self):
-        """
-        Returns, if any, the action that was yielded by the agent during the immediate action gathering phase.
-         This action is added to the non-immediate action list in World.step and will thus be executed after the
-         immediate action phase.
-        :rtype: (str, list)
-        """
-        return self.__pending_action
-
-    def set_pending_action(self, pending_action):
-        """
-        :type pending_action: (str, list)
-        """
-        self.__pending_action = pending_action
-
-    # TEMPLATE METHODS
-
-    def should_start(self):
-        """
-        Returns true if the process should be started.
-        :rtype: bool
-        """
-        raise NotImplementedError()
-
-    def __on_start(self):
-        """
-        Called at start
-        """
-        pass
-
-    def __on_finish(self):
-        """
-        Called at finish.
-        """
-        pass
-
-    def start(self):
-        self.state = Process.RUNNING
-        self.__currentEvaluationContext = self.agent.evaluation_context
-        self.__currentControlNode = self.procedure.body
-        self.__pending_action = None
-        self.__on_start()
-
-    def stop(self):
-        self.__state = Process.IDLE
-        self.__currentControlNode = None
-        self.__currentEvaluationContext = self.agent.evaluation_context
-        self.__pending_action = None
-        self.__on_finish()
-
-    def step(self, new_step):
-        """
-        Performs one step of the process.
-
-        :rtype: ActionExecution
-        """
-        if self.__currentEvaluationContext is None:
-            raise SMCException("No evaluation context for process " + self.process_id)
-
-        if self.__currentControlNode is None:
-            return None
-
-        if self.__pending_action is not None and new_step is False:
-            return None
-        self.__state = Process.RUNNING
-        self.__pending_action = None
-
-        status = ControlNode.CONTINUE
-        currentNode = self.__currentControlNode
-        currentContext = self.__currentEvaluationContext
-        while status == ControlNode.CONTINUE and currentNode is not None:
-            status, nextNode, nextContext = currentNode.executeStep(currentContext, self.__agent.procedure_registry)
-
-            #: :type nextContext: EvaluationContext
-            if nextNode is None:
-                if currentNode.parent is None:
-                    # this means we just left some procedure
-                    if nextContext.getProcedureCall() is not None:
-                        nextNode = nextContext.getProcedureCall().parent
-                        nextContext = nextContext.getParent()
-
-                else:
-                    nextNode = currentNode.parent
-
-            currentNode = nextNode
-            currentContext = nextContext
-
-        self.__currentControlNode = currentNode
-        self.__currentEvaluationContext = currentContext
-
-        if self.__currentControlNode is None:
-            self.stop()
-            return None
-        else:
-        # status == BLOCKED
-            if isinstance(self.__currentControlNode, ActionExecution):
-                self.__state = Process.EXECUTING_ACTION
-                action = self.__currentControlNode
-
-                # set pointer to enclosing sequence if there is one
-                if self.__currentControlNode.parent is not None:
-                    self.__currentControlNode = self.__currentControlNode.parent
-                return action  # return action
-            else:
-                self.__state = Process.BLOCKED
-                return None
-
-
 class Agent(Entity):
     """
     An agent is an active entity that executes one or several processes.
     """
 
-    def __init__(self, entityId, sortName, processes=[], procedureRegistry=None):
+    def __init__(self, entity_id, sort_name, processes=[], procedure_registry=None):
         """
-        Creates an agent with the given id, sort and control procedure. Adiitionally,
-         a procedure registry can be specified to allow procedure calls within the agent's control
-         procedure.
+        Creates an agent with the given id, sort and control procedure. Additionally,
+        a procedure registry can be specified to allow procedure calls within the agent's control
+        procedure.
 
-        :type entityId: str
-        :type sortName: str
-        :type processes: list of Process
-        :type procedureRegistry: ProcedureRegistry
+        :type entity_id: str
+        :type sort_name: str
+        :type processes: list of process.Process
+        :type procedure_registry: ProcedureRegistry
         """
-        Entity.__init__(self, entityId, sortName)
+        Entity.__init__(self, entity_id, sort_name)
         self.__processes = processes
         self.__evaluation_context = None
-        self.__procedureRegistry = procedureRegistry or ProcedureRegistry()
+        self.__procedure_registry = procedure_registry or ProcedureRegistry()
 
     @property
     def evaluation_context(self):
@@ -231,7 +58,7 @@ class Agent(Entity):
         The evaluation context used by this agent.
         :rtype: EvaluationContext
         """
-        return self.__currentEvaluationContext
+        return self.__evaluation_context
 
     @evaluation_context.setter
     def evaluation_context(self, ctx):
@@ -245,75 +72,71 @@ class Agent(Entity):
 
     @property
     def procedure_registry(self):
-        return self.__procedureRegistry
+        """
+        The agent's procedure registry.
+        :rtype: ProcedureRegistry
+        """
+        return self.__procedure_registry
+
+    @property
+    def processes(self):
+        """
+        The agent's processes.
+        :rtype: list of process.Process
+        """
+        return self.__processes
+
+    def add_process(self, p):
+        """
+        Adds a process to the agent's registry.
+
+        :type p: process.Process
+        """
+        self.__processes.append(p)
 
     def restart(self):
         """
-        Sets the control pointer to the control procedure's body and restarts the procedure.
+        Stops all of the agent's processes.
         """
-
-
+        for p in self.processes:
+            p.stop()
 
     def is_finished(self):
-        """
-        Returns True if the agent's control procedure has run to an end, i.e. the current control node is None.
-        :rtype: bool
-        """
-        return self.__currentControlNode is None
+        for p in self.processes:
+            if not p.is_terminated():
+                return False
+        return True
 
     def update_schedule(self):
         """
         Updates the current schedule and returns the list of currently executed processes.
-        :rtype: list of Process
+        :rtype: list of process.Process
         """
-        if self.__currentEvaluationContext is None:
+        if self.evaluation_context is None:
             raise SMCException("No evaluation context for agent " + self.id)
 
-        if self.__procedureRegistry is None:
-            raise SMCException("No procedure registry given for agen " + self.id)
+        if self.procedure_registry is None:
+            raise SMCException("No procedure registry given for agent " + self.id)
 
-        if self.__currentControlNode is None:
-            return None
+        #: :type: list of process.Process
+        running_processes = []
 
-        if self.__pending_action is not None and new_step == False:
-            return None
-        self.__pending_action = None
+        for p in self.processes:
+            if p.state == process.Process.IDLE:
+                if p.should_start():
+                    p.start()
+            if p.is_scheduled():
+                running_processes.append(p)
 
-        status = ControlNode.CONTINUE
-        currentNode = self.__currentControlNode
-        currentContext = self.__currentEvaluationContext
-        while status == ControlNode.CONTINUE and currentNode is not None:
-            status, nextNode, nextContext = currentNode.executeStep(currentContext, self.__procedureRegistry)
-
-            #: :type nextContext: EvaluationContext
-            if nextNode is None:
-                if currentNode.parent is None:
-                    # this means we just left some procedure
-                    if nextContext.getProcedureCall() is not None:
-                        nextNode = nextContext.getProcedureCall().parent
-                        nextContext = nextContext.getParent()
-
-                else:
-                    nextNode = currentNode.parent
-
-            currentNode = nextNode
-            currentContext = nextContext
-
-        self.__currentControlNode = currentNode
-        self.__currentEvaluationContext = currentContext
-
-        if isinstance(self.__currentControlNode, ActionExecution):
-            action = self.__currentControlNode
-
-            # set pointer to enclosing sequence if there is one
-            if self.__currentControlNode.parent is not None:
-                self.__currentControlNode = self.__currentControlNode.parent
-            return action  # return action
-        else:
-            return None
+        return running_processes
 
 
-        pass
+
+
+
+
+
+
 
 
 

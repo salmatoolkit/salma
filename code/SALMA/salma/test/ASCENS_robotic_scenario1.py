@@ -25,7 +25,7 @@ import numpy as np
 
 
 class Robot(Agent):
-    def __init__(self, entityId, initX, initY, initVelocity, initDirection, radius=10.0):
+    def __init__(self, entity_id, initX, initY, initVelocity, initDirection, radius=10.0):
 
         self.__initX = initX
         self.__initY = initY
@@ -59,7 +59,7 @@ class Robot(Agent):
                      ])
         )
         controlProcedure = Procedure('main', [], body)
-        Agent.__init__(self, entityId, 'robot', controlProcedure)
+        Agent.__init__(self, entity_id, 'robot', controlProcedure)
 
     def initialize(self, overwriteFluents=False):
         world = World.instance()

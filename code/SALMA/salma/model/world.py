@@ -9,7 +9,7 @@ import random
 import datetime
 import time
 import pyclp
-
+import salma.model.process as process
 from salma import constants
 from salma.SMCException import SMCException
 from salma.constants import *
@@ -630,7 +630,6 @@ class World(Entity):
         """
         World.logic_engine().setConstantValue(constantName, constantParams, value)
 
-
     def __translate_action_execution(self, agent, action_execution):
         """
         Generates a ground deterministic action outcome from the given ActionExecution as a
@@ -707,24 +706,29 @@ class World(Entity):
         new_step = True
 
         # only check for process starts at the beginning of the world step
+        #: :type : list of process.Process
+        active_processes = []
+        self.__finished = True
+        for agent in self.__agents.values():
+            if not agent.is_finished():
+                self.__finished = False
+                active_processes.extend(agent.update_schedule())
 
         while True:
-            self.__finished = True
-            immediate_actions = []
-            for agent in self.__agents.values():
-                if not agent.is_finished():
-                    self.__finished = False
-                    action_execution = agent.step(new_step)
-                    if action_execution is not None:
-                        act = self.__translate_action_execution(agent, action_execution)
 
-                        if act[0] in self.__actions and self.__actions[act[0]].immediate:
-                            immediate_actions.append(act)
-                        else:
-                            actions.append(act)
-                            agent.set_pending_action(act)
-                            # progress immediate actions without succeeding time step
-                            # leave loop only if we don't have any immediate actions left
+            immediate_actions = []
+            for proc in active_processes:
+                action_execution = proc.step(new_step)
+                if action_execution is not None:
+                    act = self.__translate_action_execution(proc.agent, action_execution)
+
+                    if act[0] in self.__actions and self.__actions[act[0]].immediate:
+                        immediate_actions.append(act)
+                    else:
+                        actions.append(act)
+                        proc.set_pending_action(act)
+                        # progress immediate actions without succeeding time step
+                        # leave loop only if we don't have any immediate actions left
             if len(immediate_actions) == 0:
                 break
             new_step = False
