@@ -1,4 +1,5 @@
 :- lib(document).
+:- lib(ic).
 
 :- comment(test/1, [
 		summary : "Test",
@@ -48,7 +49,16 @@ test3(L,L2) :-
 		append([X],[0], Y)
 		).
 	
-	
+
+test4(X, Y, TargetX, TargetY) :-
+	(foreach(DX, [-1,0,1]), param(X, Y, TargetX, TargetY) do
+		(foreach(DY, [-1,0,1]), param(DX, X, Y, TargetX, TargetY) do
+			X + DX $\= TargetX,
+			Y + DY $\= TargetY
+		)
+	).
+					
+				
 combinations(Domains, Combinations) :-
 	findall(R, create_combination(Domains, R), Combinations).
 		

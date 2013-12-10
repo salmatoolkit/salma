@@ -49,7 +49,8 @@ fluent(destinationCell, [gm:groupMember], term).
 % cell state
 
 fluent(fireInCell, [x:cellXPos, y:cellYPos], boolean).
-fluent(smokeInCell, [x:cellXPos, y:cellYPos], boolean).
+derived_fluent(smokeInCell, [x:cellXPos, y:cellYPos], boolean).
+derived_fluent(fireInNeighbourCell, [x:cellXPos, y:cellYPos], boolean).
 
 % qualitative state fluents
 
@@ -64,6 +65,8 @@ derived_fluent(vX, [gm:groupMember], integer).
 derived_fluent(vY, [gm:groupMember], integer).
 derived_fluent(temperature, [gm:groupMember], integer).
 derived_fluent(gpsAvailable, [gm:groupMember], boolean).
+
+
 
 constant(groupLeader, [gm:groupMember], groupLeader).
 constant(speedInCell, [x:cellXPos, y:cellYPos], integer).
@@ -88,8 +91,8 @@ exogenous_action(passOut, [gm:groupMember], []).
 exogenous_action(wakeUp, [gm:groupMember], []).
 exogenous_action(breakGPS, [gm:groupMember], []).
 
-
-
+exogenous_action(fireStarts, [x:cellXPos, y:cellYPos], []).
+exogenous_action(fireStops, [x:cellXPos, y:cellYPos], []).
 
 % SUCCESSOR STATE AXIOMS 
 % ======================
@@ -234,7 +237,25 @@ destinationCell(GM, Cell, do2(A,S)) :-
 		destinationCell(GM, Cell, S)
 	).
 
+% --------------
+% CELL FLUENTS
+% --------------
+
+fireInCell(CellX, CellY, do2(A,S)) :-
+	A = fireStarts(CellX, CellY), !
+	;
+	A \= fireStops(CellX, CellY),
+	fireInCell(CellX, CellY, S).
+
+fireInNeighbourCell(CellX, CellY, S) :-
+	(foreach(DX, [-1,0,1]) do
+		foreach(DY, [-1,0,1]), param(DX) do
 	
+smokeInCell(CellX, CellY, S) :-
+	(
+			
+	
+
 	
 	
 	
