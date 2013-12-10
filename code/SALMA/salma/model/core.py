@@ -38,50 +38,63 @@ class Entity(object):
         return ':'.join((str(self.__id), self.__sortName))
 
 
-class Agent(Entity):
+class Process(object):
     """
-    An agent is an active entity that has a control procedure.
+    A process has a procedure and defines its scheduling properties. Processes can either be periodic, triggered
+    by some condition, or one-shot, which is defined in the corresponding subclasses.
     """
 
-    def __init__(self, entityId, sortName, controlProcedure, procedureRegistry=None):
-        """
-        Creates an agent with the given id, sort and control procedure. Adiitionally,
-         a procedure registry can be specified to allow procedure calls within the agent's control
-         procedure.
+    IDLE, RUNNING, BLOCKED, EXECUTING_ACTION = [1, 2, 3, 4]
 
-        :type entityId: str
-        :type sortName: str
-        :type controlProcedure: Procedure
-        :type procedureRegistry: ProcedureRegistry
+    def __init__(self, agent, procedure):
         """
-        Entity.__init__(self, entityId, sortName)
-        self.__controlProcedure = controlProcedure
-        self.__currentControlNode = controlProcedure.body
-        self.__currentEvaluationContext = self.__initialEvaluationContext = None
-        self.__procedureRegistry = procedureRegistry or ProcedureRegistry()
+        Creates a process with the given procedure that is owned by the given agent.
+        :type agent: Agent
+        :type procedure: Procedure
+        """
+        self.__agent = agent
+        self.__state = Process.IDLE
+        self.__procedure = procedure
+        self.__currentControlNode = procedure.body
+        self.__currentEvaluationContext = self.agent.evaluation_context
         self.__pending_action = None
+        self.__
 
     @property
-    def evaluation_context(self):
+    def state(self):
         """
-        The evaluation context used by this agent.
+        The state of the process, i.e. IDLE, RUNNING
+        :rtype: int
+        """
+        return self.__state
+
+    @property
+    def agent(self):
+        """
+        The agent that owns this process.
+        :rtype: Agent
+        """
+        return self.__agent
+
+    @property
+    def procedure(self):
+        """
+        The procedure that defines the behaviour of the process.
+         :rtype: Procedure
+        """
+        return self.__procedure
+
+    @property
+    def process_id(self):
+        return self.__procedure.name + "@" + self.__agent.id
+
+
+    @property
+    def current_evaluation_context(self):
+        """
         :rtype: EvaluationContext
         """
         return self.__currentEvaluationContext
-
-    @evaluation_context.setter
-    def evaluation_context(self, ctx):
-        """
-        :type ctx: EvaluationContext
-        """
-        self.__initialEvaluationContext = self.__currentEvaluationContext = ctx
-        if ctx is not None:
-            ctx.setAgent(self)
-            ctx.setProcedureCall(None)
-
-    @property
-    def procedure_registry(self):
-        return self.__procedureRegistry
 
     def get_pending_action(self):
         """
@@ -98,13 +111,148 @@ class Agent(Entity):
         """
         self.__pending_action = pending_action
 
+    # TEMPLATE METHODS
+
+    def should_start(self):
+        """
+        Returns true if the process should be started.
+        :rtype: bool
+        """
+        raise NotImplementedError()
+
+    def __on_start(self):
+        """
+        Called at start
+        """
+        pass
+
+    def __on_finish(self):
+        """
+        Called at finish.
+        """
+        pass
+
+    def start(self):
+        self.state = Process.RUNNING
+        self.__currentEvaluationContext = self.agent.evaluation_context
+        self.__currentControlNode = self.procedure.body
+        self.__pending_action = None
+        self.__on_start()
+
+    def stop(self):
+        self.__state = Process.IDLE
+        self.__currentControlNode = None
+        self.__currentEvaluationContext = self.agent.evaluation_context
+        self.__pending_action = None
+        self.__on_finish()
+
+    def step(self, new_step):
+        """
+        Performs one step of the process.
+
+        :rtype: ActionExecution
+        """
+        if self.__currentEvaluationContext is None:
+            raise SMCException("No evaluation context for process " + self.process_id)
+
+        if self.__currentControlNode is None:
+            return None
+
+        if self.__pending_action is not None and new_step is False:
+            return None
+        self.__state = Process.RUNNING
+        self.__pending_action = None
+
+        status = ControlNode.CONTINUE
+        currentNode = self.__currentControlNode
+        currentContext = self.__currentEvaluationContext
+        while status == ControlNode.CONTINUE and currentNode is not None:
+            status, nextNode, nextContext = currentNode.executeStep(currentContext, self.__agent.procedure_registry)
+
+            #: :type nextContext: EvaluationContext
+            if nextNode is None:
+                if currentNode.parent is None:
+                    # this means we just left some procedure
+                    if nextContext.getProcedureCall() is not None:
+                        nextNode = nextContext.getProcedureCall().parent
+                        nextContext = nextContext.getParent()
+
+                else:
+                    nextNode = currentNode.parent
+
+            currentNode = nextNode
+            currentContext = nextContext
+
+        self.__currentControlNode = currentNode
+        self.__currentEvaluationContext = currentContext
+
+        if self.__currentControlNode is None:
+            self.stop()
+            return None
+        else:
+        # status == BLOCKED
+            if isinstance(self.__currentControlNode, ActionExecution):
+                self.__state = Process.EXECUTING_ACTION
+                action = self.__currentControlNode
+
+                # set pointer to enclosing sequence if there is one
+                if self.__currentControlNode.parent is not None:
+                    self.__currentControlNode = self.__currentControlNode.parent
+                return action  # return action
+            else:
+                self.__state = Process.BLOCKED
+                return None
+
+
+class Agent(Entity):
+    """
+    An agent is an active entity that executes one or several processes.
+    """
+
+    def __init__(self, entityId, sortName, processes=[], procedureRegistry=None):
+        """
+        Creates an agent with the given id, sort and control procedure. Adiitionally,
+         a procedure registry can be specified to allow procedure calls within the agent's control
+         procedure.
+
+        :type entityId: str
+        :type sortName: str
+        :type processes: list of Process
+        :type procedureRegistry: ProcedureRegistry
+        """
+        Entity.__init__(self, entityId, sortName)
+        self.__processes = processes
+        self.__evaluation_context = None
+        self.__procedureRegistry = procedureRegistry or ProcedureRegistry()
+
+    @property
+    def evaluation_context(self):
+        """
+        The evaluation context used by this agent.
+        :rtype: EvaluationContext
+        """
+        return self.__currentEvaluationContext
+
+    @evaluation_context.setter
+    def evaluation_context(self, ctx):
+        """
+        :type ctx: EvaluationContext
+        """
+        self.__evaluation_context = ctx
+        if ctx is not None:
+            ctx.setAgent(self)
+            ctx.setProcedureCall(None)
+
+    @property
+    def procedure_registry(self):
+        return self.__procedureRegistry
+
     def restart(self):
         """
         Sets the control pointer to the control procedure's body and restarts the procedure.
         """
-        self.__currentEvaluationContext = self.__initialEvaluationContext
-        self.__currentControlNode = self.__controlProcedure.body
-        self.__controlProcedure.restart(self.__currentEvaluationContext)
+
+
 
     def is_finished(self):
         """
@@ -113,14 +261,10 @@ class Agent(Entity):
         """
         return self.__currentControlNode is None
 
-    def step(self, new_step=True):
+    def update_schedule(self):
         """
-        Proceed the agent's control procedure until a blocking node (test) or action is encountered.
-        :param new_step: indicates that a new world step has just begun, i.e. we're in the first iteration through agents.
-        :returns an action that the agent is about to execute or None if either a blocking node was reached or the
-        control procedure finished
-        :type new_step: bool
-        :rtype: ActionExecution
+        Updates the current schedule and returns the list of currently executed processes.
+        :rtype: list of Process
         """
         if self.__currentEvaluationContext is None:
             raise SMCException("No evaluation context for agent " + self.id)
@@ -167,6 +311,10 @@ class Agent(Entity):
             return action  # return action
         else:
             return None
+
+
+        pass
+
 
 
 class Fluent(object):

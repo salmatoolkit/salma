@@ -705,6 +705,9 @@ class World(Entity):
 
         # gather actions
         new_step = True
+
+        # only check for process starts at the beginning of the world step
+
         while True:
             self.__finished = True
             immediate_actions = []
