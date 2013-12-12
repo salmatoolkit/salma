@@ -103,7 +103,7 @@ class Agent(Entity):
 
     def is_finished(self):
         for p in self.processes:
-            if not p.is_terminated():
+            if not p.terminated():
                 return False
         return True
 

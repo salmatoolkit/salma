@@ -1,6 +1,7 @@
 import salma.model.core as core
 from salma.SMCException import SMCException
-from salma.model.procedure import ControlNode, ActionExecution
+from salma.model.procedure import ControlNode, ActionExecution, Procedure
+from salma.model.evaluationcontext import EvaluationContext
 
 
 class Process(object):
@@ -9,13 +10,16 @@ class Process(object):
     by some condition, or one-shot, which is defined in the corresponding subclasses.
     """
 
-    IDLE, RUNNING, BLOCKED, EXECUTING_ACTION, TERMINATED = range(5)
+    IDLE, RUNNING, BLOCKED, EXECUTING_ACTION = range(4)
 
-    def __init__(self, agent, procedure):
+    def __init__(self, agent, procedure, introduction_time=0, deadline=None):
         """
         Creates a process with the given procedure that is owned by the given agent.
+        The status is initially set to IDLE.
         :type agent: core.Agent
         :type procedure: Procedure
+        :type introduction_time: int
+        :type deadline: int
         """
         self.__agent = agent
         self.__state = Process.IDLE
@@ -23,6 +27,12 @@ class Process(object):
         self.__current_control_node = procedure.body
         self.__current_evaluation_context = self.agent.evaluation_context
         self.__pending_action = None
+        self.__introduction_time = introduction_time
+        self.__deadline = deadline
+        self.__last_start_time = None
+        self.__last_end_time = None
+        self.__terminated = False
+        self.__execution_count = 0
 
     @property
     def state(self):
@@ -32,6 +42,34 @@ class Process(object):
         """
         return self.__state
 
+    @property
+    def introduction_time(self):
+        """
+        The time when the process was introduced / created.
+        :rtype: int
+        """
+        return self.__introduction_time
+
+    @property
+    def last_start_time(self):
+        return self.__last_start_time
+
+    @property
+    def last_end_time(self):
+        return self.__last_end_time
+
+    @property
+    def deadline(self):
+        return self.__deadline
+
+    @deadline.setter
+    def deadline(self, d):
+        self.__deadline = d
+
+    @property
+    def execution_count(self):
+        return self.__execution_count
+
     def is_scheduled(self):
         """
         Returns True if the process is not idle.
@@ -39,14 +77,15 @@ class Process(object):
         """
         return self.__state != Process.IDLE and self.__state != Process.TERMINATED
 
-    def is_terminated(self):
-        return self.__state == Process.TERMINATED
+    @property
+    def terminated(self):
+        return self.__terminated
 
     @property
     def agent(self):
         """
         The agent that owns this process.
-        :rtype: Agent
+        :rtype: core.Agent
         """
         return self.__agent
 
@@ -93,29 +132,52 @@ class Process(object):
         """
         raise NotImplementedError()
 
-    def __on_start(self):
+    def should_terminate(self):
         """
-        Called at start
+        Returns true if the process should be terminated. Called in stop().
+        :rtype: bool
         """
-        self.state = Process.RUNNING
+        return False
 
-    def __on_finish(self):
+    def _on_start(self):
+        """
+        Called at start.
+        """
+        pass
+
+    def _on_finish(self):
         """
         Called at finish.
         """
-        self.__state = Process.IDLE
+        pass
 
     def start(self):
+        """
+        Starts the process. Resets procedure and evaluation context, calls _on_start() and
+        sets state=RUNNING.
+        :return:
+        """
         self.__current_evaluation_context = self.agent.evaluation_context
         self.__current_control_node = self.procedure.body
         self.__pending_action = None
-        self.__on_start()
+        self.__last_start_time = self.agent.evaluation_context.getFluentValue('time', [])
+
+        self._on_start()
+        self.state = Process.RUNNING
 
     def stop(self):
+        """
+        Stops the process. Resets procedure and evaluation context, calls _on_finish() and
+        sets state=IDLE.
+        :return:
+        """
         self.__current_control_node = None
         self.__current_evaluation_context = self.agent.evaluation_context
         self.__pending_action = None
-        self.__on_finish()
+        self._on_finish()
+        self.__state = Process.IDLE
+        if self.should_terminate():
+            self.__terminated = True
 
     def step(self, new_step):
         """
@@ -158,6 +220,8 @@ class Process(object):
         self.__current_evaluation_context = current_context
 
         if self.__current_control_node is None:
+            self.__execution_count += 1
+            self.__last_end_time = self.agent.evaluation_context.getFluentValue('time', [])
             self.stop()
             return None
         else:
@@ -176,5 +240,56 @@ class Process(object):
 
 
 class OneShotProcess(Process):
-    def __init__(self, agent, procedure):
-        Process.__init__(self, agent, procedure)
+    def __init__(self, agent, procedure, introduction_time=0, deadline=None):
+        Process.__init__(self, agent, procedure, introduction_time, deadline)
+
+    def should_start(self):
+        return self.execution_count == 0
+
+    def should_terminate(self):
+        return self.execution_count > 0
+
+
+class PeriodicProcess(Process):
+
+    def __init__(self, agent, procedure, period, introduction_time=0):
+        Process.__init__(self, agent, procedure, introduction_time)
+        self.__period = period
+
+    @property
+    def period(self):
+        return self.__period
+
+    @period.setter
+    def period(self, p):
+        self.__period = p
+
+    @property
+    def time_slot(self):
+        """
+        Returns the current timeslot as a tuple of (timeslot_num, start, end)
+        :rtype (int, int, int)
+        """
+        current_time = self.agent.evaluation_context.getFluentValue('time', [])
+        num = divmod(current_time, self.__period)[0] + 1
+        start = (num - 1)*self.period
+        end = start + self.period
+        return num, start, end
+
+    def deadline(self):
+        """
+        Returns the current absolute deadline.
+        """
+        return self.time_slot * self.__period
+
+    def should_start(self):
+        # start if IDLE and the last start time was before the start of this time slot
+        return (self.state == Process.IDLE) and (self.last_start_time < self.time_slot[1])
+
+    def should_terminate(self):
+        return False
+
+
+
+
+
