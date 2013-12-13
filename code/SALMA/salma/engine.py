@@ -82,9 +82,9 @@ class Engine(object):
         '''
         raise NotImplementedError()
     
-    def progress(self, actionName, *actionParams):
+    def progress(self, actions):
         '''
-        Performs a progression of all fluents with the given action.
+        Performs a progression of all fluents with the given actions.
         '''
         raise NotImplementedError()
     

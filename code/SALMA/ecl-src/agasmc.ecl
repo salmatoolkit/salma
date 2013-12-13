@@ -30,10 +30,7 @@ evaluation_step(OverallResult, ToplevelResults, ScheduledResults) :-
 	update_persistent_fluents,
 	evaluate_all_scheduled(ScheduledResults, OverallScheduledResults),
 	evaluate_toplevel(ToplevelResults, OverallToplevelResults),
-	result_and(OverallToplevelResults, OverallScheduledResults, OverallResult),
-	progress([tick]).
-
-	
+	result_and(OverallToplevelResults, OverallScheduledResults, OverallResult).
 
 init_agasmc :-
 	init_progression,

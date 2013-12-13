@@ -91,7 +91,6 @@ class World(Entity):
     def evaluationContext(self):
         return self.__evaluationContext
 
-
     def getExpressionContext(self):
         return self.__expressionContext
 
@@ -631,17 +630,17 @@ class World(Entity):
         """
         World.logic_engine().setConstantValue(constantName, constantParams, value)
 
-    def __translate_action_execution(self, agent, action_execution):
+    def __translate_action_execution(self, evaluation_context, action_execution):
         """
         Generates a ground deterministic action outcome from the given ActionExecution as a
         (action_name, [ground_params]) tuple. If actionExecution refers to a stochastic action,
         an outcome is generated according to the distribution that was defined for the action.
-        The agent's evaluation context is used for generating an outcome.
+        The given evaluation context is used for generating an outcome.
 
         :return: (str, list)
         :raises: SMCException if action is not registered.
 
-        :type agent: Agent
+        :type evaluation_context: EvaluationContext
         :type action_execution: ActionExecution
         :rtype: (str, list)
         """
@@ -652,10 +651,10 @@ class World(Entity):
                 SMCException("Trying to execute unregistered action: {}".format(
                     action_execution.actionName)))
 
-        ground_params = agent.evaluation_context.resolve(*action_execution.actionParameters)
+        ground_params = evaluation_context.resolve(*action_execution.actionParameters)
 
         if isinstance(action, StochasticAction):
-            return action.generateOutcome(agent.evaluation_context, ground_params)
+            return action.generateOutcome(evaluation_context, ground_params)
         else:
             return action_execution.actionName, ground_params
 
@@ -721,7 +720,7 @@ class World(Entity):
             for proc in active_processes:
                 action_execution = proc.step(new_step)
                 if action_execution is not None:
-                    act = self.__translate_action_execution(proc.agent, action_execution)
+                    act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
 
                     if act[0] in self.__actions and self.__actions[act[0]].immediate:
                         immediate_actions.append(act)
@@ -763,7 +762,8 @@ class World(Entity):
             return self.__finished, NOT_OK, {}, {}, actions, failed_regular_actions
 
         overall_verdict, toplevel_results, scheduled_results = World.logic_engine().evaluationStep()
-        # it's or if events fail but if regular actions fail, we're in trouble!
+        World.logic_engine().progress([('tick',[])])
+        # it's ok if events fail but if regular actions fail, we're in trouble!
 
         # TODO: distinguish between actions that take time and actions that don't
         # execute all non-time actions before taking a time step
@@ -940,7 +940,15 @@ class World(Entity):
 # -------------------------------------------------------------------------------------- 
 
 class LocalEvaluationContext(EvaluationContext):
+    """
+    An evaluation context that is coupled with an entity.
+    """
+
     def __init__(self, contextEntity, parent):
+        """
+        :type contextEntity: Entity
+        :type parent: EvaluationContext
+        """
         EvaluationContext.__init__(self, parent)
         self.__contextEntity = contextEntity
         self.__variableBindings = dict()  # variable name
@@ -960,9 +968,9 @@ class LocalEvaluationContext(EvaluationContext):
         elif sourceType == EvaluationContext.CONSTANT:
             result = bool(World.getConstantValue(source, resolvedParams))
         elif sourceType == EvaluationContext.PYTHON_EXPRESSION:
-
             ctx = World.instance().getExpressionContext().copy()
             ctx.update(self.__variableBindings)
+            ctx['self'] = self.__contextEntity.id
             ctx['params'] = params
             result = eval(source, ctx)
         else:

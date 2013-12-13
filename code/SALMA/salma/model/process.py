@@ -291,7 +291,11 @@ class PeriodicProcess(Process):
 
     def should_start(self):
         # start if IDLE and the last start time was before the start of this time slot
-        return (self.state == Process.IDLE) and (self.last_start_time < self.time_slot[1])
+
+        return (self.state == Process.IDLE) and (
+                self.last_start_time is None
+                or
+                self.last_start_time < self.time_slot[1])
 
     def should_terminate(self):
         return False
@@ -307,9 +311,10 @@ class TriggeredProcess(Process):
         self.__relative_deadline = None
 
     def should_start(self):
-        result = self.agent.evaluation_context.evaluateCondition(self.__condition_type,
-                                                                 self.__condition,
-                                                                 *self.__condition_params)
+        ectx = self.current_evaluation_context or self.agent.evaluation_context
+        result = ectx.evaluateCondition(self.__condition_type,
+                                        self.__condition,
+                                        *self.__condition_params)
         return result
 
     @property
@@ -319,6 +324,8 @@ class TriggeredProcess(Process):
     def get_deadline(self):
         if self.__relative_deadline is None:
             return None
+        elif self.last_start_time is None:
+            return self.__relative_deadline
         else:
             return self.last_start_time + self.__relative_deadline
 

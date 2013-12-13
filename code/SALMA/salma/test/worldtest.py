@@ -18,8 +18,7 @@ from salma.model.procedure import ControlNode, Sequence, \
     Iterate, SelectFirst, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
-
-import os
+from salma.test.world_test_base import BaseWorldTest
 
 
 def printValue(value):
@@ -28,6 +27,7 @@ def printValue(value):
 
 
 class MySelectionStrategy(OutcomeSelectionStrategy):
+
     def __init__(self):
         super().__init__()
 
@@ -44,50 +44,7 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
             return self.action.outcome("land_on")
 
 
-class WorldTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        print(os.getcwd())
-        try:
-            World.set_logic_engine(EclipseCLPEngine("../../ecl-test/domaindesc.ecl",
-                                                    "../../ecl-test/example_procedures.ecl"))
-        except SMCException as e:
-            print(e)
-            raise
-        logger = logging.getLogger('agamemnon-smc')
-        logger.setLevel(logging.DEBUG)
-        ch = logging.StreamHandler()
-        logger.addHandler(ch)
-
-    def setUp(self):
-        World.create_new_world()
-        world = World.instance()
-        world.load_declarations()
-        for ea in world.get_exogenous_actions():
-            ea.config.occurrence_distribution = BernoulliDistribution(0)
-
-        world.addEntity(Entity("coffee", "item"))
-        world.addEntity(Entity("chocolate", "item"))
-
-    #     def tearDown(self):
-    #         World.logic_engine().cleanup()
-
-    def create_right_moving_mobot(self, robotId):
-        seq = Sequence()
-        seq.addChild(ActionExecution("move_right", [Entity.SELF]))
-        seq.addChild(ActionExecution("move_down", [Entity.SELF]))
-
-        proc = process.OneShotProcess(Procedure("main", [], seq))
-        agent = Agent(robotId, "robot", [proc])
-        return agent
-
-    def setNoOneCarriesAnything(self):
-        world = World.instance()
-        robots = world.getDomain('robot')
-        items = world.getDomain('item')
-        for r in robots:
-            for i in items:
-                world.setFluentValue('carrying', [r.id, i.id], False)
+class WorldTest(BaseWorldTest):
 
     @withHeader
     def testWorldStepExplicit(self):
@@ -405,18 +362,6 @@ class WorldTest(unittest.TestCase):
         world.runUntilFinished()
         world.printState()
 
-    def __placeAgentsInColumn(self, x=10, startY=10, distance=20):
-        world = World.instance()
-
-        y = startY
-
-        # : :type r: Agent 
-        for r in world.getDomain('robot'):
-            world.setFluentValue("xpos", [r.getId()], x)
-            world.setFluentValue("ypos", [r.getId()], y)
-            world.setFluentValue("active", [r.getId()], True)
-            y += distance
-
     @withHeader
     def testExogenousAction(self):
 
@@ -447,7 +392,7 @@ class WorldTest(unittest.TestCase):
         world.addAgent(agent3)
         world.initialize(False)
 
-        self.__placeAgentsInColumn()
+        self.place_agents_in_column()
         world.setFluentValue("carrying", ["rob1", "coffee"], True)
         world.setFluentValue("xpos", ["rob1"], world.getFluentValue("xpos", ["rob2"]))
         world.setFluentValue("ypos", ["rob1"], world.getFluentValue("ypos", ["rob2"]))
@@ -481,7 +426,7 @@ class WorldTest(unittest.TestCase):
 
         world.initialize(False)
 
-        self.__placeAgentsInColumn()
+        self.place_agents_in_column()
 
         self.setNoOneCarriesAnything()
 
@@ -532,7 +477,7 @@ class WorldTest(unittest.TestCase):
 
         world.initialize(False)
 
-        self.__placeAgentsInColumn()
+        self.place_agents_in_column()
 
         self.setNoOneCarriesAnything()
 
@@ -670,6 +615,7 @@ class WorldTest(unittest.TestCase):
 
     @withHeader
     def test_procedure_call(self):
+
         world = World.instance()
         transportToX = Procedure("transportToX",
                                  [("r1", "robot"), ("i", "item"), ("targetX", "integer")],
@@ -695,11 +641,11 @@ class WorldTest(unittest.TestCase):
 
         world.initialize(False)
 
-        self.__placeAgentsInColumn(10)
+        self.place_agents_in_column(10)
 
         world.runUntilFinished()
         world.printState()
-        self.assertEqual(world.getFluentValue('xpos', ['rob1']), 25)
+        self.assertEqual(world.getFluentValue('xpos', ['rob1']), 17)
 
     @withHeader
     def test_recursive_procedure_call(self):
@@ -737,7 +683,7 @@ class WorldTest(unittest.TestCase):
 
         world.initialize(False)
 
-        self.__placeAgentsInColumn(10)
+        self.place_agents_in_column(10)
 
         world.runUntilFinished()
         world.printState()
@@ -760,7 +706,7 @@ class WorldTest(unittest.TestCase):
 
         world.initialize(False)
 
-        self.__placeAgentsInColumn(10)
+        self.place_agents_in_column(10)
 
         world.runUntilFinished()
         world.printState()
@@ -857,5 +803,16 @@ class WorldTestSuite(unittest.TestSuite):
         unittest.TestSuite.__init__(self)
         self.addTest(WorldTest("test_procedure_call"))
 
+
+def suite():
+    s = unittest.TestSuite()
+    s.addTest(WorldTest('test_procedure_call'))
+    s.addTest(WorldTest('test_recursive_procedure_call'))
+    return s
+
+def load_tests(loader, tests, pattern):
+    print("load")
+    return suite()
+
 if __name__ == '__main__':
-   unittest.main()
+    unittest.main()
