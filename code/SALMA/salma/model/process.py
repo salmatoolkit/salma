@@ -1,4 +1,4 @@
-import salma.model.core as core
+from .core import Entity
 from salma.SMCException import SMCException
 from salma.model.procedure import ControlNode, ActionExecution, Procedure
 from salma.model.evaluationcontext import EvaluationContext
@@ -12,23 +12,20 @@ class Process(object):
 
     IDLE, RUNNING, BLOCKED, EXECUTING_ACTION = range(4)
 
-    def __init__(self, agent, procedure, introduction_time=0, deadline=None):
+    def __init__(self, procedure, introduction_time=0):
         """
         Creates a process with the given procedure that is owned by the given agent.
         The status is initially set to IDLE.
-        :type agent: core.Agent
         :type procedure: Procedure
         :type introduction_time: int
-        :type deadline: int
         """
-        self.__agent = agent
+        self.__agent = None
         self.__state = Process.IDLE
         self.__procedure = procedure
         self.__current_control_node = procedure.body
-        self.__current_evaluation_context = self.agent.evaluation_context
+        self.__current_evaluation_context = None
         self.__pending_action = None
         self.__introduction_time = introduction_time
-        self.__deadline = deadline
         self.__last_start_time = None
         self.__last_end_time = None
         self.__terminated = False
@@ -58,13 +55,8 @@ class Process(object):
     def last_end_time(self):
         return self.__last_end_time
 
-    @property
-    def deadline(self):
-        return self.__deadline
-
-    @deadline.setter
-    def deadline(self, d):
-        self.__deadline = d
+    def get_deadline(self):
+        raise NotImplementedError()
 
     @property
     def execution_count(self):
@@ -75,7 +67,7 @@ class Process(object):
         Returns True if the process is not idle.
         :rtype: bool
         """
-        return self.__state != Process.IDLE and self.__state != Process.TERMINATED
+        return not self.terminated and self.__state != Process.IDLE
 
     @property
     def terminated(self):
@@ -85,9 +77,17 @@ class Process(object):
     def agent(self):
         """
         The agent that owns this process.
-        :rtype: core.Agent
+        :rtype: Entity
         """
         return self.__agent
+
+    @agent.setter
+    def agent(self,  agent):
+        """
+        :type agent: Entity
+        """
+        self.__agent = agent
+        self.__current_evaluation_context = self.__agent.evaluation_context
 
     @property
     def procedure(self):
@@ -160,10 +160,10 @@ class Process(object):
         self.__current_evaluation_context = self.agent.evaluation_context
         self.__current_control_node = self.procedure.body
         self.__pending_action = None
-        self.__last_start_time = self.agent.evaluation_context.getFluentValue('time', [])
+        self.__last_start_time = self.agent.evaluation_context.getFluentValue('time')
 
         self._on_start()
-        self.state = Process.RUNNING
+        self.__state = Process.RUNNING
 
     def stop(self):
         """
@@ -221,7 +221,7 @@ class Process(object):
 
         if self.__current_control_node is None:
             self.__execution_count += 1
-            self.__last_end_time = self.agent.evaluation_context.getFluentValue('time', [])
+            self.__last_end_time = self.agent.evaluation_context.getFluentValue('time')
             self.stop()
             return None
         else:
@@ -240,8 +240,15 @@ class Process(object):
 
 
 class OneShotProcess(Process):
-    def __init__(self, agent, procedure, introduction_time=0, deadline=None):
-        Process.__init__(self, agent, procedure, introduction_time, deadline)
+    """
+    A process that is run only once. The get_deadline is set relative to the time the process is created.
+    """
+    def __init__(self, procedure, absolute_deadline=None, introduction_time=0):
+        Process.__init__(self, procedure, introduction_time)
+        self.__absolute_deadline = absolute_deadline
+
+    def get_deadline(self):
+        return self.__absolute_deadline
 
     def should_start(self):
         return self.execution_count == 0
@@ -252,8 +259,8 @@ class OneShotProcess(Process):
 
 class PeriodicProcess(Process):
 
-    def __init__(self, agent, procedure, period, introduction_time=0):
-        Process.__init__(self, agent, procedure, introduction_time)
+    def __init__(self, procedure, period, introduction_time=0):
+        Process.__init__(self, procedure, introduction_time)
         self.__period = period
 
     @property
@@ -270,15 +277,15 @@ class PeriodicProcess(Process):
         Returns the current timeslot as a tuple of (timeslot_num, start, end)
         :rtype (int, int, int)
         """
-        current_time = self.agent.evaluation_context.getFluentValue('time', [])
+        current_time = self.agent.evaluation_context.getFluentValue('time')
         num = divmod(current_time, self.__period)[0] + 1
         start = (num - 1)*self.period
         end = start + self.period
         return num, start, end
 
-    def deadline(self):
+    def get_deadline(self):
         """
-        Returns the current absolute deadline.
+        Returns the current absolute get_deadline.
         """
         return self.time_slot * self.__period
 
@@ -288,6 +295,43 @@ class PeriodicProcess(Process):
 
     def should_terminate(self):
         return False
+
+
+class TriggeredProcess(Process):
+
+    def __init__(self, procedure, condition_type, condition, condition_params, relative_deadline=None, introduction_time=0):
+        Process.__init__(self, procedure, introduction_time)
+        self.__condition_type = condition_type
+        self.__condition = condition
+        self.__condition_params = condition_params
+        self.__relative_deadline = None
+
+    def should_start(self):
+        result = self.agent.evaluation_context.evaluateCondition(self.__condition_type,
+                                                                 self.__condition,
+                                                                 *self.__condition_params)
+        return result
+
+    @property
+    def relative_deadline(self):
+        return self.__relative_deadline
+
+    def get_deadline(self):
+        if self.__relative_deadline is None:
+            return None
+        else:
+            return self.last_start_time + self.__relative_deadline
+
+    def should_terminate(self):
+        return False
+
+
+
+
+
+
+
+
 
 
 

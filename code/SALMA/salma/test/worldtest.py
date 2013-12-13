@@ -1,15 +1,15 @@
 import logging
 import unittest
 import itertools
-from scipy.odr.__odrpack import odr_stop
 
 from salma import constants
 from salma.SMCException import SMCException
 from salma.engine import EclipseCLPEngine
-from salma.model import procedure, distributions
-from salma.model.core import Agent, Entity, Fluent, Action, Constant
+from salma.model import procedure, distributions, process
+from salma.model.core import Entity, Fluent, Action, Constant
 from salma.model.actions import DeterministicAction, StochasticAction, \
     RandomActionOutcome, ExogenousAction, Uniform, OutcomeSelectionStrategy
+from salma.model.agent import Agent
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
@@ -18,6 +18,7 @@ from salma.model.procedure import ControlNode, Sequence, \
     Iterate, SelectFirst, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
+
 import os
 
 
@@ -27,21 +28,20 @@ def printValue(value):
 
 
 class MySelectionStrategy(OutcomeSelectionStrategy):
+    def __init__(self):
+        super().__init__()
 
-        def __init__(self):
-            super().__init__()
-
-        def select_outcome(self, evaluationContext, paramValues):
-            """
-            :type evaluationContext: EvaluationContext
-            :type paramValues: list
-            """
-            x = evaluationContext.getFluentValue('xpos', paramValues[0])
-            height = paramValues[1]
-            if x > 100 or height > 50:
-                return self.action.outcome("crash")
-            else:
-                return self.action.outcome("land_on")
+    def select_outcome(self, evaluationContext, paramValues):
+        """
+        :type evaluationContext: EvaluationContext
+        :type paramValues: list
+        """
+        x = evaluationContext.getFluentValue('xpos', paramValues[0])
+        height = paramValues[1]
+        if x > 100 or height > 50:
+            return self.action.outcome("crash")
+        else:
+            return self.action.outcome("land_on")
 
 
 class WorldTest(unittest.TestCase):
@@ -72,11 +72,13 @@ class WorldTest(unittest.TestCase):
     #     def tearDown(self):
     #         World.logic_engine().cleanup()
 
-    def createRightMovingRobot(self, robotId):
+    def create_right_moving_mobot(self, robotId):
         seq = Sequence()
         seq.addChild(ActionExecution("move_right", [Entity.SELF]))
         seq.addChild(ActionExecution("move_down", [Entity.SELF]))
-        agent = Agent(robotId, "robot", Procedure("main", [], seq))
+
+        proc = process.OneShotProcess(Procedure("main", [], seq))
+        agent = Agent(robotId, "robot", [proc])
         return agent
 
     def setNoOneCarriesAnything(self):
@@ -90,7 +92,7 @@ class WorldTest(unittest.TestCase):
     @withHeader
     def testWorldStepExplicit(self):
         world = World.instance()
-        world.addAgent(self.createRightMovingRobot('rob1'))
+        world.addAgent(self.create_right_moving_mobot('rob1'))
         world.initialize(False)
         world.setFluentValue("xpos", ["rob1"], 10)
         world.setFluentValue("ypos", ["rob1"], 10)
@@ -134,7 +136,7 @@ class WorldTest(unittest.TestCase):
     @withHeader
     def testWorldRunUntilEnd(self):
         world = World.instance()
-        world.addAgent(self.createRightMovingRobot('rob1'))
+        world.addAgent(self.create_right_moving_mobot('rob1'))
         world.initialize(False)
         world.setFluentValue("xpos", ["rob1"], 10)
         world.setFluentValue("ypos", ["rob1"], 15)
@@ -308,8 +310,8 @@ class WorldTest(unittest.TestCase):
         world = World.instance()
         world.getFluent("xpos")
 
-        world.addAgent(self.createRightMovingRobot('rob3'))
-        world.addAgent(self.createRightMovingRobot('rob4'))
+        world.addAgent(self.create_right_moving_mobot('rob3'))
+        world.addAgent(self.create_right_moving_mobot('rob4'))
 
         for i in range(1, 10):
             print("Try {}".format(i))
@@ -426,7 +428,7 @@ class WorldTest(unittest.TestCase):
 
         collision_event.config.occurrence_distribution = BernoulliDistribution(0.7)
         #collision_event.config.uniform_param("integer", value_range=(0, 100))
-        collision_event.config.uniform_param("severity", value_range=(0,100))
+        collision_event.config.uniform_param("severity", value_range=(0, 100))
 
         seq = Sequence([
             ActionExecution("move_right", [Entity.SELF]),
@@ -520,6 +522,7 @@ class WorldTest(unittest.TestCase):
             ActionExecution("grab", [Entity.SELF, "item2"])
         ])
 
+        #implicitly creates one-shot processes
         agent1 = Agent("rob1", "robot", Procedure("main", [], seq1))
         agent2 = Agent("rob2", "robot", Procedure("main", [], seq2))
 
@@ -540,12 +543,12 @@ class WorldTest(unittest.TestCase):
         world = World.instance()
         agent1, agent2, grabMap = self.setupSelectionContext()
         res1 = agent1.evaluation_context.selectAll(EvaluationContext.FLUENT, "carrying",
-                                                  ('r', 'robot'), ('i', 'item'))
+                                                   ('r', 'robot'), ('i', 'item'))
         self.assertListEqual(res1, [])
         world.runUntilFinished()
 
         res2 = agent1.evaluation_context.selectAll(EvaluationContext.FLUENT, "carrying",
-                                                  ('r', 'robot'), ('i', 'item'))
+                                                   ('r', 'robot'), ('i', 'item'))
 
         self.assertEqual(len(res2), 2)
 
@@ -572,12 +575,12 @@ class WorldTest(unittest.TestCase):
         world = World.instance()
         agent1, agent2, grabMap = self.setupSelectionContext()
         res1 = agent1.evaluation_context.selectFirst(EvaluationContext.FLUENT, "carrying",
-                                                    ('r', 'robot'), ('i', 'item'))
+                                                     ('r', 'robot'), ('i', 'item'))
         self.assertIsNone(res1)
         world.runUntilFinished()
 
         res2 = agent1.evaluation_context.selectFirst(EvaluationContext.FLUENT, "carrying",
-                                                    ('r', 'robot'), ('i', 'item'))
+                                                     ('r', 'robot'), ('i', 'item'))
 
         self.assertIsInstance(res2, dict)
 
@@ -666,7 +669,40 @@ class WorldTest(unittest.TestCase):
 
 
     @withHeader
-    def testProcedureCall(self):
+    def test_procedure_call(self):
+        world = World.instance()
+        transportToX = Procedure("transportToX",
+                                 [("r1", "robot"), ("i", "item"), ("targetX", "integer")],
+                                 Sequence(
+                                     [
+                                         ActionExecution("grab", [Variable("r1"), Variable("i")]),
+                                         While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
+                                               [Variable("r1"), Variable("targetX")],
+                                               ActionExecution("move_right", [Variable("r1")])),
+                                         ActionExecution("drop", [Variable("r1"), Variable("i")])
+                                     ]
+                                 ))
+        registry = ProcedureRegistry()
+        registry.registerProcedure(transportToX)
+
+        controlProc = Procedure("main", [],
+                                Sequence([
+                                    ProcedureCall("transportToX", ["rob1", "coffee", 17])
+                                ]))
+
+        agent = Agent("rob1", "robot", controlProc, registry)
+        world.addAgent(agent)
+
+        world.initialize(False)
+
+        self.__placeAgentsInColumn(10)
+
+        world.runUntilFinished()
+        world.printState()
+        self.assertEqual(world.getFluentValue('xpos', ['rob1']), 25)
+
+    @withHeader
+    def test_recursive_procedure_call(self):
         world = World.instance()
         transportToX = Procedure("transportToX",
                                  [("r1", "robot"), ("i", "item"), ("targetX", "integer")],
@@ -752,7 +788,7 @@ class WorldTest(unittest.TestCase):
 
         l = list(world.enumerate_fluent_instances(world.getFluent("time")))
         self.assertEqual(len(l), 1)
-        self.assertListEqual([[]],l)
+        self.assertListEqual([[]], l)
 
     @withHeader
     def testCheckFluentInitialization(self):
@@ -761,9 +797,9 @@ class WorldTest(unittest.TestCase):
         world.addAgent(rob1)
         world.initialize(False)
 
-
         expected_fluents = [('ypos', ['rob1']), ('carrying', ['rob1', 'coffee']), ('carrying', ['rob1', 'chocolate']),
-            ('xpos', ['rob1']), ('painted', ['coffee']), ('painted', ['chocolate']), ("active", ["rob1"])]
+                            ('xpos', ['rob1']), ('painted', ['coffee']), ('painted', ['chocolate']),
+                            ("active", ["rob1"])]
         expected_constants = [('gravity', []), ('robot_radius', ['rob1'])]
 
         l1, l2 = world.check_fluent_initialization()
@@ -776,7 +812,7 @@ class WorldTest(unittest.TestCase):
         self.assertEqual(len(l2), 2)
 
         world.setFluentValue('xpos', ['rob1'], 10)
-        expected_fluents.remove(("xpos",["rob1"]))
+        expected_fluents.remove(("xpos", ["rob1"]))
         l1, l2 = world.check_fluent_initialization()
         for e in expected_fluents:
             self.assertTrue(e in l1)
@@ -815,17 +851,11 @@ class WorldTest(unittest.TestCase):
         self.assertEqual(len(l1), 5)
         self.assertEqual(len(l2), 0)
 
-# def suite():
-#     suite = unittest.TestSuite()
-#     suite.addTest(WorldTest('testRandomizeFluents'))
-#     suite.addTest(WorldTest('testRunRightUntilMaxXPos'))
-#      
-#     return suite
-#   
-#            
-# def load_tests(loader, tests, pattern):
-#     print(loader, tests, pattern)
-#     return suite()
+
+class WorldTestSuite(unittest.TestSuite):
+    def __init__(self):
+        unittest.TestSuite.__init__(self)
+        self.addTest(WorldTest("test_procedure_call"))
 
 if __name__ == '__main__':
-    unittest.main()
+   unittest.main()

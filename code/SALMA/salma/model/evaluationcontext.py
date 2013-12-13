@@ -1,13 +1,8 @@
-'''
-Created on 18.09.2013
-
-@author: christian
-'''
 from salma.SMCException import SMCException
 
 
 class EvaluationContext(object):
-    '''
+    """
     An evaluation context provides access to fluents and variables. As variables are local to
     the currently running procedure, the common stack-based procedure call mechanism is used:
     - a fresh evaluation context has to be created for each procedure execution 
@@ -16,7 +11,7 @@ class EvaluationContext(object):
     - in order to find the correct point of return after a procedure is left, 
     the evaluation context stores also the current ProcedureCall control node. 
      
-    '''
+    """
     # source types
     FLUENT = 0
     TRANSIENT_FLUENT = 1

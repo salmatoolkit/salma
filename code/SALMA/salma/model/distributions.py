@@ -1,10 +1,3 @@
-'''
-Created on 26.07.2013
-
-@author: kroiss
-'''
-
-
 import random
 from salma.SMCException import SMCException
 from salma.model.evaluationcontext import EvaluationContext
@@ -13,6 +6,7 @@ from salma.model.evaluationcontext import EvaluationContext
 class Distribution(object):
     DEFAULT_MAX_VALUE = 1000
     DEFAULT_MIN_VALUE = 1000
+
     def __init__(self, sort, value_range=None):
         self.__sort = sort
         self.__value_range = value_range

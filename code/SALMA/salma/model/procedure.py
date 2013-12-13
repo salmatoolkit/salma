@@ -1,8 +1,3 @@
-'''
-Created on 22.05.2013
-
-@author: christian
-'''
 from salma.SMCException import SMCException
 
 
@@ -54,7 +49,6 @@ class Procedure(Element):
     def restart(self, evaluationContext):
         self.__body.reset(evaluationContext)
         
-    
     
 class ControlNode(Element):
     def __init__(self):
@@ -210,6 +204,7 @@ class While(ControlNode):
     def reset(self, evaluationContext):
         self.__body.reset(evaluationContext)
 
+
 class If(ControlNode):
     def __init__(self, conditionType, condition, conditionGoalParams, thenBody, elseBody):
         ControlNode.__init__(self)
@@ -232,13 +227,11 @@ class If(ControlNode):
         if  index > 0:
             self.reset(evaluationContext)
             return (ControlNode.CONTINUE, None, evaluationContext)
-        
-        
+
         result = evaluationContext.evaluateCondition(self.__conditionType, 
                                                      self.__condition, 
                                                      *self.__conditionGoalParams)
         evaluationContext.setCurrentSequenceIndex(self,1)
-        
         
         if result is True:
             return (ControlNode.CONTINUE, self.__thenBody, evaluationContext)
@@ -304,31 +297,28 @@ class Iterate(ControlNode):
         
         self.__body.reset(evaluationContext)
          
-    
-        
-    
 class SelectFirst(ControlNode):
-    '''
+    """
     Selects the first value combination that makes predicateName with the given params true. The values are bound to
     variables with the given names in the current evaluation context.
-    '''
+    """
+
     def __init__(self, predicateType, predicateName, params):        
         ControlNode.__init__(self)
         self.__predicateType = predicateType
         self.__predicateName = predicateName
         self.__params = params
-        
-    
+
     def executeStep(self, evaluationContext, procedureRegistry):
         result = evaluationContext.selectFirst(self.__predicateType, self.__predicateName, *self.__params)
         for varName, value in result.items():
             evaluationContext.assignVariable(varName, value)
         
         return (ControlNode.CONTINUE, None, evaluationContext)
-        
-    
+
     def reset(self, evaluationContext):
         pass
+
 
 class Plan(ControlNode):
     def __init__(self, procedureName, params, planName = 'plan'):

@@ -18,7 +18,8 @@ from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
 from ..statistics import SequentialAcceptanceTest
-from .core import Agent, Entity, Fluent
+from .core import Entity, Fluent
+from .agent import Agent
 from .procedure import Variable, ActionExecution
 
 
@@ -945,7 +946,6 @@ class LocalEvaluationContext(EvaluationContext):
         self.__variableBindings = dict()  # variable name
         self.__variableBindings[Entity.SELF] = self.__contextEntity
 
-
     def evaluateCondition(self, sourceType, source, *params):
         resolvedParams = self.resolve(*params)
         result = None
@@ -1014,7 +1014,6 @@ class LocalEvaluationContext(EvaluationContext):
         '''
 
         self.__variableBindings[variableName] = value
-
 
     def resolve(self, *terms):
         '''
