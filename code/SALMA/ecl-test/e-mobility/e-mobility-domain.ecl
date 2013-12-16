@@ -21,11 +21,15 @@ constant(roaddistance, [l1:location, l2:location], integer).
 % PLCS
 constant(maxCapacty, [p:plcs], integer).
 
-% format of request: rreq(vehicle, startTime, plannedDuration)
-fluent(plcsReservationRequests, [p:plcs], list).
+% format: res(vehicle, startTime, plannedDuration)
+fluent(plcsReservations, [p:plcs], list).
 % format of request: rresp(vehicle, startTime, plannedDuration)
-fluent(plcsReservationResponses, [p:plcs], list).
 derived_fluent(currentOccupacy, [p:plcs], integer).
+
+% PLCSSAM
+
+
+
 
 % VEHICLE
 % format: cal(poi, startTime, plannedDuration)
@@ -37,20 +41,41 @@ fluent(vehiclePosition, [veh:vehicle], term).
 % with mean depending on the street
 fluent(vehicleSpeed, [veh:vehicle], integer).
 fluent(currentPLCS, [veh:vehicle], plcs).
-% format: rreq(plcs, startTime, plannedDuration)
-fluent(vehicleReservationRequests, [veh:vehicle], list).
-% format: rresp(plcs, startTime, plannedDuration)
-fluent(vehicleReservationResponses, [veh:vehicle], list).
-
+fluent(currentPOI, [veh:vehicle], poi).
 % route is given as the remaining list of locations
 fluent(currentRoute, [veh:vehicle], list).
+% list of res(plcs, startTime, reservedDuration)
+fluent(plcsReservationResponses, [p:plcs], list).
 
-fluent(plcsAlternatives, [veh:vehicle], list).
+% -------------------------------------
+% communication fluents
+% -------------------------------------
+
+% communication flow:
+% 1. PLCSSAM reads all current vehicleReservationRequests
+% 2. PLCSSAM selects best PLCS for each vehicle
+% 3. PLCSSAM writes to PLCS::reservations
+% 4. PLCSSAM sets Vehice::reservation
+
+% the following two fluents store information for communication between PLCSSAM and vehicle
+% 
+% format: rreq([plcs1, plcs2,... ], startTime, plannedDuration)
+fluent(vehicleReservationRequests, [veh:vehicle], list).
+% format: rresp(plcs, startTime, plannedDuration)
+fluent(vehicleReservationResponse, [veh:vehicle], plcs).
+
+
 
 primitive_action(setRoute, [veh:vehicle, route:list]).
+primitive_action(setPOI, [veh:vehicle, p:poi]).
 
 primitive_action(createReservationRequest, 
-	[veh:vehicle, p:plcs, startTime:integer, plannedDuration], 
+	[veh:vehicle, alternatives:list, startTime:integer, plannedDuration]).
+
+primitive_action(exchange_PLCSSAM_Vehicle, [veh:vehicle]).
+
+
+
 		
 
 
