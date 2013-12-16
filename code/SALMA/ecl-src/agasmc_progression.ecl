@@ -11,8 +11,10 @@
 % :- local initialization(init).
 
 :- dynamic fluent/3.
+:- dynamic constant/3.
 :- dynamic derived_fluent/3.
 :- dynamic poss/2.
+:- dynamic doc/2.
 
 % primitive_action(name, params=[name:sort,...])
 :- dynamic primitive_action/2.

@@ -5,6 +5,7 @@
 :- ['termutils'].
 :- ['property_evaluator'].
 :- ['gologinterpreter'].
+:- ['devtools'].
 
 
 
