@@ -401,7 +401,7 @@ class ActionExecution(ControlNode):
         pass
               
 class VariableAssignment(ControlNode):
-    
+    #TODO: handle assignment to multiple variables at once
     
     def __init__(self, variableName, sourceType, source, params):
         ControlNode.__init__(self)

@@ -843,7 +843,6 @@ class World(Entity):
         currentState = list(World.logic_engine().getCurrentState())
         results = []  # list of True/False
 
-
         for i in range(0, numberOfRepetitions):
             self.reset()
             World.logic_engine().restoreState(currentState)
@@ -1060,6 +1059,7 @@ class LocalEvaluationContext(EvaluationContext):
         
         The parameter list can include ground values, bound variables and (name, sort) tuples.
         '''
+        # TODO handle python iterators
         resolvedParams = self.resolve(*params) # the free variables tuples are ignored by resolve()
 
         sit = 's0' if predicateType in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None

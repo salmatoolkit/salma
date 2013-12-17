@@ -42,11 +42,8 @@ primitive_action(setRoute, [veh:vehicle, route:list]).
 
 primitive_action(setPOI, [veh:vehicle, p:poi]).
 
-
-primitive_action(queryPLCSSAM, 
-	[veh:vehicle, alternatives:list, startTime:integer, 
-	plannedDuration:integer]).
-
+	
+	
 exogenous_action(speedChanges, [veh:vehicle], [newSpeed:integer]).
 exogenous_action(driverLeavesPLCS, [veh:vehicle], []).
 
@@ -153,9 +150,14 @@ currentPLCS(Vehicle, PLCS, do2(A,S)) :-
 	currentTargetPLCS(Vehicle, PLCS, S), !
 	;
 	A = driverLeavesPLCS(Vehicle),
-	PLCS = none, .
+	PLCS = none, !.
 	
-	
+currentTargetPOI(Vehicle, POI, do2(A,S)) :-
+	A = setPOI(Vehicle, NewPOI) ->
+		POI = NewPOI
+	;
+		currentTargetPOI(Vehicle, POI, S).
+
 	
 	
 	

@@ -19,8 +19,7 @@ class EvaluationContext(object):
     PYTHON_FUNCTION = 3
     PYTHON_EXPRESSION = 4
     CONSTANT = 5
-    
-    
+
     def __init__(self, parent):
         '''
         :param parent: EvaluationContext

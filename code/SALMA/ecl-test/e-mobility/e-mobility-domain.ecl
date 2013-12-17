@@ -1,6 +1,11 @@
 :- dynamic plcsReservations/3, vehiclePosition/3,
-	vehicleSpeed/3, currentRoute/3, currentTarget/3,
-	nextTarget/3.
+	vehicleSpeed/3, currentRoute/3, currentTargetPOI/3, currentTarget/3,
+	nextTarget/3, currentPLCS/3, currentTargetPLCS/3,
+	
+	vehicle_plcssam_reservationRequests/4,
+	vehicle_plcssam_reservationResponses/4,
+	plcssam_vehicle_reservationRequests/3,
+	plcssam_vehicle_reservationResponses/3.
 	
 :- ['e-mobility-domain_vehicle'].
 :- ['e-mobility-domain_plcs'].
