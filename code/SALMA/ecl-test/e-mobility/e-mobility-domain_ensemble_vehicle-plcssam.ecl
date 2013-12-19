@@ -41,7 +41,8 @@ doc(set_plcssam_vehicle_reservationResponse : primitive_action, [
 	
 primitive_action(remove_all_plcssam_vehicle_reservationRequests, [sam:plcssam]).
 
-	
+primitive_action(remove_all_vehicle_plcssam_reservationResponses,
+	[veh:vehicle, sam:plcssam]).
 	
 exogenous_action(exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam],[]).
 
@@ -103,4 +104,27 @@ plcssam_vehicle_reservationResponses(SAM, Responses, do2(A,S)) :-
 		Responses = OldResponses
 	).
 			
-	
+vehicle_plcssam_reservationResponses(Vehicle, SAM, Responses, do2(A,S)) :-
+	A = remove_all_vehicle_plcssam_reservationResponses(Vehicle, SAM),
+	Responses = [], !
+	;
+	vehicle_plcssam_reservationResponses(Vehicle, SAM, OldResponses, S),
+	(
+		A = exchange_PLCSSAM_Vehicle(Vehicle, SAM),
+		plcssam_vehicle_reservationResponses(SAM, SamResponses, S),
+		(foreach(SResp, SamResponses), fromto([], R1, R2, NewResponses),
+			param(Vehicle) do
+			(
+				SResp = rresp(Vehicle, StartTime, PlannedDuration, BestPLCS) ->
+					NewResp = rresp(StartTime, PlannedDuration, BestPLCS),
+					append(R1, [NewResp], R2)
+					;
+					% don't add response entry if Vehicle doesn't match
+					R2 = R1
+			)
+		), 
+		append(OldResponses, NewResponses, Responses), !
+		;
+		Responses = OldResponses, !
+	).
+		
