@@ -7,6 +7,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="pysidelab" />
+    <orderEntry type="module" module-name="timeslot_finder" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="myDocStringFormat" value="reStructuredText" />

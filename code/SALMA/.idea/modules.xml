@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/SALMA.iml" filepath="$PROJECT_DIR$/.idea/SALMA.iml" />
       <module fileurl="file://$PROJECT_DIR$/../experiments/pysidelab/.idea/pysidelab.iml" filepath="$PROJECT_DIR$/../experiments/pysidelab/.idea/pysidelab.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../kroiss/projects/lab/python/timeslot_finder/.idea/timeslot_finder.iml" filepath="$PROJECT_DIR$/../../../kroiss/projects/lab/python/timeslot_finder/.idea/timeslot_finder.iml" />
     </modules>
   </component>
 </project>
