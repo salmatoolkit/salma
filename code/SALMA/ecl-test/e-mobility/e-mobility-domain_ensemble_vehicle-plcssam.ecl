@@ -43,8 +43,11 @@ primitive_action(remove_all_plcssam_vehicle_reservationRequests, [sam:plcssam]).
 
 primitive_action(remove_all_vehicle_plcssam_reservationResponses,
 	[veh:vehicle, sam:plcssam]).
-	
+
+primitive_action(start_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam]).
+fluent(ongoing_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam], boolean).
 exogenous_action(exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam],[]).
+exogenous_action(fail_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam],[]).
 
 vehicle_plcssam_reservationRequests(Vehicle, SAM, Requests, do2(A,S)) :-
 	vehicle_plcssam_reservationRequests(Vehicle, SAM, OldRequests, S),

@@ -35,7 +35,6 @@ derived_fluent(currentTarget, [veh:vehicle], location).
 derived_fluent(nextTarget, [veh:vehicle], location).
 
 
-fluent(vehicle_plcs_reservationRequests, [veh:vehicle], list).
 
 primitive_action(setTargetPLCS, [veh:vehicle, target:plcs]).
 primitive_action(setRoute, [veh:vehicle, route:list]).
