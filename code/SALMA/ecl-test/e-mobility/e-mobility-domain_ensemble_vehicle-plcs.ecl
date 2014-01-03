@@ -1,3 +1,10 @@
+:- dynamic vehicle_plcs_reservationRequests/4,
+		plcs_vehicle_reservationRequests/3,
+		plcs_vehicle_reservationResponses/4,
+		vehicle_plcs_reservationResponses/3,
+		ongoing_exchange_PLCS_Vehicle/3.
+		
+
 % format rreq(startTime, plannedDuration)
 fluent(vehicle_plcs_reservationRequests, [veh:vehicle, p:plcs], list).
 
@@ -13,22 +20,31 @@ fluent(plcs_vehicle_reservationResponses, [p:plcs, veh:vehicle], list).
 % adds request to vehicle_plcs_reservationRequests
 primitive_action(requestReservation, 
 	[veh:vehicle, p:plcs, startTime:integer, plannedDuration:integer]).
-	
+poss(requestReservation(_,_,_,_),_) :- true.
+
 primitive_action(remove_plcs_vehicle_reservationRequests, [p:plcs]).
+poss(remove_plcs_vehicle_reservationRequests(_),_) :- true.
 
 primitive_action(set_plcs_vehicle_reservationResponse, 
 	[p:plcs, veh:vehicle, startTime:integer, plannedDuration:integer, 
 	ack:boolean]).
-
+poss(set_plcs_vehicle_reservationResponse(_,_,_,_,_),_) :- true.
+	
 primitive_action(remove_vehicle_plcs_reservationResponses, 
 	[veh:vehicle]).
-	
+poss(remove_vehicle_plcs_reservationResponses(_),_) :- true.	
 	
 primitive_action(start_exchange_PLCS_Vehicle, [veh:vehicle, p:plcs]).
+poss(start_exchange_PLCS_Vehicle(_,_),_) :- true.
+
 fluent(ongoing_exchange_PLCS_Vehicle, [veh:vehicle, p:plcs], boolean).
 exogenous_action(exchange_PLCS_Vehicle, [veh:vehicle, p:plcs],[]).
-exogenous_action(fail_exchange_PLCS_Vehicle, [veh:vehicle, p:plcs],[]).
+poss(exchange_PLCS_Vehicle(Vehicle, PLCS), S) :-
+	ongoing_exchange_PLCS_Vehicle(Vehicle, PLCS, S).
 
+exogenous_action(fail_exchange_PLCS_Vehicle, [veh:vehicle, p:plcs],[]).
+poss(fail_exchange_PLCS_Vehicle(Vehicle, PLCS), S) :-
+	ongoing_exchange_PLCS_Vehicle(Vehicle, PLCS, S).
 
 vehicle_plcs_reservationRequests(Vehicle, PLCS, Requests, do2(A,S)) :-
 	vehicle_plcs_reservationRequests(Vehicle, PLCS, OldRequests, S),
@@ -46,7 +62,7 @@ plcs_vehicle_reservationRequests(PLCS, Requests, do2(A,S)) :-
 	plcs_vehicle_reservationRequests(PLCS, OldRequests, S),
 	(A = exchange_PLCS_Vehicle(Vehicle, PLCS),
 		vehicle_plcs_reservationRequests(Vehicle, PLCS, VRequests, S),
-		(foreach(VR, VRequests), foreach(R, NewRequests), param(Vehicle) do
+		(foreach(VR, VRequests), foreach(R, Requests), param(Vehicle) do
 			VR = rreq(StartTime, PlannedDuration),
 			R = rreq(Vehicle, StartTime, PlannedDuration)
 		), !
@@ -74,7 +90,7 @@ vehicle_plcs_reservationResponses(Vehicle, Responses, do2(A,S)) :-
 	vehicle_plcs_reservationResponses(Vehicle, OldResponses, S),
 	(A = exchange_PLCS_Vehicle(Vehicle, PLCS),
 		plcs_vehicle_reservationResponses(PLCS, Vehicle, PLCSResponses, S),
-		(foreach(PLCSResp, PLCSResponses), foreach(VResp, NewResponses),
+		(foreach(PLCSResp, PLCSResponses), foreach(VResp, Responses),
 			param(PLCS) do
 				PLCSResp = rresp(StartTime, PlannedDuration, Ack),
 				VResp = rresp(PLCS, StartTime, PlannedDuration, Ack)

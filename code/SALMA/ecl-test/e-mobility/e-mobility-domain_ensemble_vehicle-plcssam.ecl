@@ -1,3 +1,9 @@
+:- dynamic vehicle_plcssam_reservationRequests/4,
+	vehicle_plcssam_reservationResponses/4,
+	plcssam_vehicle_reservationRequests/3,
+	plcssam_vehicle_reservationResponses/3,
+	ongoing_exchange_PLCSSAM_Vehicle/3.
+	
 % VEHICLE --> PLCSSAM
 
 % list entry format: rreq([plcs1, plcs2,... ], startTime, plannedDuration)
@@ -26,7 +32,10 @@ doc(queryPLCSSAM : primitive_action, [
 		Each request contains a list of possible alternatives for the 
 		PLCS. These alternatives must have been determined beforehand."
 	]).
-
+poss(queryPLCSSAM(_, _, _, _, _), _) :- true.
+	
+	
+	
 	
 primitive_action(set_plcssam_vehicle_reservationResponse,
 	[sam:plcssam, veh:vehicle, 
@@ -38,17 +47,30 @@ doc(set_plcssam_vehicle_reservationResponse : primitive_action, [
 	plcssam_vehicle_reservationResponses and contains the PLCS that
 	the PLCS has chosen from the received set of alternatives."
 	]).
+poss(set_plcssam_vehicle_reservationResponse(_,_,_,_,_), _) :- true.
 	
 primitive_action(remove_all_plcssam_vehicle_reservationRequests, [sam:plcssam]).
+poss(remove_all_plcssam_vehicle_reservationRequests(_),_) :- true.
+
 
 primitive_action(remove_all_vehicle_plcssam_reservationResponses,
 	[veh:vehicle, sam:plcssam]).
+poss(remove_all_vehicle_plcssam_reservationResponses(_, _), _) :- true.
 
 primitive_action(start_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam]).
-fluent(ongoing_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam], boolean).
-exogenous_action(exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam],[]).
-exogenous_action(fail_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam],[]).
+poss(start_exchange_PLCSSAM_Vehicle(_,_), _) :- true.
 
+fluent(ongoing_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam], boolean).
+
+exogenous_action(exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam],[]).
+poss(exchange_PLCSSAM_Vehicle(Vehicle, SAM), S) :-
+	ongoing_exchange_PLCSSAM_Vehicle(Vehicle, SAM, S).
+
+exogenous_action(fail_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam],[]).
+poss(fail_exchange_PLCSSAM_Vehicle(Vehicle, SAM), S) :-
+	ongoing_exchange_PLCSSAM_Vehicle(Vehicle, SAM, S).
+	
+	
 vehicle_plcssam_reservationRequests(Vehicle, SAM, Requests, do2(A,S)) :-
 	vehicle_plcssam_reservationRequests(Vehicle, SAM, OldRequests, S),
 	(
@@ -57,7 +79,8 @@ vehicle_plcssam_reservationRequests(Vehicle, SAM, Requests, do2(A,S)) :-
 		append(OldRequests, [Request], Requests), !
 		;
 		% When data is exchanged, the outward channel is emptied
-		A = exchange_PLCSSAM_Vehicle(Vehicle, SAM),
+		(A = exchange_PLCSSAM_Vehicle(Vehicle, SAM) ;
+		A = fail_exchange_PLCSSAM_Vehicle(Vehicle, SAM)),
 		Requests = [], !
 		;
 		Requests = OldRequests, !
@@ -92,7 +115,8 @@ plcssam_vehicle_reservationResponses(SAM, Responses, do2(A,S)) :-
 		;
 		% during a data exchange, remove all responses for a vehicle from
 		% the outward channel of the PLCSSAM
-		A = exchange_PLCSSAM_Vehicle(Vehicle, SAM),
+		(A = exchange_PLCSSAM_Vehicle(Vehicle, SAM), 
+		A = fail_exchange_PLCSSAM_Vehicle(Vehicle, SAM)),
 		(foreach(SamResponse, OldResponses), fromto([], R1, R2, Responses), 
 			param(Vehicle) do
 			(
@@ -130,4 +154,10 @@ vehicle_plcssam_reservationResponses(Vehicle, SAM, Responses, do2(A,S)) :-
 		;
 		Responses = OldResponses, !
 	).
-		
+
+ongoing_exchange_PLCSSAM_Vehicle(Vehicle, SAM, do2(A,S)) :-
+	A = start_exchange_PLCSSAM_Vehicle(Vehicle, SAM), !
+	;
+	A \= exchange_PLCSSAM_Vehicle(Vehicle, SAM),
+	A \= fail_exchange_PLCSSAM_Vehicle(Vehicle, SAM),
+	ongoing_exchange_PLCSSAM_Vehicle(Vehicle, SAM, S), !.

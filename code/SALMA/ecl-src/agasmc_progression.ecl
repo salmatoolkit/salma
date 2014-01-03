@@ -20,7 +20,7 @@
 :- dynamic primitive_action/2.
 % declares that a primitive action is immediate
 :- dynamic immediate_action/1.
-:- dynamic stochastic_action/2.
+:- dynamic stochastic_action/3.
 % exogenous_action(name, qualifying-params, augmenting-params)
 :- dynamic exogenous_action/3.
 :- dynamic last_initialized/0.
@@ -351,6 +351,9 @@ get_all_exogenous_action_instances(Candidates) :-
 get_declared_fluents(Fluents) :-
 	findall(f(FName,Params,Type),fluent(FName,Params,Type),Fluents).
 	
+get_declared_derived_fluents(Fluents) :-
+	findall(f(FName,Params,Type),derived_fluent(FName,Params,Type),Fluents).
+
 get_declared_constants(Constants) :-
 	findall(c(CName,Params,Type),constant(CName,Params,Type),Constants).
 	

@@ -1,6 +1,10 @@
-
+:- dynamic vehiclePosition/3,
+	vehicleSpeed/3, currentRoute/3, currentTargetPOI/3, currentTarget/3,
+	nextTarget/3, currentPLCS/3, currentTargetPLCS/3,
+	calendar/2.
+	
 % VEHICLE
-const(calendar, [veh:vehicle], list).
+constant(calendar, [veh:vehicle], list).
 doc(calendar : constant,[
 	summary: "Stores the vehicle's schedule as list of POIs together with the time
 				interval this POI should be visited.",
@@ -23,7 +27,8 @@ doc(vehicleSpeed : fluent, [
 		that could depend on type of the current road but optionally also on the
 		number of vehicles on the road."
 	]).
-		
+
+% none when driving	
 fluent(currentPLCS, [veh:vehicle], plcs).
 
 fluent(currentTargetPOI, [veh:vehicle], poi).
@@ -37,14 +42,23 @@ derived_fluent(nextTarget, [veh:vehicle], location).
 
 
 primitive_action(setTargetPLCS, [veh:vehicle, target:plcs]).
+poss(setTargetPLCS(_,_),_) :- true.
+
 primitive_action(setRoute, [veh:vehicle, route:list]).
+poss(setRoute(_,_), _) :- true.
 
 primitive_action(setPOI, [veh:vehicle, p:poi]).
-
+poss(setPOI(_,_), _) :- true.
 	
 	
 exogenous_action(speedChanges, [veh:vehicle], [newSpeed:integer]).
+poss(speedChanges(Vehicle, _), S) :-
+	currentPLCS(Vehicle, none, S).
+	
 exogenous_action(driverLeavesPLCS, [veh:vehicle], []).
+poss(driverLeavesPLCS(Vehicle), S) :-
+	currentPLCS(Vehicle, PLCS, S),
+	PLCS \= none.
 
 % SUCCESSOR STATE AXIOMS
 
