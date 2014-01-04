@@ -10,7 +10,8 @@ import numbers
 import pyclp
 from salma.SMCException import SMCException
 from .constants import *
-
+import salma
+import os
 
 MODULE_LOGGER_NAME = 'agamemnon-smc.egine'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -320,7 +321,10 @@ class EclipseCLPEngine(Engine):
     classdocs
     '''
     #TODO: make this somehow more module relative
-    PROGRESSION_MODULE = "../../ecl-src/agasmc.ecl"
+    PROGRESSION_MODULE = str(os.path.abspath(
+                            os.path.join(
+                                salma.__path__[0],
+                                "../ecl-src/agasmc.ecl")))
     __verdictMapping = {'ok' : OK, 'not_ok' : NOT_OK, 'nondet' : NONDET}
     
     
