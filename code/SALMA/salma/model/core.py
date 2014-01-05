@@ -39,7 +39,7 @@ class Fluent(object):
     """
     Represents a fluent.
     """
-    DEFAULT_RANGE = (0, sys.maxsize)
+    DEFAULT_RANGE = (0, 2**31)
 
     def __init__(self, name, fluent_type, params, value_range=DEFAULT_RANGE, distribution=None):
         """
@@ -155,6 +155,9 @@ class Fluent(object):
         :type valueRange: tuple
         """
         self.__valueRange = valueRange
+
+    def __str__(self):
+        return "fluent: {}({}) -> {}".format(self.__name, self.parameters, self.__fluentType)
 
 
 class Constant(Fluent):

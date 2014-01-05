@@ -1,3 +1,5 @@
+from salma.model.core import Entity
+
 __author__ = 'kroiss'
 
 import unittest
@@ -32,7 +34,12 @@ class EMobilityTest(unittest.TestCase):
 
     def testWorldCreation(self):
         world = World.instance()
+        world.addEntity(Entity("poi1","poi"))
+        world.initialize(False)
         world.printState()
+        print(world.getSorts())
+        print(world.getDomain("location"))
+
 
 
 if __name__ == '__main__':

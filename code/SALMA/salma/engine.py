@@ -321,16 +321,18 @@ class EclipseCLPEngine(Engine):
     classdocs
     '''
     #TODO: make this somehow more module relative
-    PROGRESSION_MODULE = str(os.path.abspath(
-                            os.path.join(
-                                salma.__path__[0],
-                                "../ecl-src/agasmc.ecl")))
+    PROGRESSION_MODULE = os.path.abspath(
+        os.path.join(salma.__path__[0], "../ecl-src/agasmc.ecl"))
+
+
     __verdictMapping = {'ok' : OK, 'not_ok' : NOT_OK, 'nondet' : NONDET}
-    
-    
+
     def __init__(self, domainPath, procedureDefPath = None):
-        self.__domainPath = domainPath
-        self.__proceduresPath = procedureDefPath
+        # make absolute path
+
+        self.__domainPath = os.path.abspath(domainPath)
+
+        self.__proceduresPath = None if procedureDefPath is None else os.path.abspath(procedureDefPath)
         self.__properties = dict()
         self.__constants = dict()
         
@@ -339,13 +341,18 @@ class EclipseCLPEngine(Engine):
         self.__currentState = None
         
         pyclp.init()  # Init ECLiPSe engine
-        
-        pyclp.Compound("compile", pyclp.Atom(EclipseCLPEngine.PROGRESSION_MODULE)).post_goal()
-        pyclp.Compound("compile", pyclp.Atom(self.__domainPath)).post_goal()
+        lib_path_var = pyclp.Var()
+        domain_path_var = pyclp.Var()
+        procedures_def_path_var = pyclp.Var()
+        pyclp.Compound("os_file_name", lib_path_var, EclipseCLPEngine.PROGRESSION_MODULE).post_goal()
+        pyclp.Compound("compile", lib_path_var).post_goal()
+        pyclp.Compound("os_file_name", domain_path_var, self.__domainPath).post_goal()
+        pyclp.Compound("compile", domain_path_var).post_goal()
         if self.__proceduresPath is not None:
-            pyclp.Compound("compile", pyclp.Atom(self.__proceduresPath)).post_goal()
+            pyclp.Compound("os_file_name", procedures_def_path_var, self.__proceduresPath).post_goal()
+            pyclp.Compound("compile", procedures_def_path_var).post_goal()
         result, dummy = pyclp.resume()
-        msg =''
+        msg = ""
         if result == pyclp.FLUSHIO:
             stdout = pyclp.Stream(dummy)
             msg = stdout.readall()

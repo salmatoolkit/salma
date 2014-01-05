@@ -52,7 +52,7 @@ doc(responsiblePLCSSAM : constant, [
 
 %stochastic_action(bla, [v:vehicle], [explode]).
 
-
+init_domaindesc :- true.
 
 
 
