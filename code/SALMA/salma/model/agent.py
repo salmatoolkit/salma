@@ -83,7 +83,7 @@ class Agent(Entity):
         Stops all of the agent's processes.
         """
         for p in self.processes:
-            p.stop()
+            p.reset()
 
     def is_finished(self):
         for p in self.processes:

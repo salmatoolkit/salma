@@ -5,7 +5,9 @@ from salma import constants
 from salma.SMCException import SMCException
 from salma.engine import EclipseCLPEngine, EclipseCLPEngine
 from salma.model import procedure, distributions
-from salma.model.core import Agent, Entity, Fluent, Action
+from salma.model.core import Entity, Fluent, Action
+from salma.model.agent import Agent
+import salma.model.process as prc
 
 from salma.model.distributions import UniformDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
@@ -13,7 +15,6 @@ from salma.model.procedure import ControlNode, Sequence, \
     ActionExecution, Procedure, While, VariableAssignment, ArbitraryAction, Variable
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
-
 
 def printValue(value):
     print("Val: ", value)
@@ -76,7 +77,8 @@ class WorldTest2(unittest.TestCase):
                                 "True",
                                 [Entity.SELF],
                                 inner_seq))
-        agent = Agent("rob" + str(num), "robot", Procedure("main", [], main_seq))
+        proc = prc.OneShotProcess(Procedure("main", [], main_seq))
+        agent = Agent("rob" + str(num), "robot", [proc])
         return agent
 
     def set_no_one_carries_anything(self):
@@ -115,7 +117,7 @@ forall([r,robot],
         world.registerProperty("f", f_str)
 
         #world.registerProperty("f", "forall([r,robot], xpos(r) > 1)")
-        #
+
         #world.registerProperty("f", "xpos(rob1) > 50")
         #world.registerProperty("f", "until(25, xpos(rob1) > 50")
 
@@ -126,6 +128,7 @@ forall([r,robot],
             num = sum(res)
             successes.append(num)
             print("Run #{}: {}".format(i, num))
+
 
         print("Successes:")
         print(successes)

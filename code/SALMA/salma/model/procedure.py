@@ -326,7 +326,11 @@ class Plan(ControlNode):
         self.__procedureName = procedureName
         self.__params = params
         self.__planName = planName
-    
+
+    def reset(self, evaluationContext):
+        pass
+
+
     @property
     def procedureName(self):
         return self.__procedureName
@@ -435,10 +439,10 @@ class VariableAssignment(ControlNode):
         evaluationContext.assignVariable(self.__variableName, val)
         return (ControlNode.CONTINUE, None, evaluationContext)
             
-            
     def reset(self, evaluationContext):
         pass
-  
+
+
 class ArbitraryAction(ControlNode):
     '''
     An action thast executes a python function
@@ -515,8 +519,4 @@ class ProcedureCall(ControlNode):
         return "ActionExecution({},{})".format(self.__actionName, self.__actionParameters)
     
     def reset(self, evaluationContext):
-        pass          
-        
-    
-        
-    
+        pass
