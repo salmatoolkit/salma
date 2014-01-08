@@ -93,7 +93,7 @@ get_last(Fluent, Params, Val):-
 set_current(Fluent, Params, Val):-
     get_situation_store(cur_sit, S), 
     make_key_term(Fluent, Params, T),
-	(Val = zero -> Val2 = 0 ; Val2 = Val),
+	subst_in_term(zero, 0, Val, Val2),
 	(store_get(S, T, CurrentValue), ! ; CurrentValue = none),
     store_set(S, T, Val2),
 	(CurrentValue \= Val2 ->
@@ -305,7 +305,7 @@ add_storage_query_to_ssa(Name, Args, Type, Sit, QueryName) :-
 create_situation([A], Time, S1, S2) :-
 	A =.. [Act | RawParams],
 	(foreach(RP, RawParams), foreach(P, Params) do
-		RP = zero -> P = 0 ; P = RP
+		subst_in_term(zero, 0, RP, P)
 	),
 	A2 =.. [Act | Params],
 	(retract(action_clock(Act, Params, _)), ! ; true),

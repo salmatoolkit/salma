@@ -10,68 +10,20 @@ class MapGenerator(object):
     def __init__(self):
         pass
 
-    @staticmethod
-    def generate_position(blocked_positions, max_x, max_y):
-        """
-        :type blocked_positions: list of (int,int)
-        :rtype: (int, int)
-        """
-        if len(blocked_positions) > (max_x+1)*(max_y+1)*0.8:
-            raise BaseException("Too many positions blocked!")
-        misses = 0
-        while True:
-            x = random.randint(0, max_x)
-            y = random.randint(0, max_y)
-
-            if (x,y) not in blocked_positions:
-                MapGenerator.logger.debug("Generated position {}. Misses: {}".format((x,y),misses))
-                return (x,y)
-            else:
-                misses += 1
-
-    @staticmethod
-    def node_is_full(graph, node, node_data):
-        """
-        :type graph: networkx.classes.graph.Graph
-        :typen node: str
-        :type node_data: dict
-        :rtype: bool
-        """
-        if node_data["loctype"] == "crossing":
-            return graph.degree(node) >= 4
-        else:
-            return graph.degree(node) >= 2
-
-    @staticmethod
-    def choose_neighbor(graph, node):
-        """
-        :type graph: networkx.classes.graph.Graph
-        :type node: str
-        :rtype: str
-        """
-        candidates = set(graph.nodes()) - {node}
-
-        while len(candidates) > 0:
-            act_candidate = random.choice(list(candidates))
-            if (MapGenerator.node_is_full(graph, act_candidate, graph.node[act_candidate])
-                    or graph.has_edge(node, act_candidate)
-                    # threshold for distance. does this make sense?
-                    #or MapGenerator.get_dist(graph, node, act_candidate) > 400
-                    ):
-                        candidates -= {act_candidate}
-            else:
-                return act_candidate
-
-        return None
 
     @staticmethod
     def get_dist(graph, node1, node2):
-        pos1 = graph.node[node1]["position"]
-        pos2 = graph.node[node2]["position"]
+        """
+        :type graph: networkx.classes.graph.Graph
+        :type node1: str
+        :type node2: str
+        """
+        pos1 = graph.node[node1]["scaled_pos"]
+        pos2 = graph.node[node2]["scaled_pos"]
         return math.sqrt((pos2[0]-pos1[0])**2 + (pos2[1]-pos1[1])**2)
 
     @staticmethod
-    def add_road(graph, node1, node2):
+    def set_roadlength(graph, node1, node2):
         """
         :type graph: networkx.classes.graph.Graph
         :type node1: str
@@ -79,7 +31,50 @@ class MapGenerator(object):
         """
         direct_dist = MapGenerator.get_dist(graph, node1, node2)
         dist = math.ceil(random.uniform(direct_dist, 1.5*direct_dist))
-        graph.add_edge(node1, node2, weight=dist)
+        graph.edge[node1][node2]["weight"] = dist
+
+
+    @staticmethod
+    def __select_removal_candidate(graph):
+        """
+        :type graph: networkx.classes.graph.Graph
+        :rtype: tuple
+        """
+        for u, v in graph.edges_iter():
+            if nx.local_edge_connectivity(graph, u, v) > 1:
+                return u, v
+
+        return None
+
+    @staticmethod
+    def __clean_graph(graph):
+        """
+        :type graph: networkx.classes.graph.Graph
+        """
+        candidate = MapGenerator.__select_removal_candidate(graph)
+        while candidate is not None:
+            graph.remove_edge(*candidate)
+            candidate = MapGenerator.__select_removal_candidate(graph)
+
+
+    @staticmethod
+    def __scale_positions(graph, map_width, map_height):
+        """
+        :type graph: networkx.classes.graph.Graph
+        """
+        for node in graph.nodes_iter():
+            pos = graph.node[node]["pos"]
+            graph.node[node]["scaled_pos"] = (pos[0] * map_width, pos[1] * map_height)
+
+
+    @staticmethod
+    def __add_roadlengths(graph):
+        """
+        :type graph: networkx.classes.graph.Graph
+        """
+        for u, v in graph.edges_iter():
+            MapGenerator.set_roadlength(graph, u, v)
+
 
 
     def generate_map(self, num_of_pois, num_of_plcs, num_of_crossings, max_x, max_y):
@@ -88,43 +83,43 @@ class MapGenerator(object):
 
         :rtype: networkx.classes.graph.Graph
         """
-        g = nx.Graph()
-        positions = []
-        # add pois
+        g = nx.random_geometric_graph(num_of_pois + num_of_plcs + num_of_crossings, 0.3)
+
+        # make connected
+        components = nx.connected_components(g)
+        for i in range(len(components)):
+            for j in range(len(components)):
+                if i != j:
+                    n1 = random.choice(components[i])
+                    n2 = random.choice(components[j])
+                    if not g.has_edge(n1, n2):
+                        g.add_edge(n1, n2)
+
+        candidates = list(g.nodes())
+        relable_mapping = dict()
 
         for i in range(num_of_pois):
-            pos = MapGenerator.generate_position(positions, max_x, max_y)
-            positions.append(pos)
-            g.add_node("poi" + str(i), loctype="poi", position=pos)
+            node = random.choice(candidates)
+            g.node[node]["loctype"] = "poi"
+            relable_mapping[node] = "poi" + str(i)
+            candidates.remove(node)
 
         for i in range(num_of_plcs):
-            pos = MapGenerator.generate_position(positions, max_x, max_y)
-            positions.append(pos)
-            g.add_node("plcs" + str(i), loctype="plcs", position=pos)
+            node = random.choice(candidates)
+            relable_mapping[node] = "plcs" + str(i)
+            g.node[node]["loctype"] = "plcs"
+            candidates.remove(node)
 
         for i in range(num_of_crossings):
-            pos = MapGenerator.generate_position(positions, max_x, max_y)
-            positions.append(pos)
-            g.add_node("crossing" + str(i), loctype="crossing", position=pos)
+            node = random.choice(candidates)
+            relable_mapping[node] = "c" + str(i)
+            g.node[node]["loctype"] = "crossing"
+            candidates.remove(node)
+        nx.relabel_nodes(g, relable_mapping, copy=False)
+        MapGenerator.__scale_positions(g, max_x, max_y)
+        MapGenerator.__clean_graph(g)
+        MapGenerator.__add_roadlengths(g)
 
-        for node, data in g.nodes_iter(True):
-            if data["loctype"] != "crossing" and not MapGenerator.node_is_full(g, node, data):
-
-                neighbor_num = 2 if random.uniform(0,1) <= (1-MapGenerator.P_NODE_IS_STREET_END) else 1
-                neighbors_to_add = neighbor_num - g.degree(node)
-                for i in range(neighbors_to_add):
-                    neighbor = MapGenerator.choose_neighbor(g, node)
-                    if neighbor is not None:
-                        MapGenerator.add_road(g, node, neighbor)
-
-        for node, data in g.nodes_iter(True):
-            if data["loctype"] == "crossing" and not MapGenerator.node_is_full(g, node, data):
-                neighbors_total = 4 if random.uniform(0,1) <= 0.5 else 3
-                neighbors_to_add = neighbors_total - g.degree(node)
-                for i in range(neighbors_to_add):
-                    neighbor = MapGenerator.choose_neighbor(g, node)
-                    if neighbor is not None:
-                        MapGenerator.add_road(g, node, neighbor)
         return g
 
 

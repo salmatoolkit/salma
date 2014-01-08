@@ -1,8 +1,21 @@
+from sphinx.ext.graphviz import graphviz
+
 __author__ = 'kroiss'
 
 import unittest
 import networkx as nx
 import matplotlib.pyplot as plt
+
+def select_removal_candidate(graph):
+    """
+    :type graph: networkx.classes.graph.Graph
+    :rtype: tuple
+    """
+    for u, v in graph.edges_iter():
+        if nx.local_edge_connectivity(graph, u, v) > 1:
+            return u, v
+    return None
+
 
 class NetworkXTest(unittest.TestCase):
     def test_create_graph(self):
@@ -18,7 +31,13 @@ class NetworkXTest(unittest.TestCase):
     def test_geom_graph(self):
         g = nx.random_geometric_graph(30, 0.3)
         nx.draw(g)
+        plt.show()
+        candidate = select_removal_candidate(g)
+        while candidate is not None:
+            g.remove_edge(*candidate)
+            candidate = select_removal_candidate(g)
 
+        nx.draw(g)
         plt.show()
         print(g.nodes(data=True))
 

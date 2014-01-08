@@ -530,13 +530,8 @@ class EclipseCLPEngine(Engine):
                            pyclp.PList(pterms),
                            vterm)
                         
-        
-        
     def cleanup(self):
         pyclp.cleanup()
-        
-
-    
 
     # TODO: refactor to handle multiple actions simultaneously
     # actions: list of tuples: (action_name:string, parameters:list) 

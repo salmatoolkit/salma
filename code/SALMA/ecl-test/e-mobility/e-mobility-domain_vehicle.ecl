@@ -115,7 +115,8 @@ vehiclePosition(Vehicle, Position, do2(A, S)) :-
 		Position = OldPos
 	).
 	
-
+% a predicate that checks whether Vehicle will arrive at its target in situation
+% S
 arrive_at_targetPLCS(Vehicle, S) :-
 	vehiclePosition(Vehicle, Position, S),
 	currentTargetPLCS(Vehicle, TargetPLCS, S),

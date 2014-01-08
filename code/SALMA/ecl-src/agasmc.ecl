@@ -1,8 +1,8 @@
 :- lib(ic).
+:- ['termutils'].
 :- ['sort_system'].
 :- ['agasmc_progression'].
 :- ['property_compiler'].
-:- ['termutils'].
 :- ['property_evaluator'].
 :- ['gologinterpreter'].
 :- ['devtools'].
