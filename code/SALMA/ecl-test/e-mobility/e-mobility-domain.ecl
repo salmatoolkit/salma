@@ -28,7 +28,7 @@ constant(roadlength, [l1:location, l2:location], integer).
 
 constant(responsiblePLCSSAM, [loc:location], plcssam).
 doc(responsiblePLCSSAM : constant, [
-	summary: "The PLCSSAM that is respüonsible for the area that includes loc.",
+	summary: "The PLCSSAM that is responsible for the area that includes loc.",
 	desc:	"Setup should be done in a way that makes sure that close plcs are always
 			associated with the PLCSSAM in the area."
 	]).

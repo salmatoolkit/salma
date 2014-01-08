@@ -15,6 +15,12 @@ class NetworkXTest(unittest.TestCase):
 
         plt.show()
 
+    def test_geom_graph(self):
+        g = nx.random_geometric_graph(30, 0.3)
+        nx.draw(g)
+
+        plt.show()
+        print(g.nodes(data=True))
 
 if __name__ == '__main__':
     unittest.main()

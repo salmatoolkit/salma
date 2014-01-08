@@ -31,7 +31,7 @@ class BaseWorldTest(unittest.TestCase):
         except SMCException as e:
             print(e)
             raise
-        logger = logging.getLogger('agamemnon-smc')
+        logger = logging.getLogger('salma')
         logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         logger.addHandler(ch)

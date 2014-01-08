@@ -93,3 +93,7 @@ setConstant(ConstantName, Params) :-
 	convert_args(Params, Params2),
 	T =.. [ConstantName | Params2],
 	assert(T).
+
+% TODO: implement
+%get_all_constant_instances(ConstantInstances) :-
+%	true.
