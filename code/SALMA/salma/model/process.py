@@ -158,6 +158,7 @@ class Process(object):
         :return:
         """
         self.__current_evaluation_context = self.agent.evaluation_context
+        self.procedure.restart(self.__current_evaluation_context)
         self.__current_control_node = self.procedure.body
         self.__pending_action = None
         self.__last_start_time = self.agent.evaluation_context.getFluentValue('time')
@@ -165,7 +166,7 @@ class Process(object):
         self._on_start()
         self.__state = Process.RUNNING
 
-    def stop(self):
+    def __finish(self):
         """
         Stops the process. Resets procedure and evaluation context, calls _on_finish() and
         sets state=IDLE.
@@ -178,6 +179,16 @@ class Process(object):
         self.__state = Process.IDLE
         if self.should_terminate():
             self.__terminated = True
+
+    def reset(self):
+        self.__state = Process.IDLE
+        self.__current_control_node = self.procedure.body
+        self.__current_evaluation_context = None
+        self.__pending_action = None
+        self.__last_start_time = None
+        self.__last_end_time = None
+        self.__terminated = False
+        self.__execution_count = 0
 
     def step(self, new_step):
         """
@@ -222,7 +233,7 @@ class Process(object):
         if self.__current_control_node is None:
             self.__execution_count += 1
             self.__last_end_time = self.agent.evaluation_context.getFluentValue('time')
-            self.stop()
+            self.__finish()
             return None
         else:
         # status == BLOCKED

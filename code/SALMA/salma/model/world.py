@@ -158,7 +158,7 @@ class World(Entity):
     def check_fluent_initialization(self):
         """
         Checks whether all instances of all declared fluents and constants are initialized correctly.
-        :return: tuple with (uninitialized_fluent_instances, uninitialized_constant_instances)
+        :returns: tuple with (uninitialized_fluent_instances, uninitialized_constant_instances)
         :rtype: (list of (str, list), list of (str, list))
         """
         uninitialized_fluent_instances = []

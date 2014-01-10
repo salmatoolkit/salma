@@ -92,7 +92,7 @@ setDomain(Domain, Entities) :-
 setConstant(ConstantName, Params) :-
 	convert_args(Params, Params2),
 	T =.. [ConstantName | Params2],
-	assert(T).
+	asserta((T :- true, !)).
 
 % TODO: implement
 %get_all_constant_instances(ConstantInstances) :-

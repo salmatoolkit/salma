@@ -95,6 +95,14 @@ class EMobilityTest(unittest.TestCase):
 
         print("-" * 80)
         world.printState()
+        uninitialized_fluent_instances, uninitialized_constant_instances = world.check_fluent_initialization()
+        print("-" * 80)
+        print("Uninitialized Fluents:")
+        print(uninitialized_fluent_instances)
+        print("-" * 80)
+        print("Uninitialized Constants:")
+        print(uninitialized_constant_instances)
+
 
         vis = Visualizer()
         vis.visualize_map(m)
