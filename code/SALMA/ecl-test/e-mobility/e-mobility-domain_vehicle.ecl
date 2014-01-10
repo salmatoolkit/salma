@@ -80,6 +80,13 @@ nextTarget(Vehicle, Target, S) :-
 	).
 	
 	
+nextTarget2(Vehicle, Target, S) :-
+	currentRoute(Vehicle, Route, S),
+	(foreach(R, Route), foreach(R2, Route2) do
+		R2 = R
+	),
+	Route2 = [Target |_].	
+	
 get_next_target_start(Vehicle, ActPos, NextTargetStart, S) :-
 	nextTarget(Vehicle, Target, S),
 	(Target = none -> 
@@ -106,11 +113,22 @@ calculate_new_position(Vehicle, OldPos, Position, S) :-
 			Position = pos(P1, P2, NewPosOnRoad)
 		)	
 	).
+
+
+calculate_new_position2(Vehicle, OldPos, Position, S) :-
+	OldPos = pos(P1, P2, PosOnRoad),
+	vehicleSpeed(Vehicle, Speed, S),
+	PosOnRoad2 is PosOnRoad +Speed,
+	Position = pos(P1, P2, PosOnRoad2).
+
+calculate_new_position3(Vehicle, OldPos, Position, S) :-	
+	OldPos = pos(P1, _, _),
+	get_next_target_start(Vehicle, P1, Position, S).
 	
 vehiclePosition(Vehicle, Position, do2(A, S)) :-
 	vehiclePosition(Vehicle, OldPos, S),
 	(A = tick ->
-		calculate_new_position(Vehicle, OldPos, Position, S)
+		calculate_new_position3(Vehicle, OldPos, Position, S)
 		;
 		Position = OldPos
 	).

@@ -55,4 +55,4 @@ doc(responsiblePLCSSAM : constant, [
 init_domaindesc :- true.
 
 connected(_, _, T) :- T = false, !.
-roadlength(_, _, L) :- L = -1, !.
+roadlength(_, _, L) :- L = 50, !.

@@ -17,6 +17,7 @@ import random
 from salma.model.distributions import BernoulliDistribution
 import matplotlib.pyplot as plt
 import networkx as nx
+import pyclp
 
 
 class EMobilityTest(unittest.TestCase):
@@ -48,7 +49,7 @@ class EMobilityTest(unittest.TestCase):
 
 
         for i in range(EMobilityTest.NUM_OF_VEHICLES):
-            vehicle = Entity("vehice" + str(i), "vehicle")
+            vehicle = Entity("vehicle" + str(i), "vehicle")
             world.addEntity(vehicle)
 
         mgen = MapGenerator()
@@ -81,7 +82,7 @@ class EMobilityTest(unittest.TestCase):
             route = nx.shortest_path(m, crossing, target)
 
             world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", crossing, crossing, 0))
-            world.setFluentValue("vehicleSpeed", [vehicle.id], 0)
+            world.setFluentValue("vehicleSpeed", [vehicle.id], 10)
             world.setFluentValue("currentPLCS", [vehicle.id], "none")
             world.setFluentValue("currentTargetPLCS", [vehicle.id], target)
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi)
@@ -110,7 +111,6 @@ class EMobilityTest(unittest.TestCase):
             y = world.getConstantValue("locY", [l.id])
             print("{}: x={}, y={}".format(l, x, y))
 
-
         print("-" * 80)
         world.printState()
         uninitialized_fluent_instances, uninitialized_constant_instances = world.check_fluent_initialization()
@@ -121,9 +121,33 @@ class EMobilityTest(unittest.TestCase):
         print("Uninitialized Constants:")
         print(uninitialized_constant_instances)
 
+        # vis = Visualizer()
+        # plt.figure(1)
+        # vis.visualize_map(m, world)
+        #
+        # World.logic_engine().progress([('tick',[])])
+        # print("STEP 2:")
+        # print("*" * 80)
+        # world.printState()
+        # # plt.figure(2)
+        # vis.visualize_map(m, world)
+        # plt.show()
+        print(world.getFluentValue("vehiclePosition",["vehicle0"]))
 
-        vis = Visualizer()
-        vis.visualize_map(m)
+        old_pos = pyclp.Compound("pos", pyclp.Atom("c1"), pyclp.Atom("c2"), 0)
+        pos = pyclp.Var()
+        route = pyclp.Var()
+        #goal = pyclp.Compound("calculate_new_position2", pyclp.Atom("vehicle0"), old_pos, pos, pyclp.Atom("s0"))
+        sit1 = pyclp.Compound("do2", pyclp.Atom("tick"), pyclp.Atom("s0"))
+        # goal = pyclp.Compound("vehiclePosition", pyclp.Atom("vehicle0"), pos,
+        #                       sit1)
+        pyclp.Compound("currentRoute", pyclp.Atom("vehicle0"), route, pyclp.Atom("s0")).post_goal()
+        pyclp.resume()
+        pyclp.Compound("nextTarget2", pyclp.Atom("vehicle0"), pos, pyclp.Atom("s0")).post_goal()
+
+        #pyclp.resume()
+        print("Route: " + str(route.value()))
+        print("Pos: " + str(pos.value()))
 
 
 

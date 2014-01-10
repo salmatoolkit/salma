@@ -2,14 +2,17 @@ import networkx as nx
 import random
 import logging
 import math
+from salma.model.world import World
 
 class MapGenerator(object):
     logger = logging.getLogger('salma')
     P_NODE_IS_STREET_END = 0.4
 
-    def __init__(self):
-        pass
-
+    def __init__(self, world=None):
+        """
+        :type world: World
+        """
+        self.__world = world
 
     @staticmethod
     def get_dist(graph, node1, node2):
