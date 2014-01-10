@@ -45,6 +45,8 @@ class EMobilityTest(unittest.TestCase):
     def testWorldCreation(self):
         world = World.instance()
 
+
+
         for i in range(EMobilityTest.NUM_OF_VEHICLES):
             vehicle = Entity("vehice" + str(i), "vehicle")
             world.addEntity(vehicle)
@@ -58,7 +60,17 @@ class EMobilityTest(unittest.TestCase):
         vehicles = world.getDomain("vehicle")
         crossings = [n for n, data in m.nodes_iter(True) if data["loctype"] == "crossing"]
         pois = [n for n, data in m.nodes_iter(True) if data["loctype"] == "poi"]
+        sams = world.getDomain("plcssam")
+        plcses = world.getDomain("plcs")
 
+        for sam in sams:
+            world.setFluentValue("plcssam_vehicle_reservationRequests", [sam.id], [])
+            world.setFluentValue("plcssam_vehicle_reservationResponses", [sam.id], [])
+
+        for plcs in plcses:
+            world.setConstantValue("maxCapacty", [plcs.id], 100)
+            world.setFluentValue("plcsReservations", [plcs.id], [])
+            world.setFluentValue("plcs_vehicle_reservationRequests", [plcs.id], [])
 
         for vehicle in vehicles:
             crossing = random.choice(crossings)
@@ -76,12 +88,18 @@ class EMobilityTest(unittest.TestCase):
             world.setFluentValue("currentRoute", [vehicle.id], route)
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi, 1000, 2000)])
 
-        plcs = world.getDomain("plcs")
+            # initialize defaults for ensembles
+            for sam in sams:
+                world.setFluentValue("vehicle_plcssam_reservationRequests", [vehicle.id, sam.id], [])
+                world.setFluentValue("vehicle_plcssam_reservationResponses", [vehicle.id, sam.id], [])
+                world.setFluentValue("ongoing_exchange_PLCSSAM_Vehicle", [vehicle.id, sam.id], False)
 
-        for p in plcs:
-            world.setConstantValue("maxCapacty", [p.id], 100)
-            world.setFluentValue("plcsReservations", [p.id], [])
+            for plcs in plcses:
+                world.setFluentValue("vehicle_plcs_reservationRequests", [vehicle.id, plcs.id], [])
+                world.setFluentValue("plcs_vehicle_reservationResponses", [plcs.id, vehicle.id], [])
+                world.setFluentValue("ongoing_exchange_PLCS_Vehicle", [vehicle.id, plcs.id], False)
 
+            world.setFluentValue("vehicle_plcs_reservationResponses", [vehicle.id], [])
 
 
         print(world.getSorts())

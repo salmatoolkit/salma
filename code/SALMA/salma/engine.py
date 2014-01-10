@@ -282,6 +282,10 @@ def createParamTerms(*params, **kwargs):
     * True --> true
     * -nested tuples with len > 1: ('op', x, y, ...) --> pyclp.Compound with 'op' as functor
     and x,y,... converted by recursive call to createParamTerms.
+
+    If kwargs contains a 'situation' argument, then this is appended at the last position.
+
+    :rtype: list of pyclp.Term
     """
     paramTerms = []
     for p in params:
@@ -386,6 +390,14 @@ class EclipseCLPEngine(Engine):
         return lines
                   
     def __callGoal(self, goalName, *params, **kwargs):
+        """
+        Calls the goal with the given name and params.
+        :param goalName:
+        :param params:
+        :param kwargs:
+        :returns: (goal, result, msg)
+         :rtype: (pyclp.Compound, int, str)
+        """
         if len(params) == 0:
             goal = pyclp.Atom(goalName)
         else:
@@ -454,10 +466,12 @@ class EclipseCLPEngine(Engine):
             return self.__convert_value_from_engine_result(raw_value.value())
         elif isinstance(raw_value, pyclp.Compound):
             # handle name : type arguments
-            if raw_value.functor() == ':' and raw_value.arity() == 2:
-                return str(raw_value[0]), str(raw_value[1])
-            else:
-                return str(raw_value)
+            subterms = []
+            if raw_value.functor() != ':':
+                subterms.append(raw_value.functor())
+            for subterm in raw_value:
+                subterms.append(self.__convert_value_from_engine_result(subterm))
+            return tuple(subterms)
         elif isinstance(raw_value, numbers.Number):
             return raw_value
         elif isinstance(raw_value, (pyclp.PList, list, tuple)):
@@ -473,9 +487,7 @@ class EclipseCLPEngine(Engine):
                 return False
             else:
                 return result
-        
-        
-    
+
     def __updateCurrentState(self):
         self.__currentState = dict()      
         
@@ -784,12 +796,26 @@ class EclipseCLPEngine(Engine):
                                
         self.__constants[(constantName, tuple(constantParams))] = value
 
+    def __retrieve_constant_value(self, constant_name, constant_params):
+        pterms = createParamTerms(*constant_params)
+        val = pyclp.Var()
+        pterms.append(val)
+        goal = pyclp.Compound(constant_name, *pterms)
+        goal.post_goal()
+        result, _ = pyclp.resume()
+        value = None
+        if result == pyclp.SUCCEED and val.value() is not None:
+            value = self.__convert_value_from_engine_result(val.value())
+            self.__constants[(constant_name, tuple(constant_params))] = value
+        return value
+
     def getConstantValue(self, constantName, constantParams):
         v = None
         try:
             v = self.__constants[(constantName, tuple(constantParams))]
         except KeyError:
-            return None
+            v = self.__retrieve_constant_value(constantName, constantParams)
+
         return v
 
     def isConstantDefined(self, constantName, constantParams):

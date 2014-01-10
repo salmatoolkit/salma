@@ -28,6 +28,9 @@ class MapTranslator(object):
                 self.__world.addEntity(Entity(node, "crossing"))
         self.__world.addEntity(Entity("sam1", "plcssam"))
         self.__world.initialize(False)
+        self.__world.setConstantValue("locX", ["sam1"], 500)
+        self.__world.setConstantValue("locY", ["sam1"], 500)
+        self.__world.setConstantValue("responsiblePLCSSAM", ["sam1"], "sam1")
 
         for node, data in self.__graph.nodes_iter(data=True):
             pos = data["scaled_pos"]
