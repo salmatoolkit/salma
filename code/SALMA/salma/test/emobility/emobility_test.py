@@ -79,14 +79,14 @@ class EMobilityTest(unittest.TestCase):
             x, y = mt.get_position_from_node(target_poi)
             target = mt.find_closest_node(x, y, loctype="plcs")
 
-            route = nx.shortest_path(m, crossing, target)
+            r = nx.shortest_path(m, crossing, target)
 
             world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", crossing, crossing, 0))
             world.setFluentValue("vehicleSpeed", [vehicle.id], 10)
             world.setFluentValue("currentPLCS", [vehicle.id], "none")
             world.setFluentValue("currentTargetPLCS", [vehicle.id], target)
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi)
-            world.setFluentValue("currentRoute", [vehicle.id], route)
+            world.setFluentValue("currentRoute", [vehicle.id], r)
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi, 1000, 2000)])
 
             # initialize defaults for ensembles
@@ -125,29 +125,33 @@ class EMobilityTest(unittest.TestCase):
         # plt.figure(1)
         # vis.visualize_map(m, world)
         #
-        # World.logic_engine().progress([('tick',[])])
-        # print("STEP 2:")
-        # print("*" * 80)
-        # world.printState()
+        World.logic_engine().progress([('tick',[])])
+        print("STEP 2:")
+        print("*" * 80)
+        world.printState()
         # # plt.figure(2)
         # vis.visualize_map(m, world)
         # plt.show()
         print(world.getFluentValue("vehiclePosition",["vehicle0"]))
 
         old_pos = pyclp.Compound("pos", pyclp.Atom("c1"), pyclp.Atom("c2"), 0)
-        pos = pyclp.Var()
-        route = pyclp.Var()
+        r = pyclp.Var()
+
         #goal = pyclp.Compound("calculate_new_position2", pyclp.Atom("vehicle0"), old_pos, pos, pyclp.Atom("s0"))
         sit1 = pyclp.Compound("do2", pyclp.Atom("tick"), pyclp.Atom("s0"))
         # goal = pyclp.Compound("vehiclePosition", pyclp.Atom("vehicle0"), pos,
         #                       sit1)
-        pyclp.Compound("currentRoute", pyclp.Atom("vehicle0"), route, pyclp.Atom("s0")).post_goal()
-        pyclp.resume()
-        pyclp.Compound("nextTarget2", pyclp.Atom("vehicle0"), pos, pyclp.Atom("s0")).post_goal()
-
-        #pyclp.resume()
-        print("Route: " + str(route.value()))
-        print("Pos: " + str(pos.value()))
+        # c1 = pyclp.Compound("currentRoute", pyclp.Atom("vehicle0"), r, pyclp.Atom("s0"))
+        # c1.post_goal()
+        #
+        # result, stream = pyclp.resume()
+        # print("Route: " + str(r.value()))
+        # p = pyclp.Var()
+        # c2 = pyclp.Compound("nextTarget2", pyclp.Atom("vehicle0"), p, pyclp.Atom("s0"))
+        # c2.post_goal()
+        # result, stream = pyclp.resume()
+        #
+        # print("Pos: " + str(p.value()))
 
 
 
