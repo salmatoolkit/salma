@@ -72,15 +72,18 @@ class EMobilityTest(unittest.TestCase):
             world.setConstantValue("maxCapacty", [plcs.id], 100)
             world.setFluentValue("plcsReservations", [plcs.id], [])
             world.setFluentValue("plcs_vehicle_reservationRequests", [plcs.id], [])
-
+        targets = dict()
         for vehicle in vehicles:
             crossing = random.choice(crossings)
             target_poi = random.choice(pois)
             x, y = mt.get_position_from_node(target_poi)
             target = mt.find_closest_node(x, y, loctype="plcs")
-
+            targets[vehicle.id] = target
             r = nx.shortest_path(m, crossing, target)
-
+            # crossing = "c1"
+            # target_poi = "poi1"
+            # target = "plcs1"
+            # r = ["c1", "c2", "plcs1"]
             world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", crossing, crossing, 0))
             world.setFluentValue("vehicleSpeed", [vehicle.id], 10)
             world.setFluentValue("currentPLCS", [vehicle.id], "none")
@@ -121,38 +124,25 @@ class EMobilityTest(unittest.TestCase):
         print("Uninitialized Constants:")
         print(uninitialized_constant_instances)
 
-        # vis = Visualizer()
-        # plt.figure(1)
-        # vis.visualize_map(m, world)
-        #
-        World.logic_engine().progress([('tick',[])])
-        print("STEP 2:")
-        print("*" * 80)
-        world.printState()
-        # # plt.figure(2)
-        # vis.visualize_map(m, world)
-        # plt.show()
-        print(world.getFluentValue("vehiclePosition",["vehicle0"]))
+        vis = Visualizer()
+        i = 0
+        all_reached_target = False
+        while not all_reached_target:
+            print("Step {}".format(i))
+            all_reached_target = True
+            for vehicle in vehicles:
+                pos = world.getFluentValue("vehiclePosition", [vehicle.id])
+                print("{}: {} - {}".format(vehicle.id,
+                                           pos,
+                                           world.getFluentValue("currentRoute", [vehicle.id])))
+                if pos[1] != pos[2] or pos[1] != targets[vehicle.id]:
+                    all_reached_target = False
 
-        old_pos = pyclp.Compound("pos", pyclp.Atom("c1"), pyclp.Atom("c2"), 0)
-        r = pyclp.Var()
-
-        #goal = pyclp.Compound("calculate_new_position2", pyclp.Atom("vehicle0"), old_pos, pos, pyclp.Atom("s0"))
-        sit1 = pyclp.Compound("do2", pyclp.Atom("tick"), pyclp.Atom("s0"))
-        # goal = pyclp.Compound("vehiclePosition", pyclp.Atom("vehicle0"), pos,
-        #                       sit1)
-        # c1 = pyclp.Compound("currentRoute", pyclp.Atom("vehicle0"), r, pyclp.Atom("s0"))
-        # c1.post_goal()
-        #
-        # result, stream = pyclp.resume()
-        # print("Route: " + str(r.value()))
-        # p = pyclp.Var()
-        # c2 = pyclp.Compound("nextTarget2", pyclp.Atom("vehicle0"), p, pyclp.Atom("s0"))
-        # c2.post_goal()
-        # result, stream = pyclp.resume()
-        #
-        # print("Pos: " + str(p.value()))
-
+            path = "../../../imgout/step_{:02}.png".format(i)
+            vis.visualize_map(m, world)
+            plt.savefig(path)
+            World.logic_engine().progress([('tick',[])])
+            i += 1
 
 
 if __name__ == '__main__':

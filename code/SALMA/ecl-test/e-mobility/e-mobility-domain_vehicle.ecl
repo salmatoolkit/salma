@@ -80,19 +80,8 @@ nextTarget(Vehicle, Target, S) :-
 	).
 	
 	
-currentRoute2(_, Route, _) :-
-	Route = [c1,c2,c3].
-	
-nextTarget2(Vehicle, Target, S) :-
-	currentRoute2(Vehicle, Route, S),
-	(length(Route) < 2 -> 
-		Target = none
-		;
-		Route = [_ | [Target | _]]
-	).	
-	
 get_next_target_start(Vehicle, ActPos, NextTargetStart, S) :-
-	nextTarget2(Vehicle, Target, S),
+	nextTarget(Vehicle, Target, S),
 	(Target = none -> 
 			NextTargetStart = pos(ActPos, ActPos, 0)
 			;
@@ -119,18 +108,8 @@ calculate_new_position(Vehicle, OldPos, Position, S) :-
 	).
 
 
-calculate_new_position2(Vehicle, OldPos, Position, S) :-
-	OldPos = pos(P1, P2, PosOnRoad),
-	vehicleSpeed(Vehicle, Speed, S),
-	PosOnRoad2 is PosOnRoad +Speed,
-	Position = pos(P1, P2, PosOnRoad2).
-
-calculate_new_position3(Vehicle, OldPos, Position, S) :-	
-	OldPos = pos(P1, _, _),
-	get_next_target_start(Vehicle, P1, Position, S).
-	
 vehiclePosition(Vehicle, Position, do2(A, S)) :-
-	vehiclePosition(Vehicle, OldPos, S),
+	vehiclePosition(Vehicle, OldPos, S),	
 	(A = tick ->
 		calculate_new_position(Vehicle, OldPos, Position, S)
 		;
@@ -156,23 +135,24 @@ vehicleSpeed(Vehicle, Speed, do2(A, S)) :-
 	vehicleSpeed(Vehicle, Speed, S).
 
 currentRoute(Vehicle, Route, do2(A, S)) :-
-	A = setRoute(Vehicle, NewRoute),
-	Route = NewRoute, !
+	A = setRoute(Vehicle, NewRoute), !,
+	Route = NewRoute
 	;
-	A = tick,
-	currentRoute(Vehicle, OldRoute, S),
+	A = tick, !,
+    currentRoute(Vehicle, OldRoute, S),
 	vehiclePosition(Vehicle, OldPos, S),
 	calculate_new_position(Vehicle, OldPos, NewPos, S),
 	nextTarget(Vehicle, NextTarget, S),
 	NewPos = pos(_, P2, _),
-	% remove current target if next target was selected
-	((P2 = NextTarget, NextTarget \= none) ->
-		OldRoute = [_ | [Route | _]]
+	((P2 = NextTarget, NextTarget \= none) -> % remove current target if next target was selected
+		OldRoute = [_ | Route]
 		;
 		Route = OldRoute
-	), !
+	)
 	;
-	currentRoute(Vehicle, Route, S).
+	currentRoute(Vehicle, Route, S), !.
+	%get_current(currentRoute, [Vehicle], Route).
+	%Route = [x1,x2,x3].
 
 currentTargetPLCS(Vehicle, Target, do2(A,S)) :-
 	(A = setTargetPLCS(Vehicle, NewTarget) ->

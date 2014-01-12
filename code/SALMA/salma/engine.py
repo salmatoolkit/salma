@@ -290,7 +290,6 @@ def createParamTerms(*params, **kwargs):
     paramTerms = []
     for p in params:
         term = None
-        
         if isinstance(p, bool):
             term = pyclp.Atom('true') if p == True else pyclp.Atom('false')
         elif isinstance(p, numbers.Number):
@@ -302,6 +301,11 @@ def createParamTerms(*params, **kwargs):
             term = p
         elif isinstance(p, tuple) and len(p) > 0:
             term = pyclp.Compound(str(p[0]), *createParamTerms(*p[1:]))
+        elif isinstance(p, list):
+            subterms = []
+            for subterm in p:
+                subterms.append(createParamTerms(subterm)[0])
+            term = pyclp.PList(subterms)
         else:
             term = pyclp.Atom(str(p))
         paramTerms.append(term)
