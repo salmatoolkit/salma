@@ -466,6 +466,15 @@ class EclipseCLPEngine(Engine):
         self.__callGoal("init_domaindesc", erorMsg = "Can't initialize domain description.")
 
     def __convert_value_from_engine_result(self, raw_value):
+        """
+        Converts a value from ECLiPSe to Python.
+
+        :param raw_value: the value that was returned by a PyCLP goal call.
+
+        - Number -> Number
+        - Compound  x:y -> (x,y)
+        - Compound functor(x,y) -> ('functor', x, y)
+        """
         if isinstance(raw_value, pyclp.Var):
             return self.__convert_value_from_engine_result(raw_value.value())
         elif isinstance(raw_value, pyclp.Compound):

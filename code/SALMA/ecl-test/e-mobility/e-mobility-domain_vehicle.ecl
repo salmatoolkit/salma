@@ -32,10 +32,12 @@ doc(vehicleSpeed : fluent, [
 fluent(currentPLCS, [veh:vehicle], plcs).
 
 fluent(currentTargetPOI, [veh:vehicle], poi).
+
 fluent(currentTargetPLCS, [veh:vehicle], plcs).
 
 % route is given as the remaining list of locations
 fluent(currentRoute, [veh:vehicle], list).
+
 derived_fluent(currentTarget, [veh:vehicle], location).
 derived_fluent(nextTarget, [veh:vehicle], location).
 
@@ -154,6 +156,7 @@ currentRoute(Vehicle, Route, do2(A, S)) :-
 	%get_current(currentRoute, [Vehicle], Route).
 	%Route = [x1,x2,x3].
 
+% stores PLCS : POI
 currentTargetPLCS(Vehicle, Target, do2(A,S)) :-
 	(A = setTargetPLCS(Vehicle, NewTarget) ->
 		Target = NewTarget
@@ -173,6 +176,7 @@ currentTargetPOI(Vehicle, POI, do2(A,S)) :-
 		POI = NewPOI
 	;
 		currentTargetPOI(Vehicle, POI, S).
+
 
 	
 	
