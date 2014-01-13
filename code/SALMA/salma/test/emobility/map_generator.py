@@ -2,7 +2,9 @@ import networkx as nx
 import random
 import logging
 import math
+from salma.SMCException import SMCException
 from salma.model.world import World
+import re
 
 class MapGenerator(object):
     logger = logging.getLogger('salma')
@@ -33,7 +35,8 @@ class MapGenerator(object):
         :type node2: str
         """
         direct_dist = MapGenerator.get_dist(graph, node1, node2)
-        dist = math.ceil(random.uniform(direct_dist, 1.5*direct_dist))
+        # dist = math.ceil(random.uniform(direct_dist, 1.5*direct_dist))
+        dist = math.ceil(direct_dist)
         graph.edge[node1][node2]["weight"] = dist
 
 
@@ -125,4 +128,55 @@ class MapGenerator(object):
 
         return g
 
+    def load_from_graphml(self, path):
+        """
+        :type path: str
+        :rtype: networkx.classes.graph.Graph
+        """
+        #: :type : networkx.classes.graph.Graph
+        g1 = nx.read_graphml(path)
+        #: :type : networkx.classes.graph.Graph
+        g2 = nx.Graph()
+
+        typetest = re.compile(r"([a-zA-z]+)(\d*)")
+
+        max_qualifiers = dict(crossing=0, poi=0, plcs=0)
+        node_mapping = dict()
+
+
+        for node, data in g1.nodes_iter(data=True):
+
+            m = typetest.match(data["label"])
+            if m is None:
+                raise(SMCException("Wrong label format for node {}!".format(nid)))
+
+            loctype = m.group(1)
+            if loctype in ["c"]:
+                loctype = "crossing"
+            elif loctype in ["p"]:
+                loctype = "poi"
+            elif loctype in ["pl"]:
+                loctype = "plcs"
+            if not loctype in ["poi", "plcs", "crossing"]:
+                raise(SMCException("Wrong loctype for node {}: {}".format(node, loctype)))
+            qualifier = m.group(2)
+            if len(qualifier) == 0:
+                qualifier = max_qualifiers[loctype] + 1
+                nid = data["label"] + str(qualifier)
+            else:
+                nid = data["label"]
+            max_qualifiers[loctype] = max(max_qualifiers[loctype], qualifier)
+
+            pos = (round(float(data["x"])), round(float(data["y"])))
+
+            g2.add_node(nid, pos=pos, scaled_pos=pos, loctype=loctype)
+            node_mapping[node] = nid
+
+        for u, v in g1.edges_iter():
+            n1 = node_mapping[u]
+            n2 = node_mapping[v]
+            g2.add_edge(n1, n2)
+
+        MapGenerator.__add_roadlengths(g2)
+        return g2
 

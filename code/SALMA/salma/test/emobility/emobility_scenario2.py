@@ -16,25 +16,29 @@ import pyclp
 from salma.test.emobility.emobility_test import EMobilityTest
 
 
-class EMobilityScenario1(EMobilityTest):
+class EMobilityScenario2(EMobilityTest):
     NUM_OF_VEHICLES = 3
 
     def createVehicles(self, world):
-         for i in range(EMobilityScenario1.NUM_OF_VEHICLES):
-            vehicle = Entity("vehicle" + str(i), "vehicle")
+         for i in range(EMobilityScenario2.NUM_OF_VEHICLES):
+            vehicle = Entity("v" + str(i), "vehicle")
             world.addEntity(vehicle)
 
     def test_scenario1(self):
         world = World.instance()
         self.createVehicles(world)
+
         mgen = MapGenerator(world)
-        world_map = mgen.generate_map(5, 10, 10, 500, 500)
+        world_map = mgen.load_from_graphml("../../../testdata/test1.graphml")
+
+
         mt = MapTranslator(world_map, world)
         self.init_map_and_defaults(world, world_map, mt)
 
         vehicles = world.getDomain("vehicle")
         crossings = list(world.getDomain("crossing"))
         pois = list(world.getDomain("poi"))
+        starts = pois.copy()
         sams = world.getDomain("plcssam")
         plcses = world.getDomain("plcs")
 
@@ -44,7 +48,8 @@ class EMobilityScenario1(EMobilityTest):
         targets = dict()
         for vehicle in vehicles:
             crossing = random.choice(crossings).id
-            target_poi = random.choice(pois)
+            target_poi = random.choice(starts)
+            starts.remove(target_poi)
             x, y = mt.get_position_from_node(target_poi.id)
             target = mt.find_closest_node(x, y, loctype="plcs")
             targets[vehicle.id] = target

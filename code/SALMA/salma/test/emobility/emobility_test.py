@@ -1,3 +1,4 @@
+from statsmodels.base.tests.test_shrink_pickle import RemoveDataPickle
 from salma.model.core import Entity
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
@@ -13,7 +14,7 @@ import random
 import matplotlib.pyplot as plt
 import networkx as nx
 import pyclp
-
+from datetime import datetime
 
 class EMobilityTest(unittest.TestCase):
 
@@ -78,28 +79,33 @@ class EMobilityTest(unittest.TestCase):
 
             world.setFluentValue("vehicle_plcs_reservationResponses", [vehicle.id], [])
 
-    def run_until_all_targets_reached(self, world, world_map, step_limit):
+    def run_until_all_targets_reached(self, world, world_map, step_limit, visualize=True):
         vehicles = world.getDomain("vehicle")
 
-        vis = Visualizer()
+        vis = Visualizer(world_map, world)
         i = 0
 
         all_finished = False
+        outdir = datetime.now().strftime("../../../imgout/%Y%m%d_%H-%M-%S")
+        os.makedirs(outdir)
+        fig = plt.figure("emobility")
         while not all_finished and i < step_limit - 1:
             print("Step {}".format(i))
             all_finished = True
             for vehicle in vehicles:
                 pos = world.getFluentValue("vehiclePosition", [vehicle.id])
                 route =  world.getFluentValue("currentRoute", [vehicle.id])
-                target = world.getFluentValue("currentTargetPLCS")
+                target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
                 print("{}: {} - {} - {}".format(vehicle.id,
                                            pos, route, target))
-                if pos[1] != pos[2] or pos[1] != target:
+                if target == "none" or pos[1] != pos[2] or pos[1] != target:
                     all_finished = False
 
-            path = "../../../imgout/step_{:04}.png".format(i)
-            vis.visualize_map(world_map, world)
-            plt.savefig(path)
+            path = os.path.join(outdir, "step_{:04}.png".format(i))
+            if visualize:
+                fig.clf()
+                vis.visualize_map(fig)
+                fig.savefig(path, dpi=200)
             world.step()
             i += 1
 
