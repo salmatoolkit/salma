@@ -13,12 +13,8 @@ class EvaluationContext(object):
      
     """
     # source types
-    FLUENT = 0
-    TRANSIENT_FLUENT = 1
-    ECLP_FUNCTION = 2
-    PYTHON_FUNCTION = 3
-    PYTHON_EXPRESSION = 4
-    CONSTANT = 5
+    FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION, PYTHON_FUNCTION, EXTENDED_PYTHON_FUNCTION, PYTHON_EXPRESSION,\
+        CONSTANT = range(7)
 
     def __init__(self, parent):
         '''

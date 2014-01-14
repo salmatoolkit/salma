@@ -44,7 +44,18 @@ def foo(var1):
     
 def bar(x,y, z = 10, v = 4, **kwargs):
     print(x,y,z,v,kwargs)
-         
+
+def bar2(x, y, z=10):
+    print("bar2: ", x, y, z)
+def bar3(x, y, **kwargs):
+    print("bar3: ", x, y, kwargs)
+
+def bar4(x, y, a=100, **ctx):
+    print("bar4: ", x, y, a, ctx)
+
+def bar5(x, y):
+    print("bar4: ", x, y)
+
 if __name__ == "__main__":
     chris = Person("Chris", 33)
     print(chris.name)
@@ -60,3 +71,8 @@ if __name__ == "__main__":
     say()
     say2 = Man.say_something
     say2(theMan)
+    myfunc = bar4
+    params = [1,2]
+    params2 = {'z':5, 'a':10, 'b':20}
+    #params2 = {'z':5}
+    myfunc(*params, **params2)

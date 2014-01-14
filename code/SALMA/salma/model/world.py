@@ -970,11 +970,17 @@ class LocalEvaluationContext(EvaluationContext):
             ctx = World.instance().getExpressionContext().copy()
             ctx.update(self.__variableBindings)
             ctx['self'] = self.__contextEntity.id
-            ctx['params'] = params
+            ctx['params'] = resolvedParams
             result = eval(source, ctx)
-        else:
+        elif sourceType == EvaluationContext.PYTHON_FUNCTION:
             result = source(*resolvedParams)
-
+        elif sourceType == EvaluationContext.EXTENDED_PYTHON_FUNCTION:   # is python function
+            ctx = World.instance().getExpressionContext().copy()
+            ctx.update(self.__variableBindings)
+            ctx['agent'] = self.__contextEntity  # don't call it self here to avoid confusion in function
+            result = source(*resolvedParams, **ctx)
+        else:
+            raise SMCException("Unsupported source type: {}".format(sourceType))
         return result
 
     def evaluateFunction(self, sourceType, source, *params):
@@ -982,7 +988,7 @@ class LocalEvaluationContext(EvaluationContext):
         result = None
         if sourceType == EvaluationContext.FLUENT:
             fv = World.instance().getFluentValue(source, resolvedParams)
-            if fv == None:
+            if fv is None:
                 raise SMCException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
             result = fv
         elif sourceType == EvaluationContext.ECLP_FUNCTION:
@@ -994,10 +1000,18 @@ class LocalEvaluationContext(EvaluationContext):
         elif sourceType == EvaluationContext.PYTHON_EXPRESSION:
             ctx = World.instance().getExpressionContext().copy()
             ctx.update(self.__variableBindings)
-            ctx['params'] = params
+            ctx['self'] = self.__contextEntity.id
+            ctx['params'] = resolvedParams
             result = eval(source, ctx)
-        else:
+        elif sourceType == EvaluationContext.PYTHON_FUNCTION:
             result = source(*resolvedParams)
+        elif sourceType == EvaluationContext.EXTENDED_PYTHON_FUNCTION:   # is python function
+            ctx = World.instance().getExpressionContext().copy()
+            ctx.update(self.__variableBindings)
+            ctx['agent'] = self.__contextEntity  # don't call it self here to avoid confusion in function
+            result = source(*resolvedParams, **ctx)
+        else:
+            raise SMCException("Unsupported source type: {}".format(sourceType))
 
         if isinstance(result, str):
             result = self.getEntity(result)
