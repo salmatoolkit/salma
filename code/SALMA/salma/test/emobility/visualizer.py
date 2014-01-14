@@ -106,7 +106,9 @@ class Visualizer(object):
 
         for vid in sorted(vids):
             pos = self.world.getFluentValue("vehiclePosition", [vid])
-            poslabels.append("{}:({},{},{})".format(vid, pos[1], pos[2], pos[3]))
+            poi = self.world.getFluentValue("currentTargetPOI", [vid])
+            plcs = self.world.getFluentValue("currentTargetPLCS", [vid])
+            poslabels.append("{}:({},{},{}) --> {}|{}".format(vid, pos[1], pos[2], pos[3], plcs, poi))
         time = self.world.getTime()
         poslabel = ", ".join(poslabels)
         ax.text(20, 20, "t={:06}, {}".format(time, poslabel), fontsize=9)
