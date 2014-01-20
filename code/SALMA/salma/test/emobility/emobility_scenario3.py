@@ -63,7 +63,8 @@ class EMobilityScenario3(EMobilityTest):
             vehicle = Agent("v" + str(i), "vehicle", [p1, p2])
             world.addAgent(vehicle)
 
-
+    def create_plcssam(self):
+        pass
 
     def test_scenario3(self):
         world = World.instance()
