@@ -17,6 +17,18 @@ import pyclp
 from datetime import datetime
 
 class EMobilityTest(unittest.TestCase):
+    POSTER_PREFIX = r"""
+\documentclass[a4paper]{article}
+\usepackage[top=1cm, bottom=1.5cm, left=.5cm, right=.5cm]{geometry}
+\usepackage{graphicx}
+\begin{document}
+\begin{tabular}{cccc}
+"""
+
+    POSTER_SUFFIX = r"""
+\end{tabular}
+\end{document}
+"""
 
     @classmethod
     def setUpClass(cls):
@@ -89,6 +101,7 @@ class EMobilityTest(unittest.TestCase):
         outdir = datetime.now().strftime("../../../imgout/%Y%m%d_%H-%M-%S")
         os.makedirs(outdir)
         fig = plt.figure("emobility")
+        imagefiles = []
         while not all_finished and i < step_limit - 1:
             print("Step {}".format(i))
             all_finished = True
@@ -100,14 +113,27 @@ class EMobilityTest(unittest.TestCase):
                                            pos, route, target))
                 if target == "none" or pos[1] != pos[2] or pos[1] != target:
                     all_finished = False
-
-            path = os.path.join(outdir, "step_{:04}.png".format(i))
+            imagefilename = "step_{:04}.png".format(i)
+            imagefiles.append(imagefilename)
+            path = os.path.join(outdir, imagefilename)
             if visualize:
                 fig.clf()
                 vis.visualize_map(fig)
                 fig.savefig(path, dpi=200)
             world.step()
             i += 1
+
+        with open(os.path.join(outdir, "poster.tex"), mode="w") as f:
+            f.write(EMobilityTest.POSTER_PREFIX)
+            for i, filename in enumerate(imagefiles):
+                f.write("\\includegraphics[width=4cm]{%s}\n" % filename)
+                if i % 4 == 0:
+                    f.write("\\\\\n")
+                else:
+                    f.write("&\n")
+            for i in range(4 - (len(imagefiles) % 4)):
+                f.write("&\n")
+            f.write(EMobilityTest.POSTER_SUFFIX)
 
 if __name__ == '__main__':
     unittest.main()
