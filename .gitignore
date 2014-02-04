@@ -1,3 +1,6 @@
 workspace.xml
 *.pyc
 *.bak
+/code/SALMA/imgout/poster.aux
+/code/SALMA/imgout/poster.log
+/code/SALMA/imgout/poster.synctex.gz
