@@ -57,6 +57,8 @@ exogenous_action(speedChanges, [veh:vehicle], [newSpeed:integer]).
 poss(speedChanges(Vehicle, _), S) :-
 	currentPLCS(Vehicle, none, S).
 	
+
+	
 exogenous_action(driverLeavesPLCS, [veh:vehicle], []).
 poss(driverLeavesPLCS(Vehicle), S) :-
 	currentPLCS(Vehicle, PLCS, S),
@@ -136,6 +138,8 @@ vehicleSpeed(Vehicle, Speed, do2(A, S)) :-
 	;
 	vehicleSpeed(Vehicle, Speed, S).
 
+	
+	
 currentRoute(Vehicle, Route, do2(A, S)) :-
 	A = setRoute(Vehicle, NewRoute), !,
 	Route = NewRoute
