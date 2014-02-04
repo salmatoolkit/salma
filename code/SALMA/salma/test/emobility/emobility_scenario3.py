@@ -21,6 +21,8 @@ from salma.test.emobility.emobility_test import EMobilityTest
 
 
 def create_navigation_functions(world_map, mt):
+
+
     def target_chooser(agent=None, currentTargetPOI=None, **ctx):
         target_poi = currentTargetPOI(agent.id)
         x, y = mt.get_position_from_node(target_poi)
@@ -33,6 +35,7 @@ def create_navigation_functions(world_map, mt):
         r = nx.shortest_path(world_map, pos[1], target)
         return r
 
+
     return target_chooser, route_finder
 
 
@@ -42,18 +45,29 @@ class EMobilityScenario3(EMobilityTest):
     def create_vehicles(self, world, world_map, mt):
         target_chooser, route_finder = create_navigation_functions(world_map, mt)
 
+        # p_set_target = Procedure("main", [],
+        #                          Sequence([
+        #                              VariableAssignment("target", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+        #                                                 target_chooser, []),
+        #                              ActionExecution("setTargetPLCS", [Entity.SELF, Variable("target")])
+        #                          ]))
+        #
         p_set_target = Procedure("main", [],
-                                 Sequence([
-                                     VariableAssignment("target", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                        target_chooser, []),
-                                     ActionExecution("setTargetPLCS", [Entity.SELF, Variable("target")])
-                                 ]))
+                                Sequence([
+                                    VariableAssignment("sam_responses", EvaluationContext.FLUENT,
+                                                       "plcssam_vehicle_reservationResponses", ["sam1"]),
+
+
+                                ])
+        plcssam_vehicle_reservationResponses
         p_find_route = Procedure("main", [],
                                  Sequence([
                                      VariableAssignment("route", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                         route_finder, []),
-                                     ActionExecution("setRoute", [Entity.SELF, Variable("route")])
+                                     ActionExecution("setRoute", [Entity.SELF, Variable("route")]),
+
                                  ]))
+
 
         for i in range(EMobilityScenario3.NUM_OF_VEHICLES):
             p1 = TriggeredProcess(p_set_target, EvaluationContext.PYTHON_EXPRESSION,
