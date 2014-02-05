@@ -2,7 +2,7 @@ import networkx as nx
 import random
 import logging
 import math
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.model.world import World
 import re
 
@@ -148,7 +148,7 @@ class MapGenerator(object):
 
             m = typetest.match(data["label"])
             if m is None:
-                raise(SMCException("Wrong label format for node {}!".format(nid)))
+                raise(SALMAException("Wrong label format for node {}!".format(nid)))
 
             loctype = m.group(1)
             if loctype in ["c"]:
@@ -158,7 +158,7 @@ class MapGenerator(object):
             elif loctype in ["pl"]:
                 loctype = "plcs"
             if not loctype in ["poi", "plcs", "crossing"]:
-                raise(SMCException("Wrong loctype for node {}: {}".format(node, loctype)))
+                raise(SALMAException("Wrong loctype for node {}: {}".format(node, loctype)))
             qualifier = m.group(2)
             if len(qualifier) == 0:
                 qualifier = max_qualifiers[loctype] + 1

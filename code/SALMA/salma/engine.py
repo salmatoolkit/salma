@@ -8,7 +8,7 @@ import logging
 import numbers
 
 import pyclp
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from .constants import *
 import salma
 import os
@@ -366,7 +366,7 @@ class EclipseCLPEngine(Engine):
             msg = stdout.readall()
             #result, dummy = pyclp.resume()   
         if result != pyclp.SUCCEED:
-            raise(SMCException("Can't compile Eclipse CLP progression module (msg = {})".format(msg)))
+            raise(SALMAException("Can't compile Eclipse CLP progression module (msg = {})".format(msg)))
         
         self.reset()
         
@@ -438,7 +438,7 @@ class EclipseCLPEngine(Engine):
                     readableParams.append("None")
                      
                               
-            raise(SMCException(
+            raise(SALMAException(
                 errorMsg.format(goalName, readableParams, result, msg)))
         return (goal, result, msg)
         
@@ -698,7 +698,7 @@ class EclipseCLPEngine(Engine):
         result, lines = self.__readPyCLPOutputLines(result, stream_num)
             
         if result != pyclp.SUCCEED:
-            raise(SMCException(
+            raise(SALMAException(
                 errorMsg.format(predicateName, result, "\n".join(lines))))
         
         refinedResult = []
@@ -718,7 +718,7 @@ class EclipseCLPEngine(Engine):
         if result != pyclp.SUCCEED:
             if result == pyclp.THROW:
                 errorMsg = "Can't execute predicate {}. Message = {}."
-                raise(SMCException(
+                raise(SALMAException(
                                    errorMsg.format(predicateName, "\n".join(lines))))
             else:
                 return None
@@ -751,7 +751,7 @@ class EclipseCLPEngine(Engine):
         if result != pyclp.SUCCEED:
             if result == pyclp.THROW:
                 errorMsg = "Can't create plan for procedure {}. Message = {}."
-                raise(SMCException(
+                raise(SALMAException(
                                    errorMsg.format(procedureName, "\n".join(lines))))
             else:
                 return (None, None)
@@ -933,7 +933,7 @@ class EclipseCLPEngine(Engine):
         elif s == NOT_OK:
             status = False
         else:
-            raise SMCException(
+            raise SALMAException(
                     "Wrong status returned for persistent property {}: {}".format(
                                                                                   propertyName,
                                                                                   str(rawStatus.value())))

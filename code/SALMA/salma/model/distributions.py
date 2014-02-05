@@ -1,5 +1,5 @@
 import random
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.model.evaluationcontext import EvaluationContext
 
 
@@ -80,7 +80,7 @@ class BernoulliDistribution(Distribution):
 class NormalDistribution(Distribution):
     def __init__(self, sort, mu, sigma):
         if sort not in ["float", "integer"]:
-            raise SMCException("Trying to use normal distribution for sort %s but only integer or float allowed." % sort)
+            raise SALMAException("Trying to use normal distribution for sort %s but only integer or float allowed." % sort)
         super().__init__(sort, (float("-inf"), float("inf")))
         self.__mu = mu
         self.__sigma = sigma

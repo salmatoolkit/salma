@@ -1,5 +1,5 @@
 import sys
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.model.distributions import Distribution, UniformDistribution
 from .evaluationcontext import EvaluationContext
 
@@ -103,7 +103,7 @@ class Fluent(object):
     def get_parameter_index(self, parameter_name):
         """
         Returns the index (i.e. position) of the parameter with the given name.
-        :raises SMCException: if no parameter with the given name exists.
+        :raises SALMAException: if no parameter with the given name exists.
         :param parameter_name: the name of the parameter
         :type parameter_name: str
         :rtype: int
@@ -112,12 +112,12 @@ class Fluent(object):
             i = self.__param_indices[parameter_name]
             return i
         except KeyError:
-            raise SMCException("Unknown parameter {} for fluent {}.".format(parameter_name, self.__name))
+            raise SALMAException("Unknown parameter {} for fluent {}.".format(parameter_name, self.__name))
 
     def get_parameter_type(self, parameter_name):
         """
         Returns the type of the parameter with the given name.
-        :raises SMCException: if no parameter with the given name exists.
+        :raises SALMAException: if no parameter with the given name exists.
         :type parameter_name: str
         :rtype: str
         """
@@ -209,7 +209,7 @@ class Action(object):
     def get_parameter_index(self, parameter_name):
         """
         Returns the index (i.e. position) of the parameter with the given name.
-        :raises SMCException: if no parameter with the given name exists.
+        :raises SALMAException: if no parameter with the given name exists.
         :param parameter_name: the name of the parameter
         :type parameter_name: str
         :rtype: int
@@ -218,12 +218,12 @@ class Action(object):
             i = self.__param_indices[parameter_name]
             return i
         except KeyError:
-            raise SMCException("Unknown parameter {} for action {}.".format(parameter_name, self.__name))
+            raise SALMAException("Unknown parameter {} for action {}.".format(parameter_name, self.__name))
 
     def get_parameter_type(self, parameter_name):
         """
         Returns the type of the parameter with the given name.
-        :raises SMCException: if no parameter with the given name exists.
+        :raises SALMAException: if no parameter with the given name exists.
         :type parameter_name: str
         :rtype: str
         """

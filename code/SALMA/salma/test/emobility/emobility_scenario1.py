@@ -5,7 +5,7 @@ from salma.test.emobility.visualizer import Visualizer
 import unittest
 from salma.model.world import World
 from salma.engine import EclipseCLPEngine
-from salma import SMCException
+from salma import SALMAException
 import logging
 import salma
 import os

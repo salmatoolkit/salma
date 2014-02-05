@@ -3,7 +3,7 @@ import unittest
 import itertools
 
 from salma import constants
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions, process
 from salma.model.core import Entity, Fluent, Action, Constant
@@ -600,6 +600,7 @@ class WorldTest(BaseWorldTest):
 
             )
         ])
+
         agent = Agent("rob1", "robot", Procedure("main", [], seq1))
         world.addAgent(agent)
 

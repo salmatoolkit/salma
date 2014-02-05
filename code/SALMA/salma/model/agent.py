@@ -1,6 +1,6 @@
 from .core import Entity
 from .procedure import ProcedureRegistry, Procedure
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from .evaluationcontext import EvaluationContext
 from salma.model import  process
 from salma.model.process import OneShotProcess
@@ -97,10 +97,10 @@ class Agent(Entity):
         :rtype: list of process.Process
         """
         if self.evaluation_context is None:
-            raise SMCException("No evaluation context for agent " + self.id)
+            raise SALMAException("No evaluation context for agent " + self.id)
 
         if self.procedure_registry is None:
-            raise SMCException("No procedure registry given for agent " + self.id)
+            raise SALMAException("No procedure registry given for agent " + self.id)
 
         #: :type: list of process.Process
         running_processes = []

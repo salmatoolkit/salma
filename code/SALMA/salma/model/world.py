@@ -11,9 +11,10 @@ import time
 import pyclp
 import salma.model.process as process
 from salma import constants
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.constants import *
-from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, Deterministic, Uniform
+from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, \
+    Deterministic, Uniform
 from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
@@ -81,7 +82,7 @@ class World(Entity):
         self.__initialized = False
 
         if World.logic_engine() is None:
-            raise SMCException("Engine not set when creating world.")
+            raise SALMAException("Engine not set when creating world.")
         World.logic_engine().reset()
         self.addFluent(Fluent("time", "integer", []))
         self.__evaluationContext = LocalEvaluationContext(self, None)
@@ -306,7 +307,7 @@ class World(Entity):
                 try:
                     entity = self.__entities[entityId]
                 except KeyError:
-                    raise SMCException("No Entity instance registered for {}:{}".format(entityId, sort))
+                    raise SALMAException("No Entity instance registered for {}:{}".format(entityId, sort))
                 self.__domainMap[sort].add(entity)
 
         World.logic_engine().setFluentValue('time', [], 0)
@@ -382,21 +383,21 @@ class World(Entity):
         Removes the given entity from the registry.
         :param entity: can either be an Entity or a string that specifies the id
         :type entity: Entity
-        :raises: an SMCException if the given entity was not found in the registry.
+        :raises: an SALMAException if the given entity was not found in the registry.
         """
         if not entity.sortName in self.__domainMap:
-            raise SMCException("Trying to remove entity {} with unregistered sort {}".format(
+            raise SALMAException("Trying to remove entity {} with unregistered sort {}".format(
                 entity.id, entity.sortName))
         eset = self.__domainMap[entity.sortName]
         if (not entity in eset) or (not entity.id in self.__entities):
-            raise SMCException("Trying to remove unregistered entity {}.".format(entity.id))
+            raise SALMAException("Trying to remove unregistered entity {}.".format(entity.id))
         eset.remove(entity)
         self.__entities.pop(entity.id)
         if isinstance(entity, Agent):
             try:
                 self.__agents.pop(entity.id)
             except KeyError:
-                raise SMCException("Trying to remove unregistered agent {} from agent list.".format(entity.id))
+                raise SALMAException("Trying to remove unregistered agent {} from agent list.".format(entity.id))
                 # empty sorts are left in the domain map
 
     def removeAgent(self, agent):
@@ -419,26 +420,26 @@ class World(Entity):
     def removeAction(self, action):
         """
         Removes the given action.
-        :raises SMCException if action is unregistered.
+        :raises SALMAException if action is unregistered.
         :type action: Action
         """
         try:
             del self.__actions[action.name]
         except KeyError:
-            raise SMCException("Trying to remove unregistered action %s ." % action.name)
+            raise SALMAException("Trying to remove unregistered action %s ." % action.name)
 
 
     def getAction(self, action_name):
         """
         Returns the action (either deterministic or stochastic) with the given name.
-        :raises SMCException if action is unregistered.
+        :raises SALMAException if action is unregistered.
         :type action_name: str
         :rtype: Action
         """
         try:
             return self.__actions[action_name]
         except KeyError:
-            raise (SMCException("Action {} not registered.".format(action_name)))
+            raise (SALMAException("Action {} not registered.".format(action_name)))
 
     def get_stochastic_action(self, action_name):
         """
@@ -448,7 +449,7 @@ class World(Entity):
         """
         a = self.getAction(action_name)
         if not isinstance(a, StochasticAction):
-            raise SMCException("Action %s is not stochastic." % action_name)
+            raise SALMAException("Action %s is not stochastic." % action_name)
         return a
 
     def getAllActions(self):
@@ -474,19 +475,19 @@ class World(Entity):
             del self.__exogenousActions[exogenousAction.action_name]
         except KeyError:
             raise (
-            SMCException("Trying to erase unregistered exogenous action {}.".format(exogenousAction.action_name)))
+                SALMAException("Trying to erase unregistered exogenous action {}.".format(exogenousAction.action_name)))
 
     def get_exogenous_action(self, action_name):
         """
         Returns the exogenous action with the given name.
-        :raises: SMCException if there is no exogenous action with the given name.
+        :raises: SALMAException if there is no exogenous action with the given name.
         :type action_name: str
         :rtype: ExogenousAction
         """
         try:
             return self.__exogenousActions[action_name]
         except KeyError:
-            raise (SMCException("Unregistered exogenous action {}.".format(action_name)))
+            raise (SALMAException("Unregistered exogenous action {}.".format(action_name)))
 
     def get_exogenous_actions(self):
         """
@@ -511,7 +512,7 @@ class World(Entity):
         try:
             return self.__domainMap[sort_name]
         except KeyError:
-            raise (SMCException("Sort {} not declared.".format(sort_name)))
+            raise (SALMAException("Sort {} not declared.".format(sort_name)))
 
     def addFluent(self, fluent):
         """
@@ -560,7 +561,7 @@ class World(Entity):
         """
         Returns the core.Constant object associated by the given constant name or None if such a constant
         hasn't been registered.
-        :raises: SMCException if a fluent has been registered with the given name that is not a constant.
+        :raises: SALMAException if a fluent has been registered with the given name that is not a constant.
         :type constantName: str
         :rtype: Constant
         """
@@ -568,7 +569,7 @@ class World(Entity):
         if c is None:
             return None
         elif not isinstance(c, Constant):
-            raise SMCException("Fluent {} is not a constant.".format(constantName))
+            raise SALMAException("Fluent {} is not a constant.".format(constantName))
         else:
             return c
 
@@ -638,7 +639,7 @@ class World(Entity):
         The given evaluation context is used for generating an outcome.
 
         :return: (str, list)
-        :raises: SMCException if action is not registered.
+        :raises: SALMAException if action is not registered.
 
         :type evaluation_context: EvaluationContext
         :type action_execution: ActionExecution
@@ -648,7 +649,7 @@ class World(Entity):
             action = self.__actions[action_execution.actionName]
         except KeyError:
             raise (
-                SMCException("Trying to execute unregistered action: {}".format(
+                SALMAException("Trying to execute unregistered action: {}".format(
                     action_execution.actionName)))
 
         ground_params = evaluation_context.resolve(*action_execution.actionParameters)
@@ -703,22 +704,28 @@ class World(Entity):
         actions = []  # list of tuples: (action_execution, params)
 
         # gather actions
-        new_step = True
 
-        # only check for process starts at the beginning of the world step
-        #: :type : list of process.Process
-        active_processes = []
-        self.__finished = True
-        for agent in self.__agents.values():
-            if not agent.is_finished():
-                self.__finished = False
-                active_processes.extend(agent.update_schedule())
+        # A set that keeps track of all processes that have been entered already in this step.
+        # This is used to by the process to determine whether a new step is started and hence a pending
+        # action should be discarded.
+        #: :type : set of process.Process
+        entered_processes = set()
 
         while True:
-
+            #: :type : list of process.Process
+            active_processes = []
+            # The schedule trigger predicate is evaluated iteratively here. This allows processes to
+            # become runnable as an effect by a previous immediate action by another process.
+            self.__finished = True
+            for agent in self.__agents.values():
+                if not agent.is_finished():
+                    self.__finished = False
+                active_processes.extend(agent.update_schedule())
             immediate_actions = []
+
             for proc in active_processes:
-                action_execution = proc.step(new_step)
+                action_execution = proc.step(proc not in entered_processes)
+                entered_processes.add(proc)
                 if action_execution is not None:
                     act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
 
@@ -762,7 +769,7 @@ class World(Entity):
             return self.__finished, NOT_OK, {}, {}, actions, failed_regular_actions
 
         overall_verdict, toplevel_results, scheduled_results = World.logic_engine().evaluationStep()
-        World.logic_engine().progress([('tick',[])])
+        World.logic_engine().progress([('tick', [])])
         # it's ok if events fail but if regular actions fail, we're in trouble!
 
         # TODO: distinguish between actions that take time and actions that don't
@@ -831,7 +838,7 @@ class World(Entity):
         )
 
     def reset(self):
-        World.logic_engine().reset(False, False) # don't remove formulas!
+        World.logic_engine().reset(False, False)  # don't remove formulas!
         self.__evaluationContext = LocalEvaluationContext(self, None)
         World.logic_engine().setFluentValue('time', [], 0)
         #: :type agent: Agent
@@ -953,34 +960,41 @@ class LocalEvaluationContext(EvaluationContext):
         self.__variableBindings = dict()  # variable name
         self.__variableBindings[Entity.SELF] = self.__contextEntity
 
+    def evaluate_python(self, source_type, source, *resolvedParams):
+        result = None
+        if source_type == EvaluationContext.PYTHON_EXPRESSION:
+            ctx = World.instance().getExpressionContext().copy()
+            ctx.update(self.__variableBindings)
+            ctx['self'] = self.__contextEntity.id
+            ctx['params'] = resolvedParams
+            result = eval(source, ctx)
+        elif source_type == EvaluationContext.PYTHON_FUNCTION:
+            result = source(*resolvedParams)
+        elif source_type == EvaluationContext.EXTENDED_PYTHON_FUNCTION:  # is python function
+            ctx = World.instance().getExpressionContext().copy()
+            ctx.update(self.__variableBindings)
+            ctx['agent'] = self.__contextEntity  # don't call it self here to avoid confusion in function
+            result = source(*resolvedParams, **ctx)
+        return result
+
     def evaluateCondition(self, sourceType, source, *params):
         resolvedParams = self.resolve(*params)
         result = None
         if sourceType == EvaluationContext.FLUENT:
             result = World.instance().getFluentValue(source, resolvedParams)
             if result == None:
-                raise SMCException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
+                raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
         elif sourceType == EvaluationContext.ECLP_FUNCTION:
             result = World.logic_engine().evaluateCondition(source, *resolvedParams)
         elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
             result = World.logic_engine().evaluateCondition(source, *resolvedParams, situation='s0')
         elif sourceType == EvaluationContext.CONSTANT:
             result = bool(World.getConstantValue(source, resolvedParams))
-        elif sourceType == EvaluationContext.PYTHON_EXPRESSION:
-            ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.__variableBindings)
-            ctx['self'] = self.__contextEntity.id
-            ctx['params'] = resolvedParams
-            result = eval(source, ctx)
-        elif sourceType == EvaluationContext.PYTHON_FUNCTION:
-            result = source(*resolvedParams)
-        elif sourceType == EvaluationContext.EXTENDED_PYTHON_FUNCTION:   # is python function
-            ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.__variableBindings)
-            ctx['agent'] = self.__contextEntity  # don't call it self here to avoid confusion in function
-            result = source(*resolvedParams, **ctx)
+        elif sourceType in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
+                            EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
+            result = self.evaluate_python(sourceType, source, *resolvedParams)
         else:
-            raise SMCException("Unsupported source type: {}".format(sourceType))
+            raise SALMAException("Unsupported source type: {}".format(sourceType))
         return result
 
     def evaluateFunction(self, sourceType, source, *params):
@@ -989,7 +1003,7 @@ class LocalEvaluationContext(EvaluationContext):
         if sourceType == EvaluationContext.FLUENT:
             fv = World.instance().getFluentValue(source, resolvedParams)
             if fv is None:
-                raise SMCException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
+                raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
             result = fv
         elif sourceType == EvaluationContext.ECLP_FUNCTION:
             result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams)
@@ -997,21 +1011,11 @@ class LocalEvaluationContext(EvaluationContext):
             result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams, situation='s0')
         elif sourceType == EvaluationContext.CONSTANT:
             result = World.instance.getConstantValue(source, resolvedParams)
-        elif sourceType == EvaluationContext.PYTHON_EXPRESSION:
-            ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.__variableBindings)
-            ctx['self'] = self.__contextEntity.id
-            ctx['params'] = resolvedParams
-            result = eval(source, ctx)
-        elif sourceType == EvaluationContext.PYTHON_FUNCTION:
-            result = source(*resolvedParams)
-        elif sourceType == EvaluationContext.EXTENDED_PYTHON_FUNCTION:   # is python function
-            ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.__variableBindings)
-            ctx['agent'] = self.__contextEntity  # don't call it self here to avoid confusion in function
-            result = source(*resolvedParams, **ctx)
+        elif sourceType in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
+                            EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
+            result = self.evaluate_python(sourceType, source, *resolvedParams)
         else:
-            raise SMCException("Unsupported source type: {}".format(sourceType))
+            raise SALMAException("Unsupported source type: {}".format(sourceType))
 
         if isinstance(result, str):
             result = self.getEntity(result)
@@ -1021,27 +1025,22 @@ class LocalEvaluationContext(EvaluationContext):
         resolvedParams = self.resolve(*params)
         fv = World.instance().getFluentValue(fluentName, resolvedParams)
         if fv == None:
-            raise SMCException("No value found for fluent: {0}({1}).".format(fluentName, resolvedParams))
+            raise SALMAException("No value found for fluent: {0}({1}).".format(fluentName, resolvedParams))
         return fv
 
-
     def assignVariable(self, variableName, value):
-        '''
-        variableName: procedure.Variable that should be set. 
-        functionName: name of the goal that is used for evaluation
-        functionParams: parameters for goal evaluation excluding the implicit last parameter that is used 
-                    for the result, i.e. the evaluated goals must have a signature like P(X1,X2,...,Xn-1,R):-... where
-                    R is used for the result.
-        '''
-
+        """
+        :param str variableName: name of variable that should be set.
+        :param object value: the value to assign
+        """
         self.__variableBindings[variableName] = value
 
     def resolve(self, *terms):
-        '''
+        """
         Evaluates each term in terms and returns a list with the collected results.
-        
+
         Entity instances are converted to their ids.
-        '''
+        """
         groundTerms = []
         for term in terms:
             gt = term
@@ -1049,7 +1048,7 @@ class LocalEvaluationContext(EvaluationContext):
                 gt = self.__contextEntity.id
             elif isinstance(term, Variable):
                 if not term.name in self.__variableBindings:
-                    raise SMCException("Variable %s not bound." % term.name)
+                    raise SALMAException("Variable %s not bound." % term.name)
                 gt = self.__variableBindings[term.name]
 
             if isinstance(gt, Entity):
@@ -1060,49 +1059,74 @@ class LocalEvaluationContext(EvaluationContext):
         return groundTerms
 
     def getEntity(self, entityId):
-        '''
+        """
         returns the entity with the given id
-        '''
+        """
         return World.instance().getEntityById(entityId)
 
+    def __select_free_variables(self, params):
+        for p in params:
+            if isinstance(p, tuple) and len(p) == 2:
 
-    def selectAll(self, predicateType, predicateName, *params):
-        '''
-        Returns a list of dicts with {paramName => Entity} entries that fulfill the given predicate with 
-        the given parameters. 
-        
+
+    def selectAll(self, source_type, source, *params):
+        """
+        Returns a list of dicts with {paramName => Entity} entries that fulfill the given predicate with
+        the given parameters.
+
         The parameter list can include ground values, bound variables and (name, sort) tuples.
-        '''
-        # TODO handle python iterators
-        resolvedParams = self.resolve(*params) # the free variables tuples are ignored by resolve()
 
-        sit = 's0' if predicateType in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
+        :param int source_type: the type of the predicate
+        :param str source: the name of the predicate
+        """
 
-        resultList = World.logic_engine().selectAll(predicateName, *resolvedParams, situation=sit)
-        refinedResult = []
+        resolved_params = self.resolve(*params)  # the free variables tuples are ignored by resolve()
 
-        #: :type valueCombination: dict 
-        for valueCombination in resultList:
-            refinedEntry = dict()
-            for name, value in valueCombination.items():
-                #TODO: handle params with interval domains?
-                if isinstance(value, str):
-                    refinedEntry[name] = self.getEntity(value)
-                else:
-                    refinedEntry[name] = value
+        sit = 's0' if source_type in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
+        result_list = []
 
-            refinedResult.append(refinedEntry)
+        if source_type in {EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT,
+                           EvaluationContext.ECLP_FUNCTION}:
+            result_list = World.logic_engine().selectAll(source, *resolved_params, situation=sit)
+        elif source_type in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
+                             EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
+            result_list = self.evaluate_python(source_type, source, *resolved_params)
+        elif source_type == EvaluationContext.ITERATOR:
+            # Here we just use a python object that supports the iterator protocol
+            if not "__iter__" in source.__dir__():
+                raise SALMAException("Trying to use non-iterator in Iterate statement: {} ".format(str(source)))
+            result_list = source
+        else:
+            raise SALMAException("Unsupported source type for Iterate statement: {}".format(source_type))
 
-        return refinedResult
+        refined_result = []
+
+        #: :type valueCombination: dict
+        for valueCombination in result_list:
+            refined_entry = dict()
+            if isinstance(valueCombination, dict):
+                for name, value in valueCombination.items():
+                    #TODO: handle params with interval domains?
+                    if isinstance(value, str):
+                        refined_entry[name] = self.getEntity(value)
+                    else:
+                        refined_entry[name] = value
+            else:
+                # The iterator is just a list or set. Assume that the parameters contain exactly one free variable.
+
+
+            refined_result.append(refined_entry)
+
+        return refined_result
 
     def selectFirst(self, predicateType, predicateName, *params):
-        '''
+        """
         Returns a dict with {paramName => Entity} entries that represents the first value combination
-        that fulfills the given predicate with the given parameters. 
-        
+        that fulfills the given predicate with the given parameters.
+
         The parameter list can include ground values, bound variables and (name, sort) tuples.
-        '''
-        resolvedParams = self.resolve(*params) # the free variables tuples are ignored by resolve()
+        """
+        resolvedParams = self.resolve(*params)  # the free variables tuples are ignored by resolve()
 
         sit = 's0' if predicateType in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
 
@@ -1123,7 +1147,6 @@ class LocalEvaluationContext(EvaluationContext):
                 refinedResult[name] = value
         return refinedResult
 
-
     def createPlan(self, procedureName, *params):
         resolvedParams = self.resolve(*params)
         plan, values = World.logic_engine().createPlan(procedureName,
@@ -1142,7 +1165,7 @@ class LocalEvaluationContext(EvaluationContext):
         refinedPlan = []
         for action in plan:
             actionName = action[0]
-            params = action[1:] # remember: this slicing will return  [] if there's no more than 1 elements in action
+            params = action[1:]  # remember: this slicing will return  [] if there's no more than 1 elements in action
             refinedPlan.append(ActionExecution(actionName, params))
 
         return refinedPlan, refinedValues

@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from salma import constants
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.engine import EclipseCLPEngine, EclipseCLPEngine
 from salma.model import procedure, distributions
 from salma.model.core import Entity, Fluent, Action
@@ -37,7 +37,7 @@ class WorldTest2(unittest.TestCase):
         try:
             World.set_logic_engine(EclipseCLPEngine("../../ecl-test/domaindesc.ecl",
                                                     "../../ecl-test/example_procedures.ecl"))
-        except SMCException as e:
+        except SALMAException as e:
             print(e)
             raise
         logger = logging.getLogger('agamemnon-smc')

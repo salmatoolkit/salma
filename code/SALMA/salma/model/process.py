@@ -1,5 +1,5 @@
 from .core import Entity
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.model.procedure import ControlNode, ActionExecution, Procedure
 from salma.model.evaluationcontext import EvaluationContext
 
@@ -197,7 +197,7 @@ class Process(object):
         :rtype: ActionExecution
         """
         if self.__current_evaluation_context is None:
-            raise SMCException("No evaluation context for process " + self.process_id)
+            raise SALMAException("No evaluation context for process " + self.process_id)
 
         if self.__current_control_node is None:
             return None

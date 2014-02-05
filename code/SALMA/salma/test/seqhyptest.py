@@ -8,7 +8,7 @@ import unittest
 import time
 
 from salma import constants
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.engine import EclipseCLPEngine, EclipseCLPEngine
 from salma.model import procedure, distributions
 from salma.model.core import Agent, Entity, Fluent, Action, \
@@ -56,7 +56,7 @@ class SequentialHypothesisTestTest(unittest.TestCase):
         domainFileName = "kroiss_aamas2014_domaindesc.ecl"
         try:
             World.set_logic_engine(EclipseCLPEngine("../test/" + domainFileName))
-        except SMCException as e:
+        except SALMAException as e:
             print(e)
             raise
         logger = logging.getLogger('agamemnon-smc')

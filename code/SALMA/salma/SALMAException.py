@@ -5,5 +5,5 @@ Created on 21.05.2013
 '''
 
 
-class SMCException(BaseException):
+class SALMAException(BaseException):
     pass

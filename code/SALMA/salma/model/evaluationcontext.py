@@ -1,4 +1,4 @@
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 
 
 class EvaluationContext(object):
@@ -14,7 +14,7 @@ class EvaluationContext(object):
     """
     # source types
     FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION, PYTHON_FUNCTION, EXTENDED_PYTHON_FUNCTION, PYTHON_EXPRESSION,\
-        CONSTANT = range(7)
+        CONSTANT, ITERATOR = range(8)
 
     def __init__(self, parent):
         '''
@@ -132,7 +132,7 @@ class EvaluationContext(object):
         if sequence in self.__sequenceIndexes:
             self.__sequenceIndexes[sequence] = self.__sequenceIndexes[sequence] + 1
         else:
-            raise(SMCException("Trying to increment uninitialized sequence index."))
+            raise(SALMAException("Trying to increment uninitialized sequence index."))
 
     
     def setCurrentResultListIndex(self, iteration, index):
@@ -142,7 +142,7 @@ class EvaluationContext(object):
         if iteration in self.__resultListIndexes:
             self.__resultListIndexes[iteration] = self.__resultListIndexes[iteration] + 1
         else:
-            raise(SMCException("Trying to increment uninitialized result list index."))
+            raise(SALMAException("Trying to increment uninitialized result list index."))
     
            
     def getCurrentResultListIndex(self, iteration):

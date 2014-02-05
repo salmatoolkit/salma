@@ -1,6 +1,6 @@
 from argparse import _ActionsContainer
 import random
-from salma.SMCException import SMCException
+from salma.SALMAException import SALMAException
 from salma.model.core import Action, Entity
 from salma.model.distributions import Distribution, ArgumentIdentityDistribution, UniformDistribution, NormalDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
@@ -133,7 +133,7 @@ class RandomActionOutcome(object):
         :rtype: RandomActionOutcome
         """
         if self.__stochastic_action is None:
-            raise SMCException("No stochastic action defined for outcome {}.".format(self.action_name))
+            raise SALMAException("No stochastic action defined for outcome {}.".format(self.action_name))
         i1 = self.stochastic_action.get_parameter_index(stochastic_action_param)
         i2 = self.outcome_action.get_parameter_index(outcome_param)
         param_sort = self.outcome_action.parameters[i2][1]
@@ -289,14 +289,14 @@ class StochasticAction(Action):
     def outcome(self, action_name):
         """
         Returns the outcome for the given action name.
-        :raises SMCException if no outcome is registered with the given action name.
+        :raises SALMAException if no outcome is registered with the given action name.
         :type action_name: str
         :rtype: RandomActionOutcome
         """
         try:
             return self.__outcomes[action_name]
         except KeyError:
-            raise SMCException(
+            raise SALMAException(
                 "No outcome with action name {} has been declared for stochastic action {}.".format(
                     action_name, self.name)
             )
@@ -415,7 +415,7 @@ class Stepwise(OutcomeSelectionStrategy):
         try:
             return self.__probabilities[action_name]
         except KeyError:
-            raise SMCException("No probability specified for action {}.".format(action_name))
+            raise SALMAException("No probability specified for action {}.".format(action_name))
 
     def select_outcome(self, evaluation_context, param_values):
         r = random.uniform(0, 1)
@@ -424,7 +424,7 @@ class Stepwise(OutcomeSelectionStrategy):
             if (r >= start) and (r < start + probability):
                 return self.action.outcome(action)
             start += probability
-        raise (SMCException("No outcome could be selected, r = {}, probabilities = {}".format(r, self.__probabilities)))
+        raise (SALMAException("No outcome could be selected, r = {}, probabilities = {}".format(r, self.__probabilities)))
 
     def check(self, action_dict):
         """
@@ -503,7 +503,7 @@ class ExogenousAction(object):
     def get_entity_parameter_index(self, parameter_name):
         """
         Returns the index (i.e. position) of the parameter with the given name.
-        :raises SMCException: if no parameter with the given name exists.
+        :raises SALMAException: if no parameter with the given name exists.
         :param parameter_name: the name of the parameter
         :type parameter_name: str
         :rtype: int
@@ -512,13 +512,13 @@ class ExogenousAction(object):
             i = self.__entity_param_indices[parameter_name]
             return i
         except KeyError:
-            raise SMCException(
+            raise SALMAException(
                 "Unknown entity parameter {} for exogenous action {}.".format(parameter_name, self.__action_name))
 
     def get_entity_parameter_type(self, parameter_name):
         """
         Returns the type of the parameter with the given name.
-        :raises SMCException: if no parameter with the given name exists.
+        :raises SALMAException: if no parameter with the given name exists.
         :type parameter_name: str
         :rtype: str
         """
@@ -528,7 +528,7 @@ class ExogenousAction(object):
     def get_stochastic_parameter_index(self, parameter_name):
         """
         Returns the index (i.e. position) of the parameter with the given name.
-        :raises SMCException: if no parameter with the given name exists.
+        :raises SALMAException: if no parameter with the given name exists.
         :param parameter_name: the name of the parameter
         :type parameter_name: str
         :rtype: int
@@ -537,13 +537,13 @@ class ExogenousAction(object):
             i = self.__stochastic_param_indices[parameter_name]
             return i
         except KeyError:
-            raise SMCException(
+            raise SALMAException(
                 "Unknown stochastic parameter {} for exogenous action {}.".format(parameter_name, self.__action_name))
 
     def get_stochastic_parameter_type(self, parameter_name):
         """
         Returns the type of the parameter with the given name.
-        :raises SMCException: if no parameter with the given name exists.
+        :raises SALMAException: if no parameter with the given name exists.
         :type parameter_name: str
         :rtype: str
         """
@@ -628,7 +628,7 @@ class ExogenousActionConfiguration:
     def check(self):
         problems = []
         if self.__exogenous_action.config is not self:
-            raise SMCException(
+            raise SALMAException(
                 "Inconsistent exogenous action configuration: config of exogenous action {} points to different ExogenousActionConfig.",
                 self.__exogenous_action.action_name
             )

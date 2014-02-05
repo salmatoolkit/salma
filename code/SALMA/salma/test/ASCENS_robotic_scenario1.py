@@ -10,7 +10,7 @@ import time
 import unittest
 import io
 
-from salma import SMCException
+from salma import SALMAException
 from salma.engine import EclipseCLPEngine, Engine
 from salma.model.core import Fluent, DeterministicAction, \
     ExogenousAction, RandomActionOutcome, UniformStochasticAction, \
@@ -92,7 +92,7 @@ class RoboticScenario(unittest.TestCase):
         try:
             World.set_logic_engine(EclipseCLPEngine("../test/ASCENS_robotic_scenario/ASCENS_robotic_domain.ecl",
                                                   "../test/ASCENS_robotic_scenario/ASCENS_robotic_scenario_01.ecl"))
-        except SMCException as e:
+        except SALMAException as e:
             print(e)
             raise
         RoboticScenario.logger = logging.getLogger('agamemnon-smc')

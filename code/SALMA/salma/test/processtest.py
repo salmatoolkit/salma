@@ -2,7 +2,7 @@ import logging
 import unittest
 from salma.model.world import World
 from salma.engine import EclipseCLPEngine
-from salma import SMCException
+from salma import SALMAException
 from salma.model.core import Entity
 from salma.model.distributions import Distribution, BernoulliDistribution
 

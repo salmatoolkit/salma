@@ -6,7 +6,7 @@ from salma.test.emobility.visualizer import Visualizer
 import unittest
 from salma.model.world import World
 from salma.engine import EclipseCLPEngine
-from salma import SMCException
+from salma import SALMAException
 import logging
 import salma
 import os
@@ -35,7 +35,7 @@ class EMobilityTest(unittest.TestCase):
 
         try:
             World.set_logic_engine(EclipseCLPEngine("../../../ecl-test/e-mobility/e-mobility-domain.ecl"))
-        except SMCException as e:
+        except SALMAException as e:
             print(e)
             raise
         logger = logging.getLogger('salma')

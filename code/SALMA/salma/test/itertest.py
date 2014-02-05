@@ -16,8 +16,10 @@ def makeGreeter(name):
         print(__msg + " here is " + my_name)
     return __greeter
 
-for x in genTest(-5):
+for x in genTest(5):
     print("{} - {}".format(x[0],x[1]))
-
-g = makeGreeter("Mary")
-g("Pete")
+l = genTest(6)
+print(l.__next__())
+print(l.__next__())
+# g = makeGreeter("Mary")
+# g("Pete")
