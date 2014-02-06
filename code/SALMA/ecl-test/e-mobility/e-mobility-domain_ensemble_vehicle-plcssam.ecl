@@ -48,14 +48,16 @@ doc(set_plcssam_vehicle_reservationResponse : primitive_action, [
 	the PLCS has chosen from the received set of alternatives."
 	]).
 poss(set_plcssam_vehicle_reservationResponse(_,_,_,_,_), _) :- true.
-	
+immediate_action(set_plcssam_vehicle_reservationResponse).	
+
 primitive_action(remove_all_plcssam_vehicle_reservationRequests, [sam:plcssam]).
 poss(remove_all_plcssam_vehicle_reservationRequests(_),_) :- true.
-
+immediate_action(remove_all_plcssam_vehicle_reservationRequests).
 
 primitive_action(remove_all_vehicle_plcssam_reservationResponses,
 	[veh:vehicle, sam:plcssam]).
 poss(remove_all_vehicle_plcssam_reservationResponses(_, _), _) :- true.
+immediate_action(remove_all_vehicle_plcssam_reservationResponses).
 
 primitive_action(start_exchange_PLCSSAM_Vehicle, [veh:vehicle, sam:plcssam]).
 poss(start_exchange_PLCSSAM_Vehicle(_,_), _) :- true.

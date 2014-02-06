@@ -2,7 +2,7 @@ from .core import Entity
 from .procedure import ProcedureRegistry, Procedure
 from salma.SALMAException import SALMAException
 from .evaluationcontext import EvaluationContext
-from salma.model import  process
+from salma.model import process
 from salma.model.process import OneShotProcess
 
 

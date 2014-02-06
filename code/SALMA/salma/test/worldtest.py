@@ -27,7 +27,6 @@ def printValue(value):
 
 
 class MySelectionStrategy(OutcomeSelectionStrategy):
-
     def __init__(self):
         super().__init__()
 
@@ -45,7 +44,6 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
 
 
 class WorldTest(BaseWorldTest):
-
     @withHeader
     def testWorldStepExplicit(self):
         world = World.instance()
@@ -265,25 +263,25 @@ class WorldTest(BaseWorldTest):
     def test_evaluate_python_function(self):
         world = World.instance()
 
-        def myfunc1(x,y):
-            return x*y
+        def myfunc1(x, y):
+            return x * y
 
         def myfunc2(a, b, **ctx):
-            return a*b*ctx["x"]*ctx["xpos"]("rob1")
+            return a * b * ctx["x"] * ctx["xpos"]("rob1")
 
         def myfunc3(a, b, x=None, xpos=None, ypos=None, **ctx):
             return a * b * x * xpos("rob1") * ypos("rob1")
 
         seq = Sequence([
             VariableAssignment("x", EvaluationContext.PYTHON_FUNCTION,
-                               lambda i : i**2, [3]),
+                               lambda i: i ** 2, [3]),
             VariableAssignment("y", EvaluationContext.PYTHON_FUNCTION,
-                               myfunc1, [4,6]),
+                               myfunc1, [4, 6]),
             VariableAssignment("z", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                myfunc2, [-1, 2]),
             VariableAssignment("z2", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                myfunc3, [-1, 2])
-            ])
+        ])
 
         agent = Agent("rob1", "robot", Procedure("main", [], seq))
         world.addAgent(agent)
@@ -296,8 +294,8 @@ class WorldTest(BaseWorldTest):
 
         self.assertEqual(agent.evaluation_context.resolve(Variable("x"))[0], 9)
         self.assertEqual(agent.evaluation_context.resolve(Variable("y"))[0], 24)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], -1*2*9*10)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], -1*2*9*10*15)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], -1 * 2 * 9 * 10)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], -1 * 2 * 9 * 10 * 15)
 
     @withHeader
     def testRandomizeFluents(self):
@@ -521,7 +519,7 @@ class WorldTest(BaseWorldTest):
         return agent1, agent2, grabMap
 
     @withHeader
-    def testSelectAll(self):
+    def testSelectAll_Fluent(self):
         world = World.instance()
         agent1, agent2, grabMap = self.setupSelectionContext()
         res1 = agent1.evaluation_context.selectAll(EvaluationContext.FLUENT, "carrying",
@@ -551,6 +549,24 @@ class WorldTest(BaseWorldTest):
         self.assertSetEqual(handledAgents, set(['rob1', 'rob2']))
 
         print(res2)
+
+    @withHeader
+    def testSelectAll_Python(self):
+        world = World.instance()
+        agent1, agent2, grabMap = self.setupSelectionContext()
+
+        l = [1, 2, 3, 4]
+        res1 = agent1.evaluation_context.selectAll(EvaluationContext.ITERATOR, l,
+                                                   ("i", "integer"))
+        for r, i in zip(res1, l):
+            self.assertEqual(i, r["i"])
+        l2 = [("rob1", 1), ("rob2", 2), ("item1", 3)]
+        res2 = agent1.evaluation_context.selectAll(EvaluationContext.ITERATOR, l2,
+                                                   ("o", "object"), ("i", "integer"))
+        for r, e in zip(res2, l2):
+            self.assertIsInstance(r["o"], Entity)
+            self.assertEqual(e[0], r["o"].id)
+            self.assertEqual(e[1], r["i"])
 
     @withHeader
     def testSelectFirst(self):
@@ -848,9 +864,11 @@ def suite():
     s.addTest(WorldTest('test_recursive_procedure_call'))
     return s
 
+
 def load_tests(loader, tests, pattern):
     print("load")
     return suite()
+
 
 if __name__ == '__main__':
     unittest.main()

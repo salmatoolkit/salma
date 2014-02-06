@@ -369,11 +369,7 @@ class EclipseCLPEngine(Engine):
             raise(SALMAException("Can't compile Eclipse CLP progression module (msg = {})".format(msg)))
         
         self.reset()
-        
-        # todo: load fluent and action description
-    
-    
-    
+
     def printToplevelGoals(self):    
         #v = pyclp.Var()
         goal = pyclp.Atom("print_toplevel_goals")
@@ -607,13 +603,11 @@ class EclipseCLPEngine(Engine):
             result, _ = pyclp.resume()
         if outstream != None:
             outstream.close()
-        
-        
+
         if result == pyclp.SUCCEED:
             return True
         else: 
             return False
-        
         
     def evaluateFunctionGoal(self, goalName, *goalParams, **kwargs):
         params = list(goalParams)
@@ -624,7 +618,6 @@ class EclipseCLPEngine(Engine):
         
         return rvar.value()
                
-          
     def evaluateRelationalGoal(self, situation, goalName, *goalParams):
         # TODO: implement
         pass    

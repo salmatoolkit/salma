@@ -8,6 +8,7 @@ import logging
 import random
 import datetime
 import time
+from numpy.core.tests.test_multiarray_assignment import _check_assignment
 import pyclp
 import salma.model.process as process
 from salma import constants
@@ -221,6 +222,7 @@ class World(Entity):
         for fluent in self.__fluents.values():
             self.__expressionContext[fluent.name] = self.__make_fluent_access_function(fluent.name)
 
+        #todo: include derived fluents in expression context
         def __fluentChangeClock(fluentName, *params):
             return self.getFluentChangeTime(fluentName, params)
 
@@ -1065,9 +1067,15 @@ class LocalEvaluationContext(EvaluationContext):
         return World.instance().getEntityById(entityId)
 
     def __select_free_variables(self, params):
+        """
+        :param list params: the parameters
+        :rtype: list[(str,str)]
+        """
+        vars = []
         for p in params:
-            if isinstance(p, tuple) and len(p) == 2:
-
+            if isinstance(p, tuple) and len(p) == 2 and isinstance(p[0], str) and isinstance(p[1], str):
+                vars.append(p)
+        return vars
 
     def selectAll(self, source_type, source, *params):
         """
@@ -1082,6 +1090,10 @@ class LocalEvaluationContext(EvaluationContext):
 
         resolved_params = self.resolve(*params)  # the free variables tuples are ignored by resolve()
 
+        free_vars = self.__select_free_variables(params)
+        if len(free_vars) == 0:
+            raise SALMAException("No iterator variable specified in selectAll.")
+
         sit = 's0' if source_type in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
         result_list = []
 
@@ -1093,29 +1105,43 @@ class LocalEvaluationContext(EvaluationContext):
             result_list = self.evaluate_python(source_type, source, *resolved_params)
         elif source_type == EvaluationContext.ITERATOR:
             # Here we just use a python object that supports the iterator protocol
-            if not "__iter__" in source.__dir__():
+            if isinstance(source, Variable):
+                result_list = self.resolve(source)
+            else:
+                result_list = source
+            if not "__iter__" in result_list.__dir__():
                 raise SALMAException("Trying to use non-iterator in Iterate statement: {} ".format(str(source)))
-            result_list = source
         else:
             raise SALMAException("Unsupported source type for Iterate statement: {}".format(source_type))
 
         refined_result = []
 
-        #: :type valueCombination: dict
-        for valueCombination in result_list:
-            refined_entry = dict()
-            if isinstance(valueCombination, dict):
-                for name, value in valueCombination.items():
-                    #TODO: handle params with interval domains?
-                    if isinstance(value, str):
-                        refined_entry[name] = self.getEntity(value)
-                    else:
-                        refined_entry[name] = value
+        #: :type result_entry: dict
+
+        for result_entry in result_list:
+            assignment = None
+            refined_assignment = dict()
+            if isinstance(result_entry, dict):
+                assignment = result_entry
             else:
-                # The iterator is just a list or set. Assume that the parameters contain exactly one free variable.
+                if len(free_vars) == 1:
+                    assignment = dict({free_vars[0][0]: result_entry})
+                else:
+                    if (not isinstance(result_entry, (list, tuple)) or
+                                len(free_vars) != len(result_entry)):
+                        raise SALMAException("Number of free variables in iterator doesn't match element structure.")
+                    assignment = dict()
+                    for fv, value in zip(free_vars, result_entry):
+                        assignment[fv[0]] = value
 
+            for name, value in assignment.items():
+                #TODO: handle params with interval domains?
+                if isinstance(value, str):
+                    refined_assignment[name] = self.getEntity(value)
+                else:
+                    refined_assignment[name] = value
 
-            refined_result.append(refined_entry)
+            refined_result.append(refined_assignment)
 
         return refined_result
 

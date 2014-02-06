@@ -21,21 +21,26 @@ fluent(plcs_vehicle_reservationResponses, [p:plcs, veh:vehicle], list).
 primitive_action(requestReservation, 
 	[veh:vehicle, p:plcs, startTime:integer, plannedDuration:integer]).
 poss(requestReservation(_,_,_,_),_) :- true.
+immediate_action(requestReservation).
 
 primitive_action(remove_plcs_vehicle_reservationRequests, [p:plcs]).
 poss(remove_plcs_vehicle_reservationRequests(_),_) :- true.
+immediate_action(remove_plcs_vehicle_reservationRequests).
 
 primitive_action(set_plcs_vehicle_reservationResponse, 
 	[p:plcs, veh:vehicle, startTime:integer, plannedDuration:integer, 
 	ack:boolean]).
 poss(set_plcs_vehicle_reservationResponse(_,_,_,_,_),_) :- true.
-	
+immediate_action(set_plcs_vehicle_reservationResponse).
+
 primitive_action(remove_vehicle_plcs_reservationResponses, 
 	[veh:vehicle]).
 poss(remove_vehicle_plcs_reservationResponses(_),_) :- true.	
+immediate_action(remove_vehicle_plcs_reservationResponses).
 	
 primitive_action(start_exchange_PLCS_Vehicle, [veh:vehicle, p:plcs]).
 poss(start_exchange_PLCS_Vehicle(_,_),_) :- true.
+
 
 fluent(ongoing_exchange_PLCS_Vehicle, [veh:vehicle, p:plcs], boolean).
 exogenous_action(exchange_PLCS_Vehicle, [veh:vehicle, p:plcs],[]).

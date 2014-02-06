@@ -2,7 +2,7 @@ from numpy.distutils.system_info import agg2_info
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import Procedure, Sequence, VariableAssignment, ActionExecution, Variable
+from salma.model.procedure import Procedure, Sequence, VariableAssignment, ActionExecution, Variable, Iterate
 from salma.model.process import TriggeredProcess
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
@@ -20,6 +20,7 @@ import networkx as nx
 import pyclp
 from salma.test.emobility.emobility_test import EMobilityTest
 import salma.test.emobility.utils as utils
+
 
 def create_navigation_functions(world_map, mt):
     def possible_target_chooser(agent=None, currentTargetPOI=None, **ctx):
@@ -46,24 +47,34 @@ def create_navigation_functions(world_map, mt):
     return possible_target_chooser, route_finder
 
 
-
-
-
-
-
-
-
 def create_plcssam_functions(world_map, mt):
     def process_requests_plcs(agent=None, plcssam_vehicle_reservationRequests=None, **ctx):
-        #: :type: list of (str, str, list of str, int, int)
+        """
+        :type agent: salma.model.agent.Agent
+        :type plcssam_vehicle_reservationRequests: str -> list
+        :rtype: list[(str,str)]
+        """
+        #: :type : EvaluationContext
+        ec = agent.evaluation_context
+
+        #: :type: list[(str, str, list of str, int, int)]
         requests = plcssam_vehicle_reservationRequests(agent.id)
         # format: rreq(Vehicle, Alternatives, StartTime, PlannedDuration)
         schedule = []
         assignment = dict()
         for r in requests:
+            schedule.append((r[1], r[2]))
+        success = utils.choose_alternative(schedule, assignment)
+        if not success:
+            return []
+        result = []
+        for vehicle, plcs in assignment.items():
+            result.append((vehicle, plcs))
 
+        #todo: establish communication between SAM and PLCs to check availability
+        return result
 
-
+    return process_requests_plcs
 
 
 class EMobilityScenario3(EMobilityTest):
@@ -110,20 +121,28 @@ class EMobilityScenario3(EMobilityTest):
             p3 = TriggeredProcess(p_set_target, EvaluationContext.PYTHON_EXPRESSION,
                                   "len(vehicle_plcssam_reservationResponses(self)) > 0", [])
 
-
-
-
-
             vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3])
             world.addAgent(vehicle)
 
-    def create_plcssam(self):
+    def create_plcssam(self, world, world_map, mt):
+        request_processor = create_plcssam_functions(world_map, mt)
+
         p_select_plcs = Procedure("main", [],
                                   Sequence([
+                                      VariableAssignment("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                                         request_processor, []),
+                                      Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
+                                              [("v", "vehicle"), ("p", "plcs")],
+                                              ActionExecution("set_plcssam_vehicle_reservationResponse",
+                                                              [Entity.SELF, Variable("v"), 0, 0, Variable("p")])
+                                      ),
+                                      ActionExecution("remove_all_plcssam_vehicle_reservationRequests",
+                                                      [Entity.SELF])
+                                  ]))
+        sam = Agent("sam1", "plcssam", [p_select_plcs])
+        world.addAgent(sam)
 
-                                  ])
-
-
+    #todo: create ensemble agent
     def test_scenario3(self):
         world = World.instance()
 
@@ -131,6 +150,7 @@ class EMobilityScenario3(EMobilityTest):
         world_map = mgen.load_from_graphml("../../../testdata/test1.graphml")
 
         mt = MapTranslator(world_map, world)
+        self.create_plcssam(world, world_map, mt)
         self.create_vehicles(world, world_map, mt)
         self.init_map_and_defaults(world, world_map, mt)
 
