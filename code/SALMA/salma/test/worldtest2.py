@@ -29,8 +29,9 @@ class WorldTest2(unittest.TestCase):
     P_COLLISION = 0.9
     P_DROP = 0.02
     TIME_LIMIT = 20
-    SAMPLE_LENGTH = 10
+    SAMPLE_LENGTH = 20
     SAMPLES = 10
+    ESTIMATION_TOLERANCE = 0.03
 
     @classmethod
     def setUpClass(cls):
@@ -127,12 +128,17 @@ forall([r,robot],
             res = world.runRepetitions(WorldTest2.SAMPLE_LENGTH)
             num = sum(res)
             successes.append(num)
-            print("Run #{}: {}".format(i, num))
+            print("Run #{}: {}".format(i+1, num))
 
 
         print("Successes:")
         print(successes)
+        estimated_prob = sum(successes) / (WorldTest2.SAMPLES * WorldTest2.SAMPLE_LENGTH)
 
+        real_prob = ((1.0 - WorldTest2.P_DROP)**10)**2
+        print("estimated probability: {}".format(estimated_prob))
+        print("real probability: {}".format(real_prob))
+        self.assertAlmostEqual(real_prob, estimated_prob, delta=WorldTest2.ESTIMATION_TOLERANCE)
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

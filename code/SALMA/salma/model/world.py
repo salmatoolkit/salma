@@ -782,7 +782,7 @@ class World(Entity):
         """
         Runs the experiment that has been set up until a verdict can be determined or the world has finished.
         :return: (verdict, dict(steps, toplevel_results, scheduled_results, failedRegularActions))
-        :rtype: tuple
+        :rtype: (int, dict[str, object])
         """
         step_num = 0
         verdict = NONDET
@@ -859,7 +859,7 @@ class World(Entity):
             res = self.runExperiment()
             verdict = res[0] == constants.OK
             results.append(verdict)
-            print("Experiment #{} --> {}".format(i + 1, verdict))
+            moduleLogger.info("Experiment #{} --> {}, {} steps".format(i + 1, verdict, res[1]["steps"]))
 
         self.reset()
         World.logic_engine().restoreState(currentState)
