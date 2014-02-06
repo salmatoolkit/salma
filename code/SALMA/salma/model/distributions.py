@@ -27,7 +27,9 @@ class Distribution(object):
         :param paramValues: list 
         '''
         raise NotImplementedError()
-    
+
+    def describe(self):
+        raise NotImplementedError()
 
 class UniformDistribution(Distribution):
     def __init__(self, sort, value_range = None):
@@ -75,6 +77,9 @@ class BernoulliDistribution(Distribution):
     def generateSample(self, evaluationContext, paramValues):
         r = random.uniform(0,1)
         return r <= self.__probability
+
+    def describe(self):
+        return "Bernoulli({})".format(self.__probability)
 
 
 class NormalDistribution(Distribution):

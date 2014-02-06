@@ -696,7 +696,7 @@ class World(Entity):
                         ea_instances.append(instance)
         return ea_instances
 
-    def step(self):
+    def step(self, evaluate_properties=True):
         """
         Performs one discrete time step for all agents and runs the progression.
 
@@ -704,7 +704,7 @@ class World(Entity):
         :rtype: tuple
         """
         actions = []  # list of tuples: (action_execution, params)
-
+        all_actions = []
         # gather actions
 
         # A set that keeps track of all processes that have been entered already in this step.
@@ -740,13 +740,14 @@ class World(Entity):
                         # leave loop only if we don't have any immediate actions left
             if len(immediate_actions) == 0:
                 break
-            new_step = False
             random.shuffle(immediate_actions)
             failed_actions = World.logic_engine().progress(immediate_actions)
+            all_actions.extend(immediate_actions)
+
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug("Progressed immediately: %s", immediate_actions)
             if len(failed_actions) > 0:
-                return self.__finished, NOT_OK, {}, {}, immediate_actions, failed_actions
+                return self.__finished, NOT_OK, {}, {}, all_actions, failed_actions
 
         ex_act_instances = self.get_exogenous_action_instances()
 
@@ -760,6 +761,7 @@ class World(Entity):
             # shuffle actions as means for achieving fairness
             random.shuffle(actions)
             failed_actions = World.logic_engine().progress(actions)
+            all_actions.extend(actions)
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug("Progressed: %s", actions)
 
@@ -768,64 +770,72 @@ class World(Entity):
                                       failed_actions))
 
         if len(failed_regular_actions) > 0:
-            return self.__finished, NOT_OK, {}, {}, actions, failed_regular_actions
+            return self.__finished, NOT_OK, {}, {}, all_actions, failed_regular_actions
 
-        overall_verdict, toplevel_results, scheduled_results = World.logic_engine().evaluationStep()
+        overall_verdict, toplevel_results, scheduled_results = (
+            World.logic_engine().evaluationStep() if evaluate_properties else (NONDET, [], []))
+
         World.logic_engine().progress([('tick', [])])
         # it's ok if events fail but if regular actions fail, we're in trouble!
 
         # TODO: distinguish between actions that take time and actions that don't
         # execute all non-time actions before taking a time step
-        return self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
+        return self.__finished, overall_verdict, toplevel_results, scheduled_results, all_actions, []
 
-    def runExperiment(self):
+    def runExperiment(self, check_verdict=True, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
         """
-        Runs the experiment that has been set up until a verdict can be determined or the world has finished.
-        :return: (verdict, dict(steps, toplevel_results, scheduled_results, failedRegularActions))
+        Runs the experiment that has been set up until a) a conclusive verdict can be determined,
+        b) the world has finished, c) the given step or time maximum is reached, or d) at least one of
+        the given step listener functions returns False.
+
+        If check_verdict is False then the registered properties are not evaluated and the verdict remains NONDET.
+
+        :param bool check_verdict: whether properties are evaluated. default=True
+        :param int maxSteps: maximum number of steps
+        :param float maxRealTime: maximum real time
+        :param int maxWorldTime: maximum world time
+        :param list stepListeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
         :rtype: (int, dict[str, object])
         """
         step_num = 0
         verdict = NONDET
         toplevel_results = scheduled_results = failedRegularActions = []
-        while (not self.is_finished()) and (verdict == NONDET):
-            (_, verdict, toplevel_results, scheduled_results, _, failedRegularActions) = self.step()
-            step_num += 1
-        return (verdict,
-                {'steps': step_num,
-                 'toplevel_results': toplevel_results,
-                 'scheduled_results': scheduled_results,
-                 'failedActions': failedRegularActions
-                })
-
-    def runUntilFinished(self, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
-        """
-        Repeatedly runs World.step() until either the world's finished flag becomes true or
-        either the step or time limit is reached.
-
-        :param maxSteps: int
-        :param maxRealTime: datetime.timedelta
-        """
-        step_num = 0
-        verdict = NONDET
-        toplevel_results = scheduled_results = failedRegularActions = []
         c1 = c2 = time.clock()
-        while not self.is_finished():
-            (_, verdict, toplevel_results, scheduled_results, _, failedRegularActions) = self.step()
-
+        finish_reason = None
+        while (not self.is_finished()) and (not check_verdict or verdict == NONDET):
+            #self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
+            (_, verdict, toplevel_results, scheduled_results, actions, failedRegularActions) = self.step(
+                evaluate_properties=check_verdict)
             c2 = time.clock()
             step_num += 1
             deltaT = c2 - c1
+            should_continue = True
+            break_reason = None
             for sl in stepListeners:
-                sl(self, step_num, deltaT)
+                continue_from_listener, break_reason_from_listener = sl(self, step_num, deltaT, actions, toplevel_results)
+                should_continue &= continue_from_listener
+                if break_reason is None and not continue_from_listener:
+                    break_reason = break_reason_from_listener
 
+            if not should_continue:
+                finish_reason = break_reason
+                break
             if maxSteps != None and step_num >= maxSteps:
+                finish_reason = "max_steps"
                 break
             if maxRealTime != None and datetime.timedelta(seconds=deltaT) >= maxRealTime:
+                finish_reason = "max_real_time"
                 break
             if maxWorldTime != None:
                 t = self.getFluentValue('time', [])
                 if t >= maxWorldTime:
+                    finish_reason = "max_world_time"
                     break
+        if finish_reason is None:
+            if verdict != NONDET:
+                finish_reason = "verdict_found"
+            elif self.is_finished():
+                finish_reason = "world_finished"
 
         duration = datetime.timedelta(seconds=c2 - c1)
         worldTime = self.getFluentValue('time', [])
@@ -835,9 +845,26 @@ class World(Entity):
                  'worldTime': worldTime,
                  'toplevel_results': toplevel_results,
                  'scheduled_results': scheduled_results,
-                 'failedActions': failedRegularActions
+                 'failedActions': failedRegularActions,
+                 "finish_reason": finish_reason
                 }
         )
+
+    def runUntilFinished(self, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
+        """
+        Repeatedly runs World.step() until either the world's finished flag becomes true or
+        either the step or time limit is reached. The properties are not evaluated.
+
+        :param int maxSteps: maximum number of steps
+        :param float maxRealTime: maximum real time
+        :param int maxWorldTime: maximum world time
+        :param list stepListeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
+        :rtype: (int, dict[str, object])
+        """
+        verdict, results = self.runExperiment(check_verdict=False, maxSteps=maxSteps, maxRealTime=maxRealTime,
+                                  maxWorldTime=maxWorldTime, stepListeners=stepListeners)
+        verdict = OK if self.is_finished() else NOT_OK
+        return verdict, results
 
     def reset(self):
         World.logic_engine().reset(False, False)  # don't remove formulas!
@@ -900,6 +927,16 @@ class World(Entity):
         state = World.logic_engine().getCurrentState()
         for f in state:
             print(f)
+
+    def describe_actions(self):
+        actions = self.getAllActions()
+        action_descriptions = []
+        for a in actions:
+            action_descriptions.append(a.describe())
+        exoactions = self.get_exogenous_actions()
+        for ea in exoactions:
+            action_descriptions.append(ea.describe())
+        return "\n".join(action_descriptions)
 
     def registerProperty(self, propertyName, formula):
         '''

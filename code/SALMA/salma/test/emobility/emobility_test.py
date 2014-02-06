@@ -91,49 +91,69 @@ class EMobilityTest(unittest.TestCase):
 
             world.setFluentValue("vehicle_plcs_reservationResponses", [vehicle.id], [])
 
-    def run_until_all_targets_reached(self, world, world_map, step_limit, visualize=True):
+    def record_step(self, world, step_num, deltaT, actions, toplevel_results):
+        """
+
+        :param World world: the world
+        :param int step_num: the step number
+        :param float deltaT: the duration
+        :param list[Action] actions: the performed actions
+        :param lis toplevel_results: the toplevel results
+        :rtype: (bool, str)
+        """
+        print("Step {}".format(step_num))
         vehicles = world.getDomain("vehicle")
+        all_finished = True
+        for vehicle in vehicles:
+            pos = world.getFluentValue("vehiclePosition", [vehicle.id])
+            route = world.getFluentValue("currentRoute", [vehicle.id])
+            target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
+            print("{}: {} - {} - {}".format(vehicle.id,
+                                       pos, route, target))
+            if target == "none" or pos[1] != pos[2] or pos[1] != target:
+                all_finished = False
 
-        vis = Visualizer(world_map, world)
-        i = 0
+        #imagefiles.append(imagefilename)
 
-        all_finished = False
-        outdir = datetime.now().strftime("../../../imgout/%Y%m%d_%H-%M-%S")
-        os.makedirs(outdir)
-        fig = plt.figure("emobility")
-        imagefiles = []
-        while not all_finished and i < step_limit - 1:
-            print("Step {}".format(i))
-            all_finished = True
-            for vehicle in vehicles:
-                pos = world.getFluentValue("vehiclePosition", [vehicle.id])
-                route =  world.getFluentValue("currentRoute", [vehicle.id])
-                target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
-                print("{}: {} - {} - {}".format(vehicle.id,
-                                           pos, route, target))
-                if target == "none" or pos[1] != pos[2] or pos[1] != target:
-                    all_finished = False
-            imagefilename = "step_{:04}.png".format(i)
-            imagefiles.append(imagefilename)
-            path = os.path.join(outdir, imagefilename)
-            if visualize:
-                fig.clf()
-                vis.visualize_map(fig)
-                fig.savefig(path, dpi=200)
-            world.step()
-            i += 1
+        if self.__visualizer is not None:
+            imagefilename = "step_{:04}.png".format(step_num)
+            path = os.path.join(self.__outdir, imagefilename)
+            self.__fig.clf()
+            self.__visualizer.visualize_map(self.__fig)
+            self.__fig.savefig(path, dpi=200)
 
-        with open(os.path.join(outdir, "poster.tex"), mode="w") as f:
-            f.write(EMobilityTest.POSTER_PREFIX)
-            for i, filename in enumerate(imagefiles):
-                f.write("\\includegraphics[width=4cm]{%s}\n" % filename)
-                if i % 4 == 0:
-                    f.write("\\\\\n")
-                else:
-                    f.write("&\n")
-            for i in range(4 - (len(imagefiles) % 4)):
-                f.write("&\n")
-            f.write(EMobilityTest.POSTER_SUFFIX)
+    def run_until_all_targets_reached(self, world, world_map, step_limit, visualize=True):
+        """
+        Runs the simulation until all targets have been reached.
+
+        :param World world: the world
+        :param world_map:
+        :param step_limit:
+        :param visualize:
+        :return:
+        """
+        if visualize:
+            self.__fig = plt.figure("emobility")
+            self.__visualizer = Visualizer(world_map, world)
+        else:
+            self.__fig = None
+            self.__visualizer = None
+        self.__outdir = datetime.now().strftime("../../../imgout/%Y%m%d_%H-%M-%S")
+        os.makedirs(self.__outdir)
+        world.runUntilFinished(maxSteps=step_limit, stepListeners=[self.record_step])
+
+
+        # with open(os.path.join(outdir, "poster.tex"), mode="w") as f:
+        #     f.write(EMobilityTest.POSTER_PREFIX)
+        #     for i, filename in enumerate(imagefiles):
+        #         f.write("\\includegraphics[width=4cm]{%s}\n" % filename)
+        #         if i % 4 == 0:
+        #             f.write("\\\\\n")
+        #         else:
+        #             f.write("&\n")
+        #     for i in range(4 - (len(imagefiles) % 4)):
+        #         f.write("&\n")
+        #     f.write(EMobilityTest.POSTER_SUFFIX)
 
 if __name__ == '__main__':
     unittest.main()

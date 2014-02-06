@@ -2,7 +2,8 @@ from argparse import _ActionsContainer
 import random
 from salma.SALMAException import SALMAException
 from salma.model.core import Action, Entity
-from salma.model.distributions import Distribution, ArgumentIdentityDistribution, UniformDistribution, NormalDistribution, BernoulliDistribution
+from salma.model.distributions import Distribution, ArgumentIdentityDistribution, UniformDistribution, \
+    NormalDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
 
 
@@ -11,7 +12,10 @@ class DeterministicAction(Action):
         Action.__init__(self, name, parameters, immediate)
 
     def __str__(self):
-        return "DeterministicAction({},{})".format(self.name, self.parameters)
+        return "DeterministicAction: {}({})".format(self.name, self.parameters)
+
+    def describe(self):
+        return "DeterministicAction: {}({})".format(self.name, self.parameters)
 
 
 class RandomActionOutcome(object):
@@ -342,7 +346,16 @@ class StochasticAction(Action):
         return problems
 
     def __str__(self):
-        return "StochasticAction({},{})".format(self.name, self.parameters)
+        return "StochasticAction: {}({})".format(self.name, self.parameters)
+
+    def describe(self):
+        s = """
+StochasticAction: {name}({params})
+   Outcomes: {outcomes}
+   Selection Strategy: {sel_strat
+"""
+        return s.format(name=self.name, params=self.parameters, outcomes=self.outcomes,
+                        sel_strat=self.selection_strategy)
 
 
 class Deterministic(OutcomeSelectionStrategy):
@@ -424,7 +437,8 @@ class Stepwise(OutcomeSelectionStrategy):
             if (r >= start) and (r < start + probability):
                 return self.action.outcome(action)
             start += probability
-        raise (SALMAException("No outcome could be selected, r = {}, probabilities = {}".format(r, self.__probabilities)))
+        raise (
+            SALMAException("No outcome could be selected, r = {}, probabilities = {}".format(r, self.__probabilities)))
 
     def check(self, action_dict):
         """
@@ -587,7 +601,16 @@ class ExogenousAction(object):
         return self.__action_name, refined_args
 
     def __str__(self):
-        return "ExogenousAction({},{})".format(self.action_name, self.entity_params, self.stochastic_params)
+        return "ExogenousAction({},{}, {})".format(self.action_name, self.entity_params, self.stochastic_params)
+
+    def describe(self):
+        s = ("Exogenous action: {name}({entity_params}, {stochastic_params})\n"
+             "  Occurrence distribution: {occ_distrib}")
+
+        return s.format(name=self.action_name, entity_params=self.entity_params,
+                        stochastic_params=self.stochastic_params,
+                        occ_distrib=(
+                            self.config.occurrence_distribution.describe() if self.config.occurrence_distribution is not None else "None"))
 
 
 class ExogenousActionConfiguration:

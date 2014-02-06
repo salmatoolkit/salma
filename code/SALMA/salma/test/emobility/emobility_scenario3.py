@@ -44,7 +44,7 @@ def create_navigation_functions(world_map, mt):
         else:
             return None
 
-    return possible_target_chooser, route_finder
+    return possible_target_chooser, route_finder, response_selector
 
 
 def create_plcssam_functions(world_map, mt):
@@ -127,7 +127,7 @@ class EMobilityScenario3(EMobilityTest):
     def create_plcssam(self, world, world_map, mt):
         request_processor = create_plcssam_functions(world_map, mt)
 
-        p_select_plcs = Procedure("main", [],
+        p_process_requests = Procedure("main", [],
                                   Sequence([
                                       VariableAssignment("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                          request_processor, []),
@@ -139,8 +139,15 @@ class EMobilityScenario3(EMobilityTest):
                                       ActionExecution("remove_all_plcssam_vehicle_reservationRequests",
                                                       [Entity.SELF])
                                   ]))
-        sam = Agent("sam1", "plcssam", [p_select_plcs])
+
+        p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
+                              "len(plcssam_vehicle_reservationRequests(self)) > 0", [])
+
+        sam = Agent("sam1", "plcssam", [p1])
         world.addAgent(sam)
+
+
+
 
     #todo: create ensemble agent
     def test_scenario3(self):
@@ -191,8 +198,12 @@ class EMobilityScenario3(EMobilityTest):
         print("Uninitialized exogenous actions:")
         print(problematic_exogenous_actions)
         world.printState()
-        self.run_until_all_targets_reached(world, world_map, 200)
-
+        p1, p2 = world.check_action_initialization()
+        print(p1)
+        print(p2)
+        self.run_until_all_targets_reached(world, world_map, 20)
+        # ea = world.get_exogenous_action("exchange_PLCSSAM_Vehicle")
+        # print(world.describe_actions())
 
 if __name__ == '__main__':
     unittest.main()

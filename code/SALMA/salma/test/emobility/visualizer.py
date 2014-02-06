@@ -26,8 +26,6 @@ class Visualizer(object):
 
         self.limits = (max_x + 20, max_y + 20)
 
-
-
     def visualize_map(self, fig):
         """
         :type m: networkx.classes.graph.Graph
@@ -84,9 +82,6 @@ class Visualizer(object):
                 edge_colors.append("r")
             else:
                 edge_colors.append("k")
-
-
-
 
         #: :type : Axes
         ax = fig.gca()

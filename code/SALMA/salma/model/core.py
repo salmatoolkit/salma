@@ -244,3 +244,6 @@ class Action(object):
         :type is_immediate: bool
         """
         self.__immediate = is_immediate
+
+    def describe(self):
+        raise NotImplementedError()
