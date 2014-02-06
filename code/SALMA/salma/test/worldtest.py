@@ -599,7 +599,7 @@ class WorldTest(BaseWorldTest):
         print(res2)
 
     @withHeader
-    def testIterate(self):
+    def testIterate_fluent(self):
         world = World.instance()
         items = []
         for i in range(5):
@@ -610,6 +610,38 @@ class WorldTest(BaseWorldTest):
         seq1 = Sequence([
             Iterate(EvaluationContext.TRANSIENT_FLUENT, "canPaint",
                     [Entity.SELF, ("i", "item")],
+                    Sequence([
+                        ActionExecution("paint", [Entity.SELF, Variable("i")])
+                    ])
+
+            )
+        ])
+
+        agent = Agent("rob1", "robot", Procedure("main", [], seq1))
+        world.addAgent(agent)
+
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        for item in items:
+            world.setFluentValue("painted", [item.id], False)
+
+        world.runUntilFinished()
+        world.printState()
+        for item in items:
+            self.assertTrue(world.getFluentValue("painted", [item.id]))
+
+    @withHeader
+    def testIterate_python(self):
+        world = World.instance()
+        items = []
+        for i in range(5):
+            item = Entity("item{}".format(i), "item")
+            world.addEntity(item)
+            items.append(item)
+
+        seq1 = Sequence([
+            Iterate(EvaluationContext.ITERATOR, items,
+                    [("i", "item")],
                     Sequence([
                         ActionExecution("paint", [Entity.SELF, Variable("i")])
                     ])
