@@ -84,5 +84,5 @@ class MapTranslator(object):
                 loc_y = data["scaled_pos"][1]
                 distance = math.sqrt((x - loc_x)**2 + (y - loc_y)**2)
                 nodes_by_distance.append((loc, distance))
-        sorted_nodes = sorted(nodes_by_distance, lambda n : n[1])
-        return sorted_nodes[:k]
+        sorted_nodes = sorted(nodes_by_distance, key=lambda n: n[1])
+        return list(map(lambda n: n[0], sorted_nodes[:k]))

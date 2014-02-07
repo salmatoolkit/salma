@@ -1,9 +1,10 @@
 from numpy.distutils.system_info import agg2_info
 from salma.model.agent import Agent
 from salma.model.core import Entity
+from salma.model.distributions import BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Procedure, Sequence, VariableAssignment, ActionExecution, Variable, Iterate
-from salma.model.process import TriggeredProcess
+from salma.model.process import TriggeredProcess, PeriodicProcess
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
 from salma.test.emobility.visualizer import Visualizer
@@ -106,47 +107,47 @@ class EMobilityScenario3(EMobilityTest):
                                  Sequence([
                                      VariableAssignment("route", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                         route_finder, []),
-                                     ActionExecution("setRoute", [Entity.SELF, Variable("route")]),
-
+                                     ActionExecution("setRoute", [Entity.SELF, Variable("route")])
                                  ]))
 
+        p_comm_sam = Procedure("main", [],
+                               ActionExecution("start_exchange_PLCSSAM_Vehicle", [Entity.SELF, "sam1"]))
         for i in range(EMobilityScenario3.NUM_OF_VEHICLES):
             p1 = TriggeredProcess(p_request_plcs, EvaluationContext.PYTHON_EXPRESSION,
                                   "currentTargetPLCS(self) == 'none' and "
-                                  "len(vehicle_plcssam_reservationRequests(self)) == 0", [])
+                                  "len(vehicle_plcssam_reservationRequests(self,'sam1')) == 0", [])
 
             p2 = TriggeredProcess(p_find_route, EvaluationContext.PYTHON_EXPRESSION,
                                   "len(currentRoute(self)) == 0 and currentTargetPLCS(self) != 'none'", [])
 
             p3 = TriggeredProcess(p_set_target, EvaluationContext.PYTHON_EXPRESSION,
-                                  "len(vehicle_plcssam_reservationResponses(self)) > 0", [])
+                                  "len(vehicle_plcssam_reservationResponses(self,'sam1')) > 0", [])
 
-            vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3])
+            p4 = PeriodicProcess(p_comm_sam, 5)
+            vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3, p4])
             world.addAgent(vehicle)
 
     def create_plcssam(self, world, world_map, mt):
         request_processor = create_plcssam_functions(world_map, mt)
 
         p_process_requests = Procedure("main", [],
-                                  Sequence([
-                                      VariableAssignment("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                         request_processor, []),
-                                      Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
-                                              [("v", "vehicle"), ("p", "plcs")],
-                                              ActionExecution("set_plcssam_vehicle_reservationResponse",
-                                                              [Entity.SELF, Variable("v"), 0, 0, Variable("p")])
-                                      ),
-                                      ActionExecution("remove_all_plcssam_vehicle_reservationRequests",
-                                                      [Entity.SELF])
-                                  ]))
+                                       Sequence([
+                                           VariableAssignment("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                                              request_processor, []),
+                                           Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
+                                                   [("v", "vehicle"), ("p", "plcs")],
+                                                   ActionExecution("set_plcssam_vehicle_reservationResponse",
+                                                                   [Entity.SELF, Variable("v"), 0, 0, Variable("p")])
+                                           ),
+                                           ActionExecution("remove_all_plcssam_vehicle_reservationRequests",
+                                                           [Entity.SELF])
+                                       ]))
 
         p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
                               "len(plcssam_vehicle_reservationRequests(self)) > 0", [])
 
         sam = Agent("sam1", "plcssam", [p1])
         world.addAgent(sam)
-
-
 
 
     #todo: create ensemble agent
@@ -183,6 +184,9 @@ class EMobilityScenario3(EMobilityTest):
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
 
+        world.get_exogenous_action(
+            "exchange_PLCSSAM_Vehicle").config.occurrence_distribution = BernoulliDistribution(1.0)
+
         uninitialized_fluent_instances, uninitialized_constant_instances = world.check_fluent_initialization()
         print("-" * 80)
         print("Uninitialized Fluents:")
@@ -201,9 +205,10 @@ class EMobilityScenario3(EMobilityTest):
         p1, p2 = world.check_action_initialization()
         print(p1)
         print(p2)
-        self.run_until_all_targets_reached(world, world_map, 20)
+        self.run_until_all_targets_reached(world, world_map)
         # ea = world.get_exogenous_action("exchange_PLCSSAM_Vehicle")
         # print(world.describe_actions())
+
 
 if __name__ == '__main__':
     unittest.main()

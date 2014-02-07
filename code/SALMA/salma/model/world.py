@@ -1143,7 +1143,7 @@ class LocalEvaluationContext(EvaluationContext):
         elif source_type == EvaluationContext.ITERATOR:
             # Here we just use a python object that supports the iterator protocol
             if isinstance(source, Variable):
-                result_list = self.resolve(source)
+                result_list = self.resolve(source)[0]
             else:
                 result_list = source
             if not "__iter__" in result_list.__dir__():

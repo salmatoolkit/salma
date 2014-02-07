@@ -229,25 +229,29 @@ class Process(object):
 
         self.__current_control_node = current_node
         self.__current_evaluation_context = current_context
+        action = None
 
-        if self.__current_control_node is None:
-            self.__execution_count += 1
-            self.__last_end_time = self.agent.evaluation_context.getFluentValue('time')
-            self.__finish()
-            return None
-        else:
+        if self.__current_control_node is not None:
         # status == BLOCKED
             if isinstance(self.__current_control_node, ActionExecution):
                 self.__state = Process.EXECUTING_ACTION
                 action = self.__current_control_node
 
                 # set pointer to enclosing sequence if there is one
+                # otherwise set to None to finish process
                 if self.__current_control_node.parent is not None:
                     self.__current_control_node = self.__current_control_node.parent
-                return action  # return action
+                else:
+                    self.__current_control_node = None
             else:
                 self.__state = Process.BLOCKED
-                return None
+
+        if self.__current_control_node is None:
+            self.__execution_count += 1
+            self.__last_end_time = self.agent.evaluation_context.getFluentValue('time')
+            self.__finish()
+
+        return action
 
 
 class OneShotProcess(Process):
