@@ -300,6 +300,9 @@ class WorldTest(BaseWorldTest):
     @withHeader
     def testRandomizeFluents(self):
         world = World.instance()
+        world.addEntity(Entity("coffee", "item"))
+        world.addEntity(Entity("chocolate", "item"))
+
         world.getFluent("xpos")
 
         world.addAgent(self.create_right_moving_mobot('rob3'))
@@ -444,6 +447,9 @@ class WorldTest(BaseWorldTest):
     @withHeader
     def testGrabTwiceBySameAgentImpossible(self):
         world = World.instance()
+        world.addEntity(Entity("coffee", "item"))
+        world.addEntity(Entity("chocolate", "item"))
+
         seq1 = Sequence([
             ActionExecution("grab", [Entity.SELF, "coffee"]),
             ActionExecution("grab", [Entity.SELF, "coffee"])
@@ -778,6 +784,9 @@ class WorldTest(BaseWorldTest):
     @withHeader
     def testCreatePLan_OK_Unique(self):
         world = World.instance()
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+
         controlProc = Procedure("main", [],
                                 Sequence([
                                     Plan("transportToX",
@@ -806,6 +815,9 @@ class WorldTest(BaseWorldTest):
     @withHeader
     def testEnumerateFluentInstances(self):
         world = World.instance()
+        world.addEntity(Entity("coffee", "item"))
+        world.addEntity(Entity("chocolate", "item"))
+
         rob1 = Agent("rob1", "robot", Procedure("main", [], Sequence([])))
         world.addAgent(rob1)
         world.initialize(False)
@@ -825,6 +837,9 @@ class WorldTest(BaseWorldTest):
     @withHeader
     def testCheckFluentInitialization(self):
         world = World.instance()
+        world.addEntity(Entity("coffee", "item"))
+        world.addEntity(Entity("chocolate", "item"))
+
         rob1 = Agent("rob1", "robot", Procedure("main", [], Sequence([])))
         world.addAgent(rob1)
         world.initialize(False)

@@ -186,7 +186,7 @@ class World(Entity):
         :return: tuple with (problematic_stochastic_actions, problematic_exogenous_actions) where each is a list of
         tuples with (action, promblem_list)
 
-        :rtype: tuple
+        :rtype: (list[(StochasticAction, list)], list[(ExogenousAction, list)])
         """
         problematic_stochastic_actions = []
         problematic_exogenous_actions = []

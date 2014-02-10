@@ -3,6 +3,7 @@ from salma.SALMAException import SALMAException
 from salma.model.evaluationcontext import EvaluationContext
 from numbers import Real
 
+
 class Distribution(object):
     DEFAULT_MAX_VALUE = 1000
     DEFAULT_MIN_VALUE = 0
@@ -16,7 +17,7 @@ class Distribution(object):
     @property
     def sort(self):
         return self.__sort
-    
+
     @property
     def value_range(self):
         """
@@ -24,7 +25,7 @@ class Distribution(object):
         :rtype: (Real, Real)
         """
         return self.__value_range
-    
+
     def generateSample(self, evaluationContext, paramValues):
         """
         Generates a sample from this distribution.
@@ -43,9 +44,9 @@ class Distribution(object):
 
 
 class UniformDistribution(Distribution):
-    def __init__(self, sort, value_range = None):
+    def __init__(self, sort, value_range=None):
         Distribution.__init__(self, sort, value_range)
-         
+
     def generateSample(self, evaluationContext, paramValues):
         if self.sort == 'integer':
             return random.randint(*(self.value_range))
@@ -60,13 +61,17 @@ class UniformDistribution(Distribution):
             return sample
 
     def describe(self):
-        return "U({}, {})".format(self.value_range[0], self.value_range[1])
+        s = "U<{}>".format(self.sort)
+        if self.value_range is not None:
+            s += "({},{})".format(self.value_range[0], self.value_range[1])
+        return s
 
 
 class ArgumentIdentityDistribution(Distribution):
     """
     Creates a stub distribution that passes the specified argument through.
     """
+
     def __init__(self, sort, param_index):
         Distribution.__init__(self, sort, None)
         self.__param_index = param_index
@@ -74,7 +79,7 @@ class ArgumentIdentityDistribution(Distribution):
     @property
     def param_index(self):
         return self.__param_index
-    
+
     def generateSample(self, evaluation_context, param_values):
         return param_values[self.__param_index]
 
@@ -86,13 +91,13 @@ class BernoulliDistribution(Distribution):
     def __init__(self, probability):
         Distribution.__init__(self, 'boolean')
         self.__probability = probability
-        
+
     @property
     def probability(self):
         return self.__probability
-    
+
     def generateSample(self, evaluationContext, paramValues):
-        r = random.uniform(0,1)
+        r = random.uniform(0, 1)
         return r <= self.__probability
 
     def describe(self):
@@ -102,7 +107,8 @@ class BernoulliDistribution(Distribution):
 class NormalDistribution(Distribution):
     def __init__(self, sort, mu, sigma):
         if sort not in ["float", "integer"]:
-            raise SALMAException("Trying to use normal distribution for sort %s but only integer or float allowed." % sort)
+            raise SALMAException(
+                "Trying to use normal distribution for sort %s but only integer or float allowed." % sort)
         super().__init__(sort, (float("-inf"), float("inf")))
         self.__mu = mu
         self.__sigma = sigma
@@ -123,4 +129,4 @@ class NormalDistribution(Distribution):
             return val
 
     def describe(self):
-        return "N({},{})".format(self.mu, self.sigma**2)
+        return "N({:.4},{:.4})".format(self.mu, self.sigma ** 2)

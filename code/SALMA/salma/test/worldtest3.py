@@ -8,7 +8,7 @@ from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions
 from salma.model.agent import Agent
 from salma.model.core import  Entity, Fluent, Action, Constant
-from salma.model.actions import StochasticAction, DeterministicAction
+from salma.model.actions import StochasticAction, DeterministicAction, Stepwise
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
@@ -18,32 +18,17 @@ from salma.model.procedure import ControlNode, Sequence, \
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 import os
+from salma.test.world_test_base import BaseWorldTest
 
-# TODO: integrate proper assertions!
+
 def printValue(value):
     print("Val: ", value)
     return (ControlNode.CONTINUE, None)
 
 
-class WorldTest3(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        print(os.getcwd())
-        try:
-            World.set_logic_engine(EclipseCLPEngine("../../ecl-test/domaindesc.ecl",
-                                                  "../../ecl-test/example_procedures.ecl"))
-        except SALMAException as e:
-            print(e)
-            raise
-        logger = logging.getLogger('agamemnon-smc')
-        logger.setLevel(logging.DEBUG)
-        ch = logging.StreamHandler()
-        logger.addHandler(ch)
+class WorldTest3(BaseWorldTest):
 
-    def setUp(self):
-        World.create_new_world()
-        world = World.instance()
-
+    @withHeader
     def test_load_declaration_empty(self):
         world = World.instance()
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
@@ -54,7 +39,6 @@ class WorldTest3(unittest.TestCase):
         world.addAgent(agent1)
         world.addEntity(Entity("item1", "item"))
         world.addEntity(Entity("item2", "item"))
-        world.load_declarations()
         world.initialize(False)
         fl, const = world.check_fluent_initialization()
         print(fl)
@@ -73,6 +57,7 @@ class WorldTest3(unittest.TestCase):
         print(world.describe_actions())
         self.assertEqual(len(list(world.getAllActions())), 12)
 
+    @withHeader
     def test_load_declaration_full(self):
         world = World.instance()
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
@@ -83,8 +68,37 @@ class WorldTest3(unittest.TestCase):
         world.addAgent(agent1)
         world.addEntity(Entity("item1", "item"))
         world.addEntity(Entity("item2", "item"))
-        world.load_declarations()
         world.initialize(False)
+        world.get_exogenous_action("accidental_drop").config.set_probability(0.7)
+        world.get_exogenous_action("collision").config.set_probability(0.02).normal_param("severity", 0.5, 0.2)
+        world.get_stochastic_action("jump").outcome(
+            "land_on").map_param("r","r").uniform_param("x",(0,1024)).uniform_param("y",(0,768))
+
+        world.get_stochastic_action("jump").selection_strategy = Stepwise(land_on=0.7, crash=0.2) # 0.2 is wrong here!
+        world.get_stochastic_action("jump").outcome("crash").map_param("r","r")
+        print(world.describe_actions())
+        a, a2 = world.check_action_initialization()
+
+        print(a)
+        print(a2)
+
+    def test_property_1(self):
+        world = World.instance()
+        rob1 = self.create_right_moving_mobot("rob1")
+        world.addAgent(rob1)
+        world.addEntity(Entity("item1","item"))
+        world.addEntity(Entity("item2","item"))
+        world.initialize(True)
+        self.setNoOneCarriesAnything()
+        world.printState()
+        f_str="""
+forall([r,robot],
+    xpos(r) > 0)
+"""
+        world.registerProperty("f", f_str)
+        verdict, results = world.runExperiment()
+        print("Verdict: " + str(verdict))
+        print("Results: " + str(results))
 
 
 if __name__ == '__main__':

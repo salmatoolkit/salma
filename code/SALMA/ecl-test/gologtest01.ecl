@@ -46,5 +46,7 @@ init :-
 	
 % do2(transportToX(rob1,item1,7),s0,S).
 
-	
+
+
+test1 :- F = 
 	

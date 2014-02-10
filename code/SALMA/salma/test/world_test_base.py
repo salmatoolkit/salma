@@ -40,16 +40,13 @@ class BaseWorldTest(unittest.TestCase):
         World.create_new_world()
         world = World.instance()
         world.load_declarations()
-        for ea in world.get_exogenous_actions():
-            ea.config.occurrence_distribution = BernoulliDistribution(0)
-
-        world.addEntity(Entity("coffee", "item"))
-        world.addEntity(Entity("chocolate", "item"))
-
-    #     def tearDown(self):
-    #         World.logic_engine().cleanup()
 
     def create_right_moving_mobot(self, robotId):
+        """
+        Creates a simple robot agent that moves one step to the right and then one step down.
+        :param int robotId: the robot's id
+        :rtype: Agent
+        """
         seq = Sequence()
         seq.addChild(ActionExecution("move_right", [Entity.SELF]))
         seq.addChild(ActionExecution("move_down", [Entity.SELF]))

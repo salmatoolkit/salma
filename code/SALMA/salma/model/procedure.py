@@ -34,7 +34,7 @@ class Variable(object):
 class Procedure(Element):
     def __init__(self, procedureName, parameters, body):
         Element.__init__(self)
-        self.__body = body
+        self.__body = Sequence(body) if isinstance(body, list) else body
         self.__name = procedureName
         self.__parameters = parameters
 
@@ -122,11 +122,18 @@ class Sequence(ControlNode):
         return self.__children
 
     def addChild(self, child):
-        '''
-        child:ControlNode
-        '''
-        self.__children.append(child)
-        child.parent = self
+        """
+        Adds a child control node to the sequence. Alternatively, a list can be given to create a sequence.
+
+        :param ControlNode|list child: the child to add
+        """
+        if isinstance(child,list):
+            seq = Sequence(child)
+            seq.parent = self
+            self.__children.append(seq)
+        else:
+            self.__children.append(child)
+            child.parent = self
 
     def reset(self, evaluationContext):
         evaluationContext.setCurrentSequenceIndex(self, 0)
@@ -188,7 +195,7 @@ class While(ControlNode):
         self.__conditionType = conditionType
         self.__condition = condition
         self.__conditionGoalParams = conditionGoalParams
-        self.__body = body
+        self.__body = Sequence(body) if isinstance(body, list) else body
         self.__body.parent = self
 
 
@@ -197,9 +204,8 @@ class While(ControlNode):
 
     def getBody(self):
         '''
-        :rtype ControlNode
+        :rtype: ControlNode
         '''
-
         return self.__body
 
     def executeStep(self, evaluationContext, procedureRegistry):
@@ -222,8 +228,8 @@ class If(ControlNode):
         self.__conditionType = conditionType
         self.__condition = condition
         self.__conditionGoalParams = conditionGoalParams
-        self.__thenBody = thenBody
-        self.__elseBody = elseBody
+        self.__thenBody = Sequence(thenBody) if isinstance(thenBody, list) else thenBody
+        self.__elseBody = Sequence(elseBody) if isinstance(elseBody, list) else elseBody
         self.__thenBody.parent = self
         if not self.__elseBody is None:
             self.__elseBody.parent = self
@@ -271,7 +277,7 @@ class Iterate(ControlNode):
         self.__source_type = source_type
         self.__source = source
         self.__params = params
-        self.__body = body
+        self.__body = Sequence(body) if isinstance(body, list) else body
         self.__body.parent = self
 
     def executeStep(self, evaluation_context, procedure_registry):

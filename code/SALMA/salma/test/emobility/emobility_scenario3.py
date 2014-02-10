@@ -85,30 +85,30 @@ class EMobilityScenario3(EMobilityTest):
         target_chooser, route_finder, response_selector = create_navigation_functions(world_map, mt)
 
         p_request_plcs = Procedure("main", [],
-                                   Sequence([
+                                   [
                                        VariableAssignment("possible_targets",
                                                           EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                           target_chooser, []),
                                        ActionExecution("queryPLCSSAM",
                                                        [Entity.SELF, "sam1", Variable("possible_targets"),
                                                         0, 0])
-                                   ]))
+                                   ])
 
         p_set_target = Procedure("main", [],
-                                 Sequence([
+                                 [
                                      VariableAssignment("sam_response", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                         response_selector, []),
                                      ActionExecution("remove_all_vehicle_plcssam_reservationResponses",
                                                      [Entity.SELF, "sam1"]),
                                      ActionExecution("setTargetPLCS", [Entity.SELF, Variable("sam_response")])
-                                 ]))
+                                 ])
 
         p_find_route = Procedure("main", [],
-                                 Sequence([
+                                 [
                                      VariableAssignment("route", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                         route_finder, []),
                                      ActionExecution("setRoute", [Entity.SELF, Variable("route")])
-                                 ]))
+                                 ])
 
         p_comm_sam = Procedure("main", [],
                                ActionExecution("start_exchange_PLCSSAM_Vehicle", [Entity.SELF, "sam1"]))
@@ -131,7 +131,7 @@ class EMobilityScenario3(EMobilityTest):
         request_processor = create_plcssam_functions(world_map, mt)
 
         p_process_requests = Procedure("main", [],
-                                       Sequence([
+                                       [
                                            VariableAssignment("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                               request_processor, []),
                                            Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
@@ -141,7 +141,7 @@ class EMobilityScenario3(EMobilityTest):
                                            ),
                                            ActionExecution("remove_all_plcssam_vehicle_reservationRequests",
                                                            [Entity.SELF])
-                                       ]))
+                                       ])
 
         p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
                               "len(plcssam_vehicle_reservationRequests(self)) > 0", [])

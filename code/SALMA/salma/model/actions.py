@@ -419,15 +419,20 @@ class Stepwise(OutcomeSelectionStrategy):
     Creates a selection strategy where a selection probability is given for each outcome.
     """
 
-    def __init__(self, probabilities=[]):
+    def __init__(self, *args, **kwargs):
         """
         :param list[(str, float)] probabilities: a list of (action_name, probability)
         """
         super().__init__()
         #: :type: dict of (str, float)
         self.__probabilities = dict()
-        for p in probabilities:
-            self.__probabilities[p[0]] = p[1]
+        # alternative 1: one list of tuples
+        if len(args) == 1 and isinstance(args[0],list):
+            for p in args[0]:
+                self.__probabilities[p[0]] = p[1]
+        else:
+            for outcome, prob in kwargs.items():
+                self.__probabilities[outcome] = prob
 
     @property
     def probabilities(self):
@@ -481,7 +486,10 @@ class Stepwise(OutcomeSelectionStrategy):
         return problems
 
     def describe(self):
-
+        probs = []
+        for action, prob in self.probabilities.items():
+            probs.append("{}:{:.4}".format(action,prob))
+        return "Stepwise({})".format(", ".join(probs))
 
 
 class ExogenousAction(object):
@@ -632,12 +640,17 @@ class ExogenousAction(object):
 
     def describe(self):
         s = ("Exogenous action: {name}({entity_params}, {stochastic_params})\n"
-             "  Occurrence distribution: {occ_distrib}")
+             "  Occurrence distribution: {occ_distrib}\n"
+             "  Parameter Distributions: {p_distribs}\n")
+        p_distrib_descs = []
+        for p in self.stochastic_params:
+            p_distrib_descs.append("{}:={}".format(p[0],self.config.get_param_distribution(p[0]).describe()))
 
         return s.format(name=self.action_name, entity_params=self.entity_params,
                         stochastic_params=self.stochastic_params,
                         occ_distrib=(
-                            self.config.occurrence_distribution.describe() if self.config.occurrence_distribution is not None else "None"))
+                            self.config.occurrence_distribution.describe() if self.config.occurrence_distribution is not None else "None"),
+                        p_distribs=", ".join(p_distrib_descs))
 
 
 class ExogenousActionConfiguration:
@@ -794,5 +807,15 @@ class ExogenousActionConfiguration:
         p_sort = self.exogenous_action.stochastic_params[i][1]
         d = NormalDistribution(p_sort, mu, sigma)
         self.__stochastic_param_distributions[i] = d
+        return self
+
+    def set_probability(self, prob):
+        """
+        A shortcut to set the occurrence probability.
+
+        :param float prob: the new occurrence probability
+        :rtype: ExogenousActionConfiguration
+        """
+        self.occurrence_distribution = BernoulliDistribution(prob)
         return self
 
