@@ -142,6 +142,20 @@ class EMobilityTest(unittest.TestCase):
         :param visualize:
         :return:
         """
+
+
+        f = '''
+        forall([v,vehicle],
+            forall([sam,plcssam],
+                    implies(
+                        occur(queryPLCSSAM(v,i)),
+                        until(12,
+                            carrying(r,i),
+                            xpos(i) > 20
+                        )
+                    )
+        )
+        '''
         if visualize:
             self.__fig = plt.figure("emobility")
             self.__visualizer = Visualizer(world_map, world)
@@ -153,6 +167,7 @@ class EMobilityTest(unittest.TestCase):
         with open(os.path.join(self.__outdir, "log.txt"), mode="w") as f:
             self.__logfile = f
             world.runUntilFinished(maxSteps=step_limit, stepListeners=[self.record_step])
+            #world.runExperiment(check_verdict=True, maxSteps=step_limit, stepListeners=[self.record_step])
 
 
             # with open(os.path.join(outdir, "poster.tex"), mode="w") as f:

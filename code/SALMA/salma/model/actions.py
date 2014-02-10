@@ -195,6 +195,16 @@ class RandomActionOutcome(object):
                 )
         return problems
 
+    def describe(self):
+        """
+        Returns a textual description of the action outcome.
+        :rtype: str
+        """
+        param_descriptions = []
+        for p, distr in zip(self.__outcome_action.parameters, self.__param_distributions):
+            param_descriptions.append("{}:={}".format(p[0], distr.describe()))
+        return "{}({})".format(self.action_name, ", ".join(param_descriptions))
+
 
 class OutcomeSelectionStrategy:
     def __init__(self):
@@ -239,6 +249,13 @@ class OutcomeSelectionStrategy:
         :rtype: list of tuple
         """
         return []
+
+    def describe(self):
+        """
+        Returns a textual representation of the outcome selection strategy.
+        :rtype: str
+        """
+        return "n/a"
 
 
 class StochasticAction(Action):
@@ -349,13 +366,15 @@ class StochasticAction(Action):
         return "StochasticAction: {}({})".format(self.name, self.parameters)
 
     def describe(self):
+        outcome_descriptions = [o.describe() for o in self.outcomes]
+        pstrs = ["{}:{}".format(p[0],p[1]) for p in self.parameters]
         s = """
 StochasticAction: {name}({params})
    Outcomes: {outcomes}
-   Selection Strategy: {sel_strat
+   Selection Strategy: {sel_strat}
 """
-        return s.format(name=self.name, params=self.parameters, outcomes=self.outcomes,
-                        sel_strat=self.selection_strategy)
+        return s.format(name=self.name, params= ", ".join(pstrs), outcomes=", ".join(outcome_descriptions),
+                        sel_strat=self.selection_strategy.describe())
 
 
 class Deterministic(OutcomeSelectionStrategy):
@@ -376,6 +395,9 @@ class Deterministic(OutcomeSelectionStrategy):
             problems.append("outcome_selection_strategy.deterministic.more_than_one_outcome")
         return problems
 
+    def describe(self):
+        return "Deterministic({})".format(self.action.outcomes[0].describe())
+
 
 class Uniform(OutcomeSelectionStrategy):
     """
@@ -388,6 +410,9 @@ class Uniform(OutcomeSelectionStrategy):
     def select_outcome(self, evaluationContext, paramValues):
         return random.choice(self.action.outcomes)
 
+    def describe(self):
+        return "Uniform"
+
 
 class Stepwise(OutcomeSelectionStrategy):
     """
@@ -396,8 +421,7 @@ class Stepwise(OutcomeSelectionStrategy):
 
     def __init__(self, probabilities=[]):
         """
-        :param probabilities: a list of (action_name, probability)
-        :type probabilities: list of (str, float)
+        :param list[(str, float)] probabilities: a list of (action_name, probability)
         """
         super().__init__()
         #: :type: dict of (str, float)
@@ -409,7 +433,7 @@ class Stepwise(OutcomeSelectionStrategy):
     def probabilities(self):
         """
         The selection properties for all action outcome.
-        :rtype: dict of (str, float)
+        :rtype: dict[str, float]
         """
         return self.__probabilities
 
@@ -455,6 +479,9 @@ class Stepwise(OutcomeSelectionStrategy):
             problems.append(("outcome_selection_strategy.stepwise.wrong_prob_sum", s))
 
         return problems
+
+    def describe(self):
+
 
 
 class ExogenousAction(object):

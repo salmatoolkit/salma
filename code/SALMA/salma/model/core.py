@@ -246,4 +246,4 @@ class Action(object):
         self.__immediate = is_immediate
 
     def describe(self):
-        raise NotImplementedError()
+        return "n/a"

@@ -1,11 +1,11 @@
 import random
 from salma.SALMAException import SALMAException
 from salma.model.evaluationcontext import EvaluationContext
-
+from numbers import Real
 
 class Distribution(object):
     DEFAULT_MAX_VALUE = 1000
-    DEFAULT_MIN_VALUE = 1000
+    DEFAULT_MIN_VALUE = 0
 
     def __init__(self, sort, value_range=None):
         self.__sort = sort
@@ -19,17 +19,28 @@ class Distribution(object):
     
     @property
     def value_range(self):
+        """
+        The distributions value range.
+        :rtype: (Real, Real)
+        """
         return self.__value_range
     
     def generateSample(self, evaluationContext, paramValues):
-        '''
-        :param evaluationContext: EvaluationContext
-        :param paramValues: list 
-        '''
+        """
+        Generates a sample from this distribution.
+
+        :param EvaluationContext evaluationContext: The current evaluation context.
+        :param list paramValues: the parameter values
+        """
         raise NotImplementedError()
 
     def describe(self):
-        raise NotImplementedError()
+        """
+        Returns a short textual description of the distribution.
+        :rtype: str
+        """
+        return "n/a"
+
 
 class UniformDistribution(Distribution):
     def __init__(self, sort, value_range = None):
@@ -47,7 +58,10 @@ class UniformDistribution(Distribution):
             domain = evaluationContext.getDomain(self.sort)
             sample = random.choice(list(domain))
             return sample
-        
+
+    def describe(self):
+        return "U({}, {})".format(self.value_range[0], self.value_range[1])
+
 
 class ArgumentIdentityDistribution(Distribution):
     """
@@ -63,8 +77,11 @@ class ArgumentIdentityDistribution(Distribution):
     
     def generateSample(self, evaluation_context, param_values):
         return param_values[self.__param_index]
-    
-     
+
+    def describe(self):
+        return "id[{}]".format(self.__param_index)
+
+
 class BernoulliDistribution(Distribution):
     def __init__(self, probability):
         Distribution.__init__(self, 'boolean')
@@ -79,7 +96,7 @@ class BernoulliDistribution(Distribution):
         return r <= self.__probability
 
     def describe(self):
-        return "Bernoulli({})".format(self.__probability)
+        return "Pr({})".format(self.__probability)
 
 
 class NormalDistribution(Distribution):
@@ -105,7 +122,5 @@ class NormalDistribution(Distribution):
         else:
             return val
 
-
-
-
-
+    def describe(self):
+        return "N({},{})".format(self.mu, self.sigma**2)
