@@ -185,7 +185,7 @@ class EMobilityScenario3(EMobilityTest):
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
 
         world.get_exogenous_action(
-            "exchange_PLCSSAM_Vehicle").config.occurrence_distribution = BernoulliDistribution(0.02)
+            "exchange_PLCSSAM_Vehicle").config.set_probability(0.2)
 
         uninitialized_fluent_instances, uninitialized_constant_instances = world.check_fluent_initialization()
         print("-" * 80)

@@ -96,18 +96,20 @@ class EMobilityTest(unittest.TestCase):
         print(msg)
         self.__logfile.write(msg + "\n")
 
-    def record_step(self, world, step_num, deltaT, actions, toplevel_results):
+    def record_step(self, world, step, deltaT=None, actions=None, toplevel_results=None, scheduled_results=None):
         """
 
         :param World world: the world
-        :param int step_num: the step number
+        :param int step: the step number
         :param float deltaT: the duration
         :param list[Action] actions: the performed actions
         :param lis toplevel_results: the toplevel results
         :rtype: (bool, str)
         """
-        self.__log("Step {}".format(step_num))
+        self.__log("Step {}".format(step))
         self.__log("   Actions: {}".format(actions))
+        self.__log("   Toplevel Results: {}".format(toplevel_results))
+        self.__log("   Scheduled Results: {}".format(scheduled_results))
         vehicles = world.getDomain("vehicle")
         all_finished = True
         for vehicle in vehicles:
@@ -122,7 +124,7 @@ class EMobilityTest(unittest.TestCase):
         #imagefiles.append(imagefilename)
 
         if self.__visualizer is not None:
-            imagefilename = "step_{:04}.png".format(step_num)
+            imagefilename = "step_{:04}.png".format(step)
             path = os.path.join(self.__outdir, imagefilename)
             self.__fig.clf()
             self.__visualizer.visualize_map(self.__fig)
@@ -144,18 +146,18 @@ class EMobilityTest(unittest.TestCase):
         """
 
 
-        f = '''
+        fstr = """
         forall([v,vehicle],
-            forall([sam,plcssam],
-                    implies(
-                        occur(queryPLCSSAM(v,i)),
-                        until(12,
-                            carrying(r,i),
-                            xpos(i) > 20
-                        )
+                implies(
+                    occur(queryPLCSSAM(v,?,?,?,?)),
+                    until(5,
+                        true,
+                        hasTargetPLCS(v)
                     )
+                )
         )
-        '''
+        """
+        world.registerProperty("f",fstr)
         if visualize:
             self.__fig = plt.figure("emobility")
             self.__visualizer = Visualizer(world_map, world)
@@ -166,8 +168,8 @@ class EMobilityTest(unittest.TestCase):
         os.makedirs(self.__outdir)
         with open(os.path.join(self.__outdir, "log.txt"), mode="w") as f:
             self.__logfile = f
-            world.runUntilFinished(maxSteps=step_limit, stepListeners=[self.record_step])
-            #world.runExperiment(check_verdict=True, maxSteps=step_limit, stepListeners=[self.record_step])
+            # world.runUntilFinished(maxSteps=step_limit, stepListeners=[self.record_step])
+            world.runExperiment(check_verdict=True, maxSteps=step_limit, stepListeners=[self.record_step])
 
 
             # with open(os.path.join(outdir, "poster.tex"), mode="w") as f:

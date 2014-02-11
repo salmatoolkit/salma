@@ -812,7 +812,9 @@ class World(Entity):
             should_continue = True
             break_reason = None
             for sl in stepListeners:
-                continue_from_listener, break_reason_from_listener = sl(self, step_num, deltaT, actions, toplevel_results)
+                continue_from_listener, break_reason_from_listener = sl(self, step=step_num, deltaT=deltaT,
+                                                                        actions=actions, toplevel_results=toplevel_results,
+                                                                        scheduled_results=scheduled_results)
                 should_continue &= continue_from_listener
                 if break_reason is None and not continue_from_listener:
                     break_reason = break_reason_from_listener

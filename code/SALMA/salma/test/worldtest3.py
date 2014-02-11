@@ -84,22 +84,38 @@ class WorldTest3(BaseWorldTest):
 
     def test_property_1(self):
         world = World.instance()
-        rob1 = self.create_right_moving_mobot("rob1")
+
+        proc = Procedure("main", [], [
+            ActionExecution("paint", [Entity.SELF, "item1"]),
+            While(EvaluationContext.PYTHON_EXPRESSION,
+                  "xpos(self) < 20", [], [
+                    ActionExecution("move_right", [Entity.SELF])
+                ])
+        ])
+        rob1 = Agent("rob1", "robot", proc)
         world.addAgent(rob1)
         world.addEntity(Entity("item1","item"))
         world.addEntity(Entity("item2","item"))
-        world.initialize(True)
+        world.initialize(False)
         self.setNoOneCarriesAnything()
-        world.printState()
+        self.place_agents_in_column(x=10)
+
         f_str="""
 forall([r,robot],
-    xpos(r) > 0)
+    implies(
+        occur(paint(r,?)),
+        until(5,
+            true,
+            xpos(r) >= 25
+        )
+    )
+)
 """
         world.registerProperty("f", f_str)
         verdict, results = world.runExperiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
-
+        world.printState()
 
 if __name__ == '__main__':
     unittest.main()
