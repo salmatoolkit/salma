@@ -185,7 +185,7 @@ class EMobilityScenario3(EMobilityTest):
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
 
         world.get_exogenous_action(
-            "exchange_PLCSSAM_Vehicle").config.set_probability(0.2)
+            "exchange_PLCSSAM_Vehicle").config.set_probability(0.5)
 
         uninitialized_fluent_instances, uninitialized_constant_instances = world.check_fluent_initialization()
         print("-" * 80)
@@ -206,6 +206,29 @@ class EMobilityScenario3(EMobilityTest):
         p1, p2 = world.check_action_initialization()
         print(p1)
         print(p2)
+        # fstr = """
+        # forall([v,vehicle],
+        #         until(300,
+        #             implies(
+        #                 occur(queryPLCSSAM(v,?,?,?,?)),
+        #                 until(25,
+        #                     true,
+        #                     hasTargetPLCS(v)
+        #                 )
+        #             ),
+        #             arrive_at_targetPLCS(v)
+        #         )
+        # )
+        # """
+        fstr = """
+        forall([v,vehicle],
+                until(300,
+                    true,
+                    hasTargetPLCS(v)
+                )
+        )
+        """
+        #world.registerProperty("f", fstr)
         self.run_until_all_targets_reached(world, world_map)
         # ea = world.get_exogenous_action("exchange_PLCSSAM_Vehicle")
         # print(world.describe_actions())

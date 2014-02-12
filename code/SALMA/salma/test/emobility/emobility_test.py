@@ -144,20 +144,6 @@ class EMobilityTest(unittest.TestCase):
         :param visualize:
         :return:
         """
-
-
-        fstr = """
-        forall([v,vehicle],
-                implies(
-                    occur(queryPLCSSAM(v,?,?,?,?)),
-                    until(5,
-                        true,
-                        hasTargetPLCS(v)
-                    )
-                )
-        )
-        """
-        world.registerProperty("f",fstr)
         if visualize:
             self.__fig = plt.figure("emobility")
             self.__visualizer = Visualizer(world_map, world)

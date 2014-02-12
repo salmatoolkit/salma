@@ -41,7 +41,7 @@ fluent(currentRoute, [veh:vehicle], list).
 derived_fluent(currentTarget, [veh:vehicle], location).
 derived_fluent(nextTarget, [veh:vehicle], location).
 derived_fluent(hasTargetPLCS, [veh:vehicle], boolean).
-
+derived_fluent(arrive_at_targetPLCS, [veh:vehicle], boolean).
 
 primitive_action(setTargetPLCS, [veh:vehicle, target:plcs]).
 poss(setTargetPLCS(_,_),_) :- true.
