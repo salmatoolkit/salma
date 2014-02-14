@@ -832,6 +832,8 @@ class World(Entity):
         Calculates an overall decision whether the current experiment should be counted as
         a success or not. A run is a success if all achieve goals are true. A
         :param dict[str, int] toplevel_results: the toplevel results
+        :param dict[str, list[(int,int)]] scheduled_results: scheduled results
+        :param dict[str, list[int]] scheduled_keys: scheduled keys
         :returns: Returns a tuple: verdict, list of decision reasons
         :rtype: (int, set, set)
         """
@@ -908,11 +910,13 @@ class World(Entity):
         step_num = 0
         verdict = NONDET
         self.__already_achieved_goals = set()
-        toplevel_results = scheduled_results = failedRegularActions = []
+        failedRegularActions = []
         c1 = c2 = time.clock()
         finish_reason = None
         failed_invariants = set()
         failed_sustain_goals = set()
+        #: :type: dict[str, list[int]]
+        scheduled_keys = dict()
         time_out = False
 
         while (not self.is_finished()) and (not check_verdict or verdict == NONDET):
@@ -963,15 +967,16 @@ class World(Entity):
             finish_reason = "verdict_found"
         if self.is_finished():
             finish_reason = "world_finished"
-        if verdict != CANCEL:
-
+        if verdict == NONDET:
             if check_verdict is False:
                 verdict = OK if self.is_finished() else NOT_OK
             # if no achieve goal was given then having finished or "surviving" until the time limit means success!
-            elif check_verdict is True and (self.is_finished() or time_out is True):
-                if len(self.__achieve_goals) + len(self.__achieve_and_sustain_goals) > 0:
-                    verdict = NOT_OK
-                else:
+            # However, this only holds if no invariants are pending. Otherwise we wuill return NONDET
+            else:
+                if ( (self.is_finished() or time_out is True) and
+                             len(self.__achieve_goals) == 0 and
+                             len(self.__achieve_and_sustain_goals) == 0 and
+                             len(scheduled_keys) > 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
@@ -1014,25 +1019,41 @@ class World(Entity):
         for agent in self.getAgents():
             agent.restart()
 
-    def run_repetitions(self, number_of_repetitions, max_steps=None, max_real_time=None,
-                        max_world_time=None, step_listeners=[]):
+    def run_repetitions(self, number_of_repetitions, max_retrials=3, **kwargs):
         # save state
         current_state = list(World.logic_engine().getCurrentState())
         results = []  # list of True/False
-
-        for i in range(0, number_of_repetitions):
+        trial_infos = []
+        retrial = 0
+        conclusive_trial_count = 0
+        trial_number = 1
+        while conclusive_trial_count < number_of_repetitions:
             self.reset()
             World.logic_engine().restoreState(current_state)
 
-            res = self.runExperiment()
-            verdict = res[0] == constants.OK
-            results.append(verdict)
-            moduleLogger.info("Experiment #{} --> {}, {} steps".format(i + 1, verdict, res[1]["steps"]))
+            verdict, res = self.runExperiment(**kwargs)
+            trial_infos.append(res)
+            if verdict == NONDET or verdict == CANCEL:
+                if verdict == CANCEL:
+                    moduleLogger.warn("Trail #{} was canceled! Reason: {}".format(trial_number, res["finish_reason"]))
+                if verdict == NONDET:
+                    moduleLogger.warn("Received non-conclusive result for trial #{}!".format(trial_number))
+                if retrial < max_retrials:
+                    retrial += 1
+                    moduleLogger.warn("Starting retrial #".format(retrial))
+                else:
+                    moduleLogger.warn("Maximum number of retrials reached ({}) --> giving up!".format(retrial))
+                    break
+            else:
+                retrial = 0
+                results.append(verdict == OK)
+                conclusive_trial_count += 1
+                print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
+            trial_number += 1
 
         self.reset()
         World.logic_engine().restoreState(current_state)
-
-        return results
+        return results, trial_infos
 
     def runSequentialHypothesisTest(self, p0, p1, alpha, beta):
 

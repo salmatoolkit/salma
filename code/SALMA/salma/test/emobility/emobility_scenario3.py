@@ -149,10 +149,33 @@ class EMobilityScenario3(EMobilityTest):
         sam = Agent("sam1", "plcssam", [p1])
         world.addAgent(sam)
 
+    def __print_info(self, world):
+        """
+        :param World world: the world
+        """
+        uninitialized_fluent_instances, uninitialized_constant_instances = world.check_fluent_initialization()
+        print("-" * 80)
+        print("Uninitialized Fluents:")
+        print(uninitialized_fluent_instances)
+        print("-" * 80)
 
-    #todo: create ensemble agent
+        print("Uninitialized Constants:")
+        print(uninitialized_constant_instances)
+        problematic_stochastic_actions, problematic_exogenous_actions = world.check_action_initialization()
+        print("-" * 80)
+        print("Uninitialized stochastic actions:")
+        print(problematic_stochastic_actions)
+        print("-" * 80)
+        print("Uninitialized exogenous actions:")
+        print(problematic_exogenous_actions)
+        world.printState()
+        p1, p2 = world.check_action_initialization()
+        print(p1)
+        print(p2)
+
     def test_scenario3(self):
         world = World.instance()
+        log = False
 
         mgen = MapGenerator(world)
         world_map = mgen.load_from_graphml("testdata/test1.graphml")
@@ -185,27 +208,8 @@ class EMobilityScenario3(EMobilityTest):
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
 
         world.get_exogenous_action(
-            "exchange_PLCSSAM_Vehicle").config.set_probability(0.5)
+            "exchange_PLCSSAM_Vehicle").config.set_probability(0.2)
 
-        uninitialized_fluent_instances, uninitialized_constant_instances = world.check_fluent_initialization()
-        print("-" * 80)
-        print("Uninitialized Fluents:")
-        print(uninitialized_fluent_instances)
-        print("-" * 80)
-
-        print("Uninitialized Constants:")
-        print(uninitialized_constant_instances)
-        problematic_stochastic_actions, problematic_exogenous_actions = world.check_action_initialization()
-        print("-" * 80)
-        print("Uninitialized stochastic actions:")
-        print(problematic_stochastic_actions)
-        print("-" * 80)
-        print("Uninitialized exogenous actions:")
-        print(problematic_exogenous_actions)
-        world.printState()
-        p1, p2 = world.check_action_initialization()
-        print(p1)
-        print(p2)
         fstr = """
         forall([v,vehicle],
             implies(
@@ -220,9 +224,15 @@ class EMobilityScenario3(EMobilityTest):
         gstr = "forall([v,vehicle], arrive_at_targetPLCS(v))"
         world.registerProperty("f", fstr, World.INVARIANT)
         world.registerProperty("g", gstr, World.ACHIEVE)
-        self.run_experiment(world, world_map)
-        # ea = world.get_exogenous_action("exchange_PLCSSAM_Vehicle")
-        # print(world.describe_actions())
+        if log:
+            self.__print_info(world)
+
+        #verdict, results = self.run_experiment(world, world_map, log=False, visualize=False)
+        # print("Verdict: {}\nResults:\n{}".format(verdict, results))
+        results, infos = world.run_repetitions(100)
+        print("Successes: {} of {}".format(sum(results), len(results)))
+        ratio = sum(results) / len(results)
+        print("Ratio: {}".format(ratio))
 
 
 if __name__ == '__main__':

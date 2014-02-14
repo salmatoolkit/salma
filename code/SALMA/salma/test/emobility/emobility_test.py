@@ -18,19 +18,6 @@ from datetime import datetime
 
 
 class EMobilityTest(unittest.TestCase):
-    POSTER_PREFIX = r"""
-\documentclass[a4paper]{article}
-\usepackage[top=1cm, bottom=1.5cm, left=.5cm, right=.5cm]{geometry}
-\usepackage{graphicx}
-\begin{document}
-\begin{tabular}{cccc}
-"""
-
-    POSTER_SUFFIX = r"""
-\end{tabular}
-\end{document}
-"""
-
     @classmethod
     def setUpClass(cls):
 
@@ -112,33 +99,30 @@ class EMobilityTest(unittest.TestCase):
         :param lis toplevel_results: the toplevel results
         :rtype: (bool, str)
         """
-        self.__log("Step {}".format(step))
-        self.__log("   Verdict: {}".format(verdict))
-        self.__log("   Actions: {}".format(actions))
-        self.__log("   Toplevel Results: {}".format(toplevel_results))
-        self.__log("   Scheduled Results: {}".format(scheduled_results))
-        vehicles = world.getDomain("vehicle")
-        all_finished = True
-        for vehicle in vehicles:
-            pos = world.getFluentValue("vehiclePosition", [vehicle.id])
-            route = world.getFluentValue("currentRoute", [vehicle.id])
-            target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
-            self.__log("{}: {} - {} - {}".format(vehicle.id,
-                                                 pos, route, target))
-            if target == "none" or pos[1] != pos[2] or pos[1] != target:
-                all_finished = False
-
-        #imagefiles.append(imagefilename)
+        if self.__should_log:
+            self.__log("Step {}".format(step))
+            self.__log("   Verdict: {}".format(verdict))
+            self.__log("   Actions: {}".format(actions))
+            self.__log("   Toplevel Results: {}".format(toplevel_results))
+            self.__log("   Scheduled Results: {}".format(scheduled_results))
+            vehicles = world.getDomain("vehicle")
+            all_finished = True
+            for vehicle in vehicles:
+                pos = world.getFluentValue("vehiclePosition", [vehicle.id])
+                route = world.getFluentValue("currentRoute", [vehicle.id])
+                target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
+                self.__log("{}: {} - {} - {}".format(vehicle.id,
+                                                     pos, route, target))
 
         if self.__visualizer is not None:
-            imagefilename = "step_{:04}.png".format(step)
-            path = os.path.join(self.__outdir, imagefilename)
+            image_file_name = "step_{:04}.png".format(step)
+            path = os.path.join(self.__outdir, image_file_name)
             self.__fig.clf()
             self.__visualizer.visualize_map(self.__fig)
             self.__fig.savefig(path, dpi=200)
         return True, None
 
-    def run_experiment(self, world, world_map, step_limit=None, visualize=True):
+    def run_experiment(self, world, world_map, step_limit=None, log=True, visualize=True):
         """
         Runs the simulation until all targets have been reached.
 
@@ -148,30 +132,27 @@ class EMobilityTest(unittest.TestCase):
         :param visualize:
         :return:
         """
+        self.__should_log = log
         if visualize:
             self.__fig = plt.figure("emobility")
             self.__visualizer = Visualizer(world_map, world)
         else:
             self.__fig = None
             self.__visualizer = None
-        self.__outdir = datetime.now().strftime("imgout/%Y%m%d_%H-%M-%S")
-        os.makedirs(self.__outdir)
-        with open(os.path.join(self.__outdir, "log.txt"), mode="w") as f:
-            self.__logfile = f
-            world.runExperiment(check_verdict=True, maxSteps=step_limit, stepListeners=[self.record_step])
 
+        self.__logfile = None
+        if self.__should_log:
+            self.__outdir = datetime.now().strftime("imgout/%Y%m%d_%H-%M-%S")
+            os.makedirs(self.__outdir)
+            self.__logfile = open(os.path.join(self.__outdir, "log.txt"), mode="w")
 
-            # with open(os.path.join(outdir, "poster.tex"), mode="w") as f:
-            #     f.write(EMobilityTest.POSTER_PREFIX)
-            #     for i, filename in enumerate(imagefiles):
-            #         f.write("\\includegraphics[width=4cm]{%s}\n" % filename)
-            #         if i % 4 == 0:
-            #             f.write("\\\\\n")
-            #         else:
-            #             f.write("&\n")
-            #     for i in range(4 - (len(imagefiles) % 4)):
-            #         f.write("&\n")
-            #     f.write(EMobilityTest.POSTER_SUFFIX)
+        verdict, results = world.runExperiment(check_verdict=True, maxSteps=step_limit,
+                                               stepListeners=[self.record_step])
+
+        if self.__logfile is not None:
+            self.__logfile.close()
+
+        return verdict, results
 
 
 if __name__ == '__main__':
