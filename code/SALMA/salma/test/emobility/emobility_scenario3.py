@@ -155,7 +155,7 @@ class EMobilityScenario3(EMobilityTest):
         world = World.instance()
 
         mgen = MapGenerator(world)
-        world_map = mgen.load_from_graphml("../../../testdata/test1.graphml")
+        world_map = mgen.load_from_graphml("testdata/test1.graphml")
 
         mt = MapTranslator(world_map, world)
         self.create_plcssam(world, world_map, mt)
@@ -206,30 +206,21 @@ class EMobilityScenario3(EMobilityTest):
         p1, p2 = world.check_action_initialization()
         print(p1)
         print(p2)
-        # fstr = """
-        # forall([v,vehicle],
-        #         until(300,
-        #             implies(
-        #                 occur(queryPLCSSAM(v,?,?,?,?)),
-        #                 until(25,
-        #                     true,
-        #                     hasTargetPLCS(v)
-        #                 )
-        #             ),
-        #             arrive_at_targetPLCS(v)
-        #         )
-        # )
-        # """
         fstr = """
         forall([v,vehicle],
-                until(300,
+            implies(
+                occur(queryPLCSSAM(v,?,?,?,?)),
+                until(10,
                     true,
-                    hasTargetPLCS(v)
+                    currentTargetPLCS(v) \= none
                 )
+            )
         )
         """
-        #world.registerProperty("f", fstr)
-        self.run_until_all_targets_reached(world, world_map)
+        gstr = "forall([v,vehicle], arrive_at_targetPLCS(v))"
+        world.registerProperty("f", fstr, World.INVARIANT)
+        world.registerProperty("g", gstr, World.ACHIEVE)
+        self.run_experiment(world, world_map)
         # ea = world.get_exogenous_action("exchange_PLCSSAM_Vehicle")
         # print(world.describe_actions())
 

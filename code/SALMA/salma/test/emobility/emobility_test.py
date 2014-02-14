@@ -35,7 +35,7 @@ class EMobilityTest(unittest.TestCase):
     def setUpClass(cls):
 
         try:
-            World.set_logic_engine(EclipseCLPEngine("../../../ecl-test/e-mobility/e-mobility-domain.ecl"))
+            World.set_logic_engine(EclipseCLPEngine("ecl-test/e-mobility/e-mobility-domain.ecl"))
         except SALMAException as e:
             print(e)
             raise
@@ -96,7 +96,13 @@ class EMobilityTest(unittest.TestCase):
         print(msg)
         self.__logfile.write(msg + "\n")
 
-    def record_step(self, world, step, deltaT=None, actions=None, toplevel_results=None, scheduled_results=None):
+    def record_step(self, world, verdict=None,
+                    step=None, deltaT=None,
+                    actions=None,
+                    failedActions=None,
+                    toplevel_results=None,
+                    scheduled_results=None,
+                    pending_properties=None):
         """
 
         :param World world: the world
@@ -107,6 +113,7 @@ class EMobilityTest(unittest.TestCase):
         :rtype: (bool, str)
         """
         self.__log("Step {}".format(step))
+        self.__log("   Verdict: {}".format(verdict))
         self.__log("   Actions: {}".format(actions))
         self.__log("   Toplevel Results: {}".format(toplevel_results))
         self.__log("   Scheduled Results: {}".format(scheduled_results))
@@ -129,12 +136,9 @@ class EMobilityTest(unittest.TestCase):
             self.__fig.clf()
             self.__visualizer.visualize_map(self.__fig)
             self.__fig.savefig(path, dpi=200)
-        if all_finished:
-            return False, "All vehicles reached target."
-        else:
-            return True, None
+        return True, None
 
-    def run_until_all_targets_reached(self, world, world_map, step_limit=None, visualize=True):
+    def run_experiment(self, world, world_map, step_limit=None, visualize=True):
         """
         Runs the simulation until all targets have been reached.
 
@@ -150,11 +154,10 @@ class EMobilityTest(unittest.TestCase):
         else:
             self.__fig = None
             self.__visualizer = None
-        self.__outdir = datetime.now().strftime("../../../imgout/%Y%m%d_%H-%M-%S")
+        self.__outdir = datetime.now().strftime("imgout/%Y%m%d_%H-%M-%S")
         os.makedirs(self.__outdir)
         with open(os.path.join(self.__outdir, "log.txt"), mode="w") as f:
             self.__logfile = f
-            # world.runUntilFinished(maxSteps=step_limit, stepListeners=[self.record_step])
             world.runExperiment(check_verdict=True, maxSteps=step_limit, stepListeners=[self.record_step])
 
 

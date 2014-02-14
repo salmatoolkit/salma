@@ -1,6 +1,7 @@
 :- ['../ecl-src/agasmc'].
 :- [domaindesc].
 
+
 domain(robot,D) :-
         D=[rob1].
 

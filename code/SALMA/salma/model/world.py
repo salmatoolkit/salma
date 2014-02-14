@@ -38,6 +38,8 @@ class World(Entity):
     can also be manipulated with
     """
 
+    INVARIANT, ACHIEVE, ACHIEVE_AND_SUSTAIN = range(3)
+
     __logic_engine = None
 
     @staticmethod
@@ -81,6 +83,17 @@ class World(Entity):
 
         self.__finished = False
         self.__initialized = False
+
+        # dict with registered properties: name -> (formula, property_type)
+        #: :type: dict[str, (str, int)]
+        self.__invariants = dict()
+        #: :type: dict[str, (str, int)]
+        self.__achieve_goals = dict()
+        #: :type: dict[str, (str, int)]
+        self.__achieve_and_sustain_goals = dict();
+
+        #: :type: set[str]
+        self.__already_achieved_goals = set()
 
         if World.logic_engine() is None:
             raise SALMAException("Engine not set when creating world.")
@@ -700,8 +713,9 @@ class World(Entity):
         """
         Performs one discrete time step for all agents and runs the progression.
 
-        :returns: self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, failed_regular_actions
-        :rtype: tuple
+        :returns: (verdict, self.__finished, toplevel_results, scheduled_results, all_actions, [],
+                failed_invariants, failed_sustain_goals)
+        :rtype: (int, bool, dict[str, int], dict, list, list, set[str], set[str])
         """
         actions = []  # list of tuples: (action_execution, params)
         all_actions = []
@@ -747,7 +761,7 @@ class World(Entity):
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug("Progressed immediately: %s", immediate_actions)
             if len(failed_actions) > 0:
-                return self.__finished, NOT_OK, {}, {}, all_actions, failed_actions
+                return NOT_OK, self.__finished, {}, {}, [], all_actions, failed_actions, set(), set()
 
         ex_act_instances = self.get_exogenous_action_instances()
 
@@ -765,22 +779,116 @@ class World(Entity):
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug("Progressed: %s", actions)
 
-            failed_regular_actions = list(
-                itertools.filterfalse(lambda fa: World.__get_action_name_from_term(fa) in self.__exogenousActions,
-                                      failed_actions))
+            # failed_regular_actions = list(
+            #     itertools.filterfalse(lambda fa: World.__get_action_name_from_term(fa) in self.__exogenousActions,
+            #                           failed_actions))
+
+            for fa in failed_actions:
+                if fa[0] not in self.__exogenousActions:
+                    failed_regular_actions.append(fa)
 
         if len(failed_regular_actions) > 0:
-            return self.__finished, NOT_OK, {}, {}, all_actions, failed_regular_actions
+            return (NOT_OK, self.__finished, {}, {}, [], all_actions, failed_regular_actions,
+                    set(), set())
 
-        overall_verdict, toplevel_results, scheduled_results = (
-            World.logic_engine().evaluationStep() if evaluate_properties else (NONDET, [], []))
+        verdict = NONDET
+        if evaluate_properties:
+            toplevel_results, scheduled_results, scheduled_keys = World.logic_engine().evaluationStep()
+            verdict, failed_invariants, failed_sustain_goals = self.__arbitrate_verdict(toplevel_results,
+                                                                                        scheduled_results,
+                                                                                        scheduled_keys)
+        else:
+            toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
+            failed_invariants, failed_sustain_goals = set(), set()
 
         World.logic_engine().progress([('tick', [])])
         # it's ok if events fail but if regular actions fail, we're in trouble!
 
         # TODO: distinguish between actions that take time and actions that don't
         # execute all non-time actions before taking a time step
-        return self.__finished, overall_verdict, toplevel_results, scheduled_results, all_actions, []
+        return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, all_actions, [],
+                failed_invariants, failed_sustain_goals)
+
+    @staticmethod
+    def __check_property_success(pname, toplevel_results, scheduled_results):
+        if toplevel_results[pname] == OK:
+            return True
+        if pname in scheduled_results:
+            for t, v in scheduled_results[pname]:
+                if v == OK:
+                    return True
+
+    @staticmethod
+    def __check_property_failure(pname, toplevel_results, scheduled_results):
+        if toplevel_results[pname] == NOT_OK:
+            return True
+        if pname in scheduled_results:
+            for t, v in scheduled_results[pname]:
+                if v == NOT_OK:
+                    return True
+
+    def __arbitrate_verdict(self, toplevel_results, scheduled_results, scheduled_keys):
+        """
+        Calculates an overall decision whether the current experiment should be counted as
+        a success or not. A run is a success if all achieve goals are true. A
+        :param dict[str, int] toplevel_results: the toplevel results
+        :returns: Returns a tuple: verdict, list of decision reasons
+        :rtype: (int, set, set)
+        """
+        failed_invariants = set()
+        pending_properties = set()
+        failed_sustain_goals = set()
+        verdict = NONDET
+
+        for pname in self.__invariants.keys():
+            if pname not in toplevel_results:
+                raise SALMAException("Invariant {} was not contained in the evaluation "
+                                     "step's top-level results ({})!".format(pname, toplevel_results))
+
+            if World.__check_property_failure(pname, toplevel_results, scheduled_results):
+                verdict = NOT_OK
+                failed_invariants.add(pname)
+
+        for pname in self.__achieve_goals.keys():
+            if pname not in toplevel_results:
+                raise SALMAException("Achieve goal {} was not contained in the evaluation "
+                                     "step's top-level results ({})!".format(pname, toplevel_results))
+
+            if World.__check_property_success(pname, toplevel_results, scheduled_results):
+                self.__already_achieved_goals.add(pname)
+
+        for pname in self.__achieve_and_sustain_goals.keys():
+            if pname not in toplevel_results:
+                raise SALMAException("Achieve-and-sustain goal {} was not contained in the evaluation "
+                                     "step's top-level results ({})!".format(pname, toplevel_results))
+
+            if World.__check_property_success(pname, toplevel_results, scheduled_results):
+                self.__already_achieved_goals.add(pname)
+            elif (World.__check_property_failure(pname, toplevel_results, scheduled_results)
+                  and pname in self.__already_achieved_goals):
+                verdict = NOT_OK
+                failed_sustain_goals.add(pname)
+
+        for pname in self.properties.keys():
+            if pname in scheduled_keys:
+                pending_properties.add(pname)
+
+        # if there's no achieve goal, we actually just run until some time limit (see runExperiment)
+        if (len(self.__achieve_goals) + len(self.__achieve_and_sustain_goals) > 0):
+            all_achieved = True
+        else:
+            all_achieved = False
+        # check whether all achieve goals have been achieved
+        for pname in (self.__achieve_goals.keys() | self.__achieve_and_sustain_goals.keys()):
+            if not pname in self.__already_achieved_goals:
+                all_achieved = False
+                break
+
+        if (verdict == NONDET and all_achieved is True
+            and len(pending_properties) == 0):
+            verdict = OK
+
+        return verdict, failed_invariants, failed_sustain_goals
 
     def runExperiment(self, check_verdict=True, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
         """
@@ -799,45 +907,72 @@ class World(Entity):
         """
         step_num = 0
         verdict = NONDET
+        self.__already_achieved_goals = set()
         toplevel_results = scheduled_results = failedRegularActions = []
         c1 = c2 = time.clock()
         finish_reason = None
+        failed_invariants = set()
+        failed_sustain_goals = set()
+        time_out = False
+
         while (not self.is_finished()) and (not check_verdict or verdict == NONDET):
             #self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
-            (_, verdict, toplevel_results, scheduled_results, actions, failedRegularActions) = self.step(
-                evaluate_properties=check_verdict)
+            (verdict, _, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
+             failed_invariants, failed_sustain_goals) = self.step(evaluate_properties=check_verdict)
             c2 = time.clock()
             step_num += 1
             deltaT = c2 - c1
             should_continue = True
             break_reason = None
             for sl in stepListeners:
-                continue_from_listener, break_reason_from_listener = sl(self, step=step_num, deltaT=deltaT,
-                                                                        actions=actions, toplevel_results=toplevel_results,
-                                                                        scheduled_results=scheduled_results)
+                continue_from_listener, break_reason_from_listener = sl(self,
+                                                                        verdict=verdict,
+                                                                        step=step_num, deltaT=deltaT,
+                                                                        actions=actions,
+                                                                        failedActions=failedRegularActions,
+                                                                        toplevel_results=toplevel_results,
+                                                                        scheduled_results=scheduled_results,
+                                                                        pending_properties=scheduled_keys)
                 should_continue &= continue_from_listener
                 if break_reason is None and not continue_from_listener:
                     break_reason = break_reason_from_listener
-
+            # note that reason of step listener gets precedence over other reasons
             if not should_continue:
                 finish_reason = break_reason
+                verdict = CANCEL
+                break
+            if failedRegularActions is not None and len(failedRegularActions) > 0:
+                finish_reason = "failed_actions"
+                verdict = CANCEL
                 break
             if maxSteps != None and step_num >= maxSteps:
                 finish_reason = "max_steps"
+                time_out = True
                 break
             if maxRealTime != None and datetime.timedelta(seconds=deltaT) >= maxRealTime:
                 finish_reason = "max_real_time"
+                time_out = True
                 break
             if maxWorldTime != None:
                 t = self.getFluentValue('time', [])
                 if t >= maxWorldTime:
                     finish_reason = "max_world_time"
+                    time_out = True
                     break
-        if finish_reason is None:
-            if verdict != NONDET:
-                finish_reason = "verdict_found"
-            elif self.is_finished():
-                finish_reason = "world_finished"
+        if finish_reason is None and verdict != NONDET:
+            finish_reason = "verdict_found"
+        if self.is_finished():
+            finish_reason = "world_finished"
+        if verdict != CANCEL:
+
+            if check_verdict is False:
+                verdict = OK if self.is_finished() else NOT_OK
+            # if no achieve goal was given then having finished or "surviving" until the time limit means success!
+            elif check_verdict is True and (self.is_finished() or time_out is True):
+                if len(self.__achieve_goals) + len(self.__achieve_and_sustain_goals) > 0:
+                    verdict = NOT_OK
+                else:
+                    verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
         worldTime = self.getFluentValue('time', [])
@@ -845,10 +980,11 @@ class World(Entity):
                 {'steps': step_num,
                  'time': duration,
                  'worldTime': worldTime,
-                 'toplevel_results': toplevel_results,
-                 'scheduled_results': scheduled_results,
                  'failedActions': failedRegularActions,
-                 "finish_reason": finish_reason
+                 "finish_reason": finish_reason,
+                 "failed_invariants": failed_invariants,
+                 "failed_sustain_goals": failed_sustain_goals,
+                 "achieved_goals": self.__already_achieved_goals
                 }
         )
 
@@ -864,26 +1000,29 @@ class World(Entity):
         :rtype: (int, dict[str, object])
         """
         verdict, results = self.runExperiment(check_verdict=False, maxSteps=maxSteps, maxRealTime=maxRealTime,
-                                  maxWorldTime=maxWorldTime, stepListeners=stepListeners)
-        verdict = OK if self.is_finished() else NOT_OK
+                                              maxWorldTime=maxWorldTime, stepListeners=stepListeners)
+        if verdict != CANCEL:
+            verdict = OK if self.is_finished() else NOT_OK
         return verdict, results
 
     def reset(self):
         World.logic_engine().reset(False, False)  # don't remove formulas!
         self.__evaluationContext = LocalEvaluationContext(self, None)
         World.logic_engine().setFluentValue('time', [], 0)
+        self.__already_achieved_goals = set()
         #: :type agent: Agent
         for agent in self.getAgents():
             agent.restart()
 
-    def runRepetitions(self, numberOfRepetitions):
+    def run_repetitions(self, number_of_repetitions, max_steps=None, max_real_time=None,
+                        max_world_time=None, step_listeners=[]):
         # save state
-        currentState = list(World.logic_engine().getCurrentState())
+        current_state = list(World.logic_engine().getCurrentState())
         results = []  # list of True/False
 
-        for i in range(0, numberOfRepetitions):
+        for i in range(0, number_of_repetitions):
             self.reset()
-            World.logic_engine().restoreState(currentState)
+            World.logic_engine().restoreState(current_state)
 
             res = self.runExperiment()
             verdict = res[0] == constants.OK
@@ -891,7 +1030,7 @@ class World(Entity):
             moduleLogger.info("Experiment #{} --> {}, {} steps".format(i + 1, verdict, res[1]["steps"]))
 
         self.reset()
-        World.logic_engine().restoreState(currentState)
+        World.logic_engine().restoreState(current_state)
 
         return results
 
@@ -940,38 +1079,91 @@ class World(Entity):
             action_descriptions.append(ea.describe())
         return "\n".join(action_descriptions)
 
-    def registerProperty(self, propertyName, formula):
-        '''
-        Registers the given formula under the given name. 
-        '''
+    def registerProperty(self, propertyName, formula, property_type):
+        """
+        Registers the given formula under the given name.
+        :param str propertyName: the name of the property usd for referencing it later.
+        :param str formula: the formula.
+        :param int property_type: one of World.INVARIANT, World.ACHIEVE, or World.ACHIEVE_AND_SUSTAIN
+        """
+        if property_type not in (World.INVARIANT, World.ACHIEVE, World.ACHIEVE_AND_SUSTAIN):
+            raise SALMAException("Unknown property type: {}".format(property_type))
+        if (propertyName in self.__invariants or propertyName in self.__achieve_goals
+            or propertyName in self.__achieve_and_sustain_goals):
+            raise SALMAException("Property {} already registered.".format(propertyName))
         World.logic_engine().registerProperty(propertyName, formula)
+        if property_type == World.INVARIANT:
+            self.__invariants[propertyName] = (formula, property_type)
+        elif property_type == World.ACHIEVE:
+            self.__achieve_goals[propertyName] = (formula, property_type)
+        else:
+            self.__achieve_and_sustain_goals[propertyName] = (formula, property_type)
 
-    def getProperties(self):
-        return World.logic_engine().getProperties()
+    def unregister_property(self, property_name):
+        """
+        Un-registers a property.
+        :param str property_name: the property's name
+        """
+        if property_name in self.__invariants:
+            del self.__invariants[property_name]
+        if property_name in self.__achieve_goals:
+            del self.__achieve_goals[property_name]
+        if property_name in self.__achieve_and_sustain_goals:
+            del self.__achieve_and_sustain_goals[property_name]
+
+    @property
+    def properties(self):
+        """
+        A new dict containing all properties that are registered currently. The dict has the
+          structure name -> (formula, property_type)
+        :rtype: dict[str, (str, int)]
+        """
+        all_props = dict(self.__invariants)
+        all_props.update(self.__achieve_goals)
+        all_props.update(self.__achieve_and_sustain_goals)
+        return all_props
+
+    @property
+    def invariants(self):
+        return self.__invariants
+
+    @property
+    def achieve_goals(self):
+        return self.__achieve_goals
+
+    @property
+    def achieve_and_sustain_goals(self):
+        return self.__achieve_and_sustain_goals
+
+    def all_goals(self):
+        goals = dict()
+        goals.update(self.__achieve_goals)
+        goals.update(self.__achieve_and_sustain_goals)
+        return goals
 
     def getActionClock(self, actionName, params):
-        '''
+        """
         Returns the last recorded time when the given action was galled with the given parameters.
-        
+
         If the given action-parameter combination hasn't occurred before, this method returns -1.
-        
+
         :param actionName: str
-        :param params: list  
-        
+        :param params: list
+
         :rtype: int
-        '''
+        """
         return self.logic_engine().getActionClock(actionName, params)
 
     def getFluentChangeTime(self, fluentName, params):
-        '''
+        """
         Returns the last recorded time when the given fluent with the given parameters.
-        
-        If the given fluent-parameter combination has not been initialized yet, 
+
+        If the given fluent-parameter combination has not been initialized yet,
         this method returns -1.
-        
+
         :param fluentName: str
         :param params: list
-        '''
+        """
         return self.logic_engine().getFluentChangeTime(fluentName, params)
 
     def queryPersistentProperty(self, propertyName):

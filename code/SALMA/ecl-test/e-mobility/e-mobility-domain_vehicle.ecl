@@ -84,7 +84,7 @@ nextTarget(Vehicle, Target, S) :-
 	).
 	
 hasTargetPLCS(Vehicle, S) :-
-	currentPLCS(Vehicle, PLCS, S),
+	currentTargetPLCS(Vehicle, PLCS, S),
 	not PLCS=none.
 	
 get_next_target_start(Vehicle, ActPos, NextTargetStart, S) :-

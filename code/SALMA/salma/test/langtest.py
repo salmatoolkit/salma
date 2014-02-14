@@ -76,3 +76,8 @@ if __name__ == "__main__":
     params2 = {'z':5, 'a':10, 'b':20}
     #params2 = {'z':5}
     myfunc(*params, **params2)
+    if params[0] > 0:
+        temp = 1
+    else:
+        temp = 2
+    print(temp)

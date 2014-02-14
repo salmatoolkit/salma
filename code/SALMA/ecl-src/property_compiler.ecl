@@ -79,6 +79,10 @@ isFluent(Functor, Type) :-
 	
 
 gather_evaluations_term(T, Out, InList, OutList, Situation):-
+		is_list(T),
+		gather_evaluations_list(T, Subterms, InList, OutList, Situation), 
+		Out = Subterms, !
+		;
 		functor(T, Functor, N),	
 		(N > 0 ->
 			T =.. [_ | Subterms],
@@ -87,12 +91,12 @@ gather_evaluations_term(T, Out, InList, OutList, Situation):-
 				% - it must be a functional fluent since we already handled relational ones in 
 				%   compile_constraints_term
 				% - we don't need to handle arguments of the fluent
-				
+				gather_evaluations_list(Subterms, Subterms2, InList, OutList2, Situation),
 				% 1. add result variable and s0
 				var(NewVar),
-				append(Subterms, [NewVar, Situation], Subterms2),
-				T2 =.. [Functor | Subterms2],
-				append(InList, [T2], OutList),
+				append(Subterms2, [NewVar, Situation], Subterms3),
+				T2 =.. [Functor | Subterms3],
+				append(OutList2, [T2], OutList),
 				Out = NewVar, !
 				;
 				% we have a function now so no s0 but handle arguments first
@@ -155,7 +159,7 @@ compile_constraints_term(T, Out, Situation) :-
 			;			
 			% handle comparison
 			
-			member(Functor, [>,<,>=,=<,==, =\=]),
+			member(Functor, [>,<,>=,=<,==, =\=, \=]),
 			% we assume that there are two subterms	
 			T =.. [_ | Subterms],
 			create_constraint(Functor, Subterms, Out, Situation), ! 

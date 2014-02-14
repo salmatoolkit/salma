@@ -72,7 +72,7 @@ class EMobilityScenario1(EMobilityTest):
         print("Uninitialized exogenous actions:")
         print(problematic_exogenous_actions)
 
-        self.run_until_all_targets_reached(world, world_map, 200)
+        self.run_experiment(world, world_map, 200)
 
 
 

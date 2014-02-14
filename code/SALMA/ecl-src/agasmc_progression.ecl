@@ -25,8 +25,9 @@
 :- dynamic exogenous_action/3.
 :- dynamic last_initialized/0.
 % clock for primitive and exogenous actions
-% action_clock(name, params, clock_vlaue)
+% action_clock(name, params, clock_value)
 :- dynamic action_clock/3.
+:- dynamic action_count/3.
 
 :- dynamic persistent_fluent/2.	
 :- dynamic state_dirty/0.
@@ -124,7 +125,8 @@ set_next(Fluent, Params, Val):-
 get_action_clock(Action, Params, T) :-
 	(action_clock(Action, Params, T) -> true ; T is -1).
 
-	
+get_action_count(Action, Params, Count) :-
+	(action_count(Action, Params, Count) -> true ; Count is 0).
 
 % retrieves a description about the currently stored situations (current + next)
 get_situations(S1, List1, S2, List2, S3, List3):-
@@ -310,6 +312,10 @@ create_situation([A], Time, S1, S2) :-
 	A2 =.. [Act | Params],
 	(retract(action_clock(Act, Params, _)), ! ; true),
 	assert(action_clock(Act, Params , Time)),
+	get_action_count(Act, Params, OldCount),
+	NewCount is OldCount + 1,
+	(retract(action_count(Act, Params, _)), ! ; true),
+	assert(action_count(Act, Params , NewCount)),
 	S2 = do2(A2, S1), !.
 		
 create_situation([A | Tl], Time, S1, S2) :-

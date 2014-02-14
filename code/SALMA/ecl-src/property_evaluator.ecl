@@ -157,7 +157,7 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, ToSc
 			;
 			% comparison or boolean fluent
 			functor(F, Functor, _),	
-			(member(Functor, [>,<,>=,=<,==, =\=]), ! ; fluent(Functor, _, boolean), ! ;
+			(member(Functor, [>,<,>=,=<,==, =\=, \=]), ! ; fluent(Functor, _, boolean), ! ;
 				derived_fluent(Functor, _, boolean)),
 			(call(F) -> Result = ok ; Result = not_ok), !
 			;		
@@ -658,21 +658,20 @@ print_cache_candidates :-
 		
 % Evaluates all registered toplevel goals. 
 % Results: list of Term with schema Name - Result
-evaluate_toplevel(Results, OverallResult) :-
+evaluate_toplevel(Results) :-
 		stored_keys_and_values(toplevel_goals, L),
-		(fromto(L, In, Out, []), fromto([], In2, Out2, Results), fromto(ok, In3, Out3, OverallResult) do
+		(fromto(L, In, Out, []), fromto([], In2, Out2, Results) do
 			In = [Entry | Rest],
 			Entry = Name - cf(CacheId),
 			get_cached_formula(CacheId, F),
 			evaluate_and_schedule(Name, [0], F, CacheId, 0, -1, R, _, _, _),
 			(
-				R = ok, append(In2, [ok : Name], Out2), Out3 = In3, !
+				R = ok, append(In2, [ok : Name], Out2), !
 				;
-				R = not_ok, append(In2, [not_ok : Name], Out2), Out3 = not_ok, !
+				R = not_ok, append(In2, [not_ok : Name], Out2), !
 				;
 				% nondet
-				append(In2, [nondet : Name], Out2), 
-				(In3 = not_ok -> Out3 = not_ok ; Out3 = nondet)
+				append(In2, [nondet : Name], Out2)
 			),
 			Out = Rest
 		).
@@ -706,34 +705,41 @@ evaluate_scheduled(Key, Result) :-
 	),
 	store_set(scheduled_goals, Key, app(ScheduleParams2,ToSchedule2)	).
 	
+
+	
+get_pending_goals(PendingGoals, LevelFilter) :-
+	stored_keys_and_values(scheduled_goals, L),
+	(foreach(Entry, L), fromto([], In, Out, PendingGoals), param(LevelFilter) do
+		Entry = Key - app(_, Content),
+		Key = sg(_, Level, _, _),
+		( ( (LevelFilter = all, ! ; Level == LevelFilter),
+			Content \= ok, Content \= not_ok
+			) ->
+			append(In, [Key], Out)
+			;
+			Out = In
+		)
+	).	
+		
+get_pending_toplevel_goals(PendingGoals) :-
+	get_pending_goals(PendingGoals, 0).
+	
 % claim schedule ids when entering evaluation --> from outside to inside. in evaluation first sort and then evaluate in descending order.
 % This makes sure that dependencies are resolved.
-evaluate_all_scheduled(Results, OverallResult) :-
-	stored_keys(scheduled_goals, Keys),
+evaluate_all_scheduled(Results) :-
+	get_pending_goals(PendingGoals, all),
 	% sort by  1st argument = level
-	sort(2, >=, Keys, SortedKeys),
-	(fromto(SortedKeys, In, Out, []), fromto([], In2, Out2, Results), fromto(ok, In3, Out3, OverallResult) do
+	sort(2, >=, PendingGoals, SortedKeys),
+	(fromto(SortedKeys, In, Out, []), fromto([], In2, Out2, Results) do
 		In = [Key | Rest],
 		Key = sg(_, Level, _, _),
 		evaluate_scheduled(Key, R),
-		% only report properties with level 0 and not_ok
-		(Level is 0 ->
-			(
-				R = ok,
-				Out2 = In2,
-				Out3 = In3, !
-				;
-				R = not_ok,
-				append(In2, [not_ok : Key], Out2),
-				Out3 = not_ok, !
-				; % nondet
-				Out2 = In2,
-				(In3 = not_ok -> Out3 = not_ok ; Out3 = nondet)
-			)
+		% only report properties with level 0
+		(Level == 0 ->
+			append(In2, [R : Key], Out2)
 			;
 			% don't report
-			Out2 = In2,
-			Out3 = In3
+			Out2 = In2
 		),
 		Out = Rest	
 	).

@@ -24,14 +24,13 @@ register_persistent_fluent(Name, Formula, CompiledFormula) :-
 	compile_formula(Formula, CompiledFormula),
 	add_persistent_fluent(Name, CompiledFormula).
 	
-	
-	
-evaluation_step(OverallResult, ToplevelResults, ScheduledResults) :-
+
+evaluation_step(ToplevelResults, ScheduledResults, PendingGoals) :-
 	% TODO: check for events and set clocks
 	update_persistent_fluents,
-	evaluate_all_scheduled(ScheduledResults, OverallScheduledResults),
-	evaluate_toplevel(ToplevelResults, OverallToplevelResults),
-	result_and(OverallToplevelResults, OverallScheduledResults, OverallResult).
+	evaluate_all_scheduled(ScheduledResults), 
+	get_pending_toplevel_goals(PendingGoals),
+	evaluate_toplevel(ToplevelResults).
 
 init_agasmc :-
 	init_progression,

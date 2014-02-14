@@ -36,8 +36,8 @@ class WorldTest2(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            World.set_logic_engine(EclipseCLPEngine("../../ecl-test/domaindesc.ecl",
-                                                    "../../ecl-test/example_procedures.ecl"))
+            World.set_logic_engine(EclipseCLPEngine("ecl-test/domaindesc.ecl",
+                                                    "ecl-test/example_procedures.ecl"))
         except SALMAException as e:
             print(e)
             raise
@@ -115,7 +115,10 @@ forall([r,robot],
 )
 )
 """
-        world.registerProperty("f", f_str)
+        world.registerProperty("f", f_str, World.INVARIANT)
+
+        g_str = "forall([r,robot], xpos(r) > 20)"
+        world.registerProperty("g", g_str, World.ACHIEVE)
 
         #world.registerProperty("f", "forall([r,robot], xpos(r) > 1)")
 
@@ -125,7 +128,7 @@ forall([r,robot],
         successes = []
 
         for i in range(0, WorldTest2.SAMPLES):
-            res = world.runRepetitions(WorldTest2.SAMPLE_LENGTH)
+            res = world.run_repetitions(WorldTest2.SAMPLE_LENGTH)
             num = sum(res)
             successes.append(num)
             print("Run #{}: {}".format(i+1, num))

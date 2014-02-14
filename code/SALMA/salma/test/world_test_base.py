@@ -26,8 +26,8 @@ class BaseWorldTest(unittest.TestCase):
     def setUpClass(cls):
 
         try:
-            World.set_logic_engine(EclipseCLPEngine("../../ecl-test/domaindesc.ecl",
-                                                    "../../ecl-test/example_procedures.ecl"))
+            World.set_logic_engine(EclipseCLPEngine("ecl-test/domaindesc.ecl",
+                                                    "ecl-test/example_procedures.ecl"))
         except SALMAException as e:
             print(e)
             raise
@@ -74,5 +74,3 @@ class BaseWorldTest(unittest.TestCase):
             world.setFluentValue("ypos", [r.getId()], y)
             world.setFluentValue("active", [r.getId()], True)
             y += distance
-
-

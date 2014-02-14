@@ -44,6 +44,9 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
 
 
 class WorldTest(BaseWorldTest):
+
+
+
     @withHeader
     def testWorldStepExplicit(self):
         world = World.instance()
@@ -59,8 +62,10 @@ class WorldTest(BaseWorldTest):
         print("\n\n----\n\n")
         world.printState()
 
-        finished, overallVerdict, toplevel_results, scheduled_results, actions, failedRegularActions = world.step()
+        (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
+            failed_invariants, failed_sustain_goals) = world.step()
 
+        self.assertEqual(constants.NONDET, verdict)
         self.assertFalse(finished)
         self.assertDictEqual(toplevel_results, {})
         self.assertEqual(11, world.getFluentValue('xpos', ['rob1']))
@@ -474,22 +479,22 @@ class WorldTest(BaseWorldTest):
         print('BEFORE:')
         world.printState()
 
-        finished, overallVerdict, toplevel_results, scheduled_results, actions, failedRegularActions = world.step()
+        (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions,
+            failedRegularActions, failed_invariants, failed_sustain_goals) = world.step()
         print("Executed: {}".format(actions))
         print('AFTER STEP 1:')
         world.printState()
-
+        self.assertEqual(constants.NONDET, verdict)
         self.assertFalse(finished)
-        self.assertEqual(overallVerdict, constants.OK)
         self.assertListEqual(failedRegularActions, [])
 
-        finished, overallVerdict, toplevel_results, scheduled_results, actions, failedRegularActions = world.step()
+        (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions,
+            failedRegularActions, failed_invariants, failed_sustain_goals) = world.step()
         print("\n\nExecuted: {}".format(actions))
         print('AFTER STEP 1:')
         world.printState()
 
         self.assertFalse(finished)
-        self.assertEqual(overallVerdict, constants.NOT_OK)
         self.assertListEqual(failedRegularActions, [('grab', ['rob1', 'coffee'])])
 
     def setupSelectionContext(self):
@@ -730,11 +735,10 @@ class WorldTest(BaseWorldTest):
 
         agent = Agent("rob1", "robot", controlProc, registry)
         world.addAgent(agent)
-
+        world.addEntity(Entity("coffee", "item"))
         world.initialize(False)
-
         self.place_agents_in_column(10)
-
+        self.setNoOneCarriesAnything()
         world.runUntilFinished()
         world.printState()
         self.assertEqual(world.getFluentValue('xpos', ['rob1']), 17)
@@ -772,11 +776,12 @@ class WorldTest(BaseWorldTest):
 
         agent = Agent("rob1", "robot", controlProc, registry)
         world.addAgent(agent)
-
+        world.addEntity(Entity("coffee", "item"))
+        world.addEntity(Entity("chocolate", "item"))
         world.initialize(False)
 
         self.place_agents_in_column(10)
-
+        self.setNoOneCarriesAnything()
         world.runUntilFinished()
         world.printState()
         self.assertEqual(world.getFluentValue('xpos', ['rob1']), 25)
@@ -898,23 +903,18 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(len(l1), 5)
         self.assertEqual(len(l2), 0)
 
-
-class WorldTestSuite(unittest.TestSuite):
-    def __init__(self):
-        unittest.TestSuite.__init__(self)
-        self.addTest(WorldTest("test_procedure_call"))
-
+    def runTest(self):
+        unittest.TestProgram.runTests(self)
 
 def suite():
     s = unittest.TestSuite()
-    s.addTest(WorldTest('test_procedure_call'))
-    s.addTest(WorldTest('test_recursive_procedure_call'))
+    s.addTest(WorldTest())
     return s
 
 
-def load_tests(loader, tests, pattern):
-    print("load")
-    return suite()
+# def load_tests(loader, tests, pattern):
+#     print("Loading SALMA WorldTest")
+#     return suite()
 
 
 if __name__ == '__main__':
