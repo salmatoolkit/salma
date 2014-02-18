@@ -22,6 +22,16 @@ import pyclp
 from salma.test.emobility.emobility_test import EMobilityTest
 import salma.test.emobility.utils as utils
 from salma.statistics import SequentialProbabilityRatioTest
+from statsmodels.stats import proportion
+
+
+HYPTEST, ESTIMATION = range(2)
+
+_MODE = ESTIMATION
+
+_VISUALIZE = False
+
+
 
 def create_navigation_functions(world_map, mt):
     def possible_target_chooser(agent=None, currentTargetPOI=None, **ctx):
@@ -232,14 +242,33 @@ class EMobilityScenario3(EMobilityTest):
         #results, infos = world.run_repetitions(100)
 
         # assumption success prob = 0.6 --> H0: p <= 0.4
-        sprt = SequentialProbabilityRatioTest(0.6, 0.7, 0.05, 0.05)
+        if _MODE == HYPTEST:
+            sprt = SequentialProbabilityRatioTest(0.6, 0.7, 0.05, 0.05)
+            accepted_hypothesis, results, info = world.run_repetitions(hypothesis_test=sprt)
+            print("SPRT")
+            print("Conducted tests: {}".format(len(results)))
+            print("Successes: {} of {}".format(sum(results), len(results)))
 
-        accepted_hypothesis, results, info = world.run_repetitions(hypothesis_test=sprt)
-        print("Conducted tests: {}".format(len(results)))
-        print("Successes: {} of {}".format(sum(results), len(results)))
-        ratio = sum(results) / len(results)
-        print("Ratio: {}".format(ratio))
-        print("Hypothesis accepted: {}".format(accepted_hypothesis))
+            print("Hypothesis accepted: {}".format(accepted_hypothesis))
+        elif _MODE == ESTIMATION:
+            _, results, info = world.run_repetitions(number_of_repetitions=100)
+            successes = sum(results)
+            nobs = len(results)
+            ratio = successes / nobs
+            print("ESTIMATION")
+            print("Successes: {} of {}".format(successes, nobs))
+            print("Ratio: {}".format(ratio))
+            alpha = 0.05
+
+            print("Confidence intervals, alpha={}: ".format(alpha))
+            for method in ["normal", "agresti_coull", "beta", "wilson", "jeffrey"]:
+                ci_low, ci_upp = proportion.proportion_confint(successes, nobs, alpha=alpha, method=method)
+                print("   {} => [{}..{}]".format(method, ci_low, ci_upp))
+
+
+
+
+
 
 
 if __name__ == '__main__':
