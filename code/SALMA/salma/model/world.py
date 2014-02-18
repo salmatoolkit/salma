@@ -19,11 +19,10 @@ from salma.model.actions import StochasticAction, DeterministicAction, Exogenous
 from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
-from ..statistics import SequentialAcceptanceTest
+from salma.statistics import HypothesisTest
 from .core import Entity, Fluent
 from .agent import Agent
 from .procedure import Variable, ActionExecution
-
 
 MODULE_LOGGER_NAME = 'agamemnon-smc.world'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -1019,7 +1018,15 @@ class World(Entity):
         for agent in self.getAgents():
             agent.restart()
 
-    def run_repetitions(self, number_of_repetitions, max_retrials=3, **kwargs):
+    def run_repetitions(self, number_of_repetitions=100, max_retrials=3, hypothesis_test=None, **kwargs):
+        """
+        Runs repetitions of the configured experiment. If an hypothesis test object is given then the acceptance
+        of this hypothesis test is
+        :param int number_of_repetitions: fixed number of repetitions if no hypothesis test is given
+        :param int max_retrials: maximum number of retrials
+        :param HypothesisTest hypothesis_test: the (sequential) hypothesis test to conduct
+        :return:
+        """
         # save state
         current_state = list(World.logic_engine().getCurrentState())
         results = []  # list of True/False
@@ -1027,7 +1034,10 @@ class World(Entity):
         retrial = 0
         conclusive_trial_count = 0
         trial_number = 1
-        while conclusive_trial_count < number_of_repetitions:
+        should_continue = True
+        accepted_hypothesis = None
+        successes, failures = 0, 0
+        while should_continue:
             self.reset()
             World.logic_engine().restoreState(current_state)
 
@@ -1047,42 +1057,23 @@ class World(Entity):
             else:
                 retrial = 0
                 results.append(verdict == OK)
+                if verdict == OK:
+                    successes += 1
+                else:
+                    failures += 1
                 conclusive_trial_count += 1
                 print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
             trial_number += 1
 
+            if hypothesis_test is not None:
+                accepted_hypothesis = hypothesis_test.check_hypothesis_accepted(conclusive_trial_count, failures)
+                should_continue = accepted_hypothesis is None
+            else:
+                should_continue = conclusive_trial_count < number_of_repetitions
+
         self.reset()
         World.logic_engine().restoreState(current_state)
-        return results, trial_infos
-
-    def runSequentialHypothesisTest(self, p0, p1, alpha, beta):
-
-        seqTest = SequentialAcceptanceTest(p0, p1, alpha, beta)
-
-        currentState = list(World.logic_engine().getCurrentState())
-        result = None
-        m = 0
-        verdicts = []
-        numberOfDefects = 0
-        while result is None:
-            self.reset()
-            World.logic_engine().restoreState(currentState)
-
-            res = self.runExperiment()
-            verdict = res[0] == constants.OK
-            m += 1
-            #if moduleLogger.isEnabledFor(logging.DEBUG):
-            moduleLogger.debug("Sample #{} : {}".format(m, verdict))
-
-            verdicts.append(verdict)
-            if verdict == False:
-                numberOfDefects += 1
-            result = seqTest.checkAcceptance(m, numberOfDefects)
-
-        self.reset()
-        World.logic_engine().restoreState(currentState)
-
-        return (result, m)
+        return accepted_hypothesis, results, trial_infos
 
     def printState(self):
         if not self.__initialized: self.initialize()

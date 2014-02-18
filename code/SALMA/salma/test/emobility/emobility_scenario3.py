@@ -21,7 +21,7 @@ import networkx as nx
 import pyclp
 from salma.test.emobility.emobility_test import EMobilityTest
 import salma.test.emobility.utils as utils
-
+from salma.statistics import SequentialProbabilityRatioTest
 
 def create_navigation_functions(world_map, mt):
     def possible_target_chooser(agent=None, currentTargetPOI=None, **ctx):
@@ -229,10 +229,17 @@ class EMobilityScenario3(EMobilityTest):
 
         #verdict, results = self.run_experiment(world, world_map, log=False, visualize=False)
         # print("Verdict: {}\nResults:\n{}".format(verdict, results))
-        results, infos = world.run_repetitions(100)
+        #results, infos = world.run_repetitions(100)
+
+        # assumption success prob = 0.6 --> H0: p <= 0.4
+        sprt = SequentialProbabilityRatioTest(0.6, 0.7, 0.05, 0.05)
+
+        accepted_hypothesis, results, info = world.run_repetitions(hypothesis_test=sprt)
+        print("Conducted tests: {}".format(len(results)))
         print("Successes: {} of {}".format(sum(results), len(results)))
         ratio = sum(results) / len(results)
         print("Ratio: {}".format(ratio))
+        print("Hypothesis accepted: {}".format(accepted_hypothesis))
 
 
 if __name__ == '__main__':

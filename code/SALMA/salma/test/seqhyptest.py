@@ -21,7 +21,7 @@ from salma.model.procedure import ControlNode, Sequence, \
     ActionExecution, Procedure, While, VariableAssignment, ArbitraryAction, Variable
 from salma.model.world import World
 import salma.model.world
-from salma.statistics import SequentialAcceptanceTest
+from salma.statistics import SequentialProbabilityRatioTest
 import numpy as np
 from salma.test.testhelpers import withHeader
 
@@ -176,11 +176,13 @@ class SequentialHypothesisTestTest(unittest.TestCase):
         print(f)
         world.printState()
         #print(data)
+
         for row in data:
-            c1 = time.clock()       
-            result, m = world.runSequentialHypothesisTest(row[1], row[2], ALPHA, BETA)
+            c1 = time.clock()
+            spbrt = SequentialProbabilityRatioTest(row[1], row[2], ALPHA, BETA)
+            accepted_hypothesis, results, trial_infos = world.run_repetitions(hypothesis_test=spbrt)
             c2 = time.clock()
-            row[3:] = [result, m, (c2-c1)]
+            row[3:] = [accepted_hypothesis, len(results), (c2-c1)]
             print(row)                                 
         
         # header: P_DEFECT

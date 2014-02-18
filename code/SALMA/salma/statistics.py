@@ -1,22 +1,35 @@
-'''
+"""
 Created on 04.09.2013
 
 @author: christian
-'''
+"""
 
 import numpy as np
 
 
-class SequentialAcceptanceTest(object):
-    '''
+class HypothesisTest(object):
+    """
+    Base clas for hypothesis tests. Offers the method check_hypothesis_accepted.
+    """
+
+    def check_hypothesis_accepted(self, m, numberOfDefects):
+        """
+        If one of the hypothesis is accepted, return its index (usually 0 or 1). Otherwise return None
+         which means that testing should continue.
+        """
+        raise NotImplementedError()
+
+
+class SequentialProbabilityRatioTest(HypothesisTest):
+    """
     An implementation of the sequential hypothesis test proposed by A. Wald.
-    Tests the hypothesis that the probability of failure for an experiment is 
+    Tests the hypothesis that the probability of failure for an experiment is
     at most a specified marginal probability p'.
-    
+
     Instead of testing the simple hypothesis p = p' against p > p', a tolerance region
     p0 < p' < p1 is defined.
-        
-    '''
+
+    """
 
     def __init__(self, p0, p1, alpha, beta):
         '''
@@ -38,19 +51,14 @@ class SequentialAcceptanceTest(object):
         
         self.__base_R = np.log( (1 - beta) / alpha ) / denominator
         
-        
-        
-        
-        
-    def checkAcceptance(self, m, numberOfDefects):
-        
+    def check_hypothesis_accepted(self, m, numberOfDefects):
         A_m = self.__base_A + self.__m_factor * m
         R_m = self.__base_R + self.__m_factor * m
         
         if numberOfDefects <= A_m:
-            return True
+            return 0
         elif numberOfDefects >= R_m:
-            return False
+            return 1
         else:
             return None
          

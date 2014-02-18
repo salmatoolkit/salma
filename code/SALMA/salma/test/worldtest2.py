@@ -128,9 +128,11 @@ forall([r,robot],
         successes = []
 
         for i in range(0, WorldTest2.SAMPLES):
-            res = world.run_repetitions(WorldTest2.SAMPLE_LENGTH)
+            accepted_hypothesis, res, trial_infos = world.run_repetitions(number_of_repetitions=WorldTest2.SAMPLE_LENGTH)
             num = sum(res)
             successes.append(num)
+            self.assertEqual(WorldTest2.SAMPLE_LENGTH, len(res))
+            self.assertEqual(WorldTest2.SAMPLE_LENGTH, len(trial_infos))
             print("Run #{}: {}".format(i+1, num))
 
 
