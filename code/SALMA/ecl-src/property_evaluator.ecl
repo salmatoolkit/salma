@@ -157,7 +157,8 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, ToSc
 			;
 			% comparison or boolean fluent
 			functor(F, Functor, _),	
-			(member(Functor, [>,<,>=,=<,==, =\=, \=]), ! ; fluent(Functor, _, boolean), ! ;
+			(member(Functor, [>,<,>=,=<,==, =\=, \=,
+				$>, $>=, $<, $=<, $=, $\=]), ! ; fluent(Functor, _, boolean), ! ;
 				derived_fluent(Functor, _, boolean)),
 			(call(F) -> Result = ok ; Result = not_ok), !
 			;		

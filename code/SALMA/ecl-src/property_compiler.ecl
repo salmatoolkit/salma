@@ -159,7 +159,8 @@ compile_constraints_term(T, Out, Situation) :-
 			;			
 			% handle comparison
 			
-			member(Functor, [>,<,>=,=<,==, =\=, \=]),
+			member(Functor, [>,<,>=,=<,==, =\=, \=, 
+				$>, $>=, $<, $=<, $=, $\=]),
 			% we assume that there are two subterms	
 			T =.. [_ | Subterms],
 			create_constraint(Functor, Subterms, Out, Situation), ! 

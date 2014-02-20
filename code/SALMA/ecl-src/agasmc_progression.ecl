@@ -326,9 +326,16 @@ situation2action_list(s0, []).
 situation2action_list(do2(A,S), L) :-
 	situation2action_list(S, L1),
 	append(L1, [A], L).
-	
-	
 
+situation([A], S1, S2) :-
+	S2 = do2(A, S1), !.
+
+situation([A | Tl], S1, S2) :-
+	situation([A], S1, S3),
+	situation(Tl, S3, S2).
+
+situation([A | Tl], S2) :- situation([A | Tl], s0, S2).
+	
 possible_action_instance(ActionName, PossibleInstanceArgs) :-
 	exogenous_action(ActionName, EntityParams, StochasticParams),
 	(foreach(Param, EntityParams), foreach(Arg, PossibleInstanceArgs) do

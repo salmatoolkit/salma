@@ -75,7 +75,7 @@ do2(E,S,do2(E,S)) :- is_primitive_action(E), poss(E,S).
 do2(E,S,S1) :- 
 	E =.. [ProcName | ParamValues],
 	proc(ProcName,Signature,OriginalBody), 
-	apply_proc_args(ParamValues, Signature, OriginalBody, GroundBody),		
+	apply_proc_args(ParamValues, Signature, OriginalBody, GroundBody),	
 	do2(GroundBody,S,S1).
 
 apply_proc_args(ParamValues, Signature, OriginalBody, GroundBody) :-
