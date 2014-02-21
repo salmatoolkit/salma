@@ -19,7 +19,7 @@ from salma.model.distributions import BernoulliDistribution, \
     UniformDistribution, ArgumentIdentityDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Sequence, Procedure, While, \
-    Iterate, ActionExecution, Variable, VariableAssignment
+    Iterate, Act, Variable, Assign
 from salma.model.world import World
 import numpy as np
 
@@ -38,22 +38,22 @@ class Robot(Agent):
                      Sequence([
                          Iterate(EvaluationContext.ECLP_FUNCTION, 'isSortOf',
                                  [('sensor', 'distance_sensor'), 'distance_sensor'],
-                                 ActionExecution('update_distance_sensor',
+                                 Act('update_distance_sensor',
                                                  [Entity.SELF, Variable('sensor')]
                                  )
                          ),
                          Iterate(EvaluationContext.ECLP_FUNCTION, 'isSortOf',
                                  [('sensor', 'light_sensor'), 'light_sensor'],
-                                 ActionExecution('update_light_sensor',
+                                 Act('update_light_sensor',
                                                  [Entity.SELF, Variable('sensor')]
                                  )
                          ),
-                         VariableAssignment('newDirection',
+                         Assign('newDirection',
                                             EvaluationContext.TRANSIENT_FLUENT,
                                             'direction_arbiter',
                                             [Entity.SELF]),
 
-                         ActionExecution('update_direction',
+                         Act('update_direction',
                                          [Entity.SELF, Variable('newDirection')]
                          )
                      ])
@@ -297,22 +297,22 @@ class RoboticScenario(unittest.TestCase):
         seq = Sequence([
             Iterate(EvaluationContext.ECLP_FUNCTION, 'isSortOf',
                     [('sensor', 'distance_sensor'), 'distance_sensor'],
-                    ActionExecution('update_distance_sensor',
+                    Act('update_distance_sensor',
                                     [Entity.SELF, Variable('sensor')]
                     )
             ),
             Iterate(EvaluationContext.ECLP_FUNCTION, 'isSortOf',
                     [('sensor', 'light_sensor'), 'light_sensor'],
-                    ActionExecution('update_light_sensor',
+                    Act('update_light_sensor',
                                     [Entity.SELF, Variable('sensor')]
                     )
             ),
-            VariableAssignment('newDirection',
+            Assign('newDirection',
                                EvaluationContext.TRANSIENT_FLUENT,
                                'direction_arbiter',
                                [Entity.SELF]),
 
-            ActionExecution('update_direction',
+            Act('update_direction',
                             [Entity.SELF, Variable('newDirection')]
             )
         ])

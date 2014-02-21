@@ -3,7 +3,7 @@ from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import Procedure, Sequence, VariableAssignment, ActionExecution, Variable, Iterate
+from salma.model.procedure import Procedure, Sequence, Assign, Act, Variable, Iterate
 from salma.model.process import TriggeredProcess, PeriodicProcess
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
@@ -96,32 +96,32 @@ class EMobilityScenario3(EMobilityTest):
 
         p_request_plcs = Procedure("main", [],
                                    [
-                                       VariableAssignment("possible_targets",
+                                       Assign("possible_targets",
                                                           EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                           target_chooser, []),
-                                       ActionExecution("queryPLCSSAM",
+                                       Act("queryPLCSSAM",
                                                        [Entity.SELF, "sam1", Variable("possible_targets"),
                                                         0, 0])
                                    ])
 
         p_set_target = Procedure("main", [],
                                  [
-                                     VariableAssignment("sam_response", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                     Assign("sam_response", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                         response_selector, []),
-                                     ActionExecution("remove_all_vehicle_plcssam_reservationResponses",
+                                     Act("remove_all_vehicle_plcssam_reservationResponses",
                                                      [Entity.SELF, "sam1"]),
-                                     ActionExecution("setTargetPLCS", [Entity.SELF, Variable("sam_response")])
+                                     Act("setTargetPLCS", [Entity.SELF, Variable("sam_response")])
                                  ])
 
         p_find_route = Procedure("main", [],
                                  [
-                                     VariableAssignment("route", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                     Assign("route", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                         route_finder, []),
-                                     ActionExecution("setRoute", [Entity.SELF, Variable("route")])
+                                     Act("setRoute", [Entity.SELF, Variable("route")])
                                  ])
 
         p_comm_sam = Procedure("main", [],
-                               ActionExecution("start_exchange_PLCSSAM_Vehicle", [Entity.SELF, "sam1"]))
+                               Act("start_exchange_PLCSSAM_Vehicle", [Entity.SELF, "sam1"]))
         for i in range(EMobilityScenario3.NUM_OF_VEHICLES):
             p1 = TriggeredProcess(p_request_plcs, EvaluationContext.PYTHON_EXPRESSION,
                                   "currentTargetPLCS(self) == 'none' and "
@@ -142,14 +142,14 @@ class EMobilityScenario3(EMobilityTest):
 
         p_process_requests = Procedure("main", [],
                                        [
-                                           VariableAssignment("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                           Assign("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                               request_processor, []),
                                            Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
                                                    [("v", "vehicle"), ("p", "plcs")],
-                                                   ActionExecution("set_plcssam_vehicle_reservationResponse",
+                                                   Act("set_plcssam_vehicle_reservationResponse",
                                                                    [Entity.SELF, Variable("v"), 0, 0, Variable("p")])
                                            ),
-                                           ActionExecution("remove_all_plcssam_vehicle_reservationRequests",
+                                           Act("remove_all_plcssam_vehicle_reservationRequests",
                                                            [Entity.SELF])
                                        ])
 

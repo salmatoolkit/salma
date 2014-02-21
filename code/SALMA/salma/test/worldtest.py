@@ -1,7 +1,7 @@
 import logging
 import unittest
 import itertools
-
+import math
 from salma import constants
 from salma.SALMAException import SALMAException
 from salma.engine import EclipseCLPEngine
@@ -14,7 +14,7 @@ from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
-    ActionExecution, Procedure, While, VariableAssignment, ArbitraryAction, Variable, \
+    Act, Procedure, While, Assign, ArbitraryAction, Variable, \
     Iterate, SelectFirst, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
@@ -44,9 +44,6 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
 
 
 class WorldTest(BaseWorldTest):
-
-
-
     @withHeader
     def testWorldStepExplicit(self):
         world = World.instance()
@@ -63,7 +60,7 @@ class WorldTest(BaseWorldTest):
         world.printState()
 
         (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
-            failed_invariants, failed_sustain_goals) = world.step()
+         failed_invariants, failed_sustain_goals) = world.step()
 
         self.assertEqual(constants.NONDET, verdict)
         self.assertFalse(finished)
@@ -124,7 +121,7 @@ class WorldTest(BaseWorldTest):
 
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
                   [Entity.SELF, 18],
-                  ActionExecution("move_right", [Entity.SELF]))
+                  Act("move_right", [Entity.SELF]))
 
         agent = Agent("rob1", "robot", Procedure("main", [], w))
         world.addAgent(agent)
@@ -152,7 +149,7 @@ class WorldTest(BaseWorldTest):
         world = World.instance()
 
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
-                  ActionExecution("move_right", [Entity.SELF]))
+                  Act("move_right", [Entity.SELF]))
 
         proc = Procedure("main", [], w)
 
@@ -189,14 +186,14 @@ class WorldTest(BaseWorldTest):
 
         # run from (x,y) to (y,y)
         seq = Sequence([
-            VariableAssignment("myY", EvaluationContext.FLUENT, "ypos", [Entity.SELF]),
+            Assign("myY", EvaluationContext.FLUENT, "ypos", [Entity.SELF]),
             ArbitraryAction(printValue, [Variable("myY")])
         ])
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
                   [Entity.SELF, Variable("myY")],
                   Sequence([
-                      ActionExecution("move_right", [Entity.SELF]),
-                      VariableAssignment("myX", EvaluationContext.FLUENT, "xpos", [Entity.SELF]),
+                      Act("move_right", [Entity.SELF]),
+                      Assign("myX", EvaluationContext.FLUENT, "xpos", [Entity.SELF]),
                       ArbitraryAction(printValue, [Variable("myX")])
                   ])
         )
@@ -218,33 +215,45 @@ class WorldTest(BaseWorldTest):
     @withHeader
     def test_evaluate_python_expression(self):
         world = World.instance()
-
+        world.add_additional_expression_context_global("math", math)
         # run from (x,y) to (y,y)
         seq = Sequence([
-            VariableAssignment("x",
-                               EvaluationContext.PYTHON_EXPRESSION,
-                               "6",
+            Assign("x",
+                   EvaluationContext.PYTHON_EXPRESSION,
+                   "6",
                 []),
-            VariableAssignment("y",
-                               EvaluationContext.PYTHON_EXPRESSION,
-                               "x * 7 + params[0]",
-                               [3]),
-            VariableAssignment("z",
-                               EvaluationContext.PYTHON_EXPRESSION,
-                               "0",
+            Assign("y",
+                   EvaluationContext.PYTHON_EXPRESSION,
+                   "x * 7 + params[0]",
+                   [3]),
+            Assign("z",
+                   EvaluationContext.PYTHON_EXPRESSION,
+                   "0",
                 []),
-            VariableAssignment("z2",
-                               EvaluationContext.PYTHON_EXPRESSION,
-                               "xpos('rob1') + ypos('rob1')",
+            Assign("z2",
+                   EvaluationContext.PYTHON_EXPRESSION,
+                   "xpos('rob1') + ypos('rob1')",
                 []),
-
+            # test symbols without quotation marks
+            Assign("z3",
+                   EvaluationContext.PYTHON_EXPRESSION,
+                   "xpos(rob1) + ypos(rob1)",
+                []),
+            Assign("z4",
+                   EvaluationContext.PYTHON_EXPRESSION,
+                   "math.sqrt(xpos(rob1) - 1)",
+                []),
+            Assign("z5",
+                   EvaluationContext.PYTHON_EXPRESSION,
+                   "gravity() * 10",
+                []),
             While(EvaluationContext.PYTHON_EXPRESSION,
                   "z < y - params[0]",
                   [3],
                   Sequence([
-                      VariableAssignment("z",
-                                         EvaluationContext.PYTHON_EXPRESSION,
-                                         "z + 1",
+                      Assign("z",
+                             EvaluationContext.PYTHON_EXPRESSION,
+                             "z + 1",
                           [])
                   ])
             )
@@ -256,13 +265,17 @@ class WorldTest(BaseWorldTest):
         world.initialize(False)
         world.setFluentValue("xpos", ["rob1"], 10)
         world.setFluentValue("ypos", ["rob1"], 15)
-
+        world.setConstantValue("gravity", [], 9.81)
         world.runUntilFinished()
 
         self.assertEqual(agent.evaluation_context.resolve(Variable("x"))[0], 6)
         self.assertEqual(agent.evaluation_context.resolve(Variable("y"))[0], 45)
         self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], 42)
         self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], 25)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("z3"))[0], 25)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("z4"))[0], 3)
+        v = agent.evaluation_context.resolve(Variable("z5"))[0]
+        self.assertAlmostEqual(98.1, v)
 
     @withHeader
     def test_evaluate_python_function(self):
@@ -278,14 +291,14 @@ class WorldTest(BaseWorldTest):
             return a * b * x * xpos("rob1") * ypos("rob1")
 
         seq = Sequence([
-            VariableAssignment("x", EvaluationContext.PYTHON_FUNCTION,
-                               lambda i: i ** 2, [3]),
-            VariableAssignment("y", EvaluationContext.PYTHON_FUNCTION,
-                               myfunc1, [4, 6]),
-            VariableAssignment("z", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                               myfunc2, [-1, 2]),
-            VariableAssignment("z2", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                               myfunc3, [-1, 2])
+            Assign("x", EvaluationContext.PYTHON_FUNCTION,
+                   lambda i: i ** 2, [3]),
+            Assign("y", EvaluationContext.PYTHON_FUNCTION,
+                   myfunc1, [4, 6]),
+            Assign("z", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                   myfunc2, [-1, 2]),
+            Assign("z2", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                   myfunc3, [-1, 2])
         ])
 
         agent = Agent("rob1", "robot", Procedure("main", [], seq))
@@ -342,10 +355,10 @@ class WorldTest(BaseWorldTest):
         jump_action.selection_strategy = Uniform()
 
         seq = Sequence([
-            ActionExecution("move_right", [Entity.SELF]),
-            ActionExecution("jump", [Entity.SELF, 42]),
-            ActionExecution("jump", [Entity.SELF, 42]),
-            ActionExecution("jump", [Entity.SELF, 42])
+            Act("move_right", [Entity.SELF]),
+            Act("jump", [Entity.SELF, 42]),
+            Act("jump", [Entity.SELF, 42]),
+            Act("jump", [Entity.SELF, 42])
         ])
 
         agent = Agent("rob1", "robot", Procedure("main", [], seq))
@@ -368,17 +381,17 @@ class WorldTest(BaseWorldTest):
         jump_action.selection_strategy = MySelectionStrategy()
 
         seq1 = Sequence([
-            ActionExecution("move_right", [Entity.SELF]),
-            ActionExecution("jump", [Entity.SELF, 42]),
-            ActionExecution("jump", [Entity.SELF, 42]),
-            ActionExecution("jump", [Entity.SELF, 42])
+            Act("move_right", [Entity.SELF]),
+            Act("jump", [Entity.SELF, 42]),
+            Act("jump", [Entity.SELF, 42]),
+            Act("jump", [Entity.SELF, 42])
         ])
 
         seq2 = Sequence([
-            ActionExecution("move_right", [Entity.SELF]),
-            ActionExecution("jump", [Entity.SELF, 55]),
-            ActionExecution("jump", [Entity.SELF, 55]),
-            ActionExecution("jump", [Entity.SELF, 55])
+            Act("move_right", [Entity.SELF]),
+            Act("jump", [Entity.SELF, 55]),
+            Act("jump", [Entity.SELF, 55]),
+            Act("jump", [Entity.SELF, 55])
         ])
 
         agent1 = Agent("rob1", "robot", Procedure("main", [], seq1))
@@ -419,11 +432,11 @@ class WorldTest(BaseWorldTest):
         collision_event.config.uniform_param("severity", value_range=(0, 100))
 
         seq = Sequence([
-            ActionExecution("move_right", [Entity.SELF]),
-            ActionExecution("move_right", [Entity.SELF]),
-            ActionExecution("move_right", [Entity.SELF]),
-            ActionExecution("move_right", [Entity.SELF]),
-            ActionExecution("move_right", [Entity.SELF]),
+            Act("move_right", [Entity.SELF]),
+            Act("move_right", [Entity.SELF]),
+            Act("move_right", [Entity.SELF]),
+            Act("move_right", [Entity.SELF]),
+            Act("move_right", [Entity.SELF]),
         ])
 
         agent1 = Agent("rob1", "robot", Procedure("main", [], seq))
@@ -456,12 +469,12 @@ class WorldTest(BaseWorldTest):
         world.addEntity(Entity("chocolate", "item"))
 
         seq1 = Sequence([
-            ActionExecution("grab", [Entity.SELF, "coffee"]),
-            ActionExecution("grab", [Entity.SELF, "coffee"])
+            Act("grab", [Entity.SELF, "coffee"]),
+            Act("grab", [Entity.SELF, "coffee"])
         ])
         seq2 = Sequence([
-            ActionExecution("grab", [Entity.SELF, "chocolate"]),
-            ActionExecution("move_right", [Entity.SELF])
+            Act("grab", [Entity.SELF, "chocolate"]),
+            Act("move_right", [Entity.SELF])
         ])
 
         agent1 = Agent("rob1", "robot", Procedure("main", [], seq1))
@@ -480,7 +493,7 @@ class WorldTest(BaseWorldTest):
         world.printState()
 
         (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions,
-            failedRegularActions, failed_invariants, failed_sustain_goals) = world.step()
+         failedRegularActions, failed_invariants, failed_sustain_goals) = world.step()
         print("Executed: {}".format(actions))
         print('AFTER STEP 1:')
         world.printState()
@@ -489,7 +502,7 @@ class WorldTest(BaseWorldTest):
         self.assertListEqual(failedRegularActions, [])
 
         (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions,
-            failedRegularActions, failed_invariants, failed_sustain_goals) = world.step()
+         failedRegularActions, failed_invariants, failed_sustain_goals) = world.step()
         print("\n\nExecuted: {}".format(actions))
         print('AFTER STEP 1:')
         world.printState()
@@ -507,10 +520,10 @@ class WorldTest(BaseWorldTest):
         world.addEntity(item2)
 
         seq1 = Sequence([
-            ActionExecution("grab", [Entity.SELF, "item1"])
+            Act("grab", [Entity.SELF, "item1"])
         ])
         seq2 = Sequence([
-            ActionExecution("grab", [Entity.SELF, "item2"])
+            Act("grab", [Entity.SELF, "item2"])
         ])
 
         #implicitly creates one-shot processes
@@ -622,7 +635,7 @@ class WorldTest(BaseWorldTest):
             Iterate(EvaluationContext.TRANSIENT_FLUENT, "canPaint",
                     [Entity.SELF, ("i", "item")],
                     Sequence([
-                        ActionExecution("paint", [Entity.SELF, Variable("i")])
+                        Act("paint", [Entity.SELF, Variable("i")])
                     ])
 
             )
@@ -654,7 +667,7 @@ class WorldTest(BaseWorldTest):
             Iterate(EvaluationContext.ITERATOR, items,
                     [("i", "item")],
                     Sequence([
-                        ActionExecution("paint", [Entity.SELF, Variable("i")])
+                        Act("paint", [Entity.SELF, Variable("i")])
                     ])
 
             )
@@ -684,7 +697,7 @@ class WorldTest(BaseWorldTest):
         seq1 = Sequence([
             SelectFirst(EvaluationContext.TRANSIENT_FLUENT, "canPaint",
                         [Entity.SELF, ("i", "item")]),
-            ActionExecution("paint", [Entity.SELF, Variable("i")])
+            Act("paint", [Entity.SELF, Variable("i")])
         ])
         agent = Agent("rob1", "robot", Procedure("main", [], seq1))
         world.addAgent(agent)
@@ -718,11 +731,11 @@ class WorldTest(BaseWorldTest):
                                  [("r1", "robot"), ("i", "item"), ("targetX", "integer")],
                                  Sequence(
                                      [
-                                         ActionExecution("grab", [Variable("r1"), Variable("i")]),
+                                         Act("grab", [Variable("r1"), Variable("i")]),
                                          While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
                                                [Variable("r1"), Variable("targetX")],
-                                               ActionExecution("move_right", [Variable("r1")])),
-                                         ActionExecution("drop", [Variable("r1"), Variable("i")])
+                                               Act("move_right", [Variable("r1")])),
+                                         Act("drop", [Variable("r1"), Variable("i")])
                                      ]
                                  ))
         registry = ProcedureRegistry()
@@ -750,12 +763,12 @@ class WorldTest(BaseWorldTest):
                                  [("r1", "robot"), ("i", "item"), ("targetX", "integer")],
                                  Sequence(
                                      [
-                                         ActionExecution("grab", [Variable("r1"), Variable("i")]),
+                                         Act("grab", [Variable("r1"), Variable("i")]),
                                          While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
                                                [Variable("r1"), Variable("targetX")],
-                                               ActionExecution("move_right", [Variable("r1")])
+                                               Act("move_right", [Variable("r1")])
                                          ),
-                                         ActionExecution("drop", [Variable("r1"), Variable("i")]),
+                                         Act("drop", [Variable("r1"), Variable("i")]),
                                          # test recursion
                                          If(EvaluationContext.PYTHON_FUNCTION,
                                             lambda i: i == "coffee",
@@ -905,6 +918,7 @@ class WorldTest(BaseWorldTest):
 
     def runTest(self):
         unittest.TestProgram.runTests(self)
+
 
 def suite():
     s = unittest.TestSuite()

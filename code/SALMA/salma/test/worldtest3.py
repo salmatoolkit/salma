@@ -13,7 +13,7 @@ from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
-    ActionExecution, Procedure, While, VariableAssignment, ArbitraryAction, Variable, \
+    Act, Procedure, While, Assign, ArbitraryAction, Variable, \
     Iterate, SelectFirst, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
@@ -32,7 +32,7 @@ class WorldTest3(BaseWorldTest):
     def test_load_declaration_empty(self):
         world = World.instance()
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
-                  ActionExecution("move_right", [Entity.SELF]))
+                  Act("move_right", [Entity.SELF]))
         proc = Procedure("main", [], w)
 
         agent1 = Agent("rob1", "robot", proc)
@@ -61,7 +61,7 @@ class WorldTest3(BaseWorldTest):
     def test_load_declaration_full(self):
         world = World.instance()
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
-                  ActionExecution("move_right", [Entity.SELF]))
+                  Act("move_right", [Entity.SELF]))
         proc = Procedure("main", [], w)
 
         agent1 = Agent("rob1", "robot", proc)
@@ -86,10 +86,10 @@ class WorldTest3(BaseWorldTest):
         world = World.instance()
 
         proc = Procedure("main", [], [
-            ActionExecution("paint", [Entity.SELF, "item1"]),
+            Act("paint", [Entity.SELF, "item1"]),
             While(EvaluationContext.PYTHON_EXPRESSION,
                   "xpos(self) < 20", [], [
-                    ActionExecution("move_right", [Entity.SELF])
+                    Act("move_right", [Entity.SELF])
                 ])
         ])
         rob1 = Agent("rob1", "robot", proc)

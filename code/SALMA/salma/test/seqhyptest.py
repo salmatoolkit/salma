@@ -18,7 +18,7 @@ from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
-    ActionExecution, Procedure, While, VariableAssignment, ArbitraryAction, Variable
+    Act, Procedure, While, Assign, ArbitraryAction, Variable
 from salma.model.world import World
 import salma.model.world
 from salma.statistics import SequentialProbabilityRatioTest
@@ -102,10 +102,10 @@ class SequentialHypothesisTestTest(unittest.TestCase):
         '''
         
         mainSeq = Sequence([
-                ActionExecution("grab", [Entity.SELF, "item" + str(num)]),
+                Act("grab", [Entity.SELF, "item" + str(num)]),
                 While(EvaluationContext.PYTHON_EXPRESSION, "True",
                    [Entity.SELF],
-                   ActionExecution("move_right", [Entity.SELF])
+                   Act("move_right", [Entity.SELF])
                 )])
   
       

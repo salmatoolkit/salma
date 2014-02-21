@@ -356,7 +356,6 @@ class Plan(ControlNode):
     def reset(self, evaluationContext):
         pass
 
-
     @property
     def procedureName(self):
         return self.__procedureName
@@ -364,7 +363,6 @@ class Plan(ControlNode):
     @property
     def parameters(self):
         return self.__params
-
 
     def executeStep(self, evaluationContext, procedureRegistry):
         plan, values = evaluationContext.createPlan(self.__procedureName,
@@ -400,7 +398,7 @@ class Wait(ControlNode):
         pass
 
 
-class ActionExecution(ControlNode):
+class Act(ControlNode):
     """
     A control node that represents the execution of an action.
     """
@@ -429,13 +427,13 @@ class ActionExecution(ControlNode):
         return (ControlNode.BLOCK, self, evaluationContext)
 
     def __str__(self, *args, **kwargs):
-        return "ActionExecution({},{})".format(self.__actionName, self.__actionParameters)
+        return "Act({},{})".format(self.__actionName, self.__actionParameters)
 
     def reset(self, evaluationContext):
         pass
 
 
-class VariableAssignment(ControlNode):
+class Assign(ControlNode):
     #TODO: handle assignment to multiple variables at once
 
     def __init__(self, variableName, sourceType, source, params):
@@ -545,7 +543,7 @@ class ProcedureCall(ControlNode):
         return (ControlNode.CONTINUE, procedure.body, childContext)
 
     def __str__(self, *args, **kwargs):
-        return "ActionExecution({},{})".format(self.__actionName, self.__actionParameters)
+        return "Act({},{})".format(self.__actionName, self.__actionParameters)
 
     def reset(self, evaluationContext):
         pass

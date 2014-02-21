@@ -12,7 +12,7 @@ import salma.model.process as prc
 from salma.model.distributions import UniformDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
-    ActionExecution, Procedure, While, VariableAssignment, ArbitraryAction, Variable
+    Act, Procedure, While, Assign, ArbitraryAction, Variable
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 
@@ -71,9 +71,9 @@ class WorldTest2(unittest.TestCase):
         """
         main_seq = Sequence()
         inner_seq = Sequence()
-        inner_seq.addChild(ActionExecution("move_right", [Entity.SELF]))
+        inner_seq.addChild(Act("move_right", [Entity.SELF]))
 
-        main_seq.addChild(ActionExecution("grab", [Entity.SELF, "item" + str(num)]))
+        main_seq.addChild(Act("grab", [Entity.SELF, "item" + str(num)]))
         main_seq.addChild(While(EvaluationContext.PYTHON_EXPRESSION,
                                 "True",
                                 [Entity.SELF],

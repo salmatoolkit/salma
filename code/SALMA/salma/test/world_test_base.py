@@ -14,7 +14,7 @@ from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
-    ActionExecution, Procedure, While, VariableAssignment, ArbitraryAction, Variable, \
+    Act, Procedure, While, Assign, ArbitraryAction, Variable, \
     Iterate, SelectFirst, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
@@ -48,8 +48,8 @@ class BaseWorldTest(unittest.TestCase):
         :rtype: Agent
         """
         seq = Sequence()
-        seq.addChild(ActionExecution("move_right", [Entity.SELF]))
-        seq.addChild(ActionExecution("move_down", [Entity.SELF]))
+        seq.addChild(Act("move_right", [Entity.SELF]))
+        seq.addChild(Act("move_down", [Entity.SELF]))
 
         proc = process.OneShotProcess(Procedure("main", [], seq))
         agent = Agent(robotId, "robot", [proc])

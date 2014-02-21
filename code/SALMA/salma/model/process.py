@@ -1,6 +1,6 @@
 from .core import Entity
 from salma.SALMAException import SALMAException
-from salma.model.procedure import ControlNode, ActionExecution, Procedure
+from salma.model.procedure import ControlNode, Act, Procedure
 from salma.model.evaluationcontext import EvaluationContext
 
 
@@ -194,7 +194,7 @@ class Process(object):
         """
         Performs one step of the process.
 
-        :rtype: ActionExecution
+        :rtype: Act
         """
         if self.__current_evaluation_context is None:
             raise SALMAException("No evaluation context for process " + self.process_id)
@@ -233,7 +233,7 @@ class Process(object):
 
         if self.__current_control_node is not None:
         # status == BLOCKED
-            if isinstance(self.__current_control_node, ActionExecution):
+            if isinstance(self.__current_control_node, Act):
                 self.__state = Process.EXECUTING_ACTION
                 action = self.__current_control_node
 

@@ -9,7 +9,7 @@ from salma.model.distributions import Distribution, BernoulliDistribution
 from salma.test.testhelpers import withHeader
 from salma.model.agent import Agent
 from salma.model import process
-from salma.model.procedure import Procedure, ActionExecution, While, Sequence
+from salma.model.procedure import Procedure, Act, While, Sequence
 from salma.test.world_test_base import BaseWorldTest
 from salma import constants
 from salma.model.evaluationcontext import EvaluationContext
@@ -20,8 +20,8 @@ class ProcessTest(BaseWorldTest):
     def test_one_shot_process(self):
         world = World.instance()
         seq = Sequence()
-        seq.addChild(ActionExecution("move_right", [Entity.SELF]))
-        seq.addChild(ActionExecution("move_down", [Entity.SELF]))
+        seq.addChild(Act("move_right", [Entity.SELF]))
+        seq.addChild(Act("move_down", [Entity.SELF]))
 
         proc = process.OneShotProcess(Procedure("main", [], seq))
         agent = Agent("rob1", "robot", [proc])
@@ -56,14 +56,14 @@ class ProcessTest(BaseWorldTest):
     def test_two_one_shot_processes(self):
         world = World.instance()
         seq = Sequence()
-        seq.addChild(ActionExecution("move_right", [Entity.SELF]))
-        seq.addChild(ActionExecution("move_down", [Entity.SELF]))
+        seq.addChild(Act("move_right", [Entity.SELF]))
+        seq.addChild(Act("move_down", [Entity.SELF]))
 
         proc1 = process.OneShotProcess(Procedure("main", [], seq))
 
         seq2 = Sequence()
-        seq2.addChild(ActionExecution("move_left", [Entity.SELF]))
-        seq2.addChild(ActionExecution("move_up", [Entity.SELF]))
+        seq2.addChild(Act("move_left", [Entity.SELF]))
+        seq2.addChild(Act("move_up", [Entity.SELF]))
 
         proc2 = process.OneShotProcess(Procedure("main", [], seq2))
 
@@ -105,12 +105,12 @@ class ProcessTest(BaseWorldTest):
         :rtype: Agent, list of process.PeriodicProcess
         """
         seq = Sequence()
-        seq.addChild(ActionExecution("move_right", [Entity.SELF]))
+        seq.addChild(Act("move_right", [Entity.SELF]))
         control_procedure = Procedure("main", [], seq)
         proc1 = process.PeriodicProcess(control_procedure, 10)
 
         seq2 = Sequence()
-        seq2.addChild(ActionExecution("move_down", [Entity.SELF]))
+        seq2.addChild(Act("move_down", [Entity.SELF]))
         control_procedure2 = Procedure("main", [], seq2)
         proc2 = process.PeriodicProcess(control_procedure2, 5)
 
@@ -155,10 +155,10 @@ class ProcessTest(BaseWorldTest):
 
         w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
                   [Entity.SELF, 50],
-                  ActionExecution("move_right", [Entity.SELF]))
+                  Act("move_right", [Entity.SELF]))
         proc1 = process.OneShotProcess(Procedure("main", [], w))
         handler_seq = Sequence([
-            ActionExecution("move_down", [Entity.SELF])])
+            Act("move_down", [Entity.SELF])])
         handler = process.TriggeredProcess(Procedure("handler",[],handler_seq),
                                            EvaluationContext.PYTHON_EXPRESSION,
                                            "xpos(self) == 25", [])

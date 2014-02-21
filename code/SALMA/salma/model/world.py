@@ -8,6 +8,8 @@ import logging
 import random
 import datetime
 import time
+import math
+
 from numpy.core.tests.test_multiarray_assignment import _check_assignment
 import pyclp
 import salma.model.process as process
@@ -22,7 +24,7 @@ from ..engine import Engine
 from salma.statistics import HypothesisTest
 from .core import Entity, Fluent
 from .agent import Agent
-from .procedure import Variable, ActionExecution
+from .procedure import Variable, Act
 
 MODULE_LOGGER_NAME = 'agamemnon-smc.world'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -67,6 +69,8 @@ class World(Entity):
 
         # fluentName -> core.Fluent
         self.__fluents = dict()
+        #: :type: dict[str, Constant]
+        self.__constants = dict()
         # action_name -> core.Action
         self.__actions = dict()
 
@@ -82,6 +86,9 @@ class World(Entity):
 
         self.__finished = False
         self.__initialized = False
+
+        #: :type: dict[str, object]
+        self.__additional_expression_context_globals = dict()
 
         # dict with registered properties: name -> (formula, property_type)
         #: :type: dict[str, (str, int)]
@@ -107,6 +114,18 @@ class World(Entity):
 
     def getExpressionContext(self):
         return self.__expressionContext
+
+    def get_additional_expression_context_globals(self):
+        return self.__additional_expression_context_globals
+
+    def add_additional_expression_context_global(self, name, value):
+        """
+        Adds a global fixed symbol to the expression context. This can be used to declare modules or constants.
+
+        :param str name: the name of the new symbol
+        :param object value: the value
+        """
+        self.__additional_expression_context_globals[name] = value
 
     @staticmethod
     def create_new_world():
@@ -177,18 +196,22 @@ class World(Entity):
         """
         uninitialized_fluent_instances = []
         uninitialized_constant_instances = []
+
+        for con in self.__constants.values():
+            for paramSelection in self.enumerate_fluent_instances(con):
+                v = self.getConstantValue(con.name, paramSelection)
+                if v is None:
+                    instance = (con.name, paramSelection)
+                    uninitialized_constant_instances.append(instance)
+
         for fluent in self.__fluents.values():
             """:type fluent: Fluent """
             for paramSelection in self.enumerate_fluent_instances(fluent):
                 instance = None
-                v = (self.getConstantValue(fluent.name, paramSelection) if isinstance(fluent, Constant)
-                     else self.getFluentValue(fluent.name, paramSelection))
+                v = self.getFluentValue(fluent.name, paramSelection)
                 if v is None:
                     instance = (fluent.name, paramSelection)
-                    if isinstance(fluent, Constant):
-                        uninitialized_constant_instances.append(instance)
-                    else:
-                        uninitialized_fluent_instances.append(instance)
+                    uninitialized_fluent_instances.append(instance)
 
         return uninitialized_fluent_instances, uninitialized_constant_instances
 
@@ -223,26 +246,37 @@ class World(Entity):
     def __make_fluent_access_function(self, fluent_name):
         def __f(*params):
             return self.getFluentValue(fluent_name, params)
+        return __f
 
+    def __make_constant_access_function(self, constant_name):
+        def __f(*params):
+            return self.getConstantValue(constant_name, params)
         return __f
 
     def __create_expression_context(self):
 
         self.__expressionContext = dict()
-
+        self.__expressionContext.update(self.__additional_expression_context_globals)
         #: :type fluent: Fluent
         for fluent in self.__fluents.values():
             self.__expressionContext[fluent.name] = self.__make_fluent_access_function(fluent.name)
 
-        #todo: include derived fluents in expression context
+        for con in self.__constants.values():
+            self.__expressionContext[con.name] = self.__make_constant_access_function(con.name)
+
+        #todo: include derived fluents in expression context?
         def __fluentChangeClock(fluentName, *params):
             return self.getFluentChangeTime(fluentName, params)
 
         def __actionClock(actionName, *params):
             return self.getActionClock(actionName, params)
-
+        #todo: add action count
         self.__expressionContext['fluentClock'] = __fluentChangeClock
         self.__expressionContext['actionClock'] = __actionClock
+        # add a "variable" for each entity to allow access without quotation marks
+        for id in self.__entities.keys():
+            self.__expressionContext[str(id)] = str(id)
+
 
     def sample_fluent_values(self):
         """
@@ -542,7 +576,7 @@ class World(Entity):
         NOTE: this method should normally not be called directly but is automatically called in World.load_declarations().
         :type con: Constant
         """
-        self.addFluent(con)
+        self.__constants[con.name] = con
 
     def getFluents(self):
         """
@@ -557,7 +591,7 @@ class World(Entity):
         Returns a list of all registered constants.
         :rtype: list
         """
-        return filter(lambda e: isinstance(e, Constant), self.__fluents.values())
+        return self.__constants.values()
 
     def getFluent(self, fluentName):
         """
@@ -575,17 +609,13 @@ class World(Entity):
         """
         Returns the core.Constant object associated by the given constant name or None if such a constant
         hasn't been registered.
-        :raises: SALMAException if a fluent has been registered with the given name that is not a constant.
         :type constantName: str
         :rtype: Constant
         """
-        c = self.getFluent(constantName)
-        if c is None:
-            return None
-        elif not isinstance(c, Constant):
-            raise SALMAException("Fluent {} is not a constant.".format(constantName))
+        if constantName in self.__constants:
+            return self.__constants[constantName]
         else:
-            return c
+            return None
 
     @staticmethod
     def instance():
@@ -647,7 +677,7 @@ class World(Entity):
 
     def __translate_action_execution(self, evaluation_context, action_execution):
         """
-        Generates a ground deterministic action outcome from the given ActionExecution as a
+        Generates a ground deterministic action outcome from the given Act as a
         (action_name, [ground_params]) tuple. If actionExecution refers to a stochastic action,
         an outcome is generated according to the distribution that was defined for the action.
         The given evaluation context is used for generating an outcome.
@@ -656,7 +686,7 @@ class World(Entity):
         :raises: SALMAException if action is not registered.
 
         :type evaluation_context: EvaluationContext
-        :type action_execution: ActionExecution
+        :type action_execution: Act
         :rtype: (str, list)
         """
         try:
@@ -1435,7 +1465,7 @@ class LocalEvaluationContext(EvaluationContext):
         for action in plan:
             actionName = action[0]
             params = action[1:]  # remember: this slicing will return  [] if there's no more than 1 elements in action
-            refinedPlan.append(ActionExecution(actionName, params))
+            refinedPlan.append(Act(actionName, params))
 
         return refinedPlan, refinedValues
 
