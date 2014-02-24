@@ -1,0 +1,15 @@
+body {
+    font-family: sans-serif;
+}
+
+
+#main {
+    width: 900px;
+    position: absolute;
+    left: 50%;
+    margin-left: -400px;
+}
+#mainarea {
+    padding-top: 20px;
+
+}

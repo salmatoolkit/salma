@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="salma website">
+    <serverData>
+      <paths name="salma website">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/public_html/salma" local="$PROJECT_DIR$/../../website" web="/" />
+            <mapping local="$PROJECT_DIR$" />
+            <mapping local="$PROJECT_DIR$/../../../kroiss/projects/lab/python/timeslot_finder" />
+            <mapping local="$PROJECT_DIR$/../experiments/pysidelab" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
+
