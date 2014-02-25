@@ -1,6 +1,7 @@
 :- ['../ecl-src/agasmc'].
 :- dynamic xpos/3, xpos2/3.
-
+:- local store(vars).
+:- dynamic constrained_var/2.
 sorts([robot]).
 
 fluent(xpos, [r:robot], integer).
@@ -12,13 +13,23 @@ primitive_action(move_left, [r:robot]).
 poss(move_right(_), _) :- true.
 poss(move_left(_), _) :-true.
 
+intro_var(Name, Range, Confidence, Sit, Var) :-
+	store_get(vars, vk(Name, Sit), VarDesc), 
+	VarDesc = vd(Var, _, _),
+	!
+	;
+	Var::Range,
+	store_set(vars, vk(Name, Sit), vd(Var, Range, Confidence)),
+	!.
 
 domain(robot,D) :-
         D=[rob1,rob2].
 
+constrained_var(deltax2, uniform(1,5)).
+
 xpos2(R, X, do2(A,S)) :-
 	xpos(R, OldX, S),
-	Delta::[1..5],	
+	intro_var(delta, [1..5], 0.95, S, Delta),
 	(A = move_right(R), !,
 		X $= OldX + Delta
 		;
@@ -67,6 +78,36 @@ init :-
 %test2(S) :- do2(while(xpos(rob1) < 24, move_right(rob1),s0,S).
 test3(S) :- do2(while(xpos(rob1) < 24, move_right(rob1)),s0,S).
 	
+test4(X, S) :- store_erase(vars), do2(moveToX2(rob1, X), s0, S).
+
+get_prob_bound(VarName, Range, P) :-
+	constrained_var(VarName, Distrib),
+	Distrib = uniform(L,U),
+	
+	
+get_range(VarName, ConfidenceLevel, Range) :-
+	constrained_var(VarName, Distrib),
+	Distrib = uniform(L,U),
+	Mid $= L + (U-L)/2,
+	NewSize $= (U-L)*ConfidenceLevel,
+	NewL $= Mid - NewSize/2,
+	NewU $= Mid + NewSize/2,
+	Range = [L..U].
+	
+
+calc_p(P) :-
+	stored_keys_and_values(vars, L),
+	(foreach(V, L), fromto(1, P0, P1, P) do
+		V = vk(_, _) - vd(_, _, Confidence),
+		
+		
+print_vars :-
+	stored_keys_and_values(vars, L),
+	(foreach(V, L) do
+		V = vk(Name, Sit) - vd(Var, _, Confidence),
+		get_domain(Var, Range), 
+		printf("%10s @ %f [%w] : %w\n",[Name, Confidence, Sit, Range])
+	).
 	
 		
 
