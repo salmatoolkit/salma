@@ -1,11 +1,12 @@
 :- ['../ecl-src/agasmc'].
-:- dynamic xpos/3, xpos2/3.
+:- dynamic xpos/3, xpos2/3, time2/2.
 :- local store(vars).
 :- dynamic constrained_var/2.
 sorts([robot]).
 
 fluent(xpos, [r:robot], integer).
 fluent(xpos2, [r:robot], integer).
+fluent(time2, [], integer).
 
 primitive_action(move_right,[r:robot]).
 primitive_action(move_left, [r:robot]).
@@ -28,8 +29,8 @@ domain(robot,D) :-
 constrained_var(deltax2, uniform(1,5)).
 
 xpos2(R, X, do2(A,S)) :-
-	xpos(R, OldX, S),
-	intro_var(delta, [1..5], 0.95, S, Delta),
+	xpos2(R, OldX, S),
+	intro_var(deltax, [1..5], 0.95, S, Delta),
 	(A = move_right(R), !,
 		X $= OldX + Delta
 		;
@@ -38,6 +39,20 @@ xpos2(R, X, do2(A,S)) :-
 		;
 	X $=OldX).
 
+time2(T, do2(A,S)) :-
+	time2(TOld, S),
+	(A = move_right(_), !,
+		intro_var(deltat, [1..3], 0.95, S, Delta),
+		integers(Delta),
+		T $= TOld + Delta
+		;
+	A = move_left(R), !,
+		intro_var(deltat, [1..3], 0.95, S, Delta),
+		integers(Delta),
+		T $= TOld + Delta
+		;
+	T $= TOld).
+	
 xpos(Rob, Pos, do2(A,S)) :- 
 	xpos(Rob, POld, S),
 	(
@@ -60,7 +75,7 @@ proc(moveToX, [r:robot, targetX : integer],
 ).
 	
 proc(moveToX2, [r:robot, targetX : integer],
-	while(not(xpos2(r) $>= targetX), 
+	while(xpos2(r) $=< targetX, 
 		move_right(r)
 	) 
 ).
@@ -71,7 +86,8 @@ init :-
 	set_current(xpos, [rob2], 20),
 	set_current(xpos2, [rob1], 10), 
 	set_current(xpos2, [rob2], 20),
-	set_current(time, [], 0).
+	set_current(time, [], 0),
+	set_current(time2, [], 0).
 
 %test1(s) :- do2(if( xpos(rob1) < 24, move_right(rob1), move_left(rob1) ),s0,s).
 
@@ -80,9 +96,28 @@ test3(S) :- do2(while(xpos(rob1) < 24, move_right(rob1)),s0,S).
 	
 test4(X, S) :- store_erase(vars), do2(moveToX2(rob1, X), s0, S).
 
-get_prob_bound(VarName, Range, P) :-
+get_prob_for_range(VarName, Var, P) :-
 	constrained_var(VarName, Distrib),
 	Distrib = uniform(L,U),
+	OrigSize $= U - L,
+	get_bounds(Var, Lo, Hi),
+	(
+		Lo $=< L, Hi $=< L, !,
+		P $= 0
+		;
+		Lo $=< L, Hi $>= L, Hi $=< U, !,
+		P $= (Hi-L) / OrigSize
+		;
+		Lo $>= L, Hi $=< U, !,
+		P $= (Hi-Lo) / OrigSize
+		;
+		Lo $>= L, Lo $=< U, Hi $>= U, !,
+		P $= (U-Lo) / OrigSize
+		;
+		Lo $>= U, Hi $>= U, !,
+		P $= 0
+	).
+		
 	
 	
 get_range(VarName, ConfidenceLevel, Range) :-
@@ -92,13 +127,15 @@ get_range(VarName, ConfidenceLevel, Range) :-
 	NewSize $= (U-L)*ConfidenceLevel,
 	NewL $= Mid - NewSize/2,
 	NewU $= Mid + NewSize/2,
-	Range = [L..U].
+	Range = [NewL..NewU].
 	
 
 calc_p(P) :-
 	stored_keys_and_values(vars, L),
 	(foreach(V, L), fromto(1, P0, P1, P) do
-		V = vk(_, _) - vd(_, _, Confidence),
+		V = vk(_, _) - vd(_, _, Conf),
+		P1 $= P0*Conf
+	).
 		
 		
 print_vars :-
@@ -109,7 +146,50 @@ print_vars :-
 		printf("%10s @ %f [%w] : %w\n",[Name, Confidence, Sit, Range])
 	).
 	
+test5(S) :-
+	store_erase(vars),
+	do2(
+		move_right(rob1) : 
+		move_right(rob1) : 
+		move_right(rob1) :
+		?(xpos2(rob1) $= 12),
+		s0,
+		S), print_vars.
+	
 		
+test6(S, X, G) :-
+	store_erase(vars),
+	(
+	do2(
+		move_right(rob1) : 
+		move_right(rob1) :
+		move_right(rob1) :
+		?(xpos2(rob1) $>= X),
+		s0,
+		S), !
+	; 
+	S = none
+	),
+	delayed_goals(G),
+	print_vars.
 
-
-
+test7(S, X, TMax, T, P, DGN) :-
+	store_erase(vars),
+	(
+		do2(
+			while(xpos2(rob1) $=< X,  
+				move_right(rob1)
+			),
+			s0,
+			S
+		), 
+		time2(T, S),
+		not T $> TMax,
+		calc_p(P),
+		!
+		; 
+		S = none, P = none		
+	),
+	delayed_goals(G),
+	length(G, DGN),
+	print_vars.
