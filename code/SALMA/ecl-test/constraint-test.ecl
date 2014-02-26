@@ -80,6 +80,20 @@ proc(moveToX2, [r:robot, targetX : integer],
 	) 
 ).
 
+proc(moveToX3, [targetX : integer],
+	pi([r, robot],
+		while(xpos(r) $=< targetX, 
+			move_right(r)
+		) 
+	)
+).
+
+proc(moveToX4, [r:robot, targetX : integer],
+	while(xpos2(r) $=< targetX, 
+		move_right(r)
+	) : ?(time2 $=< 5)	
+).
+
 init :-
 	init_agasmc,
 	set_current(xpos, [rob1], 10), 
@@ -177,10 +191,7 @@ test7(S, X, TMax, T, P, Verdict, DGN) :-
 	store_erase(vars),
 	(
 		do2(
-			moveToX2
-			while(xpos2(rob1) $=< X,  
-				move_right(rob1)
-			),
+			moveToX2(rob1, X),
 			s0,
 			S
 		), 
