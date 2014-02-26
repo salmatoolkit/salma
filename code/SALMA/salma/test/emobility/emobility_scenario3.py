@@ -25,9 +25,9 @@ from salma.statistics import SequentialProbabilityRatioTest
 from statsmodels.stats import proportion
 
 
-HYPTEST, ESTIMATION = range(2)
+HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = ESTIMATION
+_MODE = VISUALIZE
 
 _VISUALIZE = False
 
@@ -232,7 +232,9 @@ class EMobilityScenario3(EMobilityTest):
         )
         """
         gstr = "forall([v,vehicle], arrive_at_targetPLCS(v))"
-        world.registerProperty("f", fstr, World.INVARIANT)
+        if _MODE != VISUALIZE:
+            world.registerProperty("f", fstr, World.INVARIANT)
+
         world.registerProperty("g", gstr, World.ACHIEVE)
         if log:
             self.__print_info(world)
@@ -251,7 +253,7 @@ class EMobilityScenario3(EMobilityTest):
 
             print("Hypothesis accepted: {}".format(accepted_hypothesis))
         elif _MODE == ESTIMATION:
-            _, results, info = world.run_repetitions(number_of_repetitions=100)
+            _, results, info = world.run_repetitions(number_of_repetitions=20)
             successes = sum(results)
             nobs = len(results)
             ratio = successes / nobs
@@ -264,7 +266,10 @@ class EMobilityScenario3(EMobilityTest):
             for method in ["normal", "agresti_coull", "beta", "wilson", "jeffrey"]:
                 ci_low, ci_upp = proportion.proportion_confint(successes, nobs, alpha=alpha, method=method)
                 print("   {} => [{}..{}]".format(method, ci_low, ci_upp))
-
+        elif _MODE == VISUALIZE:
+            print("Visualize")
+            verdict, _ = self.run_experiment(world, world_map, log=True, visualize=True)
+            print("Verdict: {}".format(verdict))
 
 
 

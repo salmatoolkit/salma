@@ -173,10 +173,11 @@ test6(S, X, G) :-
 	delayed_goals(G),
 	print_vars.
 
-test7(S, X, TMax, T, P, DGN) :-
+test7(S, X, TMax, T, P, Verdict, DGN) :-
 	store_erase(vars),
 	(
 		do2(
+			moveToX2
 			while(xpos2(rob1) $=< X,  
 				move_right(rob1)
 			),
@@ -184,11 +185,15 @@ test7(S, X, TMax, T, P, DGN) :-
 			S
 		), 
 		time2(T, S),
-		not T $> TMax,
 		calc_p(P),
-		!
+		(
+			not T $> TMax ->
+				Verdict = true
+			;
+				Verdict = false
+		), !
 		; 
-		S = none, P = none		
+		S = none, P = none, Verdict = false
 	),
 	delayed_goals(G),
 	length(G, DGN),

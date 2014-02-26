@@ -323,7 +323,7 @@ class Iterate(ControlNode):
         self.__body.reset(evaluationContext)
 
 
-class SelectFirst(ControlNode):
+class Select(ControlNode):
     """
     Selects the first value combination that makes predicateName with the given params true. The values are bound to
     variables with the given names in the current evaluation context.

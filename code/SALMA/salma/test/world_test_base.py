@@ -15,7 +15,7 @@ from salma.model.distributions import UniformDistribution, \
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
     Act, Procedure, While, Assign, ArbitraryAction, Variable, \
-    Iterate, SelectFirst, ProcedureRegistry, ProcedureCall, If, Plan
+    Iterate, Select, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 
