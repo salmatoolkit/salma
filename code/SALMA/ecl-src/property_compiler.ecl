@@ -86,32 +86,34 @@ gather_evaluations_term(T, Out, InList, OutList, Situation):-
 		functor(T, Functor, N),	
 		(N > 0 ->
 			T =.. [_ | Subterms],
-			(
-				isFluent(Functor, _),
-				% - it must be a functional fluent since we already handled relational ones in 
-				%   compile_constraints_term
-				% - we don't need to handle arguments of the fluent
-				gather_evaluations_list(Subterms, Subterms2, InList, OutList2, Situation),
-				% 1. add result variable and s0
-				var(NewVar),
-				append(Subterms2, [NewVar, Situation], Subterms3),
-				T2 =.. [Functor | Subterms3],
-				append(OutList2, [T2], OutList),
-				Out = NewVar, !
-				;
-				% we have a function now so no s0 but handle arguments first
-				gather_evaluations_list(Subterms, Subterms2, InList, OutList2, Situation),
-				% add result var
+			gather_evaluations_list(Subterms, Subterms2, InList, OutList2, Situation)
+			;
+			Subterms2 = [],
+			OutList2 = InList
+		),
+		(isFluent(Functor, _) ->
+			% - it must be a functional fluent since we already handled relational ones in 
+			%   compile_constraints_term
+			% 1. add result variable and s0
+			var(NewVar),
+			append(Subterms2, [NewVar, Situation], Subterms3),
+			T2 =.. [Functor | Subterms3],
+			append(OutList2, [T2], OutList),
+			Out = NewVar, !
+			;
+			% we might have a function, a constant, or an atom
+			% if arity > 0 then it can't be an atom
+			((N > 0, ! ; constant(Functor, _, _)) ->		
 				var(NewVar),
 				append(Subterms2, [NewVar], Subterms3),
 				T2 =.. [Functor | Subterms3],
 				append(OutList2, [T2], OutList),
-				Out = NewVar, !				
-			)
-			;
-			% atom
-			OutList = InList,
-			Out = T
+				Out = NewVar
+				;
+				% it has to be an atom
+				OutList = InList,
+				Out = T
+			)	
 		).
 		
 create_constraint(Op, Subterms, Out, Situation) :-

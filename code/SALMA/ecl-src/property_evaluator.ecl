@@ -181,6 +181,11 @@ evaluate_ad_hoc(F, Result, Situation) :-
 		compile_formula(F, F2, Situation),
 		evaluate_formula(null, [0], T, F2, 0, Result, _, _, _).
 
+evaluate_ad_hoc_str(FStr, Result, Situation) :-
+	term_string(F, FStr),
+	evaluate_ad_hoc(F, Result, Situation).
+	
+		
 test_ad_hoc(F, Situation) :-
 		evaluate_ad_hoc(F, Result, Situation),
 		Result = ok.

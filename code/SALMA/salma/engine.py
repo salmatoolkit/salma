@@ -445,7 +445,6 @@ class EclipseCLPEngine(Engine):
                 errorMsg.format(goalName, readableParams, result, msg)))
         return (goal, result, msg)
 
-
     def reset(self, retractDomains=True, removeFormulas=True, deleteConstants=True):
 
         self.__currentState = None
@@ -999,6 +998,20 @@ class EclipseCLPEngine(Engine):
                 'exogenous_actions': exogenous_actions,
                 'immediate_actions': immediate_actions
         }
+
+    def evaluate_ad_hoc(self, formula):
+        """
+        Evaluates the given formula.
+        :param str formula: the formula to evaluate
+        :rtype: int
+        """
+        result = pyclp.Var()
+        sit = pyclp.Atom("s0")
+        self.__callGoal("evaluate_ad_hoc_str", formula, result, sit)
+        return EclipseCLPEngine.__verdictMapping[str(result.value())]
+
+
+
 
 
 __all__ = ["Engine", "EclipseCLPEngine", "FluentValue", "createParamTerms", "createTerm"]

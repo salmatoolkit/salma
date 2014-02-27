@@ -88,11 +88,30 @@ proc(moveToX3, [targetX : integer],
 	)
 ).
 
-proc(moveToX4, [r:robot, targetX : integer],
+proc(moveToXMax, [r:robot, targetX : integer],
 	while(xpos2(r) $=< targetX, 
 		move_right(r)
-	) : ?(time2 $=< 5)	
+	) 
 ).
+
+
+proc(moveToXMin, [r:robot, targetX : integer],
+	while(not(neg(xpos2(r) $=< targetX)), 
+		move_right(r)
+	) 
+).
+
+testMoveToMax(TargetX, MaxT, X, T, S) :-
+	do2(moveToXMax(rob1, TargetX), s0, S),
+	xpos2(rob1, X, S),
+	time2(T, S),
+	not(T $> MaxT).
+
+testMoveToMin(TargetX, MaxT, X, T, S) :-
+	do2(moveToXMin(rob1, TargetX), s0, S),
+	xpos2(rob1, X, S),
+	time2(T, S),
+	not(T $> MaxT).
 
 init :-
 	init_agasmc,
