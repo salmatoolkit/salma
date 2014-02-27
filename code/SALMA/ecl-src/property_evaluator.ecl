@@ -89,7 +89,7 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, ToSc
 		
 		member(F, [ok, not_ok]), Result = F, ToSchedule = F, ScheduleParams = [], HasChanged = false, !
 		;
-		F = neg(F2),
+		F = not2(F2),
 		append(FormulaPath, [1], SubPath),
 		evaluate_formula(ToplevelFormula, SubPath, StartTime, F2, Level, Res2, ToSchedule2, ScheduleParams2, HasChanged2),
 		(
@@ -98,7 +98,7 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, ToSc
 			Res2 = not_ok, Result = ok
 		),
 		((Result = nondet, !; Level > 0) -> 	
-			ToSchedule = neg(ToSchedule2),
+			ToSchedule = not2(ToSchedule2),
 			ScheduleParams = ScheduleParams2,
 			HasChanged = HasChanged2
 			;
@@ -156,11 +156,15 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, ToSc
 				Result = not_ok), !
 			;
 			% comparison or boolean fluent
-			functor(F, Functor, _),	
-			(member(Functor, [>,<,>=,=<,==, =\=, \=,
-				$>, $>=, $<, $=<, $=, $\=]), ! ; fluent(Functor, _, boolean), ! ;
-				derived_fluent(Functor, _, boolean)),
-			(call(F) -> Result = ok ; Result = not_ok), !
+			functor(F, Functor, _),
+			(
+				reifiable_op(Functor), !,
+				test_reifiable(F, Result)
+				;				
+				(constraint_op(Functor, _), ! ; fluent(Functor, _, boolean), ! ;
+					derived_fluent(Functor, _, boolean)),
+				(call(F) -> Result = ok ; Result = not_ok), !
+			), !
 			;		
 			% otherwise it's a function so call it to bind variables but don't use in schedule term
 			call(F), Result = ok, !
@@ -172,6 +176,13 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, ToSc
 				ToSchedule = Result, HasChanged = true
 		), !.
 
+test_reifiable(F, Result) :-
+	F =.. [Op | Params],
+	append(Params, [T], Params2),
+	F2 =.. [Op | Params2],
+	call(F2),
+	(is_in_domain(1, T) -> Result = ok ; Result = not_ok).
+	
 % compiles and evaluates a formula ad hoc, i.e. without caching it		
 evaluate_ad_hoc(F, Result) :-
 		evaluate_ad_hoc(F, Result, s0).

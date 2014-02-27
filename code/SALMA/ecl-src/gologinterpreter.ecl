@@ -59,9 +59,9 @@ is_primitive_action(E) :-
 do2(E1 : E2,S,S1) :- do2(E1,S,S2), do2(E2,S2,S1).
 do2(?(P),S,S) :- holds(P,S).
 do2(E1 # E2,S,S1) :- do2(E1,S,S1) ; do2(E2,S,S1).
-do2(if(P,E1,E2),S,S1) :- do2((?(P) : E1) # (?(not(P)) : E2),S,S1).
+do2(if(P,E1,E2),S,S1) :- do2((?(P) : E1) # (?(complement(P)) : E2),S,S1).
 do2(star(E),S,S1) :- S1 = S ; do2(E : star(E),S,S1).
-do2(while(P,E),S,S1):- do2(star(?(P) : E) : ?(not(P)),S,S1).
+do2(while(P,E),S,S1):- do2(star(?(P) : E) : ?(complement(P)),S,S1).
 do2(pi(V,E),S,S1) :- 
 	V = [VarName, Type],
 	domain(Type, D),
@@ -69,8 +69,6 @@ do2(pi(V,E),S,S1) :-
 	sub(VarName,Value,E,E1), do2(E1,S,S1).
 	
 do2(E,S,do2(E,S)) :- is_primitive_action(E), poss(E,S).
-
-
 
 do2(E,S,S1) :- 
 	E =.. [ProcName | ParamValues],

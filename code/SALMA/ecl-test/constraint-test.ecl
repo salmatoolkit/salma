@@ -80,38 +80,6 @@ proc(moveToX2, [r:robot, targetX : integer],
 	) 
 ).
 
-proc(moveToX3, [targetX : integer],
-	pi([r, robot],
-		while(xpos(r) $=< targetX, 
-			move_right(r)
-		) 
-	)
-).
-
-proc(moveToXMax, [r:robot, targetX : integer],
-	while(xpos2(r) $=< targetX, 
-		move_right(r)
-	) 
-).
-
-
-proc(moveToXMin, [r:robot, targetX : integer],
-	while(not(neg(xpos2(r) $=< targetX)), 
-		move_right(r)
-	) 
-).
-
-testMoveToMax(TargetX, MaxT, X, T, S) :-
-	do2(moveToXMax(rob1, TargetX), s0, S),
-	xpos2(rob1, X, S),
-	time2(T, S),
-	not(T $> MaxT).
-
-testMoveToMin(TargetX, MaxT, X, T, S) :-
-	do2(moveToXMin(rob1, TargetX), s0, S),
-	xpos2(rob1, X, S),
-	time2(T, S),
-	not(T $> MaxT).
 
 init :-
 	init_agasmc,
@@ -152,7 +120,6 @@ get_prob_for_range(VarName, Var, P) :-
 	).
 		
 	
-	
 get_range(VarName, ConfidenceLevel, Range) :-
 	constrained_var(VarName, Distrib),
 	Distrib = uniform(L,U),
@@ -161,7 +128,6 @@ get_range(VarName, ConfidenceLevel, Range) :-
 	NewL $= Mid - NewSize/2,
 	NewU $= Mid + NewSize/2,
 	Range = [NewL..NewU].
-	
 
 calc_p(P) :-
 	stored_keys_and_values(vars, L),
@@ -189,42 +155,22 @@ test5(S) :-
 		s0,
 		S), print_vars.
 	
+test_hypothesis(Prog, Condition, L, Result) :-
+	store_erase(vars),
+	findall(
+		S, 
+		(do2(Prog, s0, S), not(test_ad_hoc(complement(Condition), S))),
+		L
+	),				
+	(not (do2(Prog, s0, S), test_ad_hoc(complement(Condition), S)) ->
+		Result = ok
+		;
+		Result = not_ok
+	).
+	
 		
-test6(S, X, G) :-
-	store_erase(vars),
-	(
-	do2(
-		move_right(rob1) : 
-		move_right(rob1) :
-		move_right(rob1) :
-		?(xpos2(rob1) $>= X),
-		s0,
-		S), !
-	; 
-	S = none
-	),
-	delayed_goals(G),
-	print_vars.
+			
+	
 
-test7(S, X, TMax, T, P, Verdict, DGN) :-
-	store_erase(vars),
-	(
-		do2(
-			moveToX2(rob1, X),
-			s0,
-			S
-		), 
-		time2(T, S),
-		calc_p(P),
-		(
-			not T $> TMax ->
-				Verdict = true
-			;
-				Verdict = false
-		), !
-		; 
-		S = none, P = none, Verdict = false
-	),
-	delayed_goals(G),
-	length(G, DGN),
-	print_vars.
+	
+		

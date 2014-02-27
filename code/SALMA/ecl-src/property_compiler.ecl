@@ -1,10 +1,38 @@
+% constraint_op(op, complement) 
+constraint_op(>, =<).
+constraint_op(=<, >).
+
+constraint_op(<, >=).
+constraint_op(>=, <).
+
+constraint_op(==, \==).
+constraint_op(\==, ==).
+
+constraint_op(=:=, =\=).
+constraint_op(=\=, =:=).
+
+constraint_op(\=, =).
+constraint_op(=, \=).
+
+constraint_op($>, $=<).
+constraint_op($=<, $>).
+
+constraint_op($<, $>=).   
+constraint_op($>=, $<).
+
+constraint_op($=, $\=).
+constraint_op($\=, $=).
+
+reifiable_op(Op) :- 
+	member(Op, [>, =<, <, >=, =:=, =\=, $>, $=<, $<, $>=, $=, $\=]).
+
 erase_forall(Var, Type, Formula, Out) :-
 		domain(Type, D) -> 
 			(foreach(Entity, D), foreach(F, Conjunction), param(Var, Formula) do
 				subst_in_term(Var, Entity, Formula, F2),
 				remove_quantifiers_term(F2, F)
 			),
-			Out =.. [all, Conjunction]
+			Out =.. [and | Conjunction]
 		;
 		throw(unregistered_domain(Type)).
 
@@ -15,7 +43,7 @@ erase_exists(Var, Type, Formula, Out) :-
 				subst_in_term(Var, Entity, Formula, F2),
 				remove_quantifiers_term(F2, F)
 			),
-			Out =.. [one, Disjunction]
+			Out =.. [or | Disjunction]
 		;
 		throw(unregistered_domain(Type)).
 		
@@ -160,9 +188,7 @@ compile_constraints_term(T, Out, Situation) :-
 			Out =.. Tl, !			
 			;			
 			% handle comparison
-			
-			member(Functor, [>,<,>=,=<,==, =\=, \=, 
-				$>, $>=, $<, $=<, $=, $\=]),
+			constraint_op(Functor, _),
 			% we assume that there are two subterms	
 			T =.. [_ | Subterms],
 			create_constraint(Functor, Subterms, Out, Situation), ! 
@@ -192,12 +218,7 @@ compile_constraints_term(T, Out, Situation) :-
 					;
 					Functor = not,
 					HandledSubterms = [P],
-					Out =.. [neg, P], !
-					;
-					Functor = implies,
-					% TODO: exception if > 2 params
-					HandledSubterms = [P,Q],
-					Out = one([neg(P), Q]), !
+					Out =.. [not2, P], !
 					;						
 					Functor = until,
 					% TODO: exception if != 3 params
@@ -245,5 +266,62 @@ compile_formula(FIn, FOut) :-
 	
 compile_formula(FIn, FOut, Situation) :-
 	remove_quantifiers_term(FIn,F2), 
-	compile_constraints_term(F2, FOut, Situation).
+	simplify(F2, F3),
+	compile_constraints_term(F3, FOut, Situation).
 	
+
+
+	
+simplify_list(FInList, FOutList) :-
+	(foreach(FIn, FInList), foreach(FOut, FOutList) do
+		simplify(FIn, FOut)
+	).
+	
+simplify(FIn, FOut) :-
+	FIn = implies(P, Q), !,
+		simplify(P, P2),
+		simplify(Q, Q2),
+		FOut = or(not(P2), Q2)
+		;
+	FIn = complement(P), !,
+		simplify(P, P2),
+		build_complement(P2, FOut)
+		;
+	FIn =.. [Functor | Subterms], !,
+		simplify_list(Subterms, Subterms2),
+		FOut =.. [Functor | Subterms2]
+		;
+	% atom
+		FOut = FIn.
+
+build_complements(PList, ComplList) :-
+	(foreach(P, PList), foreach(C, ComplList) do
+		build_complement(P, C)
+	).
+		
+	
+build_complement(P, Compl) :-
+	P =.. [Functor | Subterms],
+	(constraint_op(Functor, ComplFunctor),
+		Compl =.. [ComplFunctor | Subterms], !
+		;
+	member(Functor, [not, neg]),
+		Subterms = [Compl], !
+		;
+	Functor = or,
+		build_complements(Subterms, ComplList),
+		Compl =.. [and | ComplList], !
+		;
+	Functor = and,
+		build_complements(Subterms, ComplList),
+		Compl =.. [or | ComplList], !
+		;
+	Compl = not(P)
+	), !
+	;
+	Compl = not(P).
+	
+	
+	
+		
+		
