@@ -27,12 +27,12 @@ register_persistent_fluent(Name, Formula, CompiledFormula) :-
 
 evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :-
 	% TODO: check for events and set clocks
+	erase_failure_stack,
 	update_persistent_fluents,
 	evaluate_all_scheduled(ScheduledResults), 
 	get_pending_toplevel_goals(PendingGoals),
 	evaluate_toplevel(ToplevelResults),
-	getval(current_failure_stack, CFS),
-	recorded_list(CFS, FailureStack).
+	get_merged_failures(FailureStack).
 
 init_agasmc :-
 	init_progression,

@@ -263,6 +263,8 @@ init_progression :-
     setval(cur_sit, 0), 
 	setval(next_sit, 1), 
 	setval(last_sit, 0),
+	retractall(action_clock(_,_,_)),
+	retractall(action_count(_,_,_)),
 	close_successor_state_axioms.
 	
 

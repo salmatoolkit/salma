@@ -37,6 +37,7 @@ class BaseWorldTest(unittest.TestCase):
         logger.addHandler(ch)
 
     def setUp(self):
+        print("setup")
         World.create_new_world()
         world = World.instance()
         world.load_declarations()

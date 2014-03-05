@@ -85,6 +85,7 @@ class WorldTest3(BaseWorldTest):
         world = World.instance()
 
         proc = Procedure("main", [], [
+            Act("move_right", [Entity.SELF]),
             Act("paint", [Entity.SELF, "item1"]),
             While(EvaluationContext.PYTHON_EXPRESSION,
                   "xpos(self) < 20", [], [
@@ -115,6 +116,7 @@ forall([r,robot],
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         world.printState()
+        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
 
     def test_property_2(self):
         world = World.instance()
@@ -133,7 +135,7 @@ forall([r,robot],
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
-        world.setFluentValue("xpos",["rob1"], 5)
+        world.setFluentValue("xpos", ["rob1"], 5)
 
         g_str = """
 forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
@@ -142,8 +144,38 @@ forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
         verdict, results = world.runExperiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
-        world.printState()
+        #world.printState()
+        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
 
+    def test_property_3(self):
+        world = World.instance()
+
+        proc = Procedure("main", [], [
+            #Act("paint", [Entity.SELF, "item1"]),
+            While(EvaluationContext.PYTHON_EXPRESSION,
+                  "xpos(self) < 20", [], [
+                    Act("move_right", [Entity.SELF])
+                ])
+        ])
+        rob1 = Agent("rob1", "robot", proc)
+        world.addAgent(rob1)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=10)
+        world.setFluentValue("xpos", ["rob1"], 5)
+
+        g_str = """
+        implies(occur(paint(rob1,?)), xpos(rob1) > 200)
+"""
+        world.registerProperty("g", g_str, World.INVARIANT)
+        world.registerProperty("h", "xpos(rob1) >= 20", World.ACHIEVE)
+        verdict, results = world.runExperiment()
+        print("Verdict: " + str(verdict))
+        print("Results: " + str(results))
+        #world.printState()
+        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
 
 
 if __name__ == '__main__':

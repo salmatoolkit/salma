@@ -37,15 +37,50 @@ init_smc :-
 
 erase_failure_stack :-
 	getval(current_failure_stack, FStack),
-	is_record(FStack),
-	erase_all(FStack),
-	!
-	;
-	true.
+	erase_referenced_failure_stack(FStack).
 	
+	
+erase_referenced_failure_stack(Ref) :-
+	(is_record(Ref) ->
+		recorded_list(Ref, L),
+		(foreach(Entry, L) do
+			(Entry = ref(SubRef) ->
+				erase_referenced_failure_stack(SubRef)
+				;
+				true
+			)
+		),
+		erase_all(Ref)
+		;
+		true
+	).
+	
+get_merged_failures(Failures) :-
+	getval(current_failure_stack, FStack),
+	get_referenced_failures(FStack, Failures).
+	
+get_referenced_failures(Ref, Failures) :-
+	(is_record(Ref) ->
+		recorded_list(Ref, L),
+		(foreach(Entry, L), fromto([], F1, F2, Failures) do
+			(Entry = ref(SubRef) ->
+				get_referenced_failures(SubRef, SubFailures),
+				append(F1, SubFailures, F2)
+				;
+				append(F1, [Entry], F2)
+			)
+		)
+		;
+		Failures = []
+	).
+				
+
 reset_smc :-
 	store_erase(scheduled_goals),
 	store_erase(persistent_fluent_states),
+	setval(negated, 0),
+	erase_failure_stack,	
+	setval(current_failure_stack, failurestack),
 	clean_formula_cache.
 	
 
@@ -101,12 +136,9 @@ flip_negated :-
 % InUntil: whether or not the subformula is part of a until operator
 evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, 
 	ToSchedule, ScheduleParams, HasChanged) :-	
-		(FormulaPath = [0] ->
-			erase_failure_stack,
-			setval(negated, 0)
-			;
-			true
-		),
+		getval(current_failure_stack, CFS),
+		record_create(MyFailures),
+		setval(current_failure_stack, MyFailures),
 		(
 			member(F, [ok, not_ok]), Result = F, 
 			ToSchedule = F, ScheduleParams = [], HasChanged = false, !
@@ -203,10 +235,10 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result,
 		),
 		getval(negated, Negated),
 		((Negated = 0, Result = not_ok ; Negated = 1, Result = ok) ->
-			getval(current_failure_stack, CFS),
+			record(CFS, ref(MyFailures)),
 			record(CFS, failure(Result, ToplevelFormula, FormulaPath, StartTime, F, Level))
 			;
-			true
+			erase_all(MyFailures)
 		).
 
 % Executes a reified version of the goal in F. This ensures that the domains of variables are not 
@@ -225,6 +257,8 @@ evaluate_ad_hoc(F, Result) :-
 evaluate_ad_hoc(F, Result, Situation) :-
 		current_time(T),
 		compile_formula(F, F2, Situation),
+		erase_failure_stack,
+		setval(negated, 0),
 		evaluate_formula(null, [0], T, F2, 0, Result, _, _, _).
 
 evaluate_ad_hoc_str(FStr, Result, Situation) :-
@@ -401,7 +435,7 @@ evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q,
 			),	
 			(EndP = not_ok ->
 				shelf_set(Shelf, 3, not_ok),
-				record(MyFailures, fail_until(p_failed)),
+				record(MyFailures, until_fail_p(not_ok, ToplevelFormula, FormulaPath, StartTime, P, Level)),
 				HasChangedQ = true
 				;	
 				% handle Q in a very similiar fashion as P
@@ -451,7 +485,7 @@ evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q,
 							getMin(LatestPossibleEndP, IntervalEnd, LatestPossibleEndP2),
 							(EarliestPossibleStartQ  > LatestPossibleEndP2 + 1 ->
 								shelf_set(Shelf, 3, not_ok),
-								record(MyFailures, fail_until(timeout))
+								record(MyFailures, until_timeot(not_ok, ToplevelFormula, FormulaPath, StartTime, Q, Level))
 								;
 								(StartQ = nondet -> 
 									shelf_set(Shelf, 3, nondet)
@@ -729,10 +763,15 @@ print_cache_candidates :-
 % Results: list of Term with schema Name - Result
 evaluate_toplevel(Results) :-
 		stored_keys_and_values(toplevel_goals, L),
-		(fromto(L, In, Out, []), fromto([], In2, Out2, Results) do
+		setval(negated, 0),
+		getval(current_failure_stack, CFS),
+		(fromto(L, In, Out, []), fromto([], In2, Out2, Results), param(CFS) do
 			In = [Entry | Rest],
 			Entry = Name - cf(CacheId),
 			get_cached_formula(CacheId, F),
+			record_create(MyFailureStack),
+			setval(current_failure_stack, MyFailureStack),
+			setval(negated, 0),
 			evaluate_and_schedule(Name, [0], F, CacheId, 0, -1, R, _, _, _),
 			(
 				R = ok, append(In2, [ok : Name], Out2), !
@@ -742,8 +781,14 @@ evaluate_toplevel(Results) :-
 				% nondet
 				append(In2, [nondet : Name], Out2)
 			),
+			recorded_list(MyFailureStack, MyFSList),
+			(foreach(FSL, MyFSList), param(CFS) do 
+				record(CFS, FSL)
+			),
+			erase_all(MyFailureStack),
 			Out = Rest
-		).
+		),
+		setval(current_failure_stack, CFS).
 		
 
 		
@@ -761,6 +806,7 @@ evaluate_scheduled(Key, Result) :-
 	FRef = app(Params, F2),
 	(F2 = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = F2),
 	apply_params(Params, F),
+	setval(negated, 0),
 	evaluate_formula(ToplevelFormula, [0], T, F, Level, Result, ToSchedule, ScheduleParams2, HasChanged),
 	(Result = nondet ->
 		(HasChanged = true ->
@@ -796,12 +842,15 @@ get_pending_toplevel_goals(PendingGoals) :-
 % claim schedule ids when entering evaluation --> from outside to inside. in evaluation first sort and then evaluate in descending order.
 % This makes sure that dependencies are resolved.
 evaluate_all_scheduled(Results) :-
+	getval(current_failure_stack, CFS),
 	get_pending_goals(PendingGoals, all),
 	% sort by  1st argument = level
 	sort(2, >=, PendingGoals, SortedKeys),
-	(fromto(SortedKeys, In, Out, []), fromto([], In2, Out2, Results) do
+	(fromto(SortedKeys, In, Out, []), fromto([], In2, Out2, Results), param(CFS) do
 		In = [Key | Rest],
 		Key = sg(_, Level, _, _),
+		record_create(MyFailureStack),
+		setval(current_failure_stack, MyFailureStack),
 		evaluate_scheduled(Key, R),
 		% only report properties with level 0
 		(Level == 0 ->
@@ -810,8 +859,14 @@ evaluate_all_scheduled(Results) :-
 			% don't report
 			Out2 = In2
 		),
+		recorded_list(MyFailureStack, MyFSList),
+		(foreach(FSL, MyFSList), param(CFS) do 
+			record(CFS, FSL)
+		),
+		erase_all(MyFailureStack),
 		Out = Rest	
-	).
+	),
+	setval(current_failure_stack, CFS).
 	
 
 % TODO: cleanup-procedure

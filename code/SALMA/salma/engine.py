@@ -12,6 +12,7 @@ from salma.SALMAException import SALMAException
 from .constants import *
 import salma
 import os
+import salma.termutils
 
 MODULE_LOGGER_NAME = 'agamemnon-smc.egine'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -214,6 +215,14 @@ class Engine(object):
         toplevel_results: propertyName : verdict (OK, NOT_OK, NONDET)
         scheduled_results: (propertyName, time) : verdict
         :rtype: (dict[str, int], dict, list, list)
+        """
+        raise NotImplementedError()
+
+    def format_failure_stack(self, failure_stack):
+        """
+        Returns a formatted string representation of a failure trace as it way returned by evaluationStep().
+        :param list failure_stack: the failure stack to format.
+        :rtype: str
         """
         raise NotImplementedError()
 
@@ -840,6 +849,23 @@ class EclipseCLPEngine(Engine):
                 EclipseCLPEngine.__translate_scheduled_properties(scheduled_keys.value()),
                 self.__convert_value_from_engine_result(failure_stack.value())
         )
+
+    def format_failure_stack(self, failure_stack):
+        """
+        :type failure_stack: list[tuple]
+        :rtype: str
+        """
+        lines = []
+        for entry in failure_stack:
+            label, result, formula_name, path, time, formula, level = entry
+            fterm = salma.termutils.term_from_tuple(formula)
+
+            lines.append("{label} : {result} -- {fname} : {path} : t={time}, l={level} : {fterm}".format(
+                label=label, result=result, fname=formula_name, path=str(path), time=str(time), level=str(level),
+                fterm=fterm))
+        return "\n".join(lines)
+
+
 
     @staticmethod
     def __translateToplevelEvaluationResults(result):

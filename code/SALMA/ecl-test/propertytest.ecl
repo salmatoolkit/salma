@@ -28,7 +28,7 @@ init :-
 	),
 	set_current(time, [], 0).
 	
-test1(R, L) :-
+test1(R, L, CFS) :-
 	init,
 	set_current(carrying, [rob2, item3], true),
 	F = forall([r, robot],
@@ -37,4 +37,17 @@ test1(R, L) :-
 			)
 		),
 	evaluate_ad_hoc(F, R),
-	findall(FItem, recorded(failures, FItem), L).
+	getval(current_failure_stack, CFS),
+	findall(FItem, recorded(CFS, FItem), L).
+	
+test2(R, L, CFS) :-
+	init,
+	set_current(carrying, [rob2, item3], true),
+	F = until(20,
+			forall([r,robot],
+				ypos(r) < 60),
+			ypos(r) > 150
+		),
+	evaluate_ad_hoc(F, R),
+	getval(current_failure_stack, CFS),
+	findall(FItem, recorded(CFS, FItem), L).
