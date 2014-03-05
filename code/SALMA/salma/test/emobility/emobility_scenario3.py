@@ -27,7 +27,7 @@ from statsmodels.stats import proportion
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = VISUALIZE
+_MODE = HYPTEST
 
 _VISUALIZE = False
 

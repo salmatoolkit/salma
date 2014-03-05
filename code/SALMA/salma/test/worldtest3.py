@@ -7,7 +7,7 @@ from salma.SALMAException import SALMAException
 from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions
 from salma.model.agent import Agent
-from salma.model.core import  Entity, Fluent, Action, Constant
+from salma.model.core import Entity, Fluent, Action, Constant
 from salma.model.actions import StochasticAction, DeterministicAction, Stepwise
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
@@ -27,7 +27,6 @@ def printValue(value):
 
 
 class WorldTest3(BaseWorldTest):
-
     @withHeader
     def test_load_declaration_empty(self):
         world = World.instance()
@@ -72,10 +71,10 @@ class WorldTest3(BaseWorldTest):
         world.get_exogenous_action("accidental_drop").config.set_probability(0.7)
         world.get_exogenous_action("collision").config.set_probability(0.02).normal_param("severity", 0.5, 0.2)
         world.get_stochastic_action("jump").outcome(
-            "land_on").map_param("r","r").uniform_param("x",(0,1024)).uniform_param("y",(0,768))
+            "land_on").map_param("r", "r").uniform_param("x", (0, 1024)).uniform_param("y", (0, 768))
 
-        world.get_stochastic_action("jump").selection_strategy = Stepwise(land_on=0.7, crash=0.2) # 0.2 is wrong here!
-        world.get_stochastic_action("jump").outcome("crash").map_param("r","r")
+        world.get_stochastic_action("jump").selection_strategy = Stepwise(land_on=0.7, crash=0.2)  # 0.2 is wrong here!
+        world.get_stochastic_action("jump").outcome("crash").map_param("r", "r")
         print(world.describe_actions())
         a, a2 = world.check_action_initialization()
 
@@ -94,13 +93,13 @@ class WorldTest3(BaseWorldTest):
         ])
         rob1 = Agent("rob1", "robot", proc)
         world.addAgent(rob1)
-        world.addEntity(Entity("item1","item"))
-        world.addEntity(Entity("item2","item"))
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
 
-        f_str="""
+        f_str = """
 forall([r,robot],
     implies(
         occur(paint(r,?)),
@@ -111,11 +110,41 @@ forall([r,robot],
     )
 )
 """
-        world.registerProperty("f", f_str)
+        world.registerProperty("f", f_str, World.INVARIANT)
         verdict, results = world.runExperiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         world.printState()
+
+    def test_property_2(self):
+        world = World.instance()
+
+        proc = Procedure("main", [], [
+            Act("paint", [Entity.SELF, "item1"]),
+            While(EvaluationContext.PYTHON_EXPRESSION,
+                  "xpos(self) < 20", [], [
+                    Act("move_right", [Entity.SELF])
+                ])
+        ])
+        rob1 = Agent("rob1", "robot", proc)
+        world.addAgent(rob1)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=10)
+        world.setFluentValue("xpos",["rob1"], 5)
+
+        g_str = """
+forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
+"""
+        world.registerProperty("g", g_str, World.INVARIANT)
+        verdict, results = world.runExperiment()
+        print("Verdict: " + str(verdict))
+        print("Results: " + str(results))
+        world.printState()
+
+
 
 if __name__ == '__main__':
     unittest.main()

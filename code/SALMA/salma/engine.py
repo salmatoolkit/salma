@@ -210,10 +210,10 @@ class Engine(object):
 
     def evaluationStep(self):
         """
-        returns a tuple with two dicts: (toplevel_results, scheduled_results)
+        returns a tuple with two dicts: (toplevel_results, scheduled_results, scheduled_goals, failure_stack)
         toplevel_results: propertyName : verdict (OK, NOT_OK, NONDET)
         scheduled_results: (propertyName, time) : verdict
-        :rtype: (dict[str, int], dict, list)
+        :rtype: (dict[str, int], dict, list, list)
         """
         raise NotImplementedError()
 
@@ -831,12 +831,14 @@ class EclipseCLPEngine(Engine):
         toplevel_results = pyclp.Var()
         scheduled_results = pyclp.Var()
         scheduled_keys = pyclp.Var()
+        failure_stack = pyclp.Var()
 
-        self.__callGoal('evaluation_step', toplevel_results, scheduled_results, scheduled_keys)
+        self.__callGoal('evaluation_step', toplevel_results, scheduled_results, scheduled_keys, failure_stack)
 
         return (EclipseCLPEngine.__translateToplevelEvaluationResults(toplevel_results.value()),
                 EclipseCLPEngine.__translateScheduledEvaluationResults(scheduled_results.value()),
-                EclipseCLPEngine.__translate_scheduled_properties(scheduled_keys.value())
+                EclipseCLPEngine.__translate_scheduled_properties(scheduled_keys.value()),
+                self.__convert_value_from_engine_result(failure_stack.value())
         )
 
     @staticmethod

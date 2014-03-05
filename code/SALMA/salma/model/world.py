@@ -743,8 +743,8 @@ class World(Entity):
         Performs one discrete time step for all agents and runs the progression.
 
         :returns: (verdict, self.__finished, toplevel_results, scheduled_results, all_actions, [],
-                failed_invariants, failed_sustain_goals)
-        :rtype: (int, bool, dict[str, int], dict, list, list, set[str], set[str])
+                failed_invariants, failed_sustain_goals, failure_stack)
+        :rtype: (int, bool, dict[str, int], dict, list, list, set[str], set[str], list)
         """
         actions = []  # list of tuples: (action_execution, params)
         all_actions = []
@@ -790,7 +790,7 @@ class World(Entity):
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug("Progressed immediately: %s", immediate_actions)
             if len(failed_actions) > 0:
-                return NOT_OK, self.__finished, {}, {}, [], all_actions, failed_actions, set(), set()
+                return NOT_OK, self.__finished, {}, {}, [], all_actions, failed_actions, set(), set(), []
 
         ex_act_instances = self.get_exogenous_action_instances()
 
@@ -818,16 +818,17 @@ class World(Entity):
 
         if len(failed_regular_actions) > 0:
             return (NOT_OK, self.__finished, {}, {}, [], all_actions, failed_regular_actions,
-                    set(), set())
+                    set(), set(), [])
 
         verdict = NONDET
         if evaluate_properties:
-            toplevel_results, scheduled_results, scheduled_keys = World.logic_engine().evaluationStep()
+            toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep()
             verdict, failed_invariants, failed_sustain_goals = self.__arbitrate_verdict(toplevel_results,
                                                                                         scheduled_results,
                                                                                         scheduled_keys)
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
+            failure_stack = []
             failed_invariants, failed_sustain_goals = set(), set()
 
         World.logic_engine().progress([('tick', [])])
@@ -836,7 +837,7 @@ class World(Entity):
         # TODO: distinguish between actions that take time and actions that don't
         # execute all non-time actions before taking a time step
         return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, all_actions, [],
-                failed_invariants, failed_sustain_goals)
+                failed_invariants, failed_sustain_goals, failure_stack)
 
     @staticmethod
     def __check_property_success(pname, toplevel_results, scheduled_results):
@@ -951,7 +952,7 @@ class World(Entity):
         while (not self.is_finished()) and (not check_verdict or verdict == NONDET):
             #self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
             (verdict, _, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
-             failed_invariants, failed_sustain_goals) = self.step(evaluate_properties=check_verdict)
+             failed_invariants, failed_sustain_goals, failure_stack) = self.step(evaluate_properties=check_verdict)
             c2 = time.clock()
             step_num += 1
             deltaT = c2 - c1
@@ -1018,7 +1019,8 @@ class World(Entity):
                  "finish_reason": finish_reason,
                  "failed_invariants": failed_invariants,
                  "failed_sustain_goals": failed_sustain_goals,
-                 "achieved_goals": self.__already_achieved_goals
+                 "achieved_goals": self.__already_achieved_goals,
+                 "failure_stack": failure_stack
                 }
         )
 

@@ -60,7 +60,7 @@ class WorldTest(BaseWorldTest):
         world.printState()
 
         (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
-         failed_invariants, failed_sustain_goals) = world.step()
+         failed_invariants, failed_sustain_goals, _) = world.step()
 
         self.assertEqual(constants.NONDET, verdict)
         self.assertFalse(finished)
@@ -493,7 +493,7 @@ class WorldTest(BaseWorldTest):
         world.printState()
 
         (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions,
-         failedRegularActions, failed_invariants, failed_sustain_goals) = world.step()
+         failedRegularActions, failed_invariants, failed_sustain_goals, _) = world.step()
         print("Executed: {}".format(actions))
         print('AFTER STEP 1:')
         world.printState()
@@ -502,7 +502,7 @@ class WorldTest(BaseWorldTest):
         self.assertListEqual(failedRegularActions, [])
 
         (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions,
-         failedRegularActions, failed_invariants, failed_sustain_goals) = world.step()
+         failedRegularActions, failed_invariants, failed_sustain_goals, _) = world.step()
         print("\n\nExecuted: {}".format(actions))
         print('AFTER STEP 1:')
         world.printState()

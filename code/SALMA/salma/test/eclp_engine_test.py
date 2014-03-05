@@ -85,7 +85,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         print(self.engine.printToplevelGoals())
         
         
-        verdict, toplevel, scheduled = self.engine.evaluationStep()
+        verdict, toplevel, scheduled, _ = self.engine.evaluationStep()
   
         print("Verdict: {}\nToplevel:{}\nScheduled:{}".format(verdict, str(toplevel), str(scheduled)))
         
@@ -94,7 +94,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         self.engine.evaluationStep()
         
         
-        verdict, toplevel, scheduled = self.engine.evaluationStep()
+        verdict, toplevel, scheduled, _ = self.engine.evaluationStep()
         print("Verdict: {}\nToplevel:{}\nScheduled:{}".format(verdict, str(toplevel), str(scheduled)))
         
         

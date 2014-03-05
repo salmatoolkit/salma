@@ -15,7 +15,8 @@
 
 :- local store(persistent_fluent_states).
 
-
+:- local variable(negated, 0).
+:- local variable(current_failure_stack, failurestack).
 :- lib(hash).
 :- lib(lists).
 
@@ -28,9 +29,20 @@ init_smc :-
 	store_erase(formula_cache_candidates),
 	setval(next_scheduled_goal_id, 0),
 	setval(next_formula_cache_id, 0),
+	setval(negated, 0),
+	erase_failure_stack,	
+	setval(current_failure_stack, failurestack),
 	compile_persistent_fluents.
 	
 
+erase_failure_stack :-
+	getval(current_failure_stack, FStack),
+	is_record(FStack),
+	erase_all(FStack),
+	!
+	;
+	true.
+	
 reset_smc :-
 	store_erase(scheduled_goals),
 	store_erase(persistent_fluent_states),
@@ -79,103 +91,126 @@ result_or(Res1, Res2, Res3) :-
 		Res1 = not_ok, Res2 = not_ok, Res3 = not_ok, !
 		;
 		Res3 = nondet.
-		
-is_comparison(F) :- functor(F, Functor, _), member(Functor, [>,<,>=,=<,==]).
-		
+				
+flip_negated :-
+	getval(negated, N),
+	N2 is 1 - N,
+	setval(negated, N2).
 		
 % F: formula to evaluate
 % InUntil: whether or not the subformula is part of a until operator
-evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, ToSchedule, ScheduleParams, HasChanged) :-
-		
-		member(F, [ok, not_ok]), Result = F, ToSchedule = F, ScheduleParams = [], HasChanged = false, !
-		;
-		F = not2(F2),
-		append(FormulaPath, [1], SubPath),
-		evaluate_formula(ToplevelFormula, SubPath, StartTime, F2, Level, Res2, ToSchedule2, ScheduleParams2, HasChanged2),
+evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, 
+	ToSchedule, ScheduleParams, HasChanged) :-	
+		(FormulaPath = [0] ->
+			erase_failure_stack,
+			setval(negated, 0)
+			;
+			true
+		),
 		(
-			Res2 = nondet, Result = nondet ;
-			Res2 = ok, Result = not_ok ;
-			Res2 = not_ok, Result = ok
-		),
-		((Result = nondet, !; Level > 0) -> 	
-			ToSchedule = not2(ToSchedule2),
-			ScheduleParams = ScheduleParams2,
-			HasChanged = HasChanged2
+			member(F, [ok, not_ok]), Result = F, 
+			ToSchedule = F, ScheduleParams = [], HasChanged = false, !
 			;
-			ToSchedule = Result, HasChanged = true, ScheduleParams = []
-		), !
-		;
-		F = all(Sf2), 
-		evaluate_checkall(ToplevelFormula, FormulaPath, StartTime, Sf2, Level, Result, OutVar2, ScheduleParams2, HasChanged2), 
-		((Result = nondet, !; Level > 0) -> 
-			ToSchedule = all(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
-			;
-			ToSchedule = Result, HasChanged = true, ScheduleParams = []
-		), !
-		;
-		F = one(Sf2),
-		evaluate_checkone(ToplevelFormula, FormulaPath, StartTime, Sf2, Level, Result, OutVar2, ScheduleParams2, HasChanged2), 
-		((Result = nondet, !; Level > 0) -> 
-			ToSchedule = one(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
-			;
-			ToSchedule = Result, HasChanged = true, ScheduleParams = []
-		), !
-		;
-	
-		F = until(MaxTime, P, Q),
-		evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q, Result, NewP, NewQ, ScheduleParams2, HasChanged2),
-		((Result = nondet, ! ; Level > 0) ->
-			ToSchedule = until(MaxTime, NewP, NewQ), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
-			;
-			ToSchedule = Result, HasChanged = true, ScheduleParams = []
-		), !		
-		;
-		% for all remaining cases: restore original formula for Level > 0 or nondet.
-		% store original formula as value for ToSchedule later
-		shelf_create(orig/1, null, Shelf),
-		shelf_set(Shelf,1,F),
-		ScheduleParams = [],
-		( 
-			F = changed(P, Q, ExpectedNow),
-			% for now ignore ToSchedule output of changed
-			evaluate_changed(ToplevelFormula, FormulaPath, StartTime, P, Q, ExpectedNow, Level, Result, _),	
-			!
-			;
-			F = pfswitch(PFName, ExpectedNow),
-			evaluate_persistent_fluent_switched(PFName, StartTime, ExpectedNow, Result),
-			!
-			;
-			F = occur(ActionTerm),
-			evaluate_action_occured(ActionTerm, StartTime, Result),
-			!
-			;
-			% is golog program possible?
-			F = possible(GologProg, InitSit),
-			(do2(GologProg, InitSit, _) -> 
-				Result = ok ; 
-				Result = not_ok), !
-			;
-			% comparison or boolean fluent
-			functor(F, Functor, _),
+			F = not2(F2),
+			% switch mode for recording failures
+			flip_negated,
+			append(FormulaPath, [1], SubPath),
+			evaluate_formula(ToplevelFormula, SubPath, StartTime, F2, Level, Res2, ToSchedule2, ScheduleParams2, HasChanged2),
+			flip_negated,
 			(
-				reifiable_op(Functor), !,
-				test_reifiable(F, Result)
-				;				
-				(constraint_op(Functor, _), ! ; fluent(Functor, _, boolean), ! ;
-					derived_fluent(Functor, _, boolean)),
-				(call(F) -> Result = ok ; Result = not_ok), !
-			), !
-			;		
-			% otherwise it's a function so call it to bind variables but don't use in schedule term
-			call(F), Result = ok, !
-		),
-		
-		((Result = nondet, ! ; Level > 0) ->
-				shelf_get(Shelf, 1, ToSchedule), HasChanged = false
+				Res2 = nondet, Result = nondet ;
+				Res2 = ok, Result = not_ok ;
+				Res2 = not_ok, Result = ok
+			),
+			((Result = nondet, !; Level > 0) -> 	
+				ToSchedule = not2(ToSchedule2),
+				ScheduleParams = ScheduleParams2,
+				HasChanged = HasChanged2
 				;
-				ToSchedule = Result, HasChanged = true
-		), !.
+				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+			), !
+			;
+			F = all(Sf2), 
+			evaluate_checkall(ToplevelFormula, FormulaPath, StartTime, Sf2, Level, Result, OutVar2, ScheduleParams2, HasChanged2), 
+			((Result = nondet, !; Level > 0) -> 
+				ToSchedule = all(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
+				;
+				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+			), !
+			;
+			F = one(Sf2),
+			evaluate_checkone(ToplevelFormula, FormulaPath, StartTime, Sf2, Level, Result, OutVar2, ScheduleParams2, HasChanged2), 
+			((Result = nondet, !; Level > 0) -> 
+				ToSchedule = one(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
+				;
+				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+			), !
+			;
+		
+			F = until(MaxTime, P, Q),
+			evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q, Result, NewP, NewQ, ScheduleParams2, HasChanged2),
+			((Result = nondet, ! ; Level > 0) ->
+				ToSchedule = until(MaxTime, NewP, NewQ), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
+				;
+				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+			), !		
+			;
+			% for all remaining cases: restore original formula for Level > 0 or nondet.
+			% store original formula as value for ToSchedule later
+			shelf_create(orig/1, null, Shelf),
+			shelf_set(Shelf,1,F),
+			ScheduleParams = [],
+			( 
+				F = changed(P, Q, ExpectedNow),
+				% for now ignore ToSchedule output of changed
+				evaluate_changed(ToplevelFormula, FormulaPath, StartTime, P, Q, ExpectedNow, Level, Result, _),	
+				!
+				;
+				F = pfswitch(PFName, ExpectedNow),
+				evaluate_persistent_fluent_switched(PFName, StartTime, ExpectedNow, Result),
+				!
+				;
+				F = occur(ActionTerm),
+				evaluate_action_occured(ActionTerm, StartTime, Result),
+				!
+				;
+				% is golog program possible?
+				F = possible(GologProg, InitSit),
+				(do2(GologProg, InitSit, _) -> 
+					Result = ok ; 
+					Result = not_ok), !
+				;
+				% comparison or boolean fluent
+				functor(F, Functor, _),
+				(
+					reifiable_op(Functor), !,
+					test_reifiable(F, Result)
+					;				
+					(constraint_op(Functor, _), ! ; fluent(Functor, _, boolean), ! ;
+						derived_fluent(Functor, _, boolean)),
+					(call(F) -> Result = ok ; Result = not_ok), !
+				), !
+				;		
+				% otherwise it's a function so call it to bind variables but don't use in schedule term
+				call(F), Result = ok, !
+			),
+			
+			((Result = nondet, ! ; Level > 0) ->
+					shelf_get(Shelf, 1, ToSchedule), HasChanged = false
+					;
+					ToSchedule = Result, HasChanged = true
+			), !
+		),
+		getval(negated, Negated),
+		((Negated = 0, Result = not_ok ; Negated = 1, Result = ok) ->
+			getval(current_failure_stack, CFS),
+			record(CFS, failure(Result, ToplevelFormula, FormulaPath, StartTime, F, Level))
+			;
+			true
+		).
 
+% Executes a reified version of the goal in F. This ensures that the domains of variables are not 
+% reduced.
 test_reifiable(F, Result) :-
 	F =.. [Op | Params],
 	append(Params, [T], Params2),
@@ -267,7 +302,8 @@ evaluate_changed(ToplevelFormula, FormulaPath, StartTime, Last, Now, ExpectedNow
 		),
 		ToSchedule = Result.
 		
-		
+
+% checks whether a persistent fluent's value has changed at Time		
 evaluate_persistent_fluent_switched(Name, Time, Expected, Result) :-
 		query_persistent_fluent(Name, CurrentState, LastChanged),
 		((CurrentState = Expected, LastChanged is Time) ->
@@ -284,6 +320,9 @@ evaluate_action_occured(ActionTerm, Time, Result) :-
 evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q, 
 				Result, NewP, NewQ, ScheduleParams, HasChanged) :-
 		NextLevel is Level + 1,
+		getval(current_failure_stack, CFS),
+		record_create(MyFailures),
+		setval(current_failure_stack, MyFailures),
 		shelf_create(pqres/5, null, Shelf),
 		(
 			shelf_set(Shelf, 1, P),
@@ -362,6 +401,7 @@ evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q,
 			),	
 			(EndP = not_ok ->
 				shelf_set(Shelf, 3, not_ok),
+				record(MyFailures, fail_until(p_failed)),
 				HasChangedQ = true
 				;	
 				% handle Q in a very similiar fashion as P
@@ -410,7 +450,8 @@ evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q,
 							IntervalEnd is StartTime + MaxTime,
 							getMin(LatestPossibleEndP, IntervalEnd, LatestPossibleEndP2),
 							(EarliestPossibleStartQ  > LatestPossibleEndP2 + 1 ->
-								shelf_set(Shelf, 3, not_ok)
+								shelf_set(Shelf, 3, not_ok),
+								record(MyFailures, fail_until(timeout))
 								;
 								(StartQ = nondet -> 
 									shelf_set(Shelf, 3, nondet)
@@ -447,7 +488,18 @@ evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q,
 			shelf_set(Shelf, 5, SParams2),
 			shelf_get(Shelf, 0, pqres(NewP, NewQ, Result, HasChanged, ScheduleParams))
 		),
-		shelf_abolish(Shelf).
+		shelf_abolish(Shelf),
+		getval(negated, Negated),
+		((Negated = 0, Result = not_ok ; Negated = 1, Result = ok) ->
+			recorded_list(MyFailures, MFs),
+			(foreach(MF, MFs), param(CFS) do
+				record(CFS, MF)
+			)
+			;
+			true
+		),
+		setval(current_failure_stack, CFS),
+		erase_all(MyFailures).
 	
 
 % Calculates the minimum among V1 and V2. Handles nondet.
