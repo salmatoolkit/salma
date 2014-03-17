@@ -15,7 +15,7 @@ doc(calendar : constant,[
 fluent(vehiclePosition, [veh:vehicle], term).
 doc(vehiclePosition : fluent,[
 	summary: "The vehicles's position.",
-	desc: "The vehicle position is stored as aterm pos(p1, p2, pos_on_road) where
+	desc: "The vehicle position is stored as a term pos(p1, p2, pos_on_road) where
 		pos_on_road is in the interval [0, roadlength(p1,p1)]"
 	]).
 	
