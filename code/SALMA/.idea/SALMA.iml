@@ -7,6 +7,7 @@
     <orderEntry type="jdk" jdkName="Python 3.3.3 (C:/WinPython-64bit-3.3.3.2/python-3.3.3.amd64/python.exe)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="salma-website" />
+    <orderEntry type="module" module-name="exam-report-generator" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="myDocStringFormat" value="reStructuredText" />

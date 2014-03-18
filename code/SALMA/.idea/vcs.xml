@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$/../../../kroiss" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../.." vcs="Git" />
+    <mapping directory="$USER_HOME$/projects/Softwaretechnik/svn/ws_2013_2014/code/exam-report-generator/exam-report-generator" vcs="svn" />
   </component>
 </project>
 
