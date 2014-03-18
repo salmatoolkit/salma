@@ -115,11 +115,12 @@ class EMobilityTest(unittest.TestCase):
                                                      pos, route, target))
 
         if self.__visualizer is not None:
-            image_file_name = "step_{:04}.png".format(step)
+            image_file_name = "step_{:04}.pdf".format(step)
             path = os.path.join(self.__outdir, image_file_name)
             self.__fig.clf()
             self.__visualizer.visualize_map(self.__fig)
-            self.__fig.savefig(path, dpi=200)
+            #self.__fig.savefig(path, dpi=200)
+            self.__fig.savefig(path)
         return True, None
 
     def run_experiment(self, world, world_map, step_limit=None, log=True, visualize=True):
@@ -134,7 +135,7 @@ class EMobilityTest(unittest.TestCase):
         """
         self.__should_log = log
         if visualize:
-            self.__fig = plt.figure("emobility")
+            self.__fig = plt.figure("emobility", (8, 8), 200)
             self.__visualizer = Visualizer(world_map, world)
         else:
             self.__fig = None

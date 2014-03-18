@@ -112,7 +112,7 @@ class MapGenerator(object):
 
         for i in range(num_of_plcs):
             node = random.choice(candidates)
-            relable_mapping[node] = "plcs" + str(i)
+            relable_mapping[node] = "pl" + str(i)
             g.node[node]["loctype"] = "plcs"
             candidates.remove(node)
 

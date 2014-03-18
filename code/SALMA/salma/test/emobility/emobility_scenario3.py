@@ -27,11 +27,7 @@ from statsmodels.stats import proportion
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = HYPTEST
-
-_VISUALIZE = False
-
-
+_MODE = VISUALIZE
 
 def create_navigation_functions(world_map, mt):
     def possible_target_chooser(agent=None, currentTargetPOI=None, **ctx):
@@ -189,7 +185,7 @@ class EMobilityScenario3(EMobilityTest):
 
         mgen = MapGenerator(world)
         world_map = mgen.load_from_graphml("testdata/test1.graphml")
-
+        #world_map = mgen.generate_map(5, 15, 25, 1000, 1000)
         mt = MapTranslator(world_map, world)
         self.create_plcssam(world, world_map, mt)
         self.create_vehicles(world, world_map, mt)
@@ -210,7 +206,7 @@ class EMobilityScenario3(EMobilityTest):
             start = random.choice(starts)
             starts.remove(start)
             target_poi = random.choice(target_pois)
-            target_pois.remove(target_poi)
+            #target_pois.remove(target_poi)
 
             world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", start.id, start.id, 0))
             world.setFluentValue("vehicleSpeed", [vehicle.id], 10)
