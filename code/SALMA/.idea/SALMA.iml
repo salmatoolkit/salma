@@ -8,6 +8,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="salma-website" />
     <orderEntry type="module" module-name="exam-report-generator" />
+    <orderEntry type="module" module-name="multiprocessingtest" />
   </component>
   <component name="PyDocumentationSettings">
     <option name="myDocStringFormat" value="reStructuredText" />
