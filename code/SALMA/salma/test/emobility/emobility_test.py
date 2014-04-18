@@ -26,13 +26,13 @@ class EMobilityTest(unittest.TestCase):
         except SALMAException as e:
             print(e)
             raise
-        logger = logging.getLogger('salma')
+        logger = logging.getLogger('salmalab')
         logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         logger.addHandler(ch)
 
     def setUp(self):
-        self.logger = logging.getLogger('salma')
+        self.logger = logging.getLogger('salmalab')
         World.create_new_world()
         world = World.instance()
         world.load_declarations()

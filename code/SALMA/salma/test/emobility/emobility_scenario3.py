@@ -57,7 +57,7 @@ def create_navigation_functions(world_map, mt):
 def create_plcssam_functions(world_map, mt):
     def process_requests_plcs(agent=None, plcssam_vehicle_reservationRequests=None, **ctx):
         """
-        :type agent: salma.model.agent.Agent
+        :type agent: salmalab.model.agent.Agent
         :type plcssam_vehicle_reservationRequests: str -> list
         :rtype: list[(str,str)]
         """

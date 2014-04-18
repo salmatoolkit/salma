@@ -1,3 +1,6 @@
+from salmalab.test import Bar2
+
+
 class Foo(object):
     def __init__(self, factor):
         self.__factor = factor
@@ -18,3 +21,5 @@ def bar(f: Foo=None):
 if __name__ == '__main__':
     myf = Foo(3)
     bar(myf)
+    bar2 = Bar2.Bar2(42)
+    print(bar2.val)

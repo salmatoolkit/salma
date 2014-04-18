@@ -3,6 +3,10 @@ from matplotlib.path import Path
 import matplotlib.patches as patches
 import matplotlib.collections as coll
 
+import sys
+
+print(sys.path)
+
 verts = [
     (0., 0.), # left, bottom
     (0., 1.), # left, top

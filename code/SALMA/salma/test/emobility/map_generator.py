@@ -7,7 +7,7 @@ from salma.model.world import World
 import re
 
 class MapGenerator(object):
-    logger = logging.getLogger('salma')
+    logger = logging.getLogger('salmalab')
     P_NODE_IS_STREET_END = 0.4
 
     def __init__(self, world=None):

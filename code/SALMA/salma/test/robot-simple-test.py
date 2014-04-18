@@ -20,7 +20,7 @@ class RobotSimpleTest(unittest.TestCase):
         except SALMAException as e:
             print(e)
             raise
-        logger = logging.getLogger('salma')
+        logger = logging.getLogger('salmalab')
         logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         logger.addHandler(ch)
