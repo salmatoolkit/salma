@@ -1,5 +1,8 @@
 :- ['../../ecl-src/agasmc'].
-:- ['e-mobility-domain'].
+:- ['e-mobility-domain-with-abstractions'].
+
+assignment__sam(Sam, do2(A,Sit)) :- true.
+
 
 init :-
 	init_agasmc,
