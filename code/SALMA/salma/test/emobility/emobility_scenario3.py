@@ -27,7 +27,7 @@ from statsmodels.stats import proportion
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = VISUALIZE
+_MODE = HYPTEST
 
 def create_navigation_functions(world_map, mt):
     def possible_target_chooser(agent=None, currentTargetPOI=None, **ctx):
