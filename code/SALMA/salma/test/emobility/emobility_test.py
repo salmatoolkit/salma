@@ -115,7 +115,7 @@ class EMobilityTest(unittest.TestCase):
                                                      pos, route, target))
 
         if self.__visualizer is not None:
-            image_file_name = "step_{:04}.pdf".format(step)
+            image_file_name = "step_{:04}.png".format(step)
             path = os.path.join(self.__outdir, image_file_name)
             self.__fig.clf()
             self.__visualizer.visualize_map(self.__fig)
