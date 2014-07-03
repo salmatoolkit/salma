@@ -36,7 +36,7 @@ class SequentialProbabilityRatioTest(HypothesisTest):
         p0: accept hypothesis if actual probability of defect is < p0
         p1: reject hypothesis if actual probability of defect is > p1
         alpha: max probability of error of first type (reject if p <= p0)
-        alpha: max probability of error of second type (accept if p >= p0)
+        beta: max probability of error of second type (accept if p >= p0)
         '''
         self.__p0 = p0
         self.__p1 = p1
