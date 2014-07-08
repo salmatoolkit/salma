@@ -2,6 +2,7 @@
 :- dynamic domain/3.
 :- dynamic sort/1.
 :- dynamic sorts/1.
+:- dynamic dynamic_sort/1.
 :- dynamic subsort/2.
 :- dynamic subsorts/2.
 
@@ -16,13 +17,14 @@ domain(Sort, D, s0) :- get_current(sort, [Sort], D).
 domain(Sort, D, slast) :- get_last(sort, [Sort], D).
 
 remove_duplicates(L1, L2) :-
-	(foreach(E, L1), fromto([], In, Out, L2) do
-		(member(E, In) -> 
-			Out = In
-			;
-			append(In, [E], Out)
-		)
-	).
+	% (foreach(E, L1), fromto([], In, Out, L2) do
+		% (member(E, In) -> 
+			% Out = In
+			% ;
+			% append(In, [E], Out)
+		% )
+	% ).
+	sort(L1, L2).
 	
 get_all_sorts(Sorts) :-
 	findall(SList, sorts(SList), SListList),
@@ -53,14 +55,29 @@ combineDomains(Domains, CombinedDomain) :-
 
 is_uninitialized(Sort, AllSorts) :-
 	member(Sort, AllSorts),
-	not clause(domain(Sort, _), _).
+	not get_current(domain, [Sort], _).
 	
 init_uninitialized_sorts :-
 	get_all_sorts(AllSorts),
 	findall(S, is_uninitialized(S, AllSorts), Sorts),
 	(foreach(S, Sorts) do
-		assert(domain(S, D) :- D = [])
+		set_current(domain, [], []).
 	).
+
+get_transitive_domain(Sort, Domain) :-
+	findall(D, subsort(D, Sort), SubSorts1),
+	findall(D, subsorts(D, Sort), SubSorts2),
+	flatten(SubSorts2, FlatSubSorts2),
+	append(SubSorts1, FlatSubSorts2, SubSortsTemp),
+	remove_duplicates(SubSortsTemp, SubSorts),
+	(domain(Sort, D1), ! ; D1 = []),
+	(foreach(SubSort, SubSorts), fromto(D1, In, Out, Domain) do
+		get_transitive_domain(SubSort, SD),
+		append(In, SD, DTemp),
+		remove_duplicates(DTemp, Out)
+	).
+		
+		
 	
 init_sort_hierarchy(Domains) :-
 	get_all_sorts(Sorts),
@@ -70,11 +87,7 @@ init_sort_hierarchy(Domains) :-
 	append(SuperSorts1, SuperSorts2, SuperSortsTemp),
 	remove_duplicates(SuperSortsTemp, SuperSorts),
 	(foreach(SuperSort, SuperSorts) do
-		findall(D, subsort(D, SuperSort), SubSorts1),
-		findall(D, subsorts(D, SuperSort), SubSorts2),
-		flatten(SubSorts2, FlatSubSorts2),
-		append(SubSorts1, FlatSubSorts2, SubSortsTemp),
-		remove_duplicates(SubSortsTemp, SubSorts),
+		
 		assert(domain(SuperSort, D) :- combineDomains(SubSorts, D))
 	),
 	init_uninitialized_sorts,

@@ -112,7 +112,6 @@ set_next(Fluent, Params, Val):-
 	% TODO: 
 	get_situation_store(cur_sit, CS),
 	store_get(CS, T, CurVal),
-	
 	(not untracked(Fluent), Val \= CurVal ->
 		(store_get(CS, fl(time), Time), ! ; Time = 0),
 		store_set(fluent_change_times, T, Time)

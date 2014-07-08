@@ -14,8 +14,11 @@ fluent(transferring, [m:message], boolean).
 untracked_fluent(transferring).
 	
 fluent(timestamp_S, [m:message], integer).
+untracked_fluent(timestamp_S).
+
 
 fluent(timestamp_T, [m:message], integer).
+untracked_fluent(timestamp_T).
 
 % list content: (agent, params, tstamp)
 fluent(connector_timestamps_R, [con:connector], list).
