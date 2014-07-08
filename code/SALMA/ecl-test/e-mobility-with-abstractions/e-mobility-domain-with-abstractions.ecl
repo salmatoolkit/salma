@@ -1,6 +1,7 @@
 :- dynamic locX/2, locY/2, connected/3, roadlength/3,
-	responsiblePLCSSAM/2, channel/2, remote_sensor/4.
-
+	responsiblePLCSSAM/2.
+	
+:- ['info_transfer'].
 :- ['e-mobility-domain_vehicle'].
 :- ['e-mobility-domain_plcs'].
 :- ['e-mobility-domain_plcssam'].
@@ -32,10 +33,14 @@ doc(responsiblePLCSSAM : constant, [
 			associated with the PLCSSAM in the area."
 	]).
 
-channel(assignment, [veh:vehicle:1, sam:plcssam:1]).
-channel(reservation, [veh:vehicle:1, plcs:plcs:1]).
+channel(assignment, veh:vehicle, sam:plcssam, unicast).
+channel(reservation, veh:vehicle, plcs:plcs, unicast).
 
-remote_sensor(plcsFreeSlots, sam, availableSlots, [plcs]).
+sensor(freeSlotsL, plcs, freeSlots).
+remoteSensor(freeSlotsR, sam, freeSlotsL, plcs).
+
+ensemble(freeSlotsR, SAM, PLCS, S) :-
+	true.
 
 % -------------------------------------
 % communication fluents
