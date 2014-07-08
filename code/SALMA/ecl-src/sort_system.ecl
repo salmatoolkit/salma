@@ -1,8 +1,19 @@
 :- dynamic domain/2.
+:- dynamic domain/3.
 :- dynamic sort/1.
 :- dynamic sorts/1.
 :- dynamic subsort/2.
 :- dynamic subsorts/2.
+
+sort(sort).
+
+domain(Sort, D) :- domain(Sort, D, s0).
+
+fluent(domain, [s:sort], list).
+
+
+domain(Sort, D, s0) :- get_current(sort, [Sort], D).		
+domain(Sort, D, slast) :- get_last(sort, [Sort], D).
 
 remove_duplicates(L1, L2) :-
 	(foreach(E, L1), fromto([], In, Out, L2) do
@@ -52,6 +63,8 @@ init_uninitialized_sorts :-
 	).
 	
 init_sort_hierarchy(Domains) :-
+	get_all_sorts(Sorts),
+	set_current(domain, [sort], Sorts),
 	findall(D, subsort(_,D), SuperSorts1),
 	findall(D, subsorts(_,D), SuperSorts2),
 	append(SuperSorts1, SuperSorts2, SuperSortsTemp),

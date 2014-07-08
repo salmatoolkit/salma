@@ -725,6 +725,7 @@ add_toplevel_goal(Name, F) :-
 		cache_formula(Name, [0], F, Id),
 		store_set(toplevel_goals, Name, cf(Id)).
 
+		
 
 get_toplevel_goals(Goals) :-
 		stored_keys_and_values(toplevel_goals, L),

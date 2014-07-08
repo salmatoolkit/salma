@@ -1,23 +1,27 @@
 :- dynamic channel/4, sensor/3, remoteSensor/4, ensemble/4,
 	awaitingTransfer/5, transferring/5, timestamp_S/6, timestamp_T/6,
-	timestamp_R/5, msgs/5, nextMsg/5.
+	timestamp_R/5, nextMsg/5.
+
 	
+sort(message).
+sort(connector).
+
 % STATE FLUENTS
-fluent(awaitingTransfer, [id:term, agent:agent, params:list, m:integer], 
-	boolean).
+fluent(awaitingTransfer, [m:message], boolean).
+untracked_fluent(awaitingTransfer).
 
-fluent(transferring, [id:term, agent:agent, params:list, m:integer], 
-	boolean).
+fluent(transferring, [m:message], boolean).
+untracked_fluent(transferring).
 	
-fluent(timestamp_S, [id:term, agent:agent, params:list, m:integer],
-	integer).
+fluent(timestamp_S, [m:message], integer).
 
-fluent(timestamp_T, [id:term, agent:agent, params:list, m:integer],
-	integer).
-fluent(timestamp_R, [id:term, agent:agent, params:list],
-	integer).
-	
-fluent(msgs, [id:term, agent:agent, params:list], list).
+fluent(timestamp_T, [m:message], integer).
+
+% list content: (agent, params, tstamp)
+fluent(connector_timestamps_R, [con:connector], list).
+
+derived_fluent(timestamp_R, [con:connector, agent:agent, params:list], integer).
+
 	
 	
 fluent(channelOut, [channelName:term, role:term, agent:agent, 

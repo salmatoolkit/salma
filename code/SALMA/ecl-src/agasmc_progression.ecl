@@ -15,6 +15,7 @@
 :- dynamic derived_fluent/3.
 :- dynamic poss/2.
 :- dynamic doc/2.
+:- dynamic untracked_fluent/1.
 
 % primitive_action(name, params=[name:sort,...])
 :- dynamic primitive_action/2.
@@ -33,10 +34,6 @@
 :- dynamic state_dirty/0.
 :- dynamic time/2.
 
-%% :- export domain/2, testmod/2,
-%% % progress/1, 
-%%     get_current/2, set_current/2, set_next/2,
-%%     get_situations/4.
 
 % action declaration
 primitive_action(tick,[]).
@@ -44,6 +41,8 @@ primitive_action(nop,[]).
 immediate_action(nop).
 
 fluent(time,[], integer).
+untracked_fluent(time).
+
 time(T,do2(A,S)) :-
 		time(TOld, S),
 		(A = tick -> 
@@ -97,7 +96,7 @@ set_current(Fluent, Params, Val):-
 	subst_in_term(zero, 0, Val, Val2),
 	(store_get(S, T, CurrentValue), ! ; CurrentValue = none),
     store_set(S, T, Val2),
-	(CurrentValue \= Val2 ->
+	(not untracked(Fluent), CurrentValue \= Val2 ->
 		(store_get(S, fl(time), Time), ! ; Time = 0),
 		store_set(fluent_change_times, T, Time),
 		set_state_dirty(true)
@@ -110,9 +109,11 @@ set_next(Fluent, Params, Val):-
     make_key_term(Fluent, Params, T),
     store_set(S, T, Val),
 	% has changed?
+	% TODO: 
 	get_situation_store(cur_sit, CS),
 	store_get(CS, T, CurVal),
-	(Val \= CurVal ->
+	
+	(not untracked(Fluent), Val \= CurVal ->
 		(store_get(CS, fl(time), Time), ! ; Time = 0),
 		store_set(fluent_change_times, T, Time)
 		;
@@ -173,10 +174,13 @@ check_action(ActionTerm, Pattern, S) :-
 	).
 	
 	
-	
-% Act only contains the action not the situation
-% todo: allow a list of actions as argument. construct situation and calculate the update value by regression
+% Constructs situation and calculate the update value by regression.
+% 
+% Actions contains a list of action terms.
 progress(Actions):-
+	get_situation_store(next_sit, S), 
+	% TODO: optimize?
+	store_erase(S),
 	set_state_dirty(true),
 	% invalidate last situation (= next situation) since it is going to be manipulated
 	get_current(time,[],Time),
@@ -266,9 +270,11 @@ init_progression :-
 	retractall(action_clock(_,_,_)),
 	retractall(action_count(_,_,_)),
 	close_successor_state_axioms.
+
 	
 
 close_successor_state_axioms :- 
+	add_default_domain_ssa,
 	findall(fluent(Name,Args,Type),fluent(Name,Args,Type), Fluents),
 	(foreach(F, Fluents) do
 		F = fluent(Name,Args,Type),
@@ -276,7 +282,12 @@ close_successor_state_axioms :-
 		add_storage_query_to_ssa(Name,Args,Type, slast, get_last)
 	).
 	
-		
+add_default_domain_ssa :-
+	(not clause(domain(_, _, do2(_, _)), _) ->
+		assert(domain(Sort, D, do2(_,S)) :- domain(Sort, D, S)) 
+		;
+		true
+	).
 		
 add_storage_query_to_ssa(Name, Args, Type, Sit, QueryName) :-
 	length(Args, NArgs),
