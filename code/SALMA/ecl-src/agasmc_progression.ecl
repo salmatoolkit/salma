@@ -32,6 +32,7 @@
 
 :- dynamic persistent_fluent/2.	
 :- dynamic state_dirty/0.
+
 :- dynamic time/2.
 
 
@@ -88,18 +89,40 @@ get_last(Fluent, Params, Val):-
     make_key_term(Fluent, Params, T),
     store_get(S, T, Val).	
 
-	
+fluent_has_changed(Fluent, OldValue, NewValue) :-
+	(Fluent = domain, !,
+		sort(OldValue, D1),
+		sort(NewValue, D2),
+		D1 \= D2
+		;
+	number(OldValue), number(NewValue), !,
+		OldValue =\= NewValue
+		;
+	OldValue \= NewValue
+	).
+		
+
+
+		
 % callable from python so zero has to be handled due to PyCLP problems
 set_current(Fluent, Params, Val):-
     get_situation_store(cur_sit, S), 
     make_key_term(Fluent, Params, T),
 	subst_in_term(zero, 0, Val, Val2),
-	(store_get(S, T, CurrentValue), ! ; CurrentValue = none),
     store_set(S, T, Val2),
-	(not untracked(Fluent), CurrentValue \= Val2 ->
-		(store_get(S, fl(time), Time), ! ; Time = 0),
-		store_set(fluent_change_times, T, Time),
-		set_state_dirty(true)
+	
+	((Fluent = domain, Params = [Sort], dynamic_sort(Sort), ! ; not untracked(Fluent)), 
+		(store_get(S, T, CurrentValue), ! ; CurrentValue = none),
+		fluent_has_changed(Fluent, CurrentValue, Val) ->
+			(store_get(S, fl(time), Time), ! ; Time = 0),
+			store_set(fluent_change_times, T, Time),
+			set_state_dirty(true),
+			(Fluent = domain ->
+				set_properties_unsynced(true),
+				set_sort_hierarchy_unsynced(true)
+				;
+				true
+			)				
 		;
 		true
 	).
@@ -110,13 +133,20 @@ set_next(Fluent, Params, Val):-
     store_set(S, T, Val),
 	% has changed?
 	% TODO: 
-	get_situation_store(cur_sit, CS),
-	store_get(CS, T, CurVal),
-	(not untracked(Fluent), Val \= CurVal ->
-		(store_get(CS, fl(time), Time), ! ; Time = 0),
-		store_set(fluent_change_times, T, Time)
+	((Fluent = domain, Params = [Sort], dynamic_sort(Sort), ! ; not untracked(Fluent)),
+		get_situation_store(cur_sit, CS),
+		(store_get(CS, T, CurVal), ! ; CurVal = none),
+		fluent_has_changed(Fluent, CurVal, Val) ->
+			(store_get(CS, fl(time), Time), ! ; Time = 0),
+			store_set(fluent_change_times, T, Time),
+			(Fluent = domain ->
+				set_properties_unsynced(true),
+				set_sort_hierarchy_unsynced(true)
+				;
+				true
+			)		
 		;
-		true
+			true
 	).
 		
 	
@@ -173,6 +203,21 @@ check_action(ActionTerm, Pattern, S) :-
 	).
 	
 	
+% check if the given sort is dynamic 
+% and its domain has changed in this time step
+domain_has_changed(Sort) :-
+	dynamic_sort(Sort),
+	get_last_change_time(domain, [Sort], T1),
+	current_time(T2),
+	T1 =:= T2.
+	
+	
+% check if a domain of one of the dynamic sorts has changed
+changed_domains(Sorts) :-
+	findall(S, domain_has_changed(S), Sorts),
+	not length(Sorts, 0).	
+	
+
 % Constructs situation and calculate the update value by regression.
 % 
 % Actions contains a list of action terms.
@@ -181,6 +226,8 @@ progress(Actions):-
 	% TODO: optimize?
 	store_erase(S),
 	set_state_dirty(true),
+	(sort_hierarchy_unsynced -> init_sort_hierarchy(_) ; true),
+	(properties_unsynced -> recompile_all ; true),
 	% invalidate last situation (= next situation) since it is going to be manipulated
 	get_current(time,[],Time),
 	create_situation(Actions, Time, s0, Situation),
@@ -213,7 +260,9 @@ progress(Actions):-
 	% advance last_sit only beginning from the second progression 
 	(not last_initialized -> assert(last_initialized) ; advance_pointer(last_sit) ),
 	advance_pointer(cur_sit),
-	advance_pointer(next_sit).	
+	advance_pointer(next_sit),
+	(sort_hierarchy_unsynced -> init_sort_hierarchy(_) ; true),
+	(properties_unsynced -> recompile_all ; true).	
  
 
 progress_sequential(ActionSequence, FailedActions) :-
@@ -249,8 +298,6 @@ set_state_dirty(IsDirty) :-
 		(state_dirty -> retract(state_dirty) ; true)
 	).
 		
-		
-			
 	
 
 init_progression :- 

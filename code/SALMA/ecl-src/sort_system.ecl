@@ -5,13 +5,13 @@
 :- dynamic dynamic_sort/1.
 :- dynamic subsort/2.
 :- dynamic subsorts/2.
+:- dynamic sort_hierarchy_unsynced/0.
 
 sort(sort).
 
 domain(Sort, D) :- domain(Sort, D, s0).
 
 fluent(domain, [s:sort], list).
-
 
 domain(Sort, D, s0) :- get_current(sort, [Sort], D).		
 domain(Sort, D, slast) :- get_last(sort, [Sort], D).
@@ -71,24 +71,27 @@ get_transitive_domain(Sort, Domain) :-
 	append(SubSorts1, FlatSubSorts2, SubSortsTemp),
 	remove_duplicates(SubSortsTemp, SubSorts),
 	(domain(Sort, D1), ! ; D1 = []),
-	(foreach(SubSort, SubSorts), fromto(D1, In, Out, Domain) do
+	(foreach(SubSort, SubSorts), fromto(D1, In, Out, DomainTemp) do
 		get_transitive_domain(SubSort, SD),
-		append(In, SD, DTemp),
-		remove_duplicates(DTemp, Out)
-	).
-		
+		append(In, SD, Out),
+	),
+	remove_duplicates(DomainTemp, Domain).
+
+set_sort_hierarchy_unsynced(IsUnsynced) :-
+	(IsUnsynced = true ->
+		(not(sort_hierarchy_unsynced) -> assert(sort_hierarchy_unsynced) ; true)
+		;
+		(sort_hierarchy_unsynced -> retract(sort_hierarchy_unsynced) ; true)
+	).	
 		
 	
 init_sort_hierarchy(Domains) :-
 	get_all_sorts(Sorts),
 	set_current(domain, [sort], Sorts),
-	findall(D, subsort(_,D), SuperSorts1),
-	findall(D, subsorts(_,D), SuperSorts2),
-	append(SuperSorts1, SuperSorts2, SuperSortsTemp),
-	remove_duplicates(SuperSortsTemp, SuperSorts),
-	(foreach(SuperSort, SuperSorts) do
-		
-		assert(domain(SuperSort, D) :- combineDomains(SubSorts, D))
-	),
 	init_uninitialized_sorts,
+	(foreach(Sort, Sorts) do
+		get_transitive_domain(Sort, Domain),
+		set_current(domain, [Sort], Domain)
+	),
+	set_sort_hierarchy_unsynced(false),
 	get_all_domains(Domains).

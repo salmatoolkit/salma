@@ -10,23 +10,11 @@
 
 
 
-% Compiles and registers a property to check
-register_property(Name, P, P2) :-
-	compile_formula(P, P2),
-	add_toplevel_goal(Name, P2).
 
-	
-register_property_str(Name, PStr, P2) :-
-	term_string(P, PStr),
-	register_property(Name, P, P2).
-
-register_persistent_fluent(Name, Formula, CompiledFormula) :-
-	compile_formula(Formula, CompiledFormula),
-	add_persistent_fluent(Name, CompiledFormula).
-	
 
 evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :-
 	% TODO: check for events and set clocks
+	(properties_unsynced -> recompile_all ; true),
 	erase_failure_stack,
 	update_persistent_fluents,
 	evaluate_all_scheduled(ScheduledResults), 

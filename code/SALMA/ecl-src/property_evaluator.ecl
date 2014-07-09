@@ -7,6 +7,8 @@
 % structure: toplevelformula(Path) - List<Cache-Ids>
 :- local store(formula_cache_candidates).
 :- local store(toplevel_goals).
+% stores uncompiled properties
+:- local store(original_properties).
 
 :- local store(scheduled_goals).
 :- local variable(next_scheduled_goal_id).
@@ -19,10 +21,13 @@
 :- local variable(current_failure_stack, failurestack).
 :- lib(hash).
 :- lib(lists).
+:- dynamic properties_unsynced/0.
+
 
 init_smc :-
 	store_erase(formula_cache),
 	store_erase(toplevel_goals),
+	store_erase(original_properties),
 	store_erase(scheduled_goals),
 	store_erase(persistent_fluents),
 	store_erase(persistent_fluent_states),
@@ -32,7 +37,8 @@ init_smc :-
 	setval(negated, 0),
 	erase_failure_stack,	
 	setval(current_failure_stack, failurestack),
-	compile_persistent_fluents.
+	compile_persistent_fluents,
+	set_properties_unsynced(false).
 	
 
 erase_failure_stack :-
@@ -81,8 +87,16 @@ reset_smc :-
 	setval(negated, 0),
 	erase_failure_stack,	
 	setval(current_failure_stack, failurestack),
-	clean_formula_cache.
+	clean_formula_cache,
+	recompile_all.
 	
+	
+set_properties_unsynced(IsUnsynced) :-
+	(IsUnsynced = true ->
+		(not(properties_unsynced) -> assert(properties_unsynced) ; true)
+		;
+		(properties_unsynced -> retract(properties_unsynced) ; true)
+	).	
 
 % erases all formula cache entries except the ones that are referenced by toplevel entries.
 clean_formula_cache :-
@@ -131,7 +145,32 @@ flip_negated :-
 	getval(negated, N),
 	N2 is 1 - N,
 	setval(negated, N2).
+
+% Compiles and registers a property to check
+register_property(Name, P, P2) :-
+	store_set(original_properties, Name, P),
+	compile_formula(P, P2),
+	add_toplevel_goal(Name, P2).
+
+	
+register_property_str(Name, PStr, P2) :-
+	term_string(P, PStr),
+	register_property(Name, P, P2).
+
+recompile_all :-
+	store_erase(persistent_fluents),
+	store_erase(formula_cache_candidates),
+	store_erase(toplevel_goals),
+	compile_persistent_fluents,
+	stored_keys_and_values(original_properties, Props),
+	(foreach(P, Props) do
+		P = Name - F,
+		compile_formula(P, P2),
+		add_toplevel_goal(Name, P2)
+	),
+	set_properties_unsynced(false).
 		
+	
 % F: formula to evaluate
 % InUntil: whether or not the subformula is part of a until operator
 evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, 
