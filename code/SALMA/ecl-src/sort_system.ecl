@@ -6,6 +6,7 @@
 :- dynamic subsort/2.
 :- dynamic subsorts/2.
 :- dynamic sort_hierarchy_unsynced/0.
+:- local variable(next_object_id, 1).
 
 sort(sort).
 
@@ -95,3 +96,5 @@ init_sort_hierarchy(Domains) :-
 	),
 	set_sort_hierarchy_unsynced(false),
 	get_all_domains(Domains).
+	
+	

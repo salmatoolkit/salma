@@ -320,7 +320,7 @@ init_progression :-
 	
 
 close_successor_state_axioms :- 
-	add_default_domain_ssa,
+	add_default_domain_ssas,
 	findall(fluent(Name,Args,Type),fluent(Name,Args,Type), Fluents),
 	(foreach(F, Fluents) do
 		F = fluent(Name,Args,Type),
@@ -328,11 +328,14 @@ close_successor_state_axioms :-
 		add_storage_query_to_ssa(Name,Args,Type, slast, get_last)
 	).
 	
-add_default_domain_ssa :-
-	(not clause(domain(_, _, do2(_, _)), _) ->
-		assert(domain(Sort, D, do2(_,S)) :- domain(Sort, D, S)) 
-		;
-		true
+add_default_domain_ssas :-
+	get_all_sorts(Sorts),
+	(foreach(Sort, Sorts) do
+		(not clause(domain(Sort, _, _), _) ->
+			assert(domain(Sort, D, do2(_,S)) :- domain(Sort, D, S)) 
+			;
+			true
+		)
 	).
 		
 add_storage_query_to_ssa(Name, Args, Type, Sit, QueryName) :-
