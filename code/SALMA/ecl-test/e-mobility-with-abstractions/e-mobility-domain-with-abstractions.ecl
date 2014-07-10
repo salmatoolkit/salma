@@ -38,11 +38,13 @@ doc(responsiblePLCSSAM : constant, [
 channel(assignment, veh:vehicle, sam:plcssam, unicast).
 channel(reservation, veh:vehicle, plcs:plcs, unicast).
 
-sensor(freeSlotsL, plcs, freeSlots).
-remoteSensor(freeSlotsR, sam, freeSlotsL, plcs).
 
-ensemble(freeSlotsR, SAM, PLCS, S) :-
-	true.
+%remoteSensor(freeSlotsR, sam, freeSlotsL, plcs).
+
+%ensemble(freeSlotsR, SAM, PLCS, S) :- true.
+
+
+
 
 % -------------------------------------
 % communication fluents

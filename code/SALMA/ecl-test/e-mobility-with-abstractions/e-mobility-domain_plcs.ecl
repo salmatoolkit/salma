@@ -1,4 +1,4 @@
-:- dynamic plcsReservations/3, currentOccupancy/3, maxCapacty/2.
+:- dynamic plcsReservations/3, currentOccupancy/3, maxCapacty/2, freeSlots/3, freeSlotsL/3.
 % PLCS
 constant(maxCapacty, [p:plcs], integer).
 
@@ -14,6 +14,10 @@ poss(update_reservations(_),_) :- true.
 
 derived_fluent(currentOccupancy, [p:plcs], integer).
 derived_fluent(freeSlots, [p:plcs], integer).
+
+sensor(freeSlotsL, plcs, freeSlots).
+fluent(freeSlotsL, [p:plcs], integer).
+
 
 %derived_fluent(expectedOccupancy, [p:plcs, intervalStart:integer,
 %	intervalEnd:integer], integer).
@@ -48,5 +52,6 @@ currentOccupancy(PLCS, Occupancy, S) :-
 freeSlots(PLCS, FreeSlots, S) :-
 	currentOccupancy(PLCS, Occupancy, S),
 	FreeSlots is maxCapacity(PLCS) - Occupancy.
-	
+
+freeSlotsL	
 					

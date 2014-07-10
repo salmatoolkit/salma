@@ -1,8 +1,6 @@
 :- ['../../ecl-src/agasmc'].
 :- ['e-mobility-domain-with-abstractions'].
 
-assignment__sam(Sam, do2(A,Sit)) :- true.
-
 
 init :-
 	init_agasmc,
@@ -11,6 +9,9 @@ init :-
 	setDomain(plcs, [plcs1, plcs2]),
 	setDomain(poi, [poi1, poi2]),
 	setDomain(plcssam, [sam1]),
+	setDomain(channel, [assignment, reservation]),
+	setDomain(sensor, [freeSlotsL]),
+
 	init_sort_hierarchy(_),
 	
 	%setConstant(connected, [c1,c2, true]),

@@ -97,6 +97,7 @@ exogenous_action(transferFails, [m:message], []).
 
 
 % convention: agent is sender for channels and receiver for (remote) sensors
+% channel: Params = [SrcRole, Dest, DestRole],
 create_message(Con, Agent, Params, Msg) :-
 	getval(nextMsg, Msg),
 	incval(nextMsg),
@@ -107,15 +108,14 @@ create_message(Con, Agent, Params, Msg) :-
 	set_current(transferring, [Msg], false),
 	set_current(timestamp_S, [Msg], -1),
 	set_current(timestamp_T, [Msg], -1),
-	setConstant(message_spec, [Msg], msg(Con, Agent, Params)).
+	setConstant(message_spec, [Msg, msg(Con, Agent, Params)]).
 
 	% SSAs
 	
 domain(message, D, do2(A, S)) :-
 	domain(message, OldD, S),
-	((A = transferEnds(Msg, _), ! ; A = transferFails(Msg), !) ->
-			
-			delete(Msg, oldD, D) =
+	((A = transferEnds(Msg, _), ! ; A = transferFails(Msg), !) ->		
+			delete(Msg, OldD, D)
 			;
 			D = OldD
 	), !
