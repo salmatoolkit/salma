@@ -15,7 +15,7 @@ subst_in_term(Var, Rep, T, T2):-
 
 subst_in_list(Var, Rep, [H], Tl2) :-
         subst_in_term(Var, Rep, H, T2),
-        Tl2 = [T2].
+        Tl2 = [T2], !.
 
 subst_in_list(Var,Rep,[H | Tl], Tl2) :-
 		subst_in_term(Var, Rep, H, T2),

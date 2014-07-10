@@ -10,12 +10,8 @@
 
 % :- local initialization(init).
 
-:- dynamic fluent/3.
-:- dynamic constant/3.
-:- dynamic derived_fluent/3.
-:- dynamic poss/2.
-:- dynamic doc/2.
-:- dynamic untracked_fluent/1.
+
+
 
 % primitive_action(name, params=[name:sort,...])
 :- dynamic primitive_action/2.
@@ -111,9 +107,9 @@ set_current(Fluent, Params, Val):-
 	subst_in_term(zero, 0, Val, Val2),
     store_set(S, T, Val2),
 	
-	((Fluent = domain, Params = [Sort], dynamic_sort(Sort), ! ; not untracked(Fluent)), 
+	((Fluent = domain, Params = [Sort], dynamic_sort(Sort), ! ; not untracked_fluent(Fluent)), 
 		(store_get(S, T, CurrentValue), ! ; CurrentValue = none),
-		fluent_has_changed(Fluent, CurrentValue, Val) ->
+		fluent_has_changed(Fluent, CurrentValue, Val2) ->
 			(store_get(S, fl(time), Time), ! ; Time = 0),
 			store_set(fluent_change_times, T, Time),
 			set_state_dirty(true),
@@ -130,13 +126,14 @@ set_current(Fluent, Params, Val):-
 set_next(Fluent, Params, Val):-
     get_situation_store(next_sit, S), 
     make_key_term(Fluent, Params, T),
-    store_set(S, T, Val),
+	subst_in_term(zero, 0, Val, Val2),
+    store_set(S, T, Val2),
 	% has changed?
 	% TODO: 
-	((Fluent = domain, Params = [Sort], dynamic_sort(Sort), ! ; not untracked(Fluent)),
+	((Fluent = domain, Params = [Sort], dynamic_sort(Sort), ! ; not untracked_fluent(Fluent)),
 		get_situation_store(cur_sit, CS),
 		(store_get(CS, T, CurVal), ! ; CurVal = none),
-		fluent_has_changed(Fluent, CurVal, Val) ->
+		fluent_has_changed(Fluent, CurVal, Val2) ->
 			(store_get(CS, fl(time), Time), ! ; Time = 0),
 			store_set(fluent_change_times, T, Time),
 			(Fluent = domain ->
@@ -331,7 +328,7 @@ close_successor_state_axioms :-
 add_default_domain_ssas :-
 	get_all_sorts(Sorts),
 	(foreach(Sort, Sorts) do
-		(not clause(domain(Sort, _, _), _) ->
+		(not clause(domain(Sort, _, do2(_,_)), _) ->
 			assert(domain(Sort, D, do2(_,S)) :- domain(Sort, D, S)) 
 			;
 			true

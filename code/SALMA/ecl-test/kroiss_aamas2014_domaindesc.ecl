@@ -1,15 +1,16 @@
 :- dynamic xpos/3, carrying/3.
 
-sorts([robot, item, object]).
-subsorts([robot, item], object).
+sorts([robot, item]).
+subsort(item, object).
+subsort(robot, agent).
 
-primitive_action(move_right,[robot]).
-primitive_action(grab,[robot,item]).
+primitive_action(move_right,[r:robot]).
+primitive_action(grab,[r:robot,i:item]).
 
 
-exogenous_action(accidental_drop, [robot, item], []).
+exogenous_action(accidental_drop, [r:robot, i:item], []).
 
-fluent(xpos, [object], integer).
+fluent(xpos, [o:object], integer).
 fluent(carrying, [robot, item], boolean).
 
 poss(move_right(_), _) :- true.

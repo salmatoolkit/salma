@@ -1,4 +1,10 @@
 :- lib(ic).
+:- dynamic fluent/3.
+:- dynamic constant/3.
+:- dynamic doc/2.
+:- dynamic derived_fluent/3.
+:- dynamic poss/2.
+:- dynamic untracked_fluent/1.
 :- ['termutils'].
 :- ['sort_system'].
 :- ['agasmc_progression'].

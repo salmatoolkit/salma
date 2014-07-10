@@ -165,8 +165,8 @@ recompile_all :-
 	stored_keys_and_values(original_properties, Props),
 	(foreach(P, Props) do
 		P = Name - F,
-		compile_formula(P, P2),
-		add_toplevel_goal(Name, P2)
+		compile_formula(F, F2),
+		add_toplevel_goal(Name, F2)
 	),
 	set_properties_unsynced(false).
 		

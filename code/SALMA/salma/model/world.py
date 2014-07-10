@@ -76,6 +76,9 @@ class World(Entity):
 
         self.__exogenousActions = dict()
 
+
+        self.__virtualSorts = set(["sort","message"])
+
         # store all entities in a sort -> entity dict 
         self.__domainMap = dict()
         # agents is a dict that stores
@@ -111,6 +114,20 @@ class World(Entity):
     @property
     def evaluationContext(self):
         return self.__evaluationContext
+
+    @property
+    def virtual_sorts(self):
+        """
+        :return: set[str]
+        """
+        return self.__virtualSorts
+
+    @virtual_sorts.setter
+    def virtual_sorts(self, vsorts):
+        """
+        :type vsorts: list[str]
+        """
+        self.__virtualSorts = set(vsorts)
 
     def getExpressionContext(self):
         return self.__expressionContext
@@ -186,7 +203,8 @@ class World(Entity):
         # list of domain lists
         for paramSelection in self.enumerate_fluent_instances(fluent):
             value = fluent.generateSample(self.__evaluationContext, paramSelection)
-            World.logic_engine().setFluentValue(fluent.name, paramSelection, value)
+            if value is not None:
+                World.logic_engine().setFluentValue(fluent.name, paramSelection, value)
 
     def check_fluent_initialization(self):
         """
@@ -327,14 +345,31 @@ class World(Entity):
         for ea in declarations['exogenous_actions']:
             self.addExogenousAction(ExogenousAction(ea[0], ea[1], ea[2]))
 
-    def initialize(self, sample_fluent_values=True):
+
+    def sync_domains(self):
+        self.__domainMap = dict()
+        domain_map_from_engine = World.logic_engine().initSortHierarchy()
+
+        for sort, domain in domain_map_from_engine.items():
+            self.__domainMap[sort] = set()
+            for entityId in domain:
+                entity = None
+                try:
+                    entity = self.__entities[entityId]
+                except KeyError:
+                    #raise SALMAException("No Entity instance registered for {}:{}".format(entityId, sort))
+                    entity = Entity(entityId, sort)
+                    self.__entities[entityId] = entity
+                self.__domainMap[sort].add(entity)
+
+    def initialize(self, sample_fluent_values=True, removeFormulas=True, deleteConstants=True):
         """
         1. Sets up domains, i.e. defines the sets of entity objects for each sort.
 
         2. Optionally sets ups the a new initial situation by creating samples for the fluent instance for each combination
             of parameter values.
         """
-        World.logic_engine().reset()
+        World.logic_engine().reset(removeFormulas=removeFormulas, deleteConstants=deleteConstants)
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
         for sort in self.__domainMap.keys():
@@ -344,19 +379,8 @@ class World(Entity):
             World.logic_engine().defineDomain(sort, oids)
 
         #keep entityId->entity maps (__entities & __agents)
-        self.__domainMap = dict()
 
-        domain_map_from_eclipse = World.logic_engine().initSortHierarchy()
-
-        for sort, domain in domain_map_from_eclipse.items():
-            self.__domainMap[sort] = set()
-            for entityId in domain:
-                entity = None
-                try:
-                    entity = self.__entities[entityId]
-                except KeyError:
-                    raise SALMAException("No Entity instance registered for {}:{}".format(entityId, sort))
-                self.__domainMap[sort].add(entity)
+        self.sync_domains()
 
         World.logic_engine().setFluentValue('time', [], 0)
 
@@ -1041,10 +1065,23 @@ class World(Entity):
             verdict = OK if self.is_finished() else NOT_OK
         return verdict, results
 
+
+    def __reset_domainmap(self):
+        self.__domainMap = dict()
+        for entity in self.__entities.values():
+            if isinstance(entity, Agent):
+                self.__agents[entity.id] = entity
+            if entity.sortName in self.__domainMap:
+                self.__domainMap[entity.sortName].add(entity)
+            else:
+                self.__domainMap[entity.sortName] = set([entity])
+
     def reset(self):
-        World.logic_engine().reset(False, False)  # don't remove formulas!
-        self.__evaluationContext = LocalEvaluationContext(self, None)
-        World.logic_engine().setFluentValue('time', [], 0)
+
+        # re-init domains
+        self.__reset_domainmap()
+        self.initialize(removeFormulas=False)
+
         self.__already_achieved_goals = set()
         #: :type agent: Agent
         for agent in self.getAgents():

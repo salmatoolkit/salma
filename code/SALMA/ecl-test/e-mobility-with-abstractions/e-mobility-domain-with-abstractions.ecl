@@ -17,7 +17,9 @@
 % 	- examples could be state flags, plans, etc.
 
 sorts([vehicle, plcs, plcssam, poi, crossing, location]).
+subsort(location, object).
 subsorts([plcs, plcssam, poi, crossing], location).
+subsorts([vehicle, plcs, plcssam], agent).
 
 constant(locX, [loc:location], integer).
 constant(locY, [loc:location], integer).

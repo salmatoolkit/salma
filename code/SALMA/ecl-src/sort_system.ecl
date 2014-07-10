@@ -9,13 +9,16 @@
 :- local variable(next_object_id, 1).
 
 sort(sort).
+sorts([agent, object]).
+subsort(agent, object).
 
 domain(Sort, D) :- domain(Sort, D, s0).
 
+
 fluent(domain, [s:sort], list).
 
-domain(Sort, D, s0) :- get_current(sort, [Sort], D).		
-domain(Sort, D, slast) :- get_last(sort, [Sort], D).
+domain(Sort, D, s0) :- get_current(domain, [Sort], D).		
+domain(Sort, D, slast) :- get_last(domain, [Sort], D).
 
 remove_duplicates(L1, L2) :-
 	% (foreach(E, L1), fromto([], In, Out, L2) do
@@ -36,8 +39,10 @@ get_all_sorts(Sorts) :-
 
 get_all_domains(Domains) :-
 	get_all_sorts(Sorts),
+	%Sorts = [robot, item],
 	(foreach(Sort, Sorts), foreach(D, Domains) do
-		domain(Sort, Entities),
+		%domain(Sort, Entities),	
+		get_current(domain, [Sort], Entities),
 		D = Sort : Entities
 	).
 	
@@ -62,7 +67,7 @@ init_uninitialized_sorts :-
 	get_all_sorts(AllSorts),
 	findall(S, is_uninitialized(S, AllSorts), Sorts),
 	(foreach(S, Sorts) do
-		set_current(domain, [], []).
+		set_current(domain, [S], [])
 	).
 
 get_transitive_domain(Sort, Domain) :-
@@ -74,7 +79,7 @@ get_transitive_domain(Sort, Domain) :-
 	(domain(Sort, D1), ! ; D1 = []),
 	(foreach(SubSort, SubSorts), fromto(D1, In, Out, DomainTemp) do
 		get_transitive_domain(SubSort, SD),
-		append(In, SD, Out),
+		append(In, SD, Out)
 	),
 	remove_duplicates(DomainTemp, Domain).
 

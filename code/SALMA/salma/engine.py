@@ -155,7 +155,7 @@ class Engine(object):
         '''
         raise NotImplementedError()
 
-    def reset(self):
+    def reset(self, removeFormulas=True, deleteConstants=True):
         raise NotImplementedError()
 
     def defineDomain(self, sortName, objectIds):
@@ -454,7 +454,7 @@ class EclipseCLPEngine(Engine):
                 errorMsg.format(goalName, readableParams, result, msg)))
         return (goal, result, msg)
 
-    def reset(self, retractDomains=True, removeFormulas=True, deleteConstants=True):
+    def reset(self, removeFormulas=True, deleteConstants=True):
 
         self.__currentState = None
         self.__properties = dict()
@@ -464,9 +464,7 @@ class EclipseCLPEngine(Engine):
 
         if deleteConstants:
             self.__constants = dict()
-        if retractDomains:
-            self.__callGoal("retractall",
-                            pyclp.Compound("domain", a, b))
+
         if removeFormulas:
             self.__callGoal("init_agasmc", erorMsg="Can't initialize main module.")
         else:
@@ -579,7 +577,7 @@ class EclipseCLPEngine(Engine):
 
         failedActions = pyclp.Var()
         goal, _, _ = self.__callGoal("progress_sequential", pyclp.PList(actionTerms), failedActions)
-
+        self.__updateCurrentState()
         return EclipseCLPEngine.__translateFailedActions(failedActions.value())
 
     @staticmethod
@@ -784,6 +782,18 @@ class EclipseCLPEngine(Engine):
                         pyclp.Atom(sortName),
                         pyclp.PList(refinedEntities),
                         errorMsg="Error defining domain for sort %s" % sortName)
+
+    def getAllDomains(self):
+        v = pyclp.Var()
+        self.__callGoal("get_all_domains", v)
+        return self.__convert_value_from_engine_result(v)
+
+    def getFluentValue__direct(self, fluentName, params):
+        refinedParams = createParamTerms(params)
+        v = pyclp.Var()
+        self.__callGoal("get_current", refinedParams, v)
+        return self.__convert_value_from_engine_result(v)
+
 
     def initSortHierarchy(self):
         domVar = pyclp.Var()

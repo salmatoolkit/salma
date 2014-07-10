@@ -64,9 +64,11 @@ class Fluent(object):
             self.__valueRange = value_range
         else:
             self.__valueRange = None
-
-        self.__distribution = (distribution if not distribution is None
-                               else UniformDistribution(self.__fluentType, self.__valueRange))
+        if fluent_type not in ["list", "term", "tuple"]:
+            self.__distribution = (distribution if not distribution is None
+                                   else UniformDistribution(self.__fluentType, self.__valueRange))
+        else:
+            self.__distribution = None
 
     @property
     def distribution(self):
@@ -90,7 +92,10 @@ class Fluent(object):
         :type paramValues: list
         :rtype: object
         """
-        return self.__distribution.generateSample(evaluationContext, paramValues)
+        if self.__distribution is not None:
+            return self.__distribution.generateSample(evaluationContext, paramValues)
+        else:
+            return None
 
     @property
     def parameters(self):

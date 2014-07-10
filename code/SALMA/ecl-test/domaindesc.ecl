@@ -8,8 +8,9 @@
 
 % domain(robot,D) :- D = [rob1, rob2].
 % domain(item,D) :- D = [coffee, chocolate].
-sorts([robot, item, object]).
-subsorts([robot, item], object).
+sorts([robot, item]).
+subsort(robot, agent).
+subsort(item, object).
 
 
 primitive_action(move_right,[r:robot]).
