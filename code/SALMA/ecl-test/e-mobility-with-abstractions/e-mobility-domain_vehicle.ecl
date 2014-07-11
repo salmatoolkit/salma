@@ -176,7 +176,9 @@ currentPLCS(Vehicle, PLCS, do2(A,S)) :-
 	currentTargetPLCS(Vehicle, PLCS, S), !
 	;
 	A = driverLeavesPLCS(Vehicle),
-	PLCS = none, !.
+	PLCS = none, !
+	;
+	currentPLCS(Vehicle, PLCS, S).
 	
 currentTargetPOI(Vehicle, POI, do2(A,S)) :-
 	A = setPOI(Vehicle, NewPOI) ->

@@ -1,4 +1,5 @@
-:- dynamic plcsReservations/3, currentOccupancy/3, maxCapacty/2, freeSlots/3, freeSlotsL/3.
+:- dynamic plcsReservations/3, currentOccupancy/3, maxCapacty/2, freeSlots/3, freeSlotsL/3,
+	tstamp_freeSlotsL/3.
 % PLCS
 constant(maxCapacty, [p:plcs], integer).
 
@@ -17,6 +18,11 @@ derived_fluent(freeSlots, [p:plcs], integer).
 
 sensor(freeSlotsL, plcs, freeSlots).
 fluent(freeSlotsL, [p:plcs], integer).
+untracked_fluent(freeSlotsL).
+
+fluent(tstamp_freeSlotsL, [p:plcs], integer).
+untracked_fluent(tstamp_freeSlotsL).
+
 
 
 %derived_fluent(expectedOccupancy, [p:plcs, intervalStart:integer,
@@ -46,12 +52,26 @@ plcsReservations(PLCS, Reservations, do2(A,S)) :-
 	).
 
 currentOccupancy(PLCS, Occupancy, S) :-
-	findall(Vehicle, currentPLCS(Vehicle, PLCS, S), Vehicles),
-	length(Vehicles, Occupancy).
+	domain(vehicle, Vehicles),
+	findall(Vehicle, (member(Vehicle, Vehicles), currentPLCS(Vehicle, PLCS, S)), Vehicles2),
+	length(Vehicles2, Occupancy).
 	
 freeSlots(PLCS, FreeSlots, S) :-
 	currentOccupancy(PLCS, Occupancy, S),
 	FreeSlots is maxCapacity(PLCS) - Occupancy.
 
-freeSlotsL	
+freeSlotsL(PLCS, FreeSlots, do2(A, S)) :-
+	new_sensor_value_received(freeSlotsL, PLCS, [], A ,S, FreeSlots), !
+	;
+	freeSlotsL(PLCS, FreeSlots, S), !
+	;
+	FreeSlots = none.
+	
+tstamp_freeSlotsL(PLCS, TStamp, do2(A, S)) :-
+	new_sensor_timestamp(freeSlotsL, PLCS, [], A, S, TStamp), !
+	;
+	tstamp_freeSlotsL(PLCS, TStamp, S), !
+	; 
+	TStamp = none.
+	
 					

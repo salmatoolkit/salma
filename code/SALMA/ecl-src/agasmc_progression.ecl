@@ -74,7 +74,9 @@ get_last_change_time(Fluent, Params, Time) :-
 get_current(Fluent, Params, Val):-
     get_situation_store(cur_sit, S), 
     make_key_term(Fluent, Params, T),
-    store_get(S, T, Val).
+    (store_get(S, T, Val), ! ; 
+	Fluent = domain, 
+	Val = []).
 
 current_time(T) :-
 	get_current(time, [], T).
@@ -83,7 +85,9 @@ get_last(Fluent, Params, Val):-
 	% todo: throw exception if last_sit == null
 	get_situation_store(last_sit, S), 
     make_key_term(Fluent, Params, T),
-    store_get(S, T, Val).	
+    (store_get(S, T, Val), ! ; 
+	Fluent = domain, 
+	Val = []).	
 
 fluent_has_changed(Fluent, OldValue, NewValue) :-
 	(Fluent = domain, !,
@@ -251,15 +255,19 @@ progress(Actions):-
 	   set_next(F2, Args, Val)
 	  ),
 	  fail
-	 ))
+	 )
+	 )
     ),
+	%trace_point_port(secp, Invoc, second_part),
 	% switch stores cyclically
 	% advance last_sit only beginning from the second progression 
+	%catch((
 	(not last_initialized -> assert(last_initialized) ; advance_pointer(last_sit) ),
 	advance_pointer(cur_sit),
 	advance_pointer(next_sit),
 	(sort_hierarchy_unsynced -> init_sort_hierarchy(_) ; true),
-	(properties_unsynced -> recompile_all ; true).	
+	(properties_unsynced -> recompile_all ; true).
+	%), T, throw(gen_error(T))).	
  
 
 progress_sequential(ActionSequence, FailedActions) :-

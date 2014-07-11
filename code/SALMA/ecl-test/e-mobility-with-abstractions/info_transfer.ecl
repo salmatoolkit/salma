@@ -137,7 +137,7 @@ transferring(Message, do2(A,S)) :-
 	transferring(Message, S), !.	
 	
 timestamp_S(Message, T, do2(A,S)) :-
-	A = requestTransfer(_, _, _, Message), !,
+	A = requestTransfer(Message), !,
 	time(T, S) 
 	;
 	timestamp_S(Message, T, S), !
@@ -196,8 +196,8 @@ sensor_transmitted_value(Message, Value, do2(A, S)) :-
 	message_spec(Message, Spec),
 	Spec = msg(Sensor, Agent, Params),
 	sensor(Sensor, _, SrcFluent),
-	fluent(SrcFluent, _, Type),
-	L1 = [SrcFluent | Params],
+	(fluent(SrcFluent, _, Type), ! ; derived_fluent(SrcFluent, _, Type), ! ;  throw(fluent_undefined(SrcFluent))),
+	L1 = [SrcFluent, Agent | Params],
 	(Type = boolean ->
 		append(L1, S, L2),
 		T =.. L2,
