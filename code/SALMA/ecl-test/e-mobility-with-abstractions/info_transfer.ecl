@@ -4,7 +4,7 @@
 	message_spec/2, 
 	message_count_transmission/4,
 	channel_out_content/3, channel_transmission_content/3,
-	channel_in_queue/4, 
+	channel_in_queue/3, local_channel_in_queue/5, 
 	sensor_transmitted_value/3,
 	
 	% function that adds error to original value
@@ -68,9 +68,11 @@ fluent(channel_transmission_content, [m:message], term).
 untracked_fluent(channel_transmission_content).
 
 % message format: src:agent, srcrole:term, destrole:term, content:term, timestamp:integer
-fluent(channel_in_queue, [c:channel, dest:agent], list).
+fluent(channel_in_queue, [c:channel], list).
 untracked_fluent(channel_in_queue).
+%local_channel_in_queue(Agent, Channel, Role, Queue, S) :-
 
+derived_fluent(local_channel_in_queue, [a:agent, c:channel, role:term], list).
 
 % SENSOR
 
@@ -175,9 +177,9 @@ channel_transmission_content(Message, Content, do2(A,S)) :-
 	;
 	Content = none.
 
-% message format: src:agent, srcrole:term, destrole:term, timestamp:integer, content:term, 
-channel_in_queue(Channel, Dest, L, do2(A, S)) :-
-	(channel_in_queue(Channel, Dest, OldL, S), ! ; OldL = []),
+% message format: src:agent, srcrole:term, dest:agent, destrole:term, timestamp:integer, content:term, 
+channel_in_queue(Channel, L, do2(A, S)) :-
+	(channel_in_queue(Channel, OldL, S), ! ; OldL = []),
 	(A = transferEnds(Msg, Error),
 		message_spec(Msg, Spec),
 		Spec = msg(_, Sender, Params),
@@ -185,10 +187,20 @@ channel_in_queue(Channel, Dest, L, do2(A, S)) :-
 		channel_transmission_content(Msg, Content, S),
 		error_operator(Channel, Content, Error, Content2),
 		time(Time, S),
-		M = msg(Sender, SrcRole, DestRole, Time, Content2),
+		M = msg(Sender, SrcRole, Dest, DestRole, Time, Content2),
 		append(OldL, [M], L), !
 		;
 		L = OldL
+	).
+
+local_channel_in_queue(Agent, Channel, Role, Queue, S) :-
+	channel_in_queue(Channel, QAll, S),
+	(foreach(M, QAll), fromto([], In,  Out, Queue) do
+		(M = msg(_, _, Agent, Role, _, _) ->
+			append(In, [M], Out)
+			;
+			Out = In
+		)
 	).
 	
 sensor_transmitted_value(Message, Value, do2(A, S)) :-

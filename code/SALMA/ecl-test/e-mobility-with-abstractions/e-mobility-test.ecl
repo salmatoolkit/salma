@@ -19,6 +19,10 @@ init :-
 		setConstant(maxCapacity, [P, 10]),
 		set_current(freeSlotsL, [P], none)
 	),	
+	domain(channel, Channels),
+	(foreach(C, Channels) do
+		set_current(channel_in_queue, [C], [])
+	),
 	setConstant(connected, [c1,c2, true]),
 	setConstant(connected, [c2,c3, true]),
 	setConstant(connected, [c3,c4, true]),
@@ -89,3 +93,12 @@ test_sensor :-
 	tstamp_freeSlotsL(plcs2, 2, s0),	
 	domain(message, Messages),
 	not member(Msg, Messages).
+	
+% channel: Params = [SrcRole, Dest, DestRole],
+test_channel :-
+	init,
+	
+	create_message(assignment, vehicle1, [veh, sam1, sam], Msg),
+	timestamp_S(Msg, 0, s0),
+	timestamp_T(Msg, -1, s0),
+	
