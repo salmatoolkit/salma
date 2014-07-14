@@ -90,7 +90,9 @@ untracked_fluent(sensor_transmitted_value).
 
 
 primitive_action(requestTransfer, [m:message]).
-
+immediate_action(requestTransfer).
+primitive_action(clean_queue, [a:agent, c:channel, role:term]).
+immediate_action(clean_queue).
 
 exogenous_action(transferStarts, [m:message], [error:term]).
 exogenous_action(transferEnds, [m:message], [error:term]).
@@ -190,12 +192,21 @@ channel_in_queue(Channel, L, do2(A, S)) :-
 		M = msg(Sender, SrcRole, Dest, DestRole, Time, Content2),
 		append(OldL, [M], L), !
 		;
+	A = clean_queue(Agent, Channel, Role),
+		(foreach(M, OldL), fromto([], In,  Out, L), param(Agent, Role) do
+			(M \= msg(_, _, Agent, Role, _, _) ->
+			append(In, [M], Out)
+			;
+			Out = In
+			)
+		), !
+		;
 		L = OldL
 	).
 
 local_channel_in_queue(Agent, Channel, Role, Queue, S) :-
 	channel_in_queue(Channel, QAll, S),
-	(foreach(M, QAll), fromto([], In,  Out, Queue) do
+	(foreach(M, QAll), fromto([], In,  Out, Queue), param(Agent, Role) do
 		(M = msg(_, _, Agent, Role, _, _) ->
 			append(In, [M], Out)
 			;
@@ -265,4 +276,5 @@ poss(transferFails(M), S) :-
 	awaitingTransfer(M, S), !
 	;
 	transferring(M,S).
-			
+
+poss(clean_queue(_, _, _), S) :- true.	

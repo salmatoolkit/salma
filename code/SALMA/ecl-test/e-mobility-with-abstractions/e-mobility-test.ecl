@@ -11,7 +11,7 @@ init :-
 	setDomain(plcssam, [sam1]),
 	setDomain(channel, [assignment, reservation]),
 	setDomain(sensor, [freeSlotsL]),
-
+	setDomain(message, []),
 	init_sort_hierarchy(_),
 	
 	domain(plcs, PLs),
@@ -72,7 +72,9 @@ test_sensor :-
 	init,
 	freeSlotsL(plcs1, none, s0),
 	freeSlotsL(plcs2, none, s0),
+	domain(message, []),
 	start_sensing(plcs2, freeSlotsL, Msg),
+	domain(message, [Msg]),
 	awaitingTransfer(Msg, s0),
 	not transferring(Msg, s0),
 	timestamp_S(Msg, 0, s0),
@@ -91,14 +93,62 @@ test_sensor :-
 	freeSlotsL(plcs1, none, s0),
 	freeSlotsL(plcs2, 8, s0),
 	tstamp_freeSlotsL(plcs2, 2, s0),	
-	domain(message, Messages),
-	not member(Msg, Messages).
+	domain(message, []).
+	
+message_exists(Msg) :-
+	domain(message, M),
+	member(Msg, M).
 	
 % channel: Params = [SrcRole, Dest, DestRole],
+test_channel_transfer(Channel, Src, SrcRole, Dest, DestRole) :-
+	current_time(T1),
+	create_message(Channel, Src, [SrcRole, Dest, DestRole], Msg),
+	set_current(channel_out_content, [Msg], 42),
+	progress_sequential([requestTransfer(Msg)], []),
+	
+	timestamp_S(Msg, T1, s0),
+	timestamp_T(Msg, -1, s0),
+	channel_transmission_content(Msg, none, s0),
+	progress_sequential([tick, transferStarts(Msg, 1)], []),
+	T2 is T1 + 1,
+	timestamp_S(Msg, T1, s0),
+	timestamp_T(Msg, T2, s0),
+	channel_transmission_content(Msg, 43, s0),
+	message_exists(Msg),	
+	progress_sequential([tick, transferEnds(Msg, -2)], []),
+	T3 is T1 + 2,
+	not message_exists(Msg),
+	% message format: src:agent, srcrole:term, dest:agent, destrole:term, timestamp:integer, content:term, 
+	MsgTerm = msg(Src, SrcRole, Dest, DestRole, T3, 41),
+	channel_in_queue(Channel, GlobalQueue, s0),
+	member(MsgTerm, GlobalQueue),
+	local_channel_in_queue(Dest, Channel, DestRole, LocalQueue, s0),
+	member(MsgTerm, LocalQueue).
+	
 test_channel :-
 	init,
+	channel_in_queue(assignment, [], s0),
+	test_channel_transfer(assignment, vehicle1, veh, sam1, sam),
+	test_channel_transfer(assignment, vehicle2, veh, sam1, sam),
+	test_channel_transfer(assignment, sam1, sam, vehicle2, veh),
+	test_channel_transfer(assignment, sam1, sam, vehicle1, veh),
+	channel_in_queue(assignment, Q, s0),
+	printf("channel assignment: %w\n",[Q]),
+	local_channel_in_queue(sam1, assignment, sam, Q2, s0),	
+	printf("local channel of SAM: %w\n", [Q2]),
+	local_channel_in_queue(vehicle1, assignment, veh, Q3, s0),	
+	printf("local channel of Vehicle 1: %w\n", [Q3]),
+	local_channel_in_queue(vehicle2, assignment, veh, Q4, s0),	
+	printf("local channel of Vehicle 2: %w\n", [Q4]),
+	length(Q, 4),
+	length(Q2, 2),
+	length(Q3, 1),
+	length(Q4, 1),
+	progress_sequential([clean_queue(vehicle1, assignment, veh)],[]),
 	
-	create_message(assignment, vehicle1, [veh, sam1, sam], Msg),
-	timestamp_S(Msg, 0, s0),
-	timestamp_T(Msg, -1, s0),
-	
+	channel_in_queue(assignment, Q5, s0),
+	printf("After clean vehicle1: %w\n", [Q5]),
+	length(Q5, 3),
+	local_channel_in_queue(vehicle1, assignment, veh, [], s0),
+	local_channel_in_queue(sam1, assignment, sam, Q2, s0),	
+	local_channel_in_queue(vehicle2, assignment, veh, Q4, s0).
