@@ -1,4 +1,6 @@
 from salma.SALMAException import SALMAException
+from salma.model.core import Entity
+from salma.model.evaluationcontext import EvaluationContext
 
 
 class Element(object):
@@ -92,7 +94,6 @@ class Sequence(ControlNode):
         for c in newChildren:
             self.addChild(c)
 
-
     def executeStep(self, evaluationContext, procedureRegistry):
         if evaluationContext.getCurrentSequenceIndex(self) is None:
             if len(self.__children) == 0:
@@ -117,7 +118,6 @@ class Sequence(ControlNode):
 
         return (state, nextNode, nextContext)
 
-
     def getChildren(self):
         return self.__children
 
@@ -127,7 +127,7 @@ class Sequence(ControlNode):
 
         :param ControlNode|list child: the child to add
         """
-        if isinstance(child,list):
+        if isinstance(child, list):
             seq = Sequence(child)
             seq.parent = self
             self.__children.append(seq)
@@ -137,7 +137,7 @@ class Sequence(ControlNode):
 
     def reset(self, evaluationContext):
         evaluationContext.setCurrentSequenceIndex(self, 0)
-        #: :type node: ControlNode
+        # : :type node: ControlNode
         for node in self.__children:
             node.reset(evaluationContext)
 
@@ -404,21 +404,23 @@ class Act(ControlNode):
     """
 
     def __init__(self, actionName, actionParameters):
-        '''
+        """
         actionParameters can be terms, need metamodel for that. Terms have to be evaluated first to ground them.
         For now, variables should be enough...
-        
-        The agent will be inserted as an implicit 1st parameter. 
-        '''
+
+        The agent will be inserted as an implicit 1st parameter.
+        """
         ControlNode.__init__(self)
         self.__actionName = actionName
         self.__actionParameters = actionParameters
 
-    def getActionName(self): return self.__actionName
+    def getActionName(self):
+        return self.__actionName
 
     actionName = property(getActionName)
 
-    def getActionParameters(self): return tuple(self.__actionParameters)
+    def getActionParameters(self):
+        return tuple(self.__actionParameters)
 
     actionParameters = property(getActionParameters)
 
@@ -434,7 +436,7 @@ class Act(ControlNode):
 
 
 class Assign(ControlNode):
-    #TODO: handle assignment to multiple variables at once
+    # TODO: handle assignment to multiple variables at once
 
     def __init__(self, variableName, sourceType, source, params):
         ControlNode.__init__(self)
@@ -465,6 +467,46 @@ class Assign(ControlNode):
         val = evaluationContext.evaluateFunction(self.__sourceType, self.__source, *groundParams)
         evaluationContext.assignVariable(self.__variableName, val)
         return (ControlNode.CONTINUE, None, evaluationContext)
+
+    def reset(self, evaluationContext):
+        pass
+
+
+class SetFluent(ControlNode):
+    def __init__(self, fluent_name, source_type, source, params):
+        ControlNode.__init__(self)
+        self.__fluent_name = fluent_name
+        self.__source_type = source_type
+        self.__source = source
+        self.__params = params
+
+
+    @property
+    def fluent_name(self):
+        return self.__fluent_name
+
+    @property
+    def source_type(self):
+        return self.__source_type
+
+    @property
+    def params(self):
+        return self.__params
+
+    @property
+    def source(self):
+        return self.__source
+
+    def executeStep(self, evaluation_context, procedure_registry):
+        """
+        :type evaluation_context: salma.model.evaluationcontext.EvaluationContext
+        :param procedure_registry: ProcedureRegistry
+        :rtype: (int, salma.model.evaluationcontext.EvaluationContext)
+        """
+        ground_params = evaluation_context.resolve(*self.__params)
+        val = evaluation_context.evaluateFunction(self.__sourceType, self.__source, *ground_params)
+        evaluation_context.set_fluent_value(self.__fluent_name, self.__params, val)
+        return (ControlNode.CONTINUE, None, evaluation_context)
 
     def reset(self, evaluationContext):
         pass
@@ -514,7 +556,6 @@ class ProcedureCall(ControlNode):
     def parameters(self):
         return tuple(self.__actionParameters)
 
-
     def executeStep(self, evaluationContext, procedureRegistry):
         groundParams = evaluationContext.resolve(*self.__procedureParameters)
         childContext = evaluationContext.createChildContext()
@@ -533,7 +574,7 @@ class ProcedureCall(ControlNode):
 
         for i, p in enumerate(procedure.parameters):
             varName = p[0]
-            #TODO: type checking!
+            # TODO: type checking!
             childContext.assignVariable(varName, groundParams[i])
 
 
@@ -547,3 +588,86 @@ class ProcedureCall(ControlNode):
 
     def reset(self, evaluationContext):
         pass
+
+
+class Send(ControlNode):
+    """
+    Sends a message on a channel to a specific agent.
+    """
+
+    def __init__(self, channel, own_role, destination, destination_role, message):
+        ControlNode.__init__(self)
+        self.__channel = channel
+        self.__own_role = own_role
+        self.__destination = destination
+        self.__destination_role = destination_role
+        self.__message = message
+
+    def executeStep(self, evaluation_context, procedureRegistry):
+        """
+        :type evaluation_context: salma.model.evaluationcontext.EvaluationContext
+        :type procedureRegistry: ProcedureRegistry
+        :return:
+        """
+
+        if evaluation_context.getCurrentSequenceIndex(self) is None:
+            evaluation_context.setCurrentResultListIndex(self, 0)
+
+        csi = evaluation_context.getCurrentSequenceIndex(self)
+
+        if csi == 0:
+            channel, agent, own_role, dest, dest_role, message = evaluation_context.resolve(
+                self.__channel, Entity.SELF, self.__own_role, self.__destination, self.__destination_role,
+                self.__message)
+
+            msgid = evaluation_context.create_message(channel, agent, [own_role, dest, dest_role])
+            evaluation_context.set_fluent_value("channel_out_content", [msgid], message)
+            reqTransfer = Act("requestTransfer", [msgid])
+            reqTransfer.parent = self
+            evaluation_context.incCurrentResultListIndex(self)
+            return ControlNode.CONTINUE, reqTransfer, evaluation_context
+        else:
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+            return ControlNode.CONTINUE, None, evaluation_context
+
+    def reset(self, evaluation_context):
+        evaluation_context.setCurrentSequenceIndex(self, 0)
+
+
+class Receive(ControlNode):
+    def __init__(self, channel, role, variable):
+        super().__init__()
+        self.__channel = channel
+        self.__role = role
+        self.__variable = variable
+
+    def executeStep(self, evaluation_context, procedureRegistry):
+        if evaluation_context.getCurrentSequenceIndex(self) is None:
+            evaluation_context.setCurrentResultListIndex(self, 0)
+
+        csi = evaluation_context.getCurrentSequenceIndex(self)
+
+        if csi == 0:
+            agent, channel, role = evaluation_context.resolve(Entity.SELF, self.__channel, self.__role)
+            queue_content = evaluation_context.evaluateFunction(EvaluationContext.ECLP_FUNCTION,
+                                                                "local_channel_in_queue",
+                                                                agent, channel, role)
+            evaluation_context.assignVariable(self.__variable, queue_content)
+            clean_queue = Act("clean_queue", [Entity.SELF, channel, role])
+            clean_queue.parent = self
+            evaluation_context.incCurrentResultListIndex(self)
+            return ControlNode.CONTINUE, clean_queue, evaluation_context
+        else:
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+            return ControlNode.CONTINUE, None, evaluation_context
+
+    def reset(self, evaluation_context):
+        evaluation_context.setCurrentSequenceIndex(self, 0)
+
+
+
+
+
+
+
+

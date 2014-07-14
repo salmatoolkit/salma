@@ -292,7 +292,21 @@ class Engine(object):
         """
         raise NotImplementedError()
 
+    def create_message(self, connector, agent, params):
+        """
+        Creates and returns a mew message for the given channel, the given agent, and the given parameters.
+        A new "virtual" object of sort "message" is created and its id returned. The message
+         is added to the domain of sort message. Additionally, the constant message_spec is set with the term
+         msg(Con, Agent, Params).
 
+        :type connector: str
+        :type agent: str
+        :type params: list
+        :rtype: int
+        """
+        raise NotImplementedError()
+
+# TODO: document conversion behavior in general docs
 def createParamTerms(*params, **kwargs):
     """
     Converts the parameters in params into proper values for PyCLP goal calls.
@@ -528,7 +542,6 @@ class EclipseCLPEngine(Engine):
             fv = FluentValue(fluentName, fluentParams, fluentValue)
             self.__currentState[(fluentName, tuple(fluentParams))] = fv
 
-
     def getCurrentState(self):
         '''
         Returns a list of engine.FluentValue instances that contain the current state.
@@ -539,9 +552,9 @@ class EclipseCLPEngine(Engine):
         return self.__currentState.values()
 
     def restoreState(self, fluentValues):
+        self.__currentState = None
         for fv in fluentValues:
             self.setFluentValue(fv.fluentName, fv.fluentParamValues, fv.value)
-
 
     def getFluentValue(self, fluentName, *fluentParams):
         if self.__currentState is None:
@@ -554,18 +567,21 @@ class EclipseCLPEngine(Engine):
             return self.__currentState[key]
 
     def setFluentValue(self, fluentName, fluentParams, value):
-        self.__currentState = None
+
         pterms = createParamTerms(*fluentParams)
         vterm = createParamTerms(value)[0]
         self.__callGoal("set_current",
                         pyclp.Atom(fluentName),
                         pyclp.PList(pterms),
                         vterm)
+        if self.__currentState is not None:
+            fv = FluentValue(fluentName, fluentParams, value)
+            self.__currentState[(fluentName, tuple(fluentParams))] = fv
+
 
     def cleanup(self):
         pyclp.cleanup()
 
-    # TODO: refactor to handle multiple actions simultaneously
     # actions: list of tuples: (action_name:string, parameters:list) 
     def progress(self, actions):
 
@@ -789,7 +805,7 @@ class EclipseCLPEngine(Engine):
         return self.__convert_value_from_engine_result(v)
 
     def getFluentValue__direct(self, fluentName, params):
-        refinedParams = createParamTerms(params)
+        refinedParams = createParamTerms(*params)
         v = pyclp.Var()
         self.__callGoal("get_current", refinedParams, v)
         return self.__convert_value_from_engine_result(v)
@@ -966,7 +982,7 @@ class EclipseCLPEngine(Engine):
         return result
 
     def getActionClock(self, actionName, params):
-        pterms = createParamTerms(params)
+        pterms = createParamTerms(*params)
         t = pyclp.Var()
         self.__callGoal('get_action_clock',
                         pyclp.Atom(actionName),
@@ -976,7 +992,7 @@ class EclipseCLPEngine(Engine):
         return self.__convert_value_from_engine_result(t.value())
 
     def getFluentChangeTime(self, fluentName, params):
-        pterms = createParamTerms(params)
+        pterms = createParamTerms(*params)
         t = pyclp.Var()
         self.__callGoal('get_last_change_time',
                         pyclp.Atom(fluentName),
@@ -1048,7 +1064,23 @@ class EclipseCLPEngine(Engine):
         self.__callGoal("evaluate_ad_hoc_str", formula, result, sit)
         return EclipseCLPEngine.__verdictMapping[str(result.value())]
 
+    def create_message(self, connector, agent, params):
+        """
+        Creates and returns a mew message for the given channel, the given agent, and the given parameters.
+        A new "virtual" object of sort "message" is created and its id returned. The message
+         is added to the domain of sort message. Additionally, the constant message_spec is set with the term
+         msg(Con, Agent, Params).
 
+        :type connector: str
+        :type agent: str
+        :type params: list
+        :rtype: int
+        """
+        #create_message(Con, Agent, Params, Msg) :-
+        pterms = createParamTerms(*params)
+        msgid = pyclp.Var()
+        self.__callGoal("create_message", pyclp.Atom(str(connector)), pyclp.Atom(str(agent)), pyclp.PList(pterms), msgid)
+        return self.__convert_value_from_engine_result(msgid.value())
 
 
 

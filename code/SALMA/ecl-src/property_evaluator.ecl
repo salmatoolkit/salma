@@ -977,7 +977,12 @@ evaluate_condition(GoalName, Params) :-
 	(foreach(P, Params), foreach(P2, Params2) do
 		P = zero -> P2 = 0 ; P2 = P
 	),
-	T =.. [GoalName | Params2],
+	(derived_fluent(GoalName, _, _) ->
+		append(Params2, [s0], Params3)
+		;
+		Params3 = Params2
+	),
+	T =.. [GoalName | Params3],
 	call(T).
 		
 % TODO: check if there's actually a difference
@@ -986,5 +991,10 @@ evaluate_function(FunctionName, Params, Result) :-
 		P = zero -> P2 = 0 ; P2 = P
 	),
 	append(Params2,[Result],Params3),
-	T =.. [FunctionName | Params3],
+	(derived_fluent(FunctionName, _, _) ->
+		append(Params3, [s0], Params4)
+		;
+		Params4 = Params3
+	),
+	T =.. [FunctionName | Params4],
 	call(T).

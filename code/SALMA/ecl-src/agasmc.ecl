@@ -10,6 +10,7 @@
 :- ['agasmc_progression'].
 :- ['property_compiler'].
 :- ['property_evaluator'].
+:- ['info_transfer'].
 :- ['gologinterpreter'].
 :- ['devtools'].
 

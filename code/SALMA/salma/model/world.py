@@ -165,7 +165,6 @@ class World(Entity):
             dom = self.getDomain(p[1])
             # if the parameter's domain is empty, leave
             if len(dom) == 0:
-                yield []
                 return
             candidates.append(list(dom))
             candidate_indexes.append(0)
@@ -1342,6 +1341,24 @@ class LocalEvaluationContext(EvaluationContext):
             raise SALMAException("No value found for fluent: {0}({1}).".format(fluentName, resolvedParams))
         return fv
 
+    def set_fluent_value(self, fluent_name, params, value):
+        resolved_params = self.resolve(*params)
+        World.logic_engine().setFluentValue(fluent_name, params, value)
+
+    def create_message(self, connector, agent, params):
+        """
+        Creates and returns a mew message for the given channel, the given agent, and the given parameters.
+        A new "virtual" object of sort "message" is created and its id returned. The message
+         is added to the domain of sort message. Additionally, the constant message_spec is set with the term
+         msg(Con, Agent, Params).
+
+        :type connector: str
+        :type agent: str
+        :type params: list
+        :rtype: int
+        """
+        return World.logic_engine().create_message(connector, agent, params)
+
     def assignVariable(self, variableName, value):
         """
         :param str variableName: name of variable that should be set.
@@ -1357,16 +1374,26 @@ class LocalEvaluationContext(EvaluationContext):
         """
         groundTerms = []
         for term in terms:
-            gt = term
+            gt = None
             if term is Entity.SELF:
                 gt = self.__contextEntity.id
             elif isinstance(term, Variable):
                 if not term.name in self.__variableBindings:
                     raise SALMAException("Variable %s not bound." % term.name)
                 gt = self.__variableBindings[term.name]
-
-            if isinstance(gt, Entity):
-                gt = gt.id
+            elif isinstance(term, Entity):
+                gt = term.id
+            elif isinstance(term, (list, set)):
+                gt = list()
+                for t in term:
+                    gt.append(self.resolve(t)[0])
+            elif isinstance(term, tuple):
+                l = list()
+                for t in term:
+                    l.append(self.resolve(t)[0])
+                gt = tuple(l)
+            else:
+                gt = term
 
             groundTerms.append(gt)
 

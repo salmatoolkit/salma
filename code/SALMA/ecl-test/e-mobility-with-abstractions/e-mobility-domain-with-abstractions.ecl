@@ -1,7 +1,6 @@
 :- dynamic locX/2, locY/2, connected/3, roadlength/3,
 	responsiblePLCSSAM/2.
 	
-:- ['info_transfer'].
 :- ['e-mobility-domain_vehicle'].
 :- ['e-mobility-domain_plcs'].
 :- ['e-mobility-domain_plcssam'].

@@ -22,7 +22,7 @@ class EMobilityTest(unittest.TestCase):
     def setUpClass(cls):
 
         try:
-            World.set_logic_engine(EclipseCLPEngine("ecl-test/e-mobility-with-abstractions/e-mobility-domain-with-abstractions.ecl"))
+            World.set_logic_engine(EclipseCLPEngine("ecl-test/e-mobility/e-mobility-domain.ecl"))
         except SALMAException as e:
             print(e)
             raise

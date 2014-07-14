@@ -81,7 +81,35 @@ class EvaluationContext(object):
         :param params: list
         '''
         raise NotImplementedError()
-    
+
+    def set_fluent_value(self, fluent_name, params, value):
+        """
+        Sets the current value of the given fluent instance.
+        Note: this completely circumvents the progression mechanism and therefore falls out of the
+         concurrency scheme. Therefore this sould only be used for absolutely "isolated" fluents that only the current
+         process can access.
+        TODO: add automatic check
+        :param fluent_name:
+        :param params:
+        :param value:
+        :return:
+        """
+        raise NotImplementedError()
+
+    def create_message(self, connector, agent, params):
+        """
+        Creates and returns a mew message for the given channel, the given agent, and the given parameters.
+        A new "virtual" object of sort "message" is created and its id returned. The message
+         is added to the domain of sort message. Additionally, the constant message_spec is set with the term
+         msg(Con, Agent, Params).
+
+        :type connector: str
+        :type agent: str
+        :type params: list
+        :rtype: int
+        """
+        raise NotImplementedError()
+
     def assignVariable(self, variableName, value):
         '''
         Assigns the given value to the given variable name.
