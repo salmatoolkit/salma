@@ -135,6 +135,7 @@ test_channel :-
 	channel_in_queue(assignment, Q, s0),
 	printf("channel assignment: %w\n",[Q]),
 	local_channel_in_queue(sam1, assignment, sam, Q2, s0),	
+	evaluate_function(local_channel_in_queue, [sam1, assignment, sam, Q2, s0]),
 	printf("local channel of SAM: %w\n", [Q2]),
 	local_channel_in_queue(vehicle1, assignment, veh, Q3, s0),	
 	printf("local channel of Vehicle 1: %w\n", [Q3]),

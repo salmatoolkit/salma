@@ -2,6 +2,7 @@ import logging
 import unittest
 import itertools
 import math
+from math import sqrt
 from salma import constants
 from salma.SALMAException import SALMAException
 from salma.engine import EclipseCLPEngine
@@ -247,6 +248,9 @@ class WorldTest(BaseWorldTest):
                    EvaluationContext.PYTHON_EXPRESSION,
                    "gravity() * 10",
                 []),
+            Assign("z6",
+                   EvaluationContext.PYTHON_EXPRESSION,
+                   "dist_from_origin(rob1)", []),
             While(EvaluationContext.PYTHON_EXPRESSION,
                   "z < y - params[0]",
                   [3],
@@ -274,8 +278,12 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], 25)
         self.assertEqual(agent.evaluation_context.resolve(Variable("z3"))[0], 25)
         self.assertEqual(agent.evaluation_context.resolve(Variable("z4"))[0], 3)
+
         v = agent.evaluation_context.resolve(Variable("z5"))[0]
         self.assertAlmostEqual(98.1, v)
+        v2 = agent.evaluation_context.resolve(Variable("z6"))[0]
+        self.assertAlmostEqual(sqrt(10 * 10 + 15 * 15), v2)
+
 
     @withHeader
     def test_evaluate_python_function(self):
@@ -428,7 +436,7 @@ class WorldTest(BaseWorldTest):
         collision_event = world.get_exogenous_action("collision")
 
         collision_event.config.occurrence_distribution = BernoulliDistribution(0.7)
-        #collision_event.config.uniform_param("integer", value_range=(0, 100))
+        # collision_event.config.uniform_param("integer", value_range=(0, 100))
         collision_event.config.uniform_param("severity", value_range=(0, 100))
 
         seq = Sequence([
@@ -526,7 +534,7 @@ class WorldTest(BaseWorldTest):
             Act("grab", [Entity.SELF, "item2"])
         ])
 
-        #implicitly creates one-shot processes
+        # implicitly creates one-shot processes
         agent1 = Agent("rob1", "robot", Procedure("main", [], seq1))
         agent2 = Agent("rob2", "robot", Procedure("main", [], seq2))
 
@@ -696,7 +704,7 @@ class WorldTest(BaseWorldTest):
 
         seq1 = Sequence([
             Select(EvaluationContext.TRANSIENT_FLUENT, "canPaint",
-                        [Entity.SELF, ("i", "item")]),
+                   [Entity.SELF, ("i", "item")]),
             Act("paint", [Entity.SELF, Variable("i")])
         ])
         agent = Agent("rob1", "robot", Procedure("main", [], seq1))
@@ -927,7 +935,7 @@ def suite():
 
 
 # def load_tests(loader, tests, pattern):
-#     print("Loading SALMA WorldTest")
+# print("Loading SALMA WorldTest")
 #     return suite()
 
 

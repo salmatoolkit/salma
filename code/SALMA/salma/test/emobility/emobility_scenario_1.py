@@ -3,7 +3,7 @@ from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import Procedure, Sequence, Assign, Act, Variable, Iterate, Send
+from salma.model.procedure import Procedure, Sequence, Assign, Act, Variable, Iterate, Send, Receive, SetFluent
 from salma.model.process import TriggeredProcess, PeriodicProcess
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
@@ -27,7 +27,7 @@ from statsmodels.stats import proportion
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = HYPTEST
+_MODE = VISUALIZE
 
 
 def create_navigation_functions(world_map, mt):
@@ -43,12 +43,11 @@ def create_navigation_functions(world_map, mt):
         r = nx.shortest_path(world_map, pos[1], target)
         return r
 
-    def response_selector(agent=None, vehicle_plcssam_reservationResponses=None, **ctx):
-        responses = vehicle_plcssam_reservationResponses(agent.id, "sam1")
+    def response_selector(agent=None, sam_responses=None, **ctx):
         # for now: ignore any time information
         # format: rresp(StartTime, PlannedDuration, BestPLCS)
-        if len(responses) > 0:
-            return responses[0][3]
+        if len(sam_responses) > 0:
+            return sam_responses[0][3]
         else:
             return None
 
@@ -56,22 +55,20 @@ def create_navigation_functions(world_map, mt):
 
 
 def create_plcssam_functions(world_map, mt):
-    def process_assignment_requests(agent=None, local_channel_in_queue=None, **ctx):
+    def process_assignment_requests(agent=None, assignment_requests=None, **ctx):
         """
         :type agent: salmalab.model.agent.Agent
-        :type local_channel_in_queue: str, str, str -> list
+        :type assignment_requests: list[(str, str, list[str], int, int)]
         :rtype: list[(str,str)]
         """
-        #: :type : EvaluationContext
+        # : :type : EvaluationContext
         ec = agent.evaluation_context
 
-        #: :type: list[(str, str, list of str, int, int)]
-        requests = local_channel_in_queue(agent.id, "assignment", "sam")
         # format: rreq(Vehicle, Alternatives, StartTime, PlannedDuration)
         schedule = []
         assignment = dict()
-        for r in requests:
-            schedule.append((r[1], r[2])) # remember that position 0 is the "message envelope" "rreq"
+        for r in assignment_requests:
+            schedule.append((r[1], r[2]))  # remember that position 0 is the "message envelope" "rreq"
         success = utils.choose_alternative(schedule, assignment)
         if not success:
             return []
@@ -79,8 +76,8 @@ def create_plcssam_functions(world_map, mt):
         for vehicle, plcs in assignment.items():
             result.append((vehicle, plcs))
 
-        #todo: establish communication between SAM and PLCs to check availability
-        #TODO: consider time slots
+        # todo: establish communication between SAM and PLCs to check availability
+        # TODO: consider time slots
         return result
 
     return process_assignment_requests
@@ -95,44 +92,42 @@ class EMobilityScenario1(EMobilityTest):
         p_request_plcs = Procedure("main", [],
                                    [
                                        Assign("possible_targets",
-                                                          EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                          target_chooser, []),
+                                              EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                              target_chooser, []),
                                        Send("assignment", "veh", "sam1", "sam",
-                                           ("areq", Entity.SELF, Variable("possible_targets"), 0,0))
+                                            ("areq", Entity.SELF, Variable("possible_targets"), 0, 0)),
+                                       SetFluent("waitingForAssignment", EvaluationContext.PYTHON_EXPRESSION, "True",
+                                                 [Entity.SELF])
                                    ])
 
         p_set_target = Procedure("main", [],
                                  [
-                                     Assign("sam_response", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                        response_selector, []),
-
-                                     Act("remove_all_vehicle_plcssam_reservationResponses",
-                                                     [Entity.SELF, "sam1"]),
-                                     Act("setTargetPLCS", [Entity.SELF, Variable("sam_response")])
+                                     Receive("assignment", "veh", "sam_responses"),
+                                     Assign("chosen_plcs", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                            response_selector, []),
+                                     Act("setTargetPLCS", [Entity.SELF, Variable("chosen_plcs")])
                                  ])
 
         p_find_route = Procedure("main", [],
                                  [
                                      Assign("route", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                        route_finder, []),
+                                            route_finder, []),
                                      Act("setRoute", [Entity.SELF, Variable("route")])
                                  ])
 
-        p_comm_sam = Procedure("main", [],
-                               Act("start_exchange_PLCSSAM_Vehicle", [Entity.SELF, "sam1"]))
-        for i in range(EMobilityScenario3.NUM_OF_VEHICLES):
+        for i in range(EMobilityScenario1.NUM_OF_VEHICLES):
             p1 = TriggeredProcess(p_request_plcs, EvaluationContext.PYTHON_EXPRESSION,
                                   "currentTargetPLCS(self) == 'none' and "
-                                  "len(vehicle_plcssam_reservationRequests(self,'sam1')) == 0", [])
+                                  "not waitingForAssignment(self)", [])
+            # TODO: handle time-out for response from SAM
 
             p2 = TriggeredProcess(p_find_route, EvaluationContext.PYTHON_EXPRESSION,
                                   "len(currentRoute(self)) == 0 and currentTargetPLCS(self) != 'none'", [])
 
             p3 = TriggeredProcess(p_set_target, EvaluationContext.PYTHON_EXPRESSION,
-                                  "len(vehicle_plcssam_reservationResponses(self,'sam1')) > 0", [])
+                                  "len(local_channel_in_queue(self, 'assignment', 'veh')) > 0", [])
 
-            p4 = PeriodicProcess(p_comm_sam, 5)
-            vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3, p4])
+            vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3])
             world.addAgent(vehicle)
 
     def create_plcssam(self, world, world_map, mt):
@@ -140,19 +135,18 @@ class EMobilityScenario1(EMobilityTest):
 
         p_process_requests = Procedure("main", [],
                                        [
+
+                                           Receive("assignment", "sam", "assignment_requests"),
                                            Assign("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                              request_processor, []),
+                                                  request_processor, []),
                                            Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
                                                    [("v", "vehicle"), ("p", "plcs")],
-                                                   Act("set_plcssam_vehicle_reservationResponse",
-                                                                   [Entity.SELF, Variable("v"), 0, 0, Variable("p")])
-                                           ),
-                                           Act("remove_all_plcssam_vehicle_reservationRequests",
-                                                           [Entity.SELF])
+                                                   Send("assignment", "sam", Variable("v"), "veh",
+                                                        (0, 0, Variable("p"))))
                                        ])
 
         p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
-                              "len(plcssam_vehicle_reservationRequests(self)) > 0", [])
+                              "len(local_channel_in_queue(self, 'assignment', 'sam')) > 0", [])
 
         sam = Agent("sam1", "plcssam", [p1])
         world.addAgent(sam)
@@ -187,7 +181,7 @@ class EMobilityScenario1(EMobilityTest):
 
         mgen = MapGenerator(world)
         world_map = mgen.load_from_graphml("testdata/test1.graphml")
-        #world_map = mgen.generate_map(5, 15, 25, 1000, 1000)
+        # world_map = mgen.generate_map(5, 15, 25, 1000, 1000)
         mt = MapTranslator(world_map, world)
         self.create_plcssam(world, world_map, mt)
         self.create_vehicles(world, world_map, mt)
@@ -208,15 +202,14 @@ class EMobilityScenario1(EMobilityTest):
             start = random.choice(starts)
             starts.remove(start)
             target_poi = random.choice(target_pois)
-            #target_pois.remove(target_poi)
+            # target_pois.remove(target_poi)
 
             world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", start.id, start.id, 0))
             world.setFluentValue("vehicleSpeed", [vehicle.id], 10)
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
 
-        world.get_exogenous_action(
-            "exchange_PLCSSAM_Vehicle").config.set_probability(0.2)
+
 
         fstr = """
         forall([v,vehicle],
@@ -237,9 +230,9 @@ class EMobilityScenario1(EMobilityTest):
         if log:
             self.__print_info(world)
 
-        #verdict, results = self.run_experiment(world, world_map, log=False, visualize=False)
+        # verdict, results = self.run_experiment(world, world_map, log=False, visualize=False)
         # print("Verdict: {}\nResults:\n{}".format(verdict, results))
-        #results, infos = world.run_repetitions(100)
+        # results, infos = world.run_repetitions(100)
 
         # assumption success prob = 0.6 --> H0: p <= 0.4
         if _MODE == HYPTEST:
@@ -268,10 +261,6 @@ class EMobilityScenario1(EMobilityTest):
             print("Visualize")
             verdict, _ = self.run_experiment(world, world_map, log=True, visualize=True)
             print("Verdict: {}".format(verdict))
-
-
-
-
 
 
 if __name__ == '__main__':

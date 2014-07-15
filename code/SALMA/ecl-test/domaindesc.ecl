@@ -41,6 +41,9 @@ stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
 
 fluent(xpos, [r:robot], integer).
 fluent(ypos, [r:robot], integer).
+
+derived_fluent(dist_from_origin, [r:robot], float).
+
 fluent(carrying, [r:robot, i:item], boolean).
 fluent(active, [r:robot], boolean).
 % for now we just tread paint as a boolean attribute
@@ -145,5 +148,11 @@ robotLeftFrom(Rob, Pos, S) :-
 canPaint(_, Item, S) :-
 		not painted(Item, S).
 
+
+dist_from_origin(Rob, Dist, S) :-
+	xpos(Rob, X, S),
+	ypos(Rob, Y, S),
+	Dist is sqrt(X*X + Y*Y).
+		
 init_domaindesc :- true.
         

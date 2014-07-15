@@ -638,9 +638,9 @@ class EclipseCLPEngine(Engine):
     def evaluateFunctionGoal(self, goalName, *goalParams, **kwargs):
         params = list(goalParams)
         rvar = pyclp.Var()
-
+        params.append(rvar)
         paramTerms = createParamTerms(*params, **kwargs)
-        self.__callGoal('evaluate_function', pyclp.Atom(goalName), pyclp.PList(paramTerms), rvar)
+        self.__callGoal('evaluate_function', pyclp.Atom(goalName), pyclp.PList(paramTerms))
 
         return rvar.value()
 
@@ -1039,6 +1039,7 @@ class EclipseCLPEngine(Engine):
 
     def load_declarations(self):
         fluents = self.__load_declaration('get_declared_fluents')
+        derived_fluents = self.__load_declaration('get_declared_derived_fluents')
         constants = self.__load_declaration('get_declared_constants')
         primitive_actions = self.__load_declaration('get_declared_primitive_actions')
         stochastic_actions = self.__load_declaration('get_declared_stochastic_actions')
@@ -1046,6 +1047,7 @@ class EclipseCLPEngine(Engine):
         immediate_actions = list(map(lambda e: e[0],
                                      self.__load_declaration('get_declared_immediate_actions')))
         return {'fluents': fluents,
+                'derived_fluents': derived_fluents,
                 'constants': constants,
                 'primitive_actions': primitive_actions,
                 'stochastic_actions': stochastic_actions,

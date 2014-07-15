@@ -69,6 +69,10 @@ class World(Entity):
 
         # fluentName -> core.Fluent
         self.__fluents = dict()
+
+        #: :type: dict[str, (str, str, list)]
+        self.__derived_fluents = dict()
+
         #: :type: dict[str, Constant]
         self.__constants = dict()
         # action_name -> core.Action
@@ -77,7 +81,7 @@ class World(Entity):
         self.__exogenousActions = dict()
 
 
-        self.__virtualSorts = set(["sort","message"])
+        self.__virtualSorts = set(["sort", "message"])
 
         # store all entities in a sort -> entity dict 
         self.__domainMap = dict()
@@ -109,11 +113,6 @@ class World(Entity):
         World.logic_engine().reset()
         self.addFluent(Fluent("time", "integer", []))
         self.__evaluationContext = LocalEvaluationContext(self, None)
-
-
-    @property
-    def evaluationContext(self):
-        return self.__evaluationContext
 
     @property
     def virtual_sorts(self):
@@ -152,6 +151,9 @@ class World(Entity):
         """
         World.__instance = World()
         return World.__instance
+
+    def evaluation_context(self):
+        return self.__evaluationContext
 
     def enumerate_fluent_instances(self, fluent):
         """
@@ -265,19 +267,25 @@ class World(Entity):
             return self.getFluentValue(fluent_name, params)
         return __f
 
+
     def __make_constant_access_function(self, constant_name):
         def __f(*params):
             return self.getConstantValue(constant_name, params)
         return __f
 
-    def __create_expression_context(self):
+    def __make_derived_fluent_access_function(self, derived_fluent_name):
+        def __f(*params):
+            return self.__evaluationContext.evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, derived_fluent_name, *params)
+        return __f
 
+    def __create_expression_context(self):
         self.__expressionContext = dict()
         self.__expressionContext.update(self.__additional_expression_context_globals)
         #: :type fluent: Fluent
         for fluent in self.__fluents.values():
             self.__expressionContext[fluent.name] = self.__make_fluent_access_function(fluent.name)
-
+        for df in self.__derived_fluents.values():
+            self.__expressionContext[df[0]] = self.__make_derived_fluent_access_function(df[0])
         for con in self.__constants.values():
             self.__expressionContext[con.name] = self.__make_constant_access_function(con.name)
 
@@ -326,12 +334,16 @@ class World(Entity):
         """
         # fluentName -> core.Fluent
         self.__fluents = dict()
+        self.__derived_fluents = dict()
+        self.__constants = dict()
         # action_name -> core.Action
         self.__actions = dict()
         self.__exogenousActions = dict()
         declarations = World.logic_engine().load_declarations()
         for f in declarations['fluents']:
             self.addFluent(Fluent(f[0], f[2], f[1]))
+        for f in declarations['derived_fluents']:
+            self.add_derived_fluent(f[0], f[2], f[1])
         for c in declarations['constants']:
             self.addConstant(Constant(c[0], c[2], c[1]))
         for pa in declarations['primitive_actions']:
@@ -593,6 +605,9 @@ class World(Entity):
         """
         self.__fluents[fluent.name] = fluent
 
+    def add_derived_fluent(self, fluent_name, fluent_type, params):
+        self.__derived_fluents[fluent_name] = (fluent_name, fluent_type, params)
+
     def addConstant(self, con):
         """
         Adds a constant to the metamodel.
@@ -608,6 +623,13 @@ class World(Entity):
         :rtype: builtins.dict_values
         """
         return self.__fluents.values()
+
+    def get_derived_fluents(self):
+        """
+
+        :return:
+        """
+        return self.__derived_fluents.values()
 
     def getConstants(self):
         """
@@ -1256,7 +1278,10 @@ class World(Entity):
         return self.logic_engine().queryPersistentProperty(propertyName)
 
 
-# -------------------------------------------------------------------------------------- 
+
+
+
+# --------------------------------------------------------------------------------------
 
 class LocalEvaluationContext(EvaluationContext):
     """
@@ -1381,8 +1406,6 @@ class LocalEvaluationContext(EvaluationContext):
                 if not term.name in self.__variableBindings:
                     raise SALMAException("Variable %s not bound." % term.name)
                 gt = self.__variableBindings[term.name]
-            elif isinstance(term, Entity):
-                gt = term.id
             elif isinstance(term, (list, set)):
                 gt = list()
                 for t in term:
@@ -1394,6 +1417,9 @@ class LocalEvaluationContext(EvaluationContext):
                 gt = tuple(l)
             else:
                 gt = term
+
+            if isinstance(gt, Entity):
+                gt = gt.id
 
             groundTerms.append(gt)
 

@@ -649,7 +649,7 @@ class Receive(ControlNode):
 
         if csi == 0:
             agent, channel, role = evaluation_context.resolve(Entity.SELF, self.__channel, self.__role)
-            queue_content = evaluation_context.evaluateFunction(EvaluationContext.ECLP_FUNCTION,
+            queue_content = evaluation_context.evaluateFunction(EvaluationContext.TRANSIENT_FLUENT,
                                                                 "local_channel_in_queue",
                                                                 agent, channel, role)
             evaluation_context.assignVariable(self.__variable, queue_content)
