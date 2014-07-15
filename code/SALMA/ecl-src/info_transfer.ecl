@@ -184,7 +184,7 @@ channel_in_queue(Channel, L, do2(A, S)) :-
 	(channel_in_queue(Channel, OldL, S), ! ; OldL = []),
 	(A = transferEnds(Msg, Error),
 		message_spec(Msg, Spec),
-		Spec = msg(_, Sender, Params),
+		Spec = msg(Channel, Sender, Params),
 		Params = [SrcRole, Dest, DestRole],
 		channel_transmission_content(Msg, Content, S),
 		error_operator(Channel, Content, Error, Content2),

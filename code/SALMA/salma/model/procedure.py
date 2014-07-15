@@ -693,6 +693,9 @@ class WaitForSensor(ControlNode):
         else:
             return ControlNode.CONTINUE, None, evaluation_context
 
+    def reset(self, evaluationContext):
+        pass
+
 
 class Sense(ControlNode):
     """
@@ -737,7 +740,8 @@ class Sense(ControlNode):
             evaluation_context.setCurrentSequenceIndex(self, 0)
             return ControlNode.CONTINUE, None, evaluation_context
 
-
+    def reset(self, evaluation_context):
+        evaluation_context.setCurrentSequenceIndex(self, 0)
 
 
 

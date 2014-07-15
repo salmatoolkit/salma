@@ -420,7 +420,7 @@ class World(Entity):
     def getAgents(self, sort=None):
         """
         Returns a list of all agents, optionally restricted to the given sort.
-        :rtype: list
+        :rtype: list[Agent]
         """
         entities = self.getAllEntities() if sort is None else self.getDomain(sort)
         result = []

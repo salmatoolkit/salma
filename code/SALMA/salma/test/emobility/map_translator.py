@@ -1,5 +1,6 @@
 import math
 import networkx as nx
+from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.world import World
 
@@ -20,13 +21,13 @@ class MapTranslator(object):
         :type world: World
         """
         for node, data in self.__graph.nodes_iter(data=True):
-            if data["loctype"] == "poi":
-                self.__world.addEntity(Entity(node, "poi"))
-            elif data["loctype"] == "plcs":
-                self.__world.addEntity(Entity(node, "plcs"))
-
-            elif data["loctype"] == "crossing":
-                self.__world.addEntity(Entity(node, "crossing"))
+            if self.__world.getEntityById(node) is None:
+                if data["loctype"] == "poi":
+                    self.__world.addEntity(Entity(node, "poi"))
+                elif data["loctype"] == "plcs":
+                    self.__world.addAgent(Agent(node, "plcs"))
+                elif data["loctype"] == "crossing":
+                    self.__world.addEntity(Entity(node, "crossing"))
         self.__world.addEntity(Entity("sam1", "plcssam"))
         self.__world.initialize(False)
         self.__world.setConstantValue("locX", ["sam1"], 500)

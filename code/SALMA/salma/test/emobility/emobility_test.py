@@ -1,20 +1,18 @@
-from statsmodels.base.tests.test_shrink_pickle import RemoveDataPickle
+import unittest
+import logging
+import os
+from datetime import datetime
+
+import matplotlib.pyplot as plt
+
 from salma.model.core import Entity
-from salma.test.emobility.map_generator import MapGenerator
+from salma.model.evaluationcontext import EvaluationContext
 from salma.test.emobility.map_translator import MapTranslator
 from salma.test.emobility.visualizer import Visualizer
-import unittest
 from salma.model.world import World
 from salma.engine import EclipseCLPEngine
 from salma import SALMAException
-import logging
-import salma
-import os
-import random
-import matplotlib.pyplot as plt
-import networkx as nx
-import pyclp
-from datetime import datetime
+from salma.model.core import Action
 
 
 class EMobilityTest(unittest.TestCase):
@@ -22,7 +20,8 @@ class EMobilityTest(unittest.TestCase):
     def setUpClass(cls):
 
         try:
-            World.set_logic_engine(EclipseCLPEngine("ecl-test/e-mobility-with-abstractions/e-mobility-domain-with-abstractions.ecl"))
+            World.set_logic_engine(
+                EclipseCLPEngine("ecl-test/e-mobility-with-abstractions/e-mobility-domain-with-abstractions.ecl"))
         except SALMAException as e:
             print(e)
             raise
@@ -47,7 +46,7 @@ class EMobilityTest(unittest.TestCase):
         world.addEntity(Entity("assignment", "channel"))
         world.addEntity(Entity("reservation", "channel"))
         world.addEntity(Entity("chan_freeSlotsR", "channel"))
-        world.addEntity(Entity("freeSlotsL", "sensor"))
+        world.addEntity(Entity("sensor_freeSlotsL", "sensor"))
 
         mt.init_world_from_graph()
 
@@ -92,6 +91,7 @@ class EMobilityTest(unittest.TestCase):
         :param int step: the step number
         :param float deltaT: the duration
         :param list[Action] actions: the performed actions
+
         :param lis toplevel_results: the toplevel results
         :rtype: (bool, str)
         """
@@ -99,23 +99,33 @@ class EMobilityTest(unittest.TestCase):
             self.__log("Step {}".format(step))
             self.__log("   Verdict: {}".format(verdict))
             self.__log("   Actions: {}".format(actions))
+            for a in actions:
+                if a[0] in ("requestTransfer", "transferStarts", "transferEnds", "transferFails"):
+                    msgid = a[1][0]
+                    spec = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec", msgid)
+                    print("      #{}: {} = {}".format(msgid, a[0], spec))
+
             self.__log("   Toplevel Results: {}".format(toplevel_results))
             self.__log("   Scheduled Results: {}".format(scheduled_results))
+
             vehicles = world.getDomain("vehicle")
             all_finished = True
             for vehicle in vehicles:
                 pos = world.getFluentValue("vehiclePosition", [vehicle.id])
                 route = world.getFluentValue("currentRoute", [vehicle.id])
                 target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
-                self.__log("{}: {} - {} - {}".format(vehicle.id,
+                self.__log("   {}: {} - {} - {}".format(vehicle.id,
                                                      pos, route, target))
+            for plcs in world.getDomain("plcs"):
+                fs = world.getFluentValue("freeSlotsL", ["pl1"])
+                print("   {}: {}".format(plcs, fs))
 
         if self.__visualizer is not None:
             image_file_name = "step_{:04}.png".format(step)
             path = os.path.join(self.__outdir, image_file_name)
             self.__fig.clf()
             self.__visualizer.visualize_map(self.__fig)
-            #self.__fig.savefig(path, dpi=200)
+            # self.__fig.savefig(path, dpi=200)
             self.__fig.savefig(path)
         return True, None
 

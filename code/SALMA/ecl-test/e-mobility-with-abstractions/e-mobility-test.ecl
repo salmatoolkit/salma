@@ -121,6 +121,7 @@ test_channel_transfer(Channel, Src, SrcRole, Dest, DestRole) :-
 	% message format: src:agent, srcrole:term, dest:agent, destrole:term, timestamp:integer, content:term, 
 	MsgTerm = msg(Src, SrcRole, Dest, DestRole, T3, 41),
 	channel_in_queue(Channel, GlobalQueue, s0),
+	
 	member(MsgTerm, GlobalQueue),
 	local_channel_in_queue(Dest, Channel, DestRole, LocalQueue, s0),
 	member(MsgTerm, LocalQueue).
@@ -133,6 +134,7 @@ test_channel :-
 	test_channel_transfer(assignment, sam1, sam, vehicle2, veh),
 	test_channel_transfer(assignment, sam1, sam, vehicle1, veh),
 	channel_in_queue(assignment, Q, s0),
+	channel_in_queue(reservation, [], s0),
 	printf("channel assignment: %w\n",[Q]),
 	local_channel_in_queue(sam1, assignment, sam, Q2, s0),	
 	evaluate_function(local_channel_in_queue, [sam1, assignment, sam, Q2, s0]),
