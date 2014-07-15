@@ -46,6 +46,7 @@ class EMobilityTest(unittest.TestCase):
 
         world.addEntity(Entity("assignment", "channel"))
         world.addEntity(Entity("reservation", "channel"))
+        world.addEntity(Entity("chan_freeSlotsR", "channel"))
         world.addEntity(Entity("freeSlotsL", "sensor"))
 
         mt.init_world_from_graph()
@@ -62,11 +63,14 @@ class EMobilityTest(unittest.TestCase):
 
         for vehicle in vehicles:
             world.setFluentValue("vehicleSpeed", [vehicle.id], 0)
-            world.setFluentValue("currentPLCS", [vehicle.id], "none")
-            world.setFluentValue("currentTargetPLCS", [vehicle.id], "none")
-            world.setFluentValue("currentTargetPOI", [vehicle.id], "none")
+            world.setFluentValue("currentPLCS", [vehicle.id], None)
+            world.setFluentValue("currentTargetPLCS", [vehicle.id], None)
+            world.setFluentValue("currentTargetPOI", [vehicle.id], None)
             world.setFluentValue("currentRoute", [vehicle.id], [])
 
+        for sam in sams:
+            for plcs in plcses:
+                world.setFluentValue("freeSlotsR", [sam.id, plcs.id], None)
 
         for channel in world.getDomain("channel"):
             world.setFluentValue("channel_in_queue", [channel.id], [])

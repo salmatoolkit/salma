@@ -4,7 +4,8 @@ from salma.model.core import Entity
 from salma.model.distributions import BernoulliDistribution, DelayedOccurrenceDistribution, NormalDistribution, \
     ConstantDistribution
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import Procedure, Sequence, Assign, Act, Variable, Iterate, Send, Receive, SetFluent
+from salma.model.procedure import Procedure, Sequence, Assign, Act, Variable, Iterate, Send, Receive, SetFluent, Sense, \
+    If
 from salma.model.process import TriggeredProcess, PeriodicProcess
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
@@ -85,7 +86,20 @@ def create_plcssam_functions(world_map, mt):
         # TODO: consider time slots
         return result
 
-    return process_assignment_requests
+    def receive_free_slots(agent=None, free_slot_msgs=None, **ctx):
+        """
+        :type agent: salma.model.agent.Agent
+        :type free_slot_msgs: list[ReceivedMessage]
+        :rtype: list[(str, int)]
+        """
+        result = []
+        for r in free_slot_msgs:
+            plcs = r.content[1]
+            freeSlots = r.content[2]
+            result.append((plcs, freeSlots))
+        return result
+
+    return process_assignment_requests, receive_free_slots
 
 
 class EMobilityScenario1(EMobilityTest):
@@ -127,7 +141,7 @@ class EMobilityScenario1(EMobilityTest):
             # TODO: handle time-out for response from SAM
 
             p2 = TriggeredProcess(p_find_route, EvaluationContext.PYTHON_EXPRESSION,
-                                  "len(currentRoute(self)) == 0 and currentTargetPLCS(self) != 'none'", [])
+                                  "len(currentRoute(self)) == 0 and currentTargetPLCS(self) is None", [])
 
             p3 = TriggeredProcess(p_set_target, EvaluationContext.PYTHON_EXPRESSION,
                                   "len(local_channel_in_queue(self, 'assignment', 'veh')) > 0", [])
@@ -136,7 +150,7 @@ class EMobilityScenario1(EMobilityTest):
             world.addAgent(vehicle)
 
     def create_plcssam(self, world, world_map, mt):
-        request_processor = create_plcssam_functions(world_map, mt)
+        request_processor, free_slots_receiver = create_plcssam_functions(world_map, mt)
 
         p_process_requests = Procedure("main", [],
                                        [
@@ -150,11 +164,41 @@ class EMobilityScenario1(EMobilityTest):
                                                         ("aresp", 0, 0, Variable("p"))))
                                        ])
 
+        p_free_slots_receiver = Procedure("main", [],
+                                          [
+                                              Receive("chan_freeSlotsR", "sam", "free_slot_msgs"),
+                                              Assign("freeSlots", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                                     free_slots_receiver, []),
+                                              Iterate(EvaluationContext.ITERATOR, Variable("freeSlotsMap"),
+                                                      [("p", "plcs"), ("fs", "integer")],
+                                                      SetFluent("freeSlotsR", EvaluationContext.PYTHON_EXPRESSION, "fs",
+                                                                [Entity.SELF, Variable("p")]))
+                                          ])
         p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
                               "len(local_channel_in_queue(self, 'assignment', 'sam')) > 0", [])
 
-        sam = Agent("sam1", "plcssam", [p1])
+        p2 = TriggeredProcess(p_free_slots_receiver, EvaluationContext.PYTHON_EXPRESSION,
+                              "len(local_channel_in_queue(self, 'chan_freeSlotsR', 'sam')) > 0", [])
+
+        sam = Agent("sam1", "plcssam", [p1, p2])
         world.addAgent(sam)
+
+    def create_plcs(self, world, world_map, mt):
+        sense_slots = Procedure("main", [],
+                                [
+                                    Sense("freeSlotsL", [])
+                                ])
+        send_freeSlots = Procedure("main", [],
+                                   [
+                                       If(EvaluationContext.PYTHON_EXPRESSION, "freeSlotsL(self) is not None", [],
+                                          [
+                                              Assign("sensorValue", EvaluationContext.FLUENT, "freeSlotsL",
+                                                     [Entity.SELF]),
+                                              Send("chan_freeSlotsR", "plcs", "sam1", "sam",
+                                                   ("rs", Entity.SELF, Variable("sensorValue")))
+                                          ])
+                                   ])
+        #TODO: register processes, set occurrence distributions
 
     def __print_info(self, world):
         """
@@ -217,7 +261,6 @@ class EMobilityScenario1(EMobilityTest):
         transferStarts = world.get_exogenous_action("transferStarts")
         transferStarts.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 5, 1))
         transferStarts.config.set_param_distribution("error", ConstantDistribution("term", None))
-
 
         transferEnds = world.get_exogenous_action("transferEnds")
         transferEnds.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 10, 1))

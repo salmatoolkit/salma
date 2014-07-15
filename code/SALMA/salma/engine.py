@@ -322,8 +322,10 @@ def createParamTerms(*params, **kwargs):
     paramTerms = []
     for p in params:
         term = None
-        if isinstance(p, bool):
-            term = pyclp.Atom('true') if p == True else pyclp.Atom('false')
+        if p is None:
+            term = pyclp.Atom('none')
+        elif isinstance(p, bool):
+            term = pyclp.Atom('true') if p is True else pyclp.Atom('false')
         elif isinstance(p, numbers.Number):
             if p == 0:
                 term = pyclp.Atom('zero')
@@ -519,6 +521,8 @@ class EclipseCLPEngine(Engine):
                 return True
             elif result == "false":
                 return False
+            elif result.lower() == "none":
+                return None
             else:
                 return result
 

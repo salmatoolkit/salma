@@ -224,7 +224,7 @@ class While(ControlNode):
 
 
 class If(ControlNode):
-    def __init__(self, conditionType, condition, conditionGoalParams, thenBody, elseBody):
+    def __init__(self, conditionType, condition, conditionGoalParams, thenBody, elseBody=None):
         ControlNode.__init__(self)
         self.__conditionType = conditionType
         self.__condition = condition
@@ -668,6 +668,81 @@ class Receive(ControlNode):
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
+
+
+class WaitForSensor(ControlNode):
+
+    def __init__(self, sensor, agent, params, start_time):
+        self.__sensor = sensor
+        self.__agent = agent
+        self.__params = params
+        self.__start_time = start_time
+
+    def executeStep(self, evaluation_context, procedureRegistry):
+        """
+        :type evaluation_context: EvaluationContext
+        """
+
+        sensor, agent, params, start_time = evaluation_context.resolve(self.__sensor, self.__agent, self.__params,
+                                                                       self.__start_time)
+
+        allparams = [agent] + params
+        tstamp = evaluation_context.getFluentValue("tstamp_" + sensor, *allparams)
+        if tstamp is None or tstamp < tstamp:
+            return ControlNode.BLOCK, self, evaluation_context
+        else:
+            return ControlNode.CONTINUE, None, evaluation_context
+
+
+class Sense(ControlNode):
+    """
+    Performs asynchronous sensing on the given sensor with the given parameters. An optional variable
+    can be specified in which case the sensing is synchronous and the result will be stored in this variable
+    in addition to the local sensor fluent.
+    """
+
+    def __init__(self, sensor, params, variable=None):
+        self.__sensor = sensor
+        self.__params = params
+        self.__variable = variable
+
+    def executeStep(self, evaluation_context, procedureRegistry):
+        """
+        :type evaluation_context: EvaluationContext
+        """
+        if evaluation_context.getCurrentSequenceIndex(self) is None:
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+
+        csi = evaluation_context.getCurrentSequenceIndex(self)
+        agent, sensor, params = evaluation_context.resolve(Entity.SELF, self.__sensor, self.__params)
+        if csi == 0:
+
+            msgid = evaluation_context.create_message(sensor, agent, params)
+            reqTransfer = Act("requestTransfer", [msgid])
+            reqTransfer.parent = self
+            evaluation_context.incCurrentSequenceIndex(self)
+            return ControlNode.CONTINUE, reqTransfer, evaluation_context
+        elif csi == 1 and self.__variable is not None:
+            # wait until transfer ends
+            ctime = evaluation_context.getFluentValue("time")
+            wait_for_sensor = WaitForSensor(sensor, agent, params, ctime)
+            wait_for_sensor.parent = self
+            evaluation_context.incCurrentSequenceIndex(self)
+            return ControlNode.CONTINUE, wait_for_sensor, evaluation_context
+        else:
+            if self.__variable is not None:
+                val = evaluation_context.getFluentValue(sensor, *params)
+                evaluation_context.assignVariable(self.__variable, val)
+
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+            return ControlNode.CONTINUE, None, evaluation_context
+
+
+
+
+
+
+
 
 
 
