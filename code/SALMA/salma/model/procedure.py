@@ -1,6 +1,7 @@
 from salma.SALMAException import SALMAException
 from salma.model.core import Entity
 from salma.model.evaluationcontext import EvaluationContext
+from salma.model.infotransfer import ReceivedMessage
 
 
 class Element(object):
@@ -504,9 +505,9 @@ class SetFluent(ControlNode):
         :rtype: (int, salma.model.evaluationcontext.EvaluationContext)
         """
         ground_params = evaluation_context.resolve(*self.__params)
-        val = evaluation_context.evaluateFunction(self.__sourceType, self.__source, *ground_params)
-        evaluation_context.set_fluent_value(self.__fluent_name, self.__params, val)
-        return (ControlNode.CONTINUE, None, evaluation_context)
+        val = evaluation_context.evaluateFunction(self.__source_type, self.__source, *ground_params)
+        evaluation_context.set_fluent_value(self.__fluent_name, ground_params, val)
+        return ControlNode.CONTINUE, None, evaluation_context
 
     def reset(self, evaluationContext):
         pass
@@ -611,7 +612,7 @@ class Send(ControlNode):
         """
 
         if evaluation_context.getCurrentSequenceIndex(self) is None:
-            evaluation_context.setCurrentResultListIndex(self, 0)
+            evaluation_context.setCurrentSequenceIndex(self, 0)
 
         csi = evaluation_context.getCurrentSequenceIndex(self)
 
@@ -624,7 +625,7 @@ class Send(ControlNode):
             evaluation_context.set_fluent_value("channel_out_content", [msgid], message)
             reqTransfer = Act("requestTransfer", [msgid])
             reqTransfer.parent = self
-            evaluation_context.incCurrentResultListIndex(self)
+            evaluation_context.incCurrentSequenceIndex(self)
             return ControlNode.CONTINUE, reqTransfer, evaluation_context
         else:
             evaluation_context.setCurrentSequenceIndex(self, 0)
@@ -643,7 +644,7 @@ class Receive(ControlNode):
 
     def executeStep(self, evaluation_context, procedureRegistry):
         if evaluation_context.getCurrentSequenceIndex(self) is None:
-            evaluation_context.setCurrentResultListIndex(self, 0)
+            evaluation_context.setCurrentSequenceIndex(self, 0)
 
         csi = evaluation_context.getCurrentSequenceIndex(self)
 
@@ -652,10 +653,14 @@ class Receive(ControlNode):
             queue_content = evaluation_context.evaluateFunction(EvaluationContext.TRANSIENT_FLUENT,
                                                                 "local_channel_in_queue",
                                                                 agent, channel, role)
-            evaluation_context.assignVariable(self.__variable, queue_content)
+            refined_queue_content = list()
+            for msg in queue_content:
+                refined_queue_content.append(ReceivedMessage(msg))
+
+            evaluation_context.assignVariable(self.__variable, refined_queue_content)
             clean_queue = Act("clean_queue", [Entity.SELF, channel, role])
             clean_queue.parent = self
-            evaluation_context.incCurrentResultListIndex(self)
+            evaluation_context.incCurrentSequenceIndex(self)
             return ControlNode.CONTINUE, clean_queue, evaluation_context
         else:
             evaluation_context.setCurrentSequenceIndex(self, 0)

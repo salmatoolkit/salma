@@ -43,6 +43,11 @@ class EMobilityTest(unittest.TestCase):
         :type m: networkx.classes.graph.Graph
         :type mt: MapTranslator
         """
+
+        world.addEntity(Entity("assignment", "channel"))
+        world.addEntity(Entity("reservation", "channel"))
+        world.addEntity(Entity("freeSlotsL", "sensor"))
+
         mt.init_world_from_graph()
 
         vehicles = world.getDomain("vehicle")
@@ -51,13 +56,9 @@ class EMobilityTest(unittest.TestCase):
         sams = world.getDomain("plcssam")
         plcses = world.getDomain("plcs")
 
-        for sam in sams:
-            world.setFluentValue("plcssam_vehicle_reservationRequests", [sam.id], [])
-            world.setFluentValue("plcssam_vehicle_reservationResponses", [sam.id], [])
-
         for plcs in plcses:
             world.setFluentValue("plcsReservations", [plcs.id], [])
-            world.setFluentValue("plcs_vehicle_reservationRequests", [plcs.id], [])
+            world.setFluentValue("freeSlotsL", [plcs.id], None)
 
         for vehicle in vehicles:
             world.setFluentValue("vehicleSpeed", [vehicle.id], 0)
@@ -66,18 +67,9 @@ class EMobilityTest(unittest.TestCase):
             world.setFluentValue("currentTargetPOI", [vehicle.id], "none")
             world.setFluentValue("currentRoute", [vehicle.id], [])
 
-            # initialize defaults for ensembles
-            for sam in sams:
-                world.setFluentValue("vehicle_plcssam_reservationRequests", [vehicle.id, sam.id], [])
-                world.setFluentValue("vehicle_plcssam_reservationResponses", [vehicle.id, sam.id], [])
-                world.setFluentValue("ongoing_exchange_PLCSSAM_Vehicle", [vehicle.id, sam.id], False)
 
-            for plcs in plcses:
-                world.setFluentValue("vehicle_plcs_reservationRequests", [vehicle.id, plcs.id], [])
-                world.setFluentValue("plcs_vehicle_reservationResponses", [plcs.id, vehicle.id], [])
-                world.setFluentValue("ongoing_exchange_PLCS_Vehicle", [vehicle.id, plcs.id], False)
-
-            world.setFluentValue("vehicle_plcs_reservationResponses", [vehicle.id], [])
+        for channel in world.getDomain("channel"):
+            world.setFluentValue("channel_in_queue", [channel.id], [])
 
     def __log(self, msg):
         print(msg)

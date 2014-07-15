@@ -1,7 +1,8 @@
 from numpy.distutils.system_info import agg2_info
 from salma.model.agent import Agent
 from salma.model.core import Entity
-from salma.model.distributions import BernoulliDistribution
+from salma.model.distributions import BernoulliDistribution, DelayedOccurrenceDistribution, NormalDistribution, \
+    ConstantDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Procedure, Sequence, Assign, Act, Variable, Iterate, Send, Receive, SetFluent
 from salma.model.process import TriggeredProcess, PeriodicProcess
@@ -23,7 +24,7 @@ from salma.test.emobility.emobility_test import EMobilityTest
 import salma.test.emobility.utils as utils
 from salma.statistics import SequentialProbabilityRatioTest
 from statsmodels.stats import proportion
-
+from salma.model.infotransfer import ReceivedMessage
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
@@ -44,10 +45,14 @@ def create_navigation_functions(world_map, mt):
         return r
 
     def response_selector(agent=None, sam_responses=None, **ctx):
+        """
+        :type sam_responses: list[ReceivedMessage]
+        :rtype: str
+        """
         # for now: ignore any time information
         # format: rresp(StartTime, PlannedDuration, BestPLCS)
         if len(sam_responses) > 0:
-            return sam_responses[0][3]
+            return sam_responses[0].content[3]
         else:
             return None
 
@@ -57,8 +62,8 @@ def create_navigation_functions(world_map, mt):
 def create_plcssam_functions(world_map, mt):
     def process_assignment_requests(agent=None, assignment_requests=None, **ctx):
         """
-        :type agent: salmalab.model.agent.Agent
-        :type assignment_requests: list[(str, str, list[str], int, int)]
+        :type agent: salma.model.agent.Agent
+        :type assignment_requests: list[ReceivedMessage]
         :rtype: list[(str,str)]
         """
         # : :type : EvaluationContext
@@ -68,7 +73,7 @@ def create_plcssam_functions(world_map, mt):
         schedule = []
         assignment = dict()
         for r in assignment_requests:
-            schedule.append((r[1], r[2]))  # remember that position 0 is the "message envelope" "rreq"
+            schedule.append((r.content[1], r.content[2]))  # remember that position 0 is the "message envelope" "rreq"
         success = utils.choose_alternative(schedule, assignment)
         if not success:
             return []
@@ -142,7 +147,7 @@ class EMobilityScenario1(EMobilityTest):
                                            Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
                                                    [("v", "vehicle"), ("p", "plcs")],
                                                    Send("assignment", "sam", Variable("v"), "veh",
-                                                        (0, 0, Variable("p"))))
+                                                        ("aresp", 0, 0, Variable("p"))))
                                        ])
 
         p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
@@ -209,7 +214,17 @@ class EMobilityScenario1(EMobilityTest):
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
 
+        transferStarts = world.get_exogenous_action("transferStarts")
+        transferStarts.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 5, 1))
+        transferStarts.config.set_param_distribution("error", ConstantDistribution("term", None))
 
+
+        transferEnds = world.get_exogenous_action("transferEnds")
+        transferEnds.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 10, 1))
+        transferEnds.config.set_param_distribution("error", ConstantDistribution("term", None))
+
+        transferFails = world.get_exogenous_action("transferFails")
+        transferFails.config.set_probability(0.01)
 
         fstr = """
         forall([v,vehicle],

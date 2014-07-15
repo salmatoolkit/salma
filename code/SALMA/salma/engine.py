@@ -641,8 +641,8 @@ class EclipseCLPEngine(Engine):
         params.append(rvar)
         paramTerms = createParamTerms(*params, **kwargs)
         self.__callGoal('evaluate_function', pyclp.Atom(goalName), pyclp.PList(paramTerms))
+        return self.__convert_value_from_engine_result(rvar.value())
 
-        return rvar.value()
 
     def evaluateRelationalGoal(self, situation, goalName, *goalParams):
         # TODO: implement

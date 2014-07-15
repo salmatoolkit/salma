@@ -130,3 +130,67 @@ class NormalDistribution(Distribution):
 
     def describe(self):
         return "N({:.4},{:.4})".format(self.mu, self.sigma ** 2)
+
+
+class ConstantDistribution(Distribution):
+    def __init__(self, sort, value):
+        super().__init__(sort)
+        self.__value = value
+
+    @property
+    def value(self):
+        return self.__value
+
+    def generateSample(self, evaluationContext, paramValues):
+        return self.__value
+
+    def describe(self):
+        return "Constant({})".format(self.__value)
+
+
+class DelayedOccurrenceDistribution(Distribution):
+    """
+    A distribution that delays occurrence for a time that is sampled once from a given numerical distribution.
+    """
+    def __init__(self, delay_distribution):
+        """
+        :type delay_distribution: Distribution
+        """
+        super().__init__("boolean")
+        self.__delay_distribution = delay_distribution
+        # format: params -> (refpoint, delay)
+        #: :type: dict[tuple, (int, int)]
+        self.__schedule = dict()
+
+    @property
+    def delay_distribution(self):
+        return self.__delay_distribution
+
+    def generateSample(self, evaluationContext, paramValues):
+        key = tuple(paramValues)
+        current_time = evaluationContext.getFluentValue("time")
+        if key in self.__schedule:
+            s = self.__schedule[key]
+            if s[0] + s[1] <= current_time:
+                del self.__schedule[key]
+                return True
+            else:
+                return False
+        else:
+            delay = round(self.__delay_distribution.generateSample(evaluationContext, paramValues))
+            if delay <= 0:
+                return True
+            else:
+                self.__schedule[key] = current_time, delay
+                return False
+
+
+
+
+
+
+
+
+
+
+
