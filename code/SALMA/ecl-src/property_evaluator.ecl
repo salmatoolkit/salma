@@ -88,7 +88,7 @@ reset_smc :-
 	erase_failure_stack,	
 	setval(current_failure_stack, failurestack),
 	clean_formula_cache,
-	recompile_all.
+	set_properties_unsynced(true).
 	
 	
 set_properties_unsynced(IsUnsynced) :-
@@ -948,7 +948,7 @@ internal_query_persistent_fluent(Name, CurrentState, LastChanged) :-
 	).
 update_persistent_fluents :-
 	stored_keys_and_values(persistent_fluents, L),
-	current_time(CurrentTime),
+	current_time(CurrentTime),		
 	(foreach(Entry, L), param(CurrentTime) do
 		Entry = Name - Formula,
 		internal_query_persistent_fluent(Name, CurrentState, _),

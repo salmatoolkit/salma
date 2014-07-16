@@ -68,9 +68,10 @@ class Engine(object):
     """
 
     def getCurrentState(self):
-        '''
+        """
         returns a list of FluentValue objects.
-        '''
+        :rtype: list[FluentValue]
+        """
         raise NotImplementedError()
 
     def restoreState(self, fluentValues):

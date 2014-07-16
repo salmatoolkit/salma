@@ -2,7 +2,7 @@
 :- dynamic channel/4, sensor/3, remoteSensor/4, ensemble/4,
 	awaitingTransfer/2, transferring/2, timestamp_S/3, timestamp_T/3,
 	message_spec/2, 
-	message_count_transmission/4,
+	message_count_transmission/4, messageSent/7,
 	channel_out_content/3, channel_transmission_content/3,
 	channel_in_queue/3, local_channel_in_queue/5, 
 	sensor_transmitted_value/3,
@@ -56,6 +56,7 @@ untracked_fluent(timestamp_T).
 derived_fluent(message_count_transmission, 
 	[con:connector, a:agent], integer).
 	
+
 			   
 % CHANNEL
 
@@ -73,6 +74,10 @@ untracked_fluent(channel_in_queue).
 %local_channel_in_queue(Agent, Channel, Role, Queue, S) :-
 
 derived_fluent(local_channel_in_queue, [a:agent, c:channel, role:term], list).
+
+% checks if a message that matches the given parameters has been sent in this timestep
+derived_fluent(messageSent, [a:agent, c:channel, role:term, dest:channel, 
+	destRole:term, content:term], boolean).
 
 % SENSOR
 
@@ -213,7 +218,34 @@ local_channel_in_queue(Agent, Channel, Role, Queue, S) :-
 			Out = In
 		)
 	).
+
+
+messageSent(Agent, Channel, Role, Dest, DestRole, Content, S) :-
+	domain(message, Msgs),
+	(foreach(M, Msgs), fromto([], In, Out, Result), 
+		param(Agent, Channel, Role, Dest, DestRole, Content, S) do
+		
+		(time(CurrentTime, S),
+		timestamp_S(M, CurrentTime, S),
+		message_spec(M, Spec),
+		Spec = msg(Channel, Agent, Params),
+		Params = [Role, Dest, DestRole],
+		channel_out_content(M, Content, S)) ->
+			append(In, [M], Out)
+			;
+			Out = In		
+	),
+	% length(Result) > 0.
+	true.
 	
+	%time(CurrentTime, S),
+	%timestamp_S(M, CurrentTime, S),
+	%message_spec(M, Spec),
+	%Spec = msg(Channel, Agent, [Role, Dest, DestRole]),
+	%channel_out_content(M, Content, S), !,
+	%true.
+	
+
 sensor_transmitted_value(Message, Value, do2(A, S)) :-
 	A = transferStarts(Message, Error),
 	message_spec(Message, Spec),

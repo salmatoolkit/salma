@@ -101,11 +101,15 @@ message_exists(Msg) :-
 	
 % channel: Params = [SrcRole, Dest, DestRole],
 test_channel_transfer(Channel, Src, SrcRole, Dest, DestRole) :-
+	run_eval,
 	current_time(T1),
 	create_message(Channel, Src, [SrcRole, Dest, DestRole], Msg),
 	set_current(channel_out_content, [Msg], 42),
 	progress_sequential([requestTransfer(Msg)], []),
-	
+	run_eval,
+	messageSent(Src, Channel, SrcRole, Dest, DestRole, 42, s0),
+	messageSent(Src, Channel, SrcRole, _, _, _, s0),
+	not messageSent(Src, Channel, SrcRole, _, _, 43, s0),
 	timestamp_S(Msg, T1, s0),
 	timestamp_T(Msg, -1, s0),
 	channel_transmission_content(Msg, none, s0),
@@ -126,8 +130,28 @@ test_channel_transfer(Channel, Src, SrcRole, Dest, DestRole) :-
 	local_channel_in_queue(Dest, Channel, DestRole, LocalQueue, s0),
 	member(MsgTerm, LocalQueue).
 	
+run_eval :-
+	evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+	printf("ToplevelResults : %w \n ScheduledResults: %w \n PendingGoals: %w \n FailureStack: %w\n",
+		[ToplevelResults, ScheduledResults, PendingGoals, FailureStack]).
+		
 test_channel :-
 	init,
+	%messageSent(v, assignment, veh, ?, ?, ?),
+	F = forall([v,vehicle],
+            implies(
+                messageSent(v, assignment, veh, ?, ?, ?),
+                until(10,
+                    true,
+                    currentPLCS(v) \= none
+                )
+            )
+        ),
+	
+	register_property(f, F, _),
+	evaluate_ad_hoc(F, Res, s0),
+	printf("Result: %w\n", [Res]),
+	
 	channel_in_queue(assignment, [], s0),
 	test_channel_transfer(assignment, vehicle1, veh, sam1, sam),
 	test_channel_transfer(assignment, vehicle2, veh, sam1, sam),

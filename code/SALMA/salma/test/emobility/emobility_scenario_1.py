@@ -14,15 +14,15 @@ from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.emobility.vehicle import create_vehicles
 from salma.test.emobility.plcs import create_plcs_processes
 from salma.test.emobility.plcssam import create_plcssam
-
+import numpy as np
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = VISUALIZE
+_MODE = ESTIMATION
 
 
 class EMobilityScenario1(EMobilityTest):
-    NUM_OF_VEHICLES = 3
+    NUM_OF_VEHICLES = 50
 
     def __print_info(self, world):
         """
@@ -79,7 +79,7 @@ class EMobilityScenario1(EMobilityTest):
 
         for vehicle in vehicles:
             start = random.choice(starts)
-            starts.remove(start)
+            #starts.remove(start)
             target_poi = random.choice(target_pois)
             # target_pois.remove(target_poi)
 
@@ -93,28 +93,31 @@ class EMobilityScenario1(EMobilityTest):
         transferStarts.config.set_param_distribution("error", ConstantDistribution("term", None))
 
         transferEnds = world.get_exogenous_action("transferEnds")
-        transferEnds.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 10, 1))
+        transferEnds.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 5, 1))
         transferEnds.config.set_param_distribution("error", ConstantDistribution("term", None))
 
         transferFails = world.get_exogenous_action("transferFails")
         transferFails.config.set_probability(0.0)
-
+        #messageSent(v, assignment, veh, ?, ?, ?),
         fstr = """
         forall([v,vehicle],
             implies(
-                occur(queryPLCSSAM(v,?,?,?,?)),
-                until(10,
+                messageSent(v, assignment, ?, ?, ?, ?),
+                until(50,
                     true,
                     currentTargetPLCS(v) \= none
                 )
             )
         )
         """
-        gstr = "forall([v,vehicle], arrive_at_targetPLCS(v))"
-        if _MODE != VISUALIZE:
+        goal1 = "forall([v,vehicle], arrive_at_targetPLCS(v))"
+        goal2 = "forall([v,vehicle], currentTargetPLCS(v) \= none)"
+        if _MODE == VISUALIZE:
+            world.registerProperty("g", goal1, World.ACHIEVE)
+        else:
             world.registerProperty("f", fstr, World.INVARIANT)
+            world.registerProperty("g", goal2, World.ACHIEVE)
 
-        world.registerProperty("g", gstr, World.ACHIEVE)
         if log:
             self.__print_info(world)
 
@@ -129,7 +132,6 @@ class EMobilityScenario1(EMobilityTest):
             print("SPRT")
             print("Conducted tests: {}".format(len(results)))
             print("Successes: {} of {}".format(sum(results), len(results)))
-
             print("Hypothesis accepted: {}".format(accepted_hypothesis))
         elif _MODE == ESTIMATION:
             _, results, info = world.run_repetitions(number_of_repetitions=20)
@@ -145,6 +147,13 @@ class EMobilityScenario1(EMobilityTest):
             for method in ["normal", "agresti_coull", "beta", "wilson", "jeffrey"]:
                 ci_low, ci_upp = proportion.proportion_confint(successes, nobs, alpha=alpha, method=method)
                 print("   {} => [{}..{}]".format(method, ci_low, ci_upp))
+
+            steps = [ti["steps"] for ti in info]
+
+            times = [ti["time"].total_seconds() for ti in info]
+            print("Steps: mean = {}, median = {}, min={}, max={}".format(np.mean(steps), np.median(steps), np.min(steps), np.max(steps)))
+            print("Time: mean = {}, median = {}, min={}, max={}".format(np.mean(times), np.median(times), np.min(times), np.max(times)))
+
         elif _MODE == VISUALIZE:
             print("Visualize")
             verdict, _ = self.run_experiment(world, world_map, log=True, visualize=True)

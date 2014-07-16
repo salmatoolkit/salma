@@ -399,7 +399,7 @@ class World(Entity):
             self.sample_fluent_values()
 
         self.__initialized = True
-        self.__persistentPropertiesInitialized = False
+        #self.__persistentPropertiesInitialized = False
         self.__create_expression_context()
 
     def is_finished(self):
@@ -1101,7 +1101,7 @@ class World(Entity):
 
         # re-init domains
         self.__reset_domainmap()
-        self.initialize(removeFormulas=False)
+        self.initialize(sample_fluent_values=False, removeFormulas=False)
 
         self.__already_achieved_goals = set()
         #: :type agent: Agent
@@ -1118,7 +1118,7 @@ class World(Entity):
         :return:
         """
         # save state
-        current_state = list(World.logic_engine().getCurrentState())
+        current_state = [fv for fv in World.logic_engine().getCurrentState() if fv.fluentName != "domain"]
         results = []  # list of True/False
         trial_infos = []
         retrial = 0
@@ -1152,7 +1152,9 @@ class World(Entity):
                 else:
                     failures += 1
                 conclusive_trial_count += 1
-                print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
+                #moduleLogger.info("Trial #{} --> {}".format(trial_number, verdict))
+                self.log_info("Trial #{} --> {}, steps = {}, time = {}".format(trial_number, verdict, res["steps"], res["time"]))
+                #print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
             trial_number += 1
 
             if hypothesis_test is not None:
@@ -1170,6 +1172,9 @@ class World(Entity):
         state = World.logic_engine().getCurrentState()
         for f in state:
             print(f)
+
+    def log_info(self, msg):
+        print("INFO: {}".format(msg))
 
     def describe_actions(self):
         actions = self.getAllActions()
