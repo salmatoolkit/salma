@@ -102,8 +102,11 @@ class EMobilityTest(unittest.TestCase):
             for a in actions:
                 if a[0] in ("requestTransfer", "transferStarts", "transferEnds", "transferFails"):
                     msgid = a[1][0]
-                    spec = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec", msgid)
-                    print("      #{}: {} = {}".format(msgid, a[0], spec))
+                    spec = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec",
+                                                                       msgid)
+                    stransval = world.getFluentValue("sensor_transmitted_value", [msgid])
+
+                    self.__log("      #{}: {} = {}   sensor_transmitted_value: {}".format(msgid, a[0], spec, stransval))
 
             self.__log("   Toplevel Results: {}".format(toplevel_results))
             self.__log("   Scheduled Results: {}".format(scheduled_results))
@@ -115,10 +118,13 @@ class EMobilityTest(unittest.TestCase):
                 route = world.getFluentValue("currentRoute", [vehicle.id])
                 target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
                 self.__log("   {}: {} - {} - {}".format(vehicle.id,
-                                                     pos, route, target))
+                                                        pos, route, target))
             for plcs in world.getDomain("plcs"):
-                fs = world.getFluentValue("freeSlotsL", ["pl1"])
-                print("   {}: {}".format(plcs, fs))
+                fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
+                fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])
+                fsreal = world.evaluation_context().evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, "freeSlots",
+                                                                     plcs.id)
+                self.__log("   {}: real = {}, local = {}, remote = {}".format(plcs, fsreal, fslocal, fsremote))
 
         if self.__visualizer is not None:
             image_file_name = "step_{:04}.png".format(step)

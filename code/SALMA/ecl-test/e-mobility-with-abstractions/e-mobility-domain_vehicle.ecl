@@ -1,7 +1,7 @@
 :- dynamic vehiclePosition/3,
 	vehicleSpeed/3, currentRoute/3, currentTargetPOI/3, currentTarget/3,
 	nextTarget/3, currentPLCS/3, currentTargetPLCS/3,
-	calendar/2, waitingForAssignment/2.
+	calendar/2, waitingForAssignment/2, waitingForReservation/2.
 	
 % VEHICLE
 constant(calendar, [veh:vehicle], list).
@@ -36,6 +36,7 @@ fluent(currentTargetPOI, [veh:vehicle], poi).
 fluent(currentTargetPLCS, [veh:vehicle], plcs).
 
 fluent(waitingForAssignment, [veh:vehicle], boolean).
+fluent(waitingForReservation, [veh:vehicle], boolean).
 
 % route is given as the remaining list of locations
 fluent(currentRoute, [veh:vehicle], list).
@@ -191,9 +192,10 @@ currentTargetPOI(Vehicle, POI, do2(A,S)) :-
 
 	
 waitingForAssignment(Vehicle, do2(A, S)) :-
-	A \= setTargetPLCS(Vehicle, _),
 	waitingForAssignment(Vehicle, S).
 	
+waitingForReservation(Vehicle, do2(A, S)) :-
+	waitingForReservation(Vehicle, S).
 		
 		
 	

@@ -1,211 +1,28 @@
-from numpy.distutils.system_info import agg2_info
-from salma.model.agent import Agent
-from salma.model.core import Entity
-from salma.model.distributions import BernoulliDistribution, DelayedOccurrenceDistribution, NormalDistribution, \
+import unittest
+import random
+
+from statsmodels.stats import proportion
+
+from salma.model.distributions import DelayedOccurrenceDistribution, NormalDistribution, \
     ConstantDistribution
-from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import Procedure, Sequence, Assign, Act, Variable, Iterate, Send, Receive, SetFluent, Sense, \
-    If
-from salma.model.process import TriggeredProcess, PeriodicProcess
+
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
-from salma.test.emobility.visualizer import Visualizer
-import unittest
 from salma.model.world import World
-from salma.engine import EclipseCLPEngine
-from salma import SALMAException
-import logging
-import salma
-import os
-import random
-import matplotlib.pyplot as plt
-import networkx as nx
-import pyclp
 from salma.test.emobility.emobility_test import EMobilityTest
-import salma.test.emobility.utils as utils
 from salma.statistics import SequentialProbabilityRatioTest
-from statsmodels.stats import proportion
-from salma.model.infotransfer import ReceivedMessage
+from salma.test.emobility.vehicle import create_vehicles
+from salma.test.emobility.plcs import create_plcs_processes
+from salma.test.emobility.plcssam import create_plcssam
+
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
 _MODE = VISUALIZE
 
 
-def create_navigation_functions(world_map, mt):
-    def possible_target_chooser(agent=None, currentTargetPOI=None, **ctx):
-        target_poi = currentTargetPOI(agent.id)
-        x, y = mt.get_position_from_node(target_poi)
-        target = mt.find_k_closest_nodes(x, y, 3, loctype="plcs")
-        return target
-
-    def route_finder(agent=None, vehiclePosition=None, currentTargetPLCS=None, **ctx):
-        pos = vehiclePosition(agent.id)
-        target = currentTargetPLCS(agent.id)
-        r = nx.shortest_path(world_map, pos[1], target)
-        return r
-
-    def response_selector(agent=None, sam_responses=None, **ctx):
-        """
-        :type sam_responses: list[ReceivedMessage]
-        :rtype: str
-        """
-        # for now: ignore any time information
-        # format: rresp(StartTime, PlannedDuration, BestPLCS)
-        if len(sam_responses) > 0:
-            return sam_responses[0].content[3]
-        else:
-            return None
-
-    return possible_target_chooser, route_finder, response_selector
-
-
-def create_plcssam_functions(world_map, mt):
-    def process_assignment_requests(agent=None, assignment_requests=None, **ctx):
-        """
-        :type agent: salma.model.agent.Agent
-        :type assignment_requests: list[ReceivedMessage]
-        :rtype: list[(str,str)]
-        """
-        # : :type : EvaluationContext
-        ec = agent.evaluation_context
-
-        # format: rreq(Vehicle, Alternatives, StartTime, PlannedDuration)
-        schedule = []
-        assignment = dict()
-        for r in assignment_requests:
-            schedule.append((r.content[1], r.content[2]))  # remember that position 0 is the "message envelope" "rreq"
-        success = utils.choose_alternative(schedule, assignment)
-        if not success:
-            return []
-        result = []
-        for vehicle, plcs in assignment.items():
-            result.append((vehicle, plcs))
-
-        # todo: establish communication between SAM and PLCs to check availability
-        # TODO: consider time slots
-        return result
-
-    def receive_free_slots(agent=None, free_slot_msgs=None, **ctx):
-        """
-        :type agent: salma.model.agent.Agent
-        :type free_slot_msgs: list[ReceivedMessage]
-        :rtype: list[(str, int)]
-        """
-        result = []
-        for r in free_slot_msgs:
-            plcs = r.content[1]
-            freeSlots = r.content[2]
-            result.append((plcs, freeSlots))
-        return result
-
-    return process_assignment_requests, receive_free_slots
-
-
 class EMobilityScenario1(EMobilityTest):
     NUM_OF_VEHICLES = 3
-
-    def create_vehicles(self, world, world_map, mt):
-        target_chooser, route_finder, response_selector = create_navigation_functions(world_map, mt)
-
-        p_request_plcs = Procedure("main", [],
-                                   [
-                                       Assign("possible_targets",
-                                              EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                              target_chooser, []),
-                                       Send("assignment", "veh", "sam1", "sam",
-                                            ("areq", Entity.SELF, Variable("possible_targets"), 0, 0)),
-                                       SetFluent("waitingForAssignment", EvaluationContext.PYTHON_EXPRESSION, "True",
-                                                 [Entity.SELF])
-                                   ])
-
-        p_set_target = Procedure("main", [],
-                                 [
-                                     Receive("assignment", "veh", "sam_responses"),
-                                     Assign("chosen_plcs", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                            response_selector, []),
-                                     Act("setTargetPLCS", [Entity.SELF, Variable("chosen_plcs")])
-                                 ])
-
-        p_find_route = Procedure("main", [],
-                                 [
-                                     Assign("route", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                            route_finder, []),
-                                     Act("setRoute", [Entity.SELF, Variable("route")])
-                                 ])
-
-        for i in range(EMobilityScenario1.NUM_OF_VEHICLES):
-            p1 = TriggeredProcess(p_request_plcs, EvaluationContext.PYTHON_EXPRESSION,
-                                  "currentTargetPLCS(self) is None and "
-                                  "not waitingForAssignment(self)", [])
-            # TODO: handle time-out for response from SAM
-
-            p2 = TriggeredProcess(p_find_route, EvaluationContext.PYTHON_EXPRESSION,
-                                  "len(currentRoute(self)) == 0 and currentTargetPLCS(self) is not None", [])
-
-            p3 = TriggeredProcess(p_set_target, EvaluationContext.PYTHON_EXPRESSION,
-                                  "len(local_channel_in_queue(self, 'assignment', 'veh')) > 0", [])
-
-            vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3])
-            world.addAgent(vehicle)
-
-    def create_plcssam(self, world, world_map, mt):
-        request_processor, free_slots_receiver = create_plcssam_functions(world_map, mt)
-
-        p_process_requests = Procedure("main", [],
-                                       [
-
-                                           Receive("assignment", "sam", "assignment_requests"),
-                                           Assign("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                  request_processor, []),
-                                           Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
-                                                   [("v", "vehicle"), ("p", "plcs")],
-                                                   Send("assignment", "sam", Variable("v"), "veh",
-                                                        ("aresp", 0, 0, Variable("p"))))
-                                       ])
-
-        p_free_slots_receiver = Procedure("main", [],
-                                          [
-                                              Receive("chan_freeSlotsR", "sam", "free_slot_msgs"),
-                                              Assign("freeSlotsMap", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                     free_slots_receiver, []),
-                                              Iterate(EvaluationContext.ITERATOR, Variable("freeSlotsMap"),
-                                                      [("p", "plcs"), ("fs", "integer")],
-                                                      SetFluent("freeSlotsR", EvaluationContext.PYTHON_EXPRESSION, "fs",
-                                                                [Entity.SELF, Variable("p")]))
-                                          ])
-        p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
-                              "len(local_channel_in_queue(self, 'assignment', 'sam')) > 0", [])
-
-        p2 = TriggeredProcess(p_free_slots_receiver, EvaluationContext.PYTHON_EXPRESSION,
-                              "len(local_channel_in_queue(self, 'chan_freeSlotsR', 'sam')) > 0", [])
-
-        sam = Agent("sam1", "plcssam", [p1, p2])
-        world.addAgent(sam)
-
-    def create_plcs_processes(self, world, world_map, mt):
-        sense_slots = Procedure("main", [],
-                                [
-                                    Sense("freeSlotsL", [])
-                                ])
-        send_freeSlots = Procedure("main", [],
-                                   [
-                                       If(EvaluationContext.PYTHON_EXPRESSION, "freeSlotsL(self) is not None", [],
-                                          [
-                                              Assign("sensorValue", EvaluationContext.FLUENT, "freeSlotsL",
-                                                     [Entity.SELF]),
-                                              Send("chan_freeSlotsR", "plcs", "sam1", "sam",
-                                                   ("rs", Entity.SELF, Variable("sensorValue")))
-                                          ])
-                                   ])
-        p1 = PeriodicProcess(sense_slots, 5)
-        p2 = PeriodicProcess(send_freeSlots, 5)
-
-        for plcs in world.getAgents("plcs"):
-            plcs.add_process(p1)
-            plcs.add_process(p2)
-
-
 
     def __print_info(self, world):
         """
@@ -239,13 +56,13 @@ class EMobilityScenario1(EMobilityTest):
         world_map = mgen.load_from_graphml("testdata/test1.graphml")
         # world_map = mgen.generate_map(5, 15, 25, 1000, 1000)
         mt = MapTranslator(world_map, world)
-        self.create_plcssam(world, world_map, mt)
 
-        self.create_vehicles(world, world_map, mt)
+        create_plcssam(world, world_map, mt)
+        create_vehicles(world, world_map, mt, EMobilityScenario1.NUM_OF_VEHICLES)
         # load graph
         self.init_map_and_defaults(world, world_map, mt)
 
-        self.create_plcs_processes(world, world_map, mt)
+        create_plcs_processes(world, world_map, mt)
 
         vehicles = world.getDomain("vehicle")
         crossings = list(world.getDomain("crossing"))
@@ -255,8 +72,10 @@ class EMobilityScenario1(EMobilityTest):
         sams = world.getDomain("plcssam")
         plcses = world.getDomain("plcs")
 
+        fcap = 2
         for plcs in plcses:
-            world.setConstantValue("maxCapacty", [plcs.id], 10)
+            world.setConstantValue("maxCapacity", [plcs.id], fcap)
+            fcap += 1
 
         for vehicle in vehicles:
             start = random.choice(starts)
@@ -265,7 +84,7 @@ class EMobilityScenario1(EMobilityTest):
             # target_pois.remove(target_poi)
 
             world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", start.id, start.id, 0))
-            world.setFluentValue("vehicleSpeed", [vehicle.id], 10)
+            world.setFluentValue("vehicleSpeed", [vehicle.id], 1)
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
 

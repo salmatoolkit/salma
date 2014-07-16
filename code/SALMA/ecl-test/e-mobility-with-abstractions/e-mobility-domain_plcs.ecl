@@ -1,5 +1,5 @@
-:- dynamic plcsReservations/3, currentOccupancy/3, maxCapacity/2, freeSlots/3, freeSlotsL/3,
-	tstamp_freeSlotsL/3.
+:- dynamic plcsReservations/3, currentOccupancy/3, maxCapacity/2, freeSlots/3, 
+	freeSlotsL/3, avaliableSlots/3, tstamp_freeSlotsL/3.
 % PLCS
 constant(maxCapacity, [p:plcs], integer).
 
@@ -7,14 +7,17 @@ constant(maxCapacity, [p:plcs], integer).
 fluent(plcsReservations, [p:plcs], list).
 primitive_action(add_reservation, 
 	[p:plcs, veh:vehicle, startTime:integer, plannedDuration:integer]).
+immediate_action(add_reservation).
 poss(add_reservation(_,_,_,_),_) :- true.
 	
 % Performed periodically to clean up reservation list.
 primitive_action(update_reservations, [p:plcs]).
+immediate_action(update_reservations).
 poss(update_reservations(_),_) :- true.
 
 derived_fluent(currentOccupancy, [p:plcs], integer).
 derived_fluent(freeSlots, [p:plcs], integer).
+derived_fluent(avaliableSlots, [p:plcs], integer).
 
 sensor(freeSlotsL, plcs, freeSlots).
 fluent(freeSlotsL, [p:plcs], integer).
@@ -50,6 +53,10 @@ plcsReservations(PLCS, Reservations, do2(A,S)) :-
 		;
 		Reservations = OldReservations
 	).
+	
+avaliableSlots(PLCS, AvailableSlots, S) :-
+	plcsReservations(PLCS, Reservations, S),
+	AvailableSlots is maxCapacity(PLCS) - length(Reservations).
 
 currentOccupancy(PLCS, Occupancy, S) :-
 	domain(vehicle, Vehicles),
@@ -59,6 +66,8 @@ currentOccupancy(PLCS, Occupancy, S) :-
 freeSlots(PLCS, FreeSlots, S) :-
 	currentOccupancy(PLCS, Occupancy, S),
 	FreeSlots is maxCapacity(PLCS) - Occupancy.
+
+
 
 freeSlotsL(PLCS, FreeSlots, do2(A, S)) :-
 	new_sensor_value_received(freeSlotsL, PLCS, [], A ,S, FreeSlots), !
