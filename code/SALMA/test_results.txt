@@ -1,0 +1,143 @@
+3 Agents:
+
+Successes: 13 of 20
+Ratio: 0.65
+Confidence intervals, alpha=0.05: 
+   normal => [0.4409626969046059..0.8590373030953942]
+   agresti_coull => [0.4315888140223822..0.820073638561772]
+   beta => [0.40781146546717195..0.8460907952154588]
+   wilson => [0.43285427668523624..0.818808175898918]
+   jeffrey => [0.4322339061585039..0.827723786368088]
+Steps: mean = 50.55, median = 51.0, min=44, max=53
+Time: mean = 1.17770975, median = 1.179473, min=1.034217, max=1.277255
+
+----
+
+10 agents:
+
+Successes: 1 of 20
+Ratio: 0.05
+Confidence intervals, alpha=0.05: 
+   normal => [-0.045516829402721226..0.14551682940272123]
+   agresti_coull => [-0.009101871681665333..0.2541145139292028]
+   beta => [0.0012650894979498036..0.24873276277202772]
+   wilson => [0.008881448800795402..0.2361311934467421]
+   jeffrey => [0.005449032581426602..0.21081863624926522]
+Steps: mean = 52.1, median = 52.0, min=51, max=53
+Time: mean = 2.4841475999999996, median = 2.5373565, min=2.053105, max=2.801222
+
+---
+ NUM_OF_VEHICLES = 10
+    PLCS_CAPACITY = 100
+    VEHICLE_SPEED = 1
+    TIME_LIMIT = 55 
+
+C:\WinPython-64bit-3.3.5.0\python-3.3.5.amd64\python.exe "C:\Program Files (x86)\JetBrains\PyCharm Community Edition 3.4\helpers\pycharm\utrunner.py" C:\Users\Christian\git\salma\code\SALMA\salma\test\emobility\emobility_scenario_1.py::EMobilityScenario1 true
+Testing started at 21:43 ...
+
+
+
+INFO: Trial #1 --> -1, steps = 57, time = 0:00:02.394930
+INFO: Trial #2 --> 1, steps = 55, time = 0:00:02.555343
+INFO: Trial #3 --> 1, steps = 52, time = 0:00:02.450790
+INFO: Trial #4 --> 1, steps = 52, time = 0:00:02.467618
+INFO: Trial #5 --> 1, steps = 54, time = 0:00:02.541687
+INFO: Trial #6 --> 1, steps = 52, time = 0:00:02.486182
+INFO: Trial #7 --> 1, steps = 56, time = 0:00:02.713578
+INFO: Trial #8 --> -1, steps = 57, time = 0:00:02.325800
+INFO: Trial #9 --> 1, steps = 55, time = 0:00:02.708463
+INFO: Trial #10 --> 1, steps = 51, time = 0:00:02.633357
+INFO: Trial #11 --> 1, steps = 54, time = 0:00:02.705811
+INFO: Trial #12 --> 1, steps = 53, time = 0:00:02.625116
+INFO: Trial #13 --> 1, steps = 53, time = 0:00:02.685830
+INFO: Trial #14 --> 1, steps = 56, time = 0:00:02.784524
+INFO: Trial #15 --> 1, steps = 51, time = 0:00:02.605270
+INFO: Trial #16 --> 1, steps = 53, time = 0:00:02.655579
+INFO: Trial #17 --> 1, steps = 52, time = 0:00:02.678346
+INFO: Trial #18 --> 1, steps = 52, time = 0:00:02.693602
+INFO: Trial #19 --> 1, steps = 54, time = 0:00:02.859549
+INFO: Trial #20 --> 1, steps = 53, time = 0:00:02.717426
+INFO: Trial #21 --> 1, steps = 55, time = 0:00:02.878832
+INFO: Trial #22 --> 1, steps = 53, time = 0:00:02.779221
+INFO: Trial #23 --> 1, steps = 54, time = 0:00:02.874558
+INFO: Trial #24 --> 1, steps = 53, time = 0:00:02.952914
+INFO: Trial #25 --> 1, steps = 54, time = 0:00:03.017708
+INFO: Trial #26 --> 1, steps = 54, time = 0:00:02.903774
+INFO: Trial #27 --> 1, steps = 55, time = 0:00:02.957455
+INFO: Trial #28 --> 1, steps = 56, time = 0:00:02.951456
+INFO: Trial #29 --> 1, steps = 53, time = 0:00:02.911959
+INFO: Trial #30 --> -1, steps = 57, time = 0:00:02.634183
+INFO: Trial #31 --> 1, steps = 55, time = 0:00:02.913778
+INFO: Trial #32 --> 1, steps = 54, time = 0:00:03.006408
+INFO: Trial #33 --> -1, steps = 57, time = 0:00:02.618695
+INFO: Trial #34 --> 1, steps = 53, time = 0:00:02.980312
+INFO: Trial #35 --> 1, steps = 55, time = 0:00:02.989954
+INFO: Trial #36 --> -1, steps = 58, time = 0:00:03.132534
+INFO: Trial #37 --> 1, steps = 53, time = 0:00:02.906299
+INFO: Trial #38 --> 1, steps = 52, time = 0:00:02.980819
+INFO: Trial #39 --> -1, steps = 57, time = 0:00:02.767667
+INFO: Trial #40 --> 1, steps = 55, time = 0:00:03.098959
+INFO: Trial #41 --> 1, steps = 53, time = 0:00:03.085412
+INFO: Trial #42 --> 1, steps = 54, time = 0:00:03.257183
+INFO: Trial #43 --> -1, steps = 57, time = 0:00:02.847685
+INFO: Trial #44 --> -1, steps = 57, time = 0:00:02.693454
+INFO: Trial #45 --> 1, steps = 51, time = 0:00:03.080315
+INFO: Trial #46 --> 1, steps = 51, time = 0:00:03.135182
+INFO: Trial #47 --> -1, steps = 57, time = 0:00:03.047289
+INFO: Trial #48 --> 1, steps = 52, time = 0:00:03.217613
+INFO: Trial #49 --> 1, steps = 55, time = 0:00:03.351285
+INFO: Trial #50 --> 1, steps = 54, time = 0:00:03.384528
+INFO: Trial #51 --> -1, steps = 57, time = 0:00:03.071109
+INFO: Trial #52 --> -1, steps = 57, time = 0:00:02.897290
+INFO: Trial #53 --> 1, steps = 54, time = 0:00:03.378743
+INFO: Trial #54 --> 1, steps = 56, time = 0:00:03.569672
+INFO: Trial #55 --> 1, steps = 55, time = 0:00:03.605367
+INFO: Trial #56 --> 1, steps = 56, time = 0:00:03.552882
+INFO: Trial #57 --> 1, steps = 51, time = 0:00:03.374849
+INFO: Trial #58 --> 1, steps = 55, time = 0:00:03.626497
+INFO: Trial #59 --> 1, steps = 53, time = 0:00:03.529332
+INFO: Trial #60 --> 1, steps = 56, time = 0:00:03.813447
+INFO: Trial #61 --> -1, steps = 57, time = 0:00:03.204249
+INFO: Trial #62 --> 1, steps = 54, time = 0:00:03.619863
+INFO: Trial #63 --> 1, steps = 51, time = 0:00:03.622530
+INFO: Trial #64 --> 1, steps = 53, time = 0:00:04.404644
+INFO: Trial #65 --> -1, steps = 57, time = 0:00:03.663367
+INFO: Trial #66 --> 1, steps = 52, time = 0:00:03.797770
+INFO: Trial #67 --> -1, steps = 57, time = 0:00:03.972830
+INFO: Trial #68 --> -1, steps = 57, time = 0:00:03.456880
+INFO: Trial #69 --> 1, steps = 56, time = 0:00:03.951591
+INFO: Trial #70 --> 1, steps = 55, time = 0:00:03.806026
+INFO: Trial #71 --> 1, steps = 53, time = 0:00:03.778858
+INFO: Trial #72 --> 1, steps = 53, time = 0:00:03.751359
+INFO: Trial #73 --> 1, steps = 54, time = 0:00:03.820979
+INFO: Trial #74 --> 1, steps = 51, time = 0:00:03.725757
+INFO: Trial #75 --> -1, steps = 57, time = 0:00:03.425117
+INFO: Trial #76 --> 1, steps = 56, time = 0:00:04.021741
+INFO: Trial #77 --> 1, steps = 54, time = 0:00:04.041958
+INFO: Trial #78 --> 1, steps = 54, time = 0:00:03.926268
+INFO: Trial #79 --> 1, steps = 54, time = 0:00:03.923238
+INFO: Trial #80 --> -1, steps = 57, time = 0:00:03.688662
+INFO: Trial #81 --> -1, steps = 57, time = 0:00:03.676045
+INFO: Trial #82 --> 1, steps = 54, time = 0:00:04.311408
+INFO: Trial #83 --> 1, steps = 52, time = 0:00:04.467269
+INFO: Trial #84 --> -1, steps = 57, time = 0:00:03.752128
+INFO: Trial #85 --> 1, steps = 54, time = 0:00:04.981407
+INFO: Trial #86 --> -1, steps = 57, time = 0:00:03.939895
+INFO: Trial #87 --> 1, steps = 56, time = 0:00:04.776599
+INFO: Trial #88 --> -1, steps = 57, time = 0:00:05.228095
+INFO: Trial #89 --> 1, steps = 53, time = 0:00:05.048613
+INFO: Trial #90 --> 1, steps = 56, time = 0:00:04.723289
+INFO: Trial #91 --> 1, steps = 54, time = 0:00:04.827827
+INFO: Trial #92 --> 1, steps = 55, time = 0:00:04.670212
+INFO: Trial #93 --> 1, steps = 53, time = 0:00:04.891904
+INFO: Trial #94 --> -1, steps = 57, time = 0:00:04.157311
+INFO: Trial #95 --> 1, steps = 52, time = 0:00:04.788685
+INFO: Trial #96 --> 1, steps = 55, time = 0:00:05.058570
+SPRT
+Conducted tests: 96
+Successes: 74 of 96
+Hypothesis accepted: 0
+Steps: mean = 54.447916666666664, median = 54.0, min=51, max=58
+Time: mean = 3.3850871249999988, median = 3.1697154999999997, min=2.3258, max=5.228095
+
+Process finished with exit code 0

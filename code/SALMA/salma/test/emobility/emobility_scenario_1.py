@@ -16,13 +16,18 @@ from salma.test.emobility.plcs import create_plcs_processes
 from salma.test.emobility.plcssam import create_plcssam
 import numpy as np
 
+
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = ESTIMATION
+_MODE = HYPTEST
 
 
 class EMobilityScenario1(EMobilityTest):
-    NUM_OF_VEHICLES = 50
+    NUM_OF_VEHICLES = 10
+    PLCS_CAPACITY = 100
+    VEHICLE_SPEED = 1
+    TIME_LIMIT = 55
+
 
     def __print_info(self, world):
         """
@@ -72,21 +77,19 @@ class EMobilityScenario1(EMobilityTest):
         sams = world.getDomain("plcssam")
         plcses = world.getDomain("plcs")
 
-        fcap = 2
         for plcs in plcses:
-            world.setConstantValue("maxCapacity", [plcs.id], fcap)
-            fcap += 1
+            world.setConstantValue("maxCapacity", [plcs.id], EMobilityScenario1.PLCS_CAPACITY)
 
         for vehicle in vehicles:
             start = random.choice(starts)
-            #starts.remove(start)
+            # starts.remove(start)
             target_poi = random.choice(target_pois)
             # target_pois.remove(target_poi)
 
             world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", start.id, start.id, 0))
-            world.setFluentValue("vehicleSpeed", [vehicle.id], 1)
+            world.setFluentValue("vehicleSpeed", [vehicle.id], EMobilityScenario1.VEHICLE_SPEED)
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
-            world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
+            world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 0, 0)])
 
         transferStarts = world.get_exogenous_action("transferStarts")
         transferStarts.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 5, 1))
@@ -98,18 +101,19 @@ class EMobilityScenario1(EMobilityTest):
 
         transferFails = world.get_exogenous_action("transferFails")
         transferFails.config.set_probability(0.0)
-        #messageSent(v, assignment, veh, ?, ?, ?),
+        # messageSent(v, assignment, veh, ?, ?, ?),
         fstr = """
         forall([v,vehicle],
             implies(
                 messageSent(v, assignment, ?, ?, ?, ?),
-                until(50,
+                until({},
                     true,
                     currentTargetPLCS(v) \= none
                 )
             )
         )
-        """
+        """.format(EMobilityScenario1.TIME_LIMIT)
+
         goal1 = "forall([v,vehicle], arrive_at_targetPLCS(v))"
         goal2 = "forall([v,vehicle], currentTargetPLCS(v) \= none)"
         if _MODE == VISUALIZE:
@@ -127,14 +131,18 @@ class EMobilityScenario1(EMobilityTest):
 
         # assumption success prob = 0.6 --> H0: p <= 0.4
         if _MODE == HYPTEST:
-            sprt = SequentialProbabilityRatioTest(0.6, 0.7, 0.01, 0.01)
+            sprt = SequentialProbabilityRatioTest(0.59, 0.61, 0.05, 0.05)
             accepted_hypothesis, results, info = world.run_repetitions(hypothesis_test=sprt)
             print("SPRT")
             print("Conducted tests: {}".format(len(results)))
             print("Successes: {} of {}".format(sum(results), len(results)))
             print("Hypothesis accepted: {}".format(accepted_hypothesis))
+
+            self.print_timing_info(info)
         elif _MODE == ESTIMATION:
+            print("len: ", len(world.getDomain("plcs")))
             _, results, info = world.run_repetitions(number_of_repetitions=20)
+
             successes = sum(results)
             nobs = len(results)
             ratio = successes / nobs
@@ -148,16 +156,22 @@ class EMobilityScenario1(EMobilityTest):
                 ci_low, ci_upp = proportion.proportion_confint(successes, nobs, alpha=alpha, method=method)
                 print("   {} => [{}..{}]".format(method, ci_low, ci_upp))
 
-            steps = [ti["steps"] for ti in info]
-
-            times = [ti["time"].total_seconds() for ti in info]
-            print("Steps: mean = {}, median = {}, min={}, max={}".format(np.mean(steps), np.median(steps), np.min(steps), np.max(steps)))
-            print("Time: mean = {}, median = {}, min={}, max={}".format(np.mean(times), np.median(times), np.min(times), np.max(times)))
+            self.print_timing_info(info)
 
         elif _MODE == VISUALIZE:
             print("Visualize")
             verdict, _ = self.run_experiment(world, world_map, log=True, visualize=True)
             print("Verdict: {}".format(verdict))
+
+    def print_timing_info(self, info):
+        steps = [ti["steps"] for ti in info]
+
+        times = [ti["time"].total_seconds() for ti in info]
+        print(
+            "Steps: mean = {}, median = {}, min={}, max={}".format(np.mean(steps), np.median(steps), np.min(steps),
+                                                                   np.max(steps)))
+        print("Time: mean = {}, median = {}, min={}, max={}".format(np.mean(times), np.median(times), np.min(times),
+                                                                    np.max(times)))
 
 
 if __name__ == '__main__':
