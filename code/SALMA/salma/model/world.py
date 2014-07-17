@@ -8,12 +8,9 @@ import logging
 import random
 import datetime
 import time
-import math
 
-from numpy.core.tests.test_multiarray_assignment import _check_assignment
 import pyclp
-import salma.model.process as process
-from salma import constants
+
 from salma.SALMAException import SALMAException
 from salma.constants import *
 from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, \
@@ -25,6 +22,7 @@ from salma.statistics import HypothesisTest
 from .core import Entity, Fluent
 from .agent import Agent
 from .procedure import Variable, Act
+
 
 MODULE_LOGGER_NAME = 'agamemnon-smc.world'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)

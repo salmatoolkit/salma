@@ -1,4 +1,3 @@
-from argparse import _ActionsContainer
 import random
 from salma.SALMAException import SALMAException
 from salma.model.core import Action, Entity
