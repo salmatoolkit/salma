@@ -157,6 +157,8 @@ register_property_str(Name, PStr, P2) :-
 	term_string(P, PStr),
 	register_property(Name, P, P2).
 
+% Clears and rebuilds persistent fluents and toplevel formulas.
+% This is mainly done in response to domain changes.
 recompile_all :-
 	store_erase(persistent_fluents),
 	store_erase(formula_cache_candidates),
@@ -170,9 +172,20 @@ recompile_all :-
 	),
 	set_properties_unsynced(false).
 		
-	
-% F: formula to evaluate
-% InUntil: whether or not the subformula is part of a until operator
+
+
+% Evaluates the given (sub-)formula.		
+% in ToplevelFormula: name of the top-level formula that F belongs to.
+% in FormulaPath: the path of F within the toplevel formula, i.e. a list of
+%    numeric positions. 0 is for 
+% in StartTime: the reference time point this evaluation refers to.
+% in F: (sub-)formula to evaluate.
+% in Level: the nesting level of the current evaluation with regard to 
+%	nested until formulas.
+% out Result: the result (ok, not_ok, nondet)
+% out ToSchedule:
+% out ScheduleParams:
+% out HasChanged:
 evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result, 
 	ToSchedule, ScheduleParams, HasChanged) :-	
 		getval(current_failure_stack, CFS),

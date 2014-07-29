@@ -800,8 +800,9 @@ class World(Entity):
         entered_processes = set()
 
         while True:
-            #: :type : list of process.Process
+            #: :type: list[process.Process]
             active_processes = []
+
             # The schedule trigger predicate is evaluated iteratively here. This allows processes to
             # become runnable as an effect by a previous immediate action by another process.
             self.__finished = True
