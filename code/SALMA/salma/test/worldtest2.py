@@ -90,7 +90,7 @@ class WorldTest2(unittest.TestCase):
             for i in items:
                 world.setFluentValue('carrying', [r.id, i.id], False)
 
-    @withHeader
+    @withHeader()
     def testScenario(self):
         world = World.instance()  # : :type world: World
 

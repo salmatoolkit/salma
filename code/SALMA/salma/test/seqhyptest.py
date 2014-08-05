@@ -100,7 +100,7 @@ class SequentialHypothesisTestTest(unittest.TestCase):
                 world.setFluentValue('carrying', [r.id, i.id], False)
 
 
-    @withHeader
+    @withHeader()
     def testScenario(self):
 
         world = World.instance()  # : :type world: World

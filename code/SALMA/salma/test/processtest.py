@@ -16,7 +16,7 @@ from salma.model.evaluationcontext import EvaluationContext
 
 class ProcessTest(BaseWorldTest):
 
-    @withHeader
+    @withHeader()
     def test_one_shot_process(self):
         world = World.instance()
         seq = Sequence()
@@ -52,7 +52,7 @@ class ProcessTest(BaseWorldTest):
         self.assertEqual(proc.last_start_time, 0)
         self.assertEqual(proc.last_end_time, 2)
 
-    @withHeader
+    @withHeader()
     def test_two_one_shot_processes(self):
         world = World.instance()
         seq = Sequence()
@@ -117,7 +117,7 @@ class ProcessTest(BaseWorldTest):
         agent = Agent("rob1", "robot", [proc1, proc2])
         return agent, [proc1, proc2]
 
-    @withHeader
+    @withHeader()
     def test_periodic_process_lower(self):
         world = World.instance()
 
@@ -134,7 +134,7 @@ class ProcessTest(BaseWorldTest):
         self.assertEqual(33, world.getFluentValue("ypos",["rob1"]))
         world.printState()
 
-    @withHeader
+    @withHeader()
     def test_periodic_process_higher(self):
         world = World.instance()
         agent, processes = ProcessTest.create_agent_with_periodic_processes()
@@ -149,7 +149,7 @@ class ProcessTest(BaseWorldTest):
         self.assertEqual(34, world.getFluentValue("ypos",["rob1"]))
         world.printState()
 
-    @withHeader
+    @withHeader()
     def test_triggered_process(self):
         world = World.instance()
 

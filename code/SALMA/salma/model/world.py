@@ -1045,12 +1045,12 @@ class World(Entity):
             if check_verdict is False:
                 verdict = OK if self.is_finished() else NOT_OK
             # if no achieve goal was given then having finished or "surviving" until the time limit means success!
-            # However, this only holds if no invariants are pending. Otherwise we wuill return NONDET
+            # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
             else:
-                if ( (self.is_finished() or time_out is True) and
+                if ((self.is_finished() or time_out is True) and
                              len(self.__achieve_goals) == 0 and
                              len(self.__achieve_and_sustain_goals) == 0 and
-                             len(scheduled_keys) > 0):
+                             len(scheduled_keys) == 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
@@ -1064,7 +1064,8 @@ class World(Entity):
                  "failed_invariants": failed_invariants,
                  "failed_sustain_goals": failed_sustain_goals,
                  "achieved_goals": self.__already_achieved_goals,
-                 "failure_stack": failure_stack
+                 "failure_stack": failure_stack,
+                 "scheduled_keys": scheduled_keys
                 }
         )
 

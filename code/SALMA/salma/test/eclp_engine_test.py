@@ -43,7 +43,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
                 
             
             
-    @withHeader
+    @withHeader()
     def testProgression(self):
         print("BEFORE:\n\n")
         printState(self.engine)
@@ -61,7 +61,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         print("Failed:\n")
         print(failedActions)
 
-    @withHeader
+    @withHeader()
     def testEvaluateCondition(self):
         print("\n\nTry 1:")
         result = self.engine.evaluateCondition("robotLeftFrom", "rob1", 100, situation = 's0')
@@ -75,7 +75,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         print("result3: ", result)
 
 
-    @withHeader
+    @withHeader()
     def testEvaluationStep(self):
         self.engine.registerProperty('f', 'xpos(rob1) > 20')
         self.engine.registerProperty('g', 'xpos(rob1) > 200')
@@ -99,7 +99,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         
         
         
-    @withHeader
+    @withHeader()
     def testGetExogenousActionCandidates(self):
         candidates = self.engine.getExogenousActionCandidates()
         print("BEFORE:\n")
@@ -115,7 +115,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         
         
      
-    @withHeader
+    @withHeader()
     def testSelectAll(self):   
         self.engine.setFluentValue("carrying", ['rob1', 'item1'], True)
         self.engine.setFluentValue("carrying", ['rob3', 'item3'], True)
@@ -127,7 +127,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         
         pprint.pprint(result)
         
-    @withHeader
+    @withHeader()
     def testSelectFirst(self):   
         self.engine.setFluentValue("carrying", ['rob1', 'item1'], True)
         self.engine.setFluentValue("carrying", ['rob3', 'item3'], True)
@@ -136,7 +136,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         pprint.pprint(result)
     
     
-    @withHeader
+    @withHeader()
     def testCreatePlan_OK_UniquePlan(self):
         
         self.engine.setFluentValue("carrying", ['rob1', 'item1'], True)
@@ -168,7 +168,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
                               ('drop', 'rob3', 'item2')]
                             )
         
-    @withHeader
+    @withHeader()
     def testCreatePlan_None(self):
         # make all robots carry some item so our brilliant plan will just not work
         self.engine.setFluentValue("carrying", ['rob1', 'item1'], True)
@@ -183,18 +183,18 @@ class EclipseCLPEngineTest(unittest.TestCase):
         self.assertIsNone(values)
 
 
-    @withHeader
+    @withHeader()
     def testEvaluateFunctionGoal(self):
         v = self.engine.evaluateFunctionGoal('times',6,7)
         self.assertEquals(v, 42)
 
-    @withHeader
+    @withHeader()
     def testConstants_Unititialized(self):
         for r in self.robots:
             self.assertFalse(self.engine.isConstantDefined('robotRadius', [r]))
             self.assertIsNone(self.engine.getConstantValue('robotRadius', [r]))
     
-    @withHeader
+    @withHeader()
     def testManipulateConstants_OK(self):
         self.engine.setConstantValue('robotRadius', ['rob1'], 12.3)
         self.engine.setConstantValue('gravity', [], 9.81)

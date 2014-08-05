@@ -177,7 +177,7 @@ recompile_all :-
 % Evaluates the given (sub-)formula.		
 % in ToplevelFormula: name of the top-level formula that F belongs to.
 % in FormulaPath: the path of F within the toplevel formula, i.e. a list of
-%    numeric positions. 0 is for 
+%    numeric positions. 0 stands for the whole formula.
 % in StartTime: the reference time point this evaluation refers to.
 % in F: (sub-)formula to evaluate.
 % in Level: the nesting level of the current evaluation with regard to 

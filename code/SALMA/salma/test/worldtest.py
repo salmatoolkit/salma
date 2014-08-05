@@ -45,7 +45,7 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
 
 
 class WorldTest(BaseWorldTest):
-    @withHeader
+    @withHeader()
     def testWorldStepExplicit(self):
         world = World.instance()
         world.addAgent(self.create_right_moving_mobot('rob1'))
@@ -91,7 +91,7 @@ class WorldTest(BaseWorldTest):
         print("\n\n----\n\n")
         world.printState()
 
-    @withHeader
+    @withHeader()
     def testWorldRunUntilEnd(self):
         world = World.instance()
         world.addAgent(self.create_right_moving_mobot('rob1'))
@@ -116,7 +116,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(info['steps'], 4)
 
 
-    @withHeader
+    @withHeader()
     def testRunRightUntilMaxXPos(self):
         world = World.instance()
 
@@ -145,7 +145,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(info['steps'], 10)
 
 
-    @withHeader
+    @withHeader()
     def testTwoAgentsRunUntilMaxXPos(self):
         world = World.instance()
 
@@ -181,7 +181,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 120)
         self.assertEqual(world.getFluentValue("xpos", ["rob2"]), 120)
 
-    @withHeader
+    @withHeader()
     def testVariableAssignment(self):
         world = World.instance()
 
@@ -213,7 +213,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(agent.evaluation_context.resolve(Variable('myY'))[0], 20)
         self.assertEqual(agent.evaluation_context.resolve(Variable('myX'))[0], 20)
 
-    @withHeader
+    @withHeader()
     def test_evaluate_python_expression(self):
         world = World.instance()
         world.add_additional_expression_context_global("math", math)
@@ -285,7 +285,7 @@ class WorldTest(BaseWorldTest):
         self.assertAlmostEqual(sqrt(10 * 10 + 15 * 15), v2)
 
 
-    @withHeader
+    @withHeader()
     def test_evaluate_python_function(self):
         world = World.instance()
 
@@ -323,7 +323,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], -1 * 2 * 9 * 10)
         self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], -1 * 2 * 9 * 10 * 15)
 
-    @withHeader
+    @withHeader()
     def testRandomizeFluents(self):
         world = World.instance()
         world.addEntity(Entity("coffee", "item"))
@@ -354,7 +354,7 @@ class WorldTest(BaseWorldTest):
         crash.map_param("r", "r")
 
 
-    @withHeader
+    @withHeader()
     def testUniformStochasticAction(self):
         world = World.instance()
 
@@ -380,7 +380,7 @@ class WorldTest(BaseWorldTest):
         world.runUntilFinished()
         world.printState()
 
-    @withHeader
+    @withHeader()
     def testCustomStochasticAction(self):
         world = World.instance()
         jump_action = world.get_stochastic_action("jump")
@@ -426,7 +426,7 @@ class WorldTest(BaseWorldTest):
         world.runUntilFinished()
         world.printState()
 
-    @withHeader
+    @withHeader()
     def testExogenousAction(self):
 
         world = World.instance()  # : :type world: World
@@ -470,7 +470,7 @@ class WorldTest(BaseWorldTest):
         print('AFTER:')
         world.printState()
 
-    @withHeader
+    @withHeader()
     def testGrabTwiceBySameAgentImpossible(self):
         world = World.instance()
         world.addEntity(Entity("coffee", "item"))
@@ -550,7 +550,7 @@ class WorldTest(BaseWorldTest):
 
         return agent1, agent2, grabMap
 
-    @withHeader
+    @withHeader()
     def testSelectAll_Fluent(self):
         world = World.instance()
         agent1, agent2, grabMap = self.setupSelectionContext()
@@ -582,7 +582,7 @@ class WorldTest(BaseWorldTest):
 
         print(res2)
 
-    @withHeader
+    @withHeader()
     def testSelectAll_Python(self):
         world = World.instance()
         agent1, agent2, grabMap = self.setupSelectionContext()
@@ -600,7 +600,7 @@ class WorldTest(BaseWorldTest):
             self.assertEqual(e[0], r["o"].id)
             self.assertEqual(e[1], r["i"])
 
-    @withHeader
+    @withHeader()
     def testSelectFirst(self):
         world = World.instance()
         agent1, agent2, grabMap = self.setupSelectionContext()
@@ -630,7 +630,7 @@ class WorldTest(BaseWorldTest):
 
         print(res2)
 
-    @withHeader
+    @withHeader()
     def testIterate_fluent(self):
         world = World.instance()
         items = []
@@ -662,7 +662,7 @@ class WorldTest(BaseWorldTest):
         for item in items:
             self.assertTrue(world.getFluentValue("painted", [item.id]))
 
-    @withHeader
+    @withHeader()
     def testIterate_python(self):
         world = World.instance()
         items = []
@@ -694,7 +694,7 @@ class WorldTest(BaseWorldTest):
         for item in items:
             self.assertTrue(world.getFluentValue("painted", [item.id]))
 
-    @withHeader
+    @withHeader()
     def testSelectFirstWorld(self):
         world = World.instance()
 
@@ -731,7 +731,7 @@ class WorldTest(BaseWorldTest):
         )
 
 
-    @withHeader
+    @withHeader()
     def test_procedure_call(self):
 
         world = World.instance()
@@ -764,7 +764,7 @@ class WorldTest(BaseWorldTest):
         world.printState()
         self.assertEqual(world.getFluentValue('xpos', ['rob1']), 17)
 
-    @withHeader
+    @withHeader()
     def test_recursive_procedure_call(self):
         world = World.instance()
         transportToX = Procedure("transportToX",
@@ -807,7 +807,7 @@ class WorldTest(BaseWorldTest):
         world.printState()
         self.assertEqual(world.getFluentValue('xpos', ['rob1']), 25)
 
-    @withHeader
+    @withHeader()
     def testCreatePLan_OK_Unique(self):
         world = World.instance()
         world.addEntity(Entity("item1", "item"))
@@ -838,7 +838,7 @@ class WorldTest(BaseWorldTest):
             Variable("plan"))
         print("resolvedValues:", resolvedValues)
 
-    @withHeader
+    @withHeader()
     def testEnumerateFluentInstances(self):
         world = World.instance()
         world.addEntity(Entity("coffee", "item"))
@@ -860,7 +860,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(len(l), 1)
         self.assertListEqual([[]], l)
 
-    @withHeader
+    @withHeader(msg="Tests the fluent initialization check.")
     def testCheckFluentInitialization(self):
         world = World.instance()
         world.addEntity(Entity("coffee", "item"))
