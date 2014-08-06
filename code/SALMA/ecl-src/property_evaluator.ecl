@@ -214,13 +214,13 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result,
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
 			), !
 			;
-			F = all(Sf2), 
+			F = all(Sf2), !,
 			evaluate_checkall(ToplevelFormula, FormulaPath, StartTime, Sf2, Level, Result, OutVar2, ScheduleParams2, HasChanged2), 
 			((Result = nondet, !; Level > 0) -> 
 				ToSchedule = all(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
-			), !
+			)
 			;
 			F = one(Sf2),
 			evaluate_checkone(ToplevelFormula, FormulaPath, StartTime, Sf2, Level, Result, OutVar2, ScheduleParams2, HasChanged2), 
@@ -572,6 +572,7 @@ evaluate_until(ToplevelFormula, FormulaPath, Level, StartTime, MaxTime, P, Q,
 			),
 			((HasChangedP, !; HasChangedQ,!) -> shelf_set(Shelf, 4, true) ; true),
 			shelf_set(Shelf, 5, SParams2),
+			% retrieve all output values from shelf
 			shelf_get(Shelf, 0, pqres(NewP, NewQ, Result, HasChanged, ScheduleParams))
 		),
 		shelf_abolish(Shelf),
@@ -844,7 +845,8 @@ evaluate_toplevel(Results) :-
 		setval(current_failure_stack, CFS).
 		
 
-		
+% Instantiates variables in sched - parts of F with schedule ids given in 
+% Params. The ids in Params are identified by the corresponding position (path) in F.
 apply_params(Params, F) :-
 	(foreach(P, Params), param(F) do
 		P = p(Path) : SchedId,

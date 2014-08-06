@@ -1,3 +1,6 @@
+% corrupt at the moment!
+
+
 :- dynamic velocity_x/3, velocity_y/3, xpos/3, ypos/3, carrying/3.
 
 
