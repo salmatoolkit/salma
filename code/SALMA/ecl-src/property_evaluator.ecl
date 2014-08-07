@@ -331,7 +331,7 @@ evaluate_checkall(ToplevelFormula, FormulaPath, StartTime, Subformulas, Level, R
 		(foreach(F, Subformulas), foreach(F2, Handled), fromto(ok, In, Out, Result), fromto(false, In2, Out2, HasChanged), 
 			param(StartTime, Level, ToplevelFormula, FormulaPath), fromto([], In3, Out3, ScheduleParams), count(I,1,_) do
 				% handle cases
-				append(FormulaPath, [I], SubPath),
+				append(FormulaPath, [1,I], SubPath),
 				evaluate_formula(ToplevelFormula, SubPath, StartTime, F, Level, Res2, Ts1, ScheduleParams2, HC1),
 				((Res2 = nondet, ! ; Level > 0) -> 
 					F2 = Ts1, 
@@ -355,7 +355,7 @@ evaluate_checkone(ToplevelFormula, FormulaPath, StartTime, Subformulas, Level, R
 		(foreach(F, Subformulas), foreach(F2, Handled), fromto(not_ok, In, Out, Result), fromto(false, In2, Out2, HasChanged), 
 			param(StartTime, Level, ToplevelFormula, FormulaPath), fromto([], In3, Out3, ScheduleParams), count(I,1,_) do
 				% handle cases
-				append(FormulaPath, [I], SubPath),
+				append(FormulaPath, [1,I], SubPath),
 				evaluate_formula(ToplevelFormula, SubPath, StartTime, F, Level, Res2, Ts1, ScheduleParams2, HC1),
 				((Res2 = nondet, ! ; Level > 0) -> 
 					F2 = Ts1, 

@@ -3,12 +3,13 @@
 
 init :- 
 	init_agasmc,
-	setDomain(robot, [rob1]),
-	setDomain(item, [item1]),
+	setDomain(robot, [rob1, rob2]),
+	setDomain(item, [item1, item2]),
 	init_sort_hierarchy(_),
 	set_current(xpos, [rob1], 10),
 	set_current(ypos, [rob1], 10),
-	
+	set_current(xpos, [rob2], 10),
+	set_current(ypos, [rob2], 20),
 	domain(robot, D1),
 	domain(item, D2),
 	(foreach(R, D1), param(D2) do
@@ -89,7 +90,7 @@ test3 :-
 				implies(
 					occur(grab(r, item1)),
 					until(5,
-						carrying(r,item1),
+						true,
 						not(carrying(r,item1))
 					)
 				),
@@ -129,15 +130,16 @@ test4 :-
 	register_property(f, F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
 	progress([grab(rob1, item1)]),
+	progress([grab(rob2, item2)]),
 	(count(I,0,20) do
 				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 				printf("%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
 				moveAll,
 				(time(4, s0) ->
-					progress([drop(rob1, item1)])
+					progress([drop(rob1, item1)]),
+					progress([drop(rob2, item2)])
 					;
 					true
 				),
 				progress([tick])
 	).
-	

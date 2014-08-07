@@ -82,7 +82,7 @@ class Process(object):
         return self.__agent
 
     @agent.setter
-    def agent(self,  agent):
+    def agent(self, agent):
         """
         :type agent: Entity
         """
@@ -213,7 +213,7 @@ class Process(object):
         while status == ControlNode.CONTINUE and current_node is not None:
             status, next_node, next_context = current_node.executeStep(current_context, self.__agent.procedure_registry)
 
-            #: :type next_context: EvaluationContext
+            # : :type next_context: EvaluationContext
             if next_node is None:
                 if current_node.parent is None:
                     # this means we just left some procedure
@@ -232,7 +232,7 @@ class Process(object):
         action = None
 
         if self.__current_control_node is not None:
-        # status == BLOCKED
+            # status == BLOCKED
             if isinstance(self.__current_control_node, Act):
                 self.__state = Process.EXECUTING_ACTION
                 action = self.__current_control_node
@@ -258,6 +258,7 @@ class OneShotProcess(Process):
     """
     A process that is run only once. The get_deadline is set relative to the time the process is created.
     """
+
     def __init__(self, procedure, absolute_deadline=None, introduction_time=0):
         Process.__init__(self, procedure, introduction_time)
         self.__absolute_deadline = absolute_deadline
@@ -266,14 +267,18 @@ class OneShotProcess(Process):
         return self.__absolute_deadline
 
     def should_start(self):
-        return self.execution_count == 0
+        if self.execution_count > 0:
+            return False
+        if self.introduction_time is not None:
+            current_time = self.agent.evaluation_context.getFluentValue('time')
+            return current_time >= self.introduction_time
+        return True
 
     def should_terminate(self):
         return self.execution_count > 0
 
 
 class PeriodicProcess(Process):
-
     def __init__(self, procedure, period, introduction_time=0):
         Process.__init__(self, procedure, introduction_time)
         self.__period = period
@@ -292,40 +297,51 @@ class PeriodicProcess(Process):
         Returns the current timeslot as a tuple of (timeslot_num, start, end)
         :rtype (int, int, int)
         """
+        min_time = self.introduction_time or 0
         current_time = self.agent.evaluation_context.getFluentValue('time')
-        num = divmod(current_time, self.__period)[0] + 1
-        start = (num - 1)*self.period
+        if current_time < min_time:
+            return None
+        num = divmod(current_time - min_time, self.__period)[0] + 1
+        start = min_time + (num - 1) * self.period
         end = start + self.period
         return num, start, end
 
     def get_deadline(self):
         """
-        Returns the current absolute get_deadline.
+        Returns the current absolute deadline.
         """
-        return self.time_slot * self.__period
+        min_time = self.introduction_time or 0
+        return min_time + self.time_slot[0] * self.__period
 
     def should_start(self):
         # start if IDLE and the last start time was before the start of this time slot
+        min_time = self.introduction_time or 0
+        current_time = self.agent.evaluation_context.getFluentValue('time')
+        tslot = self.time_slot
+        if (self.state != Process.IDLE) or (tslot is None):
+            return False
 
-        return (self.state == Process.IDLE) and (
-                self.last_start_time is None
-                or
-                self.last_start_time < self.time_slot[1])
+        return (self.last_start_time is None
+                or self.last_start_time < self.time_slot[1])
 
     def should_terminate(self):
         return False
 
 
 class TriggeredProcess(Process):
-
-    def __init__(self, procedure, condition_type, condition, condition_params, relative_deadline=None, introduction_time=0):
+    def __init__(self, procedure, condition_type, condition, condition_params, relative_deadline=None,
+                 introduction_time=0):
         Process.__init__(self, procedure, introduction_time)
         self.__condition_type = condition_type
         self.__condition = condition
         self.__condition_params = condition_params
-        self.__relative_deadline = None
+        self.__relative_deadline = relative_deadline
 
     def should_start(self):
+        min_time = self.introduction_time or 0
+        current_time = self.agent.evaluation_context.getFluentValue('time')
+        if current_time < min_time:
+            return False
         ectx = self.current_evaluation_context or self.agent.evaluation_context
         result = ectx.evaluateCondition(self.__condition_type,
                                         self.__condition,
@@ -340,7 +356,8 @@ class TriggeredProcess(Process):
         if self.__relative_deadline is None:
             return None
         elif self.last_start_time is None:
-            return self.__relative_deadline
+            min_time = self.introduction_time or 0
+            return min_time + self.__relative_deadline
         else:
             return self.last_start_time + self.__relative_deadline
 

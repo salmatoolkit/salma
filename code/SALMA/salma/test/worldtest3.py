@@ -5,10 +5,12 @@ from salma.model.core import Entity, Constant
 from salma.model.actions import Stepwise
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Act, Procedure, While
+from salma.model.process import OneShotProcess, PeriodicProcess
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 from salma.test.world_test_base import BaseWorldTest
 from salma.constants import *
+from datetime import datetime, timedelta
 
 
 def printValue(value):
@@ -249,6 +251,74 @@ forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         self.assertEqual(verdict, OK)
 
+    def create_periodic_agent(self, agent_id, item_id, start=0, period=6, delta=3):
+        proc = Procedure("main", [], [
+            While(EvaluationContext.PYTHON_EXPRESSION,
+                  "xpos(self) < 40", [], [
+                    Act("move_right", [Entity.SELF])
+                ])
+        ])
+        p1 = OneShotProcess(proc)
+        proc2 = Procedure("main", [], [
+            Act("grab", [Entity.SELF, item_id])
+        ])
+        proc3 = Procedure("main", [], [
+            Act("drop", [Entity.SELF, item_id])
+        ])
+        p2 = PeriodicProcess(proc2, period, introduction_time=start)
+        p3 = PeriodicProcess(proc3, period, introduction_time=start+delta)
+        rob = Agent(agent_id, "robot", [p1, p2, p3])
+        return rob
+
+    @withHeader()
+    def test_nested_until_ok(self):
+        world = World.instance()
+        rob1 = self.create_periodic_agent("rob1", "item1")
+        rob2 = self.create_periodic_agent("rob2", "item2")
+        world.addAgent(rob1)
+        world.addAgent(rob2)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=10)
+
+        f_str = """
+forall([r, robot], forall([i, item],
+    until(20,
+        implies(
+            occur(grab(r, i)),
+            until(5,
+                carrying(r,i),
+                not(carrying(r,i))
+            )
+        ),
+        xpos(r) >= 29
+    )
+))
+"""
+        g_str = """
+forall([r, robot],
+   xpos(r) = 35
+)
+"""
+        world.registerProperty("f", f_str, World.INVARIANT)
+        world.registerProperty("g", g_str, World.ACHIEVE)
+        verdict, results = world.runExperiment()
+        print("Verdict: " + str(verdict))
+        print("Results: " + str(results))
+        # : :type: timedelta
+        dt = results["time"]
+        print("time: {}".format(dt.total_seconds()))
+
+        # world.printState()
+        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
+        # self.assertEqual(verdict, OK)
+
+        if __name__ == '__main__':
+            unittest.main()
+
+    @unittest.skip
     def test_property_4(self):
         world = World.instance()
 
@@ -289,9 +359,15 @@ forall([r,robot],
         verdict, results = world.runExperiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
+        # : :type: timedelta
+        dt = results["time"]
+        print("time: {}".format(dt.total_seconds()))
+
         # world.printState()
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
-        # self.assertEqual(verdict, OK)
+        self.assertEqual(verdict, OK)
 
-        if __name__ == '__main__':
-            unittest.main()
+
+if __name__ == '__main__':
+    unittest.main()
+

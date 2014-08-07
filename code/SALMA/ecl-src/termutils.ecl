@@ -23,10 +23,15 @@ subst_in_list(Var,Rep,[H | Tl], Tl2) :-
         Tl2 = [T2 | Tl3].
 		
 get_subterm(TermIn, [Pos], TermOut) :-
-	(Pos is 0 -> TermOut = TermIn ; arg(Pos, TermIn, TermOut)
+	
+	(Pos is 0 -> 
+		TermOut = TermIn 
+	; 
+		(is_list(TermIn) -> array_list(T, TermIn) ; T = TermIn),
+		arg(Pos, T, TermOut)
 	), !.
 	
 get_subterm(TermIn, [Pos | PTail], TermOut) :-
-	(Pos is 0 -> T = TermIn ; arg(Pos, TermIn, T)),
+	get_subterm(TermIn, [Pos], T),
 	get_subterm(T, PTail, TermOut), !.
 	
