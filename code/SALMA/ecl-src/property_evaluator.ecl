@@ -338,7 +338,7 @@ evaluate_checkall(ToplevelFormula, FormulaPath, StartTime, Subformulas, Level, R
 					HC2 = false,
 					append(In3, ScheduleParams2, Out3)
 					; 
-					F2 = [], 
+					F2 = Res2, 
 					Out3 = In3,
 					HC2 = true
 				),
@@ -362,7 +362,7 @@ evaluate_checkone(ToplevelFormula, FormulaPath, StartTime, Subformulas, Level, R
 					HC2 = false ,
 					append(In3, ScheduleParams2, Out3)
 					; 		
-					F2 = [], 
+					F2 = Res2, 
 					HC2 = true,
 					Out3 = In3
 				),
@@ -788,29 +788,29 @@ get_toplevel_goals(Goals) :-
 			Goal = Name : F
 		).
 		
-print_toplevel_goals :-
+print_toplevel_goals(Stream) :-
 		stored_keys_and_values(toplevel_goals, L),
 		nl,
-		(foreach(Entry, L) do
+		(foreach(Entry, L), param(Stream) do
 			Entry = Name - cf(CacheId),
 			get_cached_formula(CacheId, F),
-			printf("%10s %10d %w\n",[Name, CacheId, F])
+			printf(Stream, "%10s %10d %w\n",[Name, CacheId, F])
 		).
 
 
 		
-print_formula_cache :-
+print_formula_cache(Stream) :-
 		stored_keys_and_values(formula_cache, L),
-		(foreach(Entry, L) do
+		(foreach(Entry, L), param(Stream) do
 			Entry = Id - F,
-			printf("%10d %w\n",[Id, F])
+			printf(Stream, "%10d %w\n",[Id, F])
 		).
 
-print_cache_candidates :-
+print_cache_candidates(Stream):-
 		stored_keys_and_values(formula_cache_candidates, L),
-		(foreach(Entry, L) do
+		(foreach(Entry, L), param(Stream) do
 			Entry = Key - IdList,
-			printf("%w %w\n",[Key, IdList])
+			printf(Stream, "%w %w\n",[Key, IdList])
 		).
 		
 % Evaluates all registered toplevel goals. 
@@ -926,17 +926,17 @@ evaluate_all_scheduled(Results) :-
 
 % TODO: cleanup-procedure
 % TODO: reuse compiled terms by referencing if nothing changed in evaluation
-print_scheduled_goals(SortPositions) :-
+print_scheduled_goals(Stream, SortPositions) :-
 	stored_keys(scheduled_goals, Keys),
 	sort(SortPositions, =<, Keys, SortedKeys),
 	nl,
-	printf("%10s %10s %5s %10s %10s %s\n",["Name", "Time","Level","Id","Params","Term"]),
-	printf("-------------------------------------------------------\n",[]),
-	(foreach(Key, SortedKeys) do
+	printf(Stream, "%10s %10s %5s %10s %10s %s\n",["Name", "Time","Level","Id","Params","Term"]),
+	printf(Stream, "-------------------------------------------------------\n",[]),
+	(foreach(Key, SortedKeys), param(Stream) do
 		Key = sg(Name, Level, Id, T),
 		store_get(scheduled_goals, Key, app(Params, F)),
 		
-		printf("%10s %10d %5d %10d %w %w\n",[Name, T, Level, Id, Params, F])
+		printf(Stream, "%10s %10d %5d %10d %w %w\n",[Name, T, Level, Id, Params, F])
 	).
 
 	

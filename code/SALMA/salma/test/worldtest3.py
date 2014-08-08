@@ -270,19 +270,7 @@ forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
         rob = Agent(agent_id, "robot", [p1, p2, p3])
         return rob
 
-    @withHeader()
-    def test_nested_until_ok(self):
-        world = World.instance()
-        rob1 = self.create_periodic_agent("rob1", "item1")
-        rob2 = self.create_periodic_agent("rob2", "item2")
-        world.addAgent(rob1)
-        world.addAgent(rob2)
-        world.addEntity(Entity("item1", "item"))
-        world.addEntity(Entity("item2", "item"))
-        world.initialize(False)
-        self.setNoOneCarriesAnything()
-        self.place_agents_in_column(x=10)
-
+    def __test_nested_until(self, world: World) -> (int, dict):
         f_str = """
 forall([r, robot], forall([i, item],
     until(20,
@@ -312,11 +300,41 @@ forall([r, robot],
         print("time: {}".format(dt.total_seconds()))
 
         # world.printState()
+        print("\n\n" + ("-"*50) + "\n")
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
-        # self.assertEqual(verdict, OK)
+        return verdict, results
 
-        if __name__ == '__main__':
-            unittest.main()
+    @withHeader()
+    def test_nested_until_ok(self):
+        world = World.instance()
+        rob1 = self.create_periodic_agent("rob1", "item1")
+        rob2 = self.create_periodic_agent("rob2", "item2")
+        world.addAgent(rob1)
+        world.addAgent(rob2)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=10)
+
+        verdict, results = self.__test_nested_until(world)
+        self.assertEqual(verdict, OK)
+
+    @withHeader()
+    def test_nested_until_fail_one_agent_inner(self):
+        world = World.instance()
+        rob1 = self.create_periodic_agent("rob1", "item1")
+        rob2 = self.create_periodic_agent("rob2", "item2", period=10, delta=6)
+        world.addAgent(rob1)
+        world.addAgent(rob2)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=10)
+
+        verdict, results = self.__test_nested_until(world)
+        self.assertEqual(verdict, NOT_OK)
 
     @unittest.skip
     def test_property_4(self):
