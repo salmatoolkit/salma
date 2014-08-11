@@ -336,7 +336,7 @@ forall([r, robot],
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    @unittest.skip
+    #@unittest.skip
     def test_property_4(self):
         world = World.instance()
 
