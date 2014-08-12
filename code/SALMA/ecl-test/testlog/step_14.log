@@ -1,90 +1,90 @@
-14 : _390915 _390916 _390917 _390918
+14 : _314958 _314959 _314960 _314961
 Scheduled Goals:
       Name       Time Level         Id     Params Term
 -------------------------------------------------------
-         f          0     0          2 [p([0, 2]) : 1] cf(4)
+         f          0     0          3 [] not_ok
          f          0     1          1 [] ok
-         f          1     0          3 [p([0, 2]) : 9] cf(17)
+         f          0     1          2 [] not_ok
+         f          1     0          4 [p([0, 1, 1, 1, 1, 2]) : 9] cf(18)
          f          1     1          1 [] ok
-         f          2     0          4 [p([0, 2]) : 12] cf(18)
+         f          1     1          2 [] ok
+         f          2     0          5 [p([0, 1, 1, 1, 1, 2]) : 10] cf(19)
          f          2     1          1 [] ok
-         f          3     0          5 [p([0, 2]) : 10] cf(19)
+         f          2     1          2 [] ok
+         f          3     0          6 [p([0, 1, 1, 1, 1, 2]) : 11] cf(20)
          f          3     1          1 [] ok
-         f          4     0          6 [p([0, 2]) : 8] cf(20)
+         f          3     1          2 [] ok
+         f          4     0          7 [p([0, 1, 1, 1, 1, 2]) : 12] cf(21)
          f          4     1          1 [] ok
-         f          5     0          7 [p([0, 2]) : 11] cf(21)
+         f          4     1          2 [] ok
+         f          5     0          8 [p([0, 1, 1, 1, 1, 2]) : 13] cf(22)
          f          5     1          1 [] ok
+         f          5     1          2 [] ok
          f          6     1          1 [] ok
-         f          6     0         14 [p([0, 2]) : 13] cf(22)
-         f          6     1          8 [] ok
+         f          6     1          2 [] ok
+         f          6     0         15 [p([0, 1, 1, 1, 1, 2]) : 14] cf(23)
          f          6     1          9 [] ok
          f          6     1         10 [] ok
          f          6     1         11 [] ok
          f          6     1         12 [] ok
          f          6     1         13 [] ok
-         f          7     1          1 [] ok
-         f          7     0         15 [p([0, 2]) : 24] cf(36)
-         f          7     1          8 [] ok
+         f          6     1         14 [] ok
+         f          7     0         16 [p([0, 1, 1, 1, 1, 2]) : 21] cf(37)
          f          7     1          9 [] ok
          f          7     1         10 [] ok
          f          7     1         11 [] ok
          f          7     1         12 [] ok
          f          7     1         13 [] ok
-         f          8     1          1 [] ok
-         f          8     0         16 [p([0, 2]) : 20] cf(37)
-         f          8     1          8 [] ok
+         f          7     1         14 [] ok
+         f          8     0         17 [p([0, 1, 1, 1, 1, 2]) : 22] cf(38)
          f          8     1          9 [] ok
          f          8     1         10 [] ok
          f          8     1         11 [] ok
          f          8     1         12 [] ok
          f          8     1         13 [] ok
-         f          9     1          1 [] ok
-         f          9     0         17 [p([0, 2]) : 21] cf(38)
-         f          9     1          8 [] ok
+         f          8     1         14 [] ok
+         f          9     1         14 [] ok
          f          9     1          9 [] ok
+         f          9     0         18 [p([0, 1, 1, 1, 1, 2]) : 23] cf(39)
          f          9     1         10 [] ok
          f          9     1         11 [] ok
          f          9     1         12 [] ok
          f          9     1         13 [] ok
-         f         10     1          1 [] ok
-         f         10     1          8 [] ok
-         f         10     0         18 [p([0, 2]) : 22] cf(39)
+         f         10     1         14 [] ok
          f         10     1          9 [] ok
          f         10     1         10 [] ok
+         f         10     0         19 [p([0, 1, 1, 1, 1, 2]) : 24] cf(40)
          f         10     1         11 [] ok
          f         10     1         12 [] ok
          f         10     1         13 [] ok
-         f         11     1          1 [] ok
-         f         11     1          8 [] ok
+         f         11     1         14 [] ok
          f         11     1          9 [] ok
-         f         11     0         19 [p([0, 2]) : 23] cf(40)
          f         11     1         10 [] ok
          f         11     1         11 [] ok
+         f         11     0         20 [p([0, 1, 1, 1, 1, 2]) : 25] cf(41)
          f         11     1         12 [] ok
          f         11     1         13 [] ok
-         f         12     0         26 [p([0, 2]) : 25] cf(35)
-         f         12     1         20 [] cf(28)
-         f         12     1         21 [] cf(28)
-         f         12     1         22 [] cf(28)
-         f         12     1         23 [] cf(28)
-         f         12     1         24 [] cf(28)
-         f         12     1         25 [] cf(28)
-         f         12     1          1 [] ok
-         f         12     1          8 [] ok
+         f         12     1         14 [] ok
+         f         12     0         27 [p([0, 1, 1, 1, 1, 2]) : 26] cf(36)
+         f         12     1         21 [] cf(29)
+         f         12     1         22 [] cf(29)
+         f         12     1         23 [] cf(29)
+         f         12     1         24 [] cf(29)
+         f         12     1         25 [] cf(29)
+         f         12     1         26 [] cf(29)
          f         12     1          9 [] ok
          f         12     1         10 [] ok
          f         12     1         11 [] ok
          f         12     1         12 [] ok
          f         12     1         13 [] ok
-         f         13     0         27 [] cf(41)
-         f         13     1         20 [] ok
+         f         13     1         14 [] ok
+         f         13     0         28 [] cf(42)
          f         13     1         21 [] ok
          f         13     1         22 [] ok
          f         13     1         23 [] ok
          f         13     1         24 [] ok
          f         13     1         25 [] ok
-         f         13     1          1 [] ok
-         f         13     1          8 [] ok
+         f         13     1         26 [] ok
          f         13     1          9 [] ok
          f         13     1         10 [] ok
          f         13     1         11 [] ok
@@ -93,30 +93,29 @@ Scheduled Goals:
 
 
 Formula Cache:
-         1 let(z : _393815, all([xpos(rob1, _393822, s0), ypos(rob1, _393828, s0), +(_393822, _393828, _393835), +(_393835, 5, _393841), _393815 = _393841]), until(30, one([not2(occur(grab(rob1, item1))), let(startx : _393870, all([xpos(rob1, _393877, s0), _393870 = _393877]), until(5, all([xpos(rob1, _393894, s0), _393894 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _393913, all([xpos(rob1, _393920, s0), -(_393920, 1, _393927), _393913 = _393927]), all([w > z]))))
-         4 until(30, sched(p([0, 2]), _393951, ok), let(w : _393965, all([xpos(rob1, _393972, s0), -(_393972, 1, _393979), _393965 = _393979]), all([w > 25])))
-        17 until(30, sched(p([0, 2]), _394003, ok), let(w : _394017, all([xpos(rob1, _394024, s0), -(_394024, 1, _394031), _394017 = _394031]), all([w > 26])))
-        18 until(30, sched(p([0, 2]), _394055, ok), let(w : _394069, all([xpos(rob1, _394076, s0), -(_394076, 1, _394083), _394069 = _394083]), all([w > 27])))
-        19 until(30, sched(p([0, 2]), _394107, ok), let(w : _394121, all([xpos(rob1, _394128, s0), -(_394128, 1, _394135), _394121 = _394135]), all([w > 28])))
-        20 until(30, sched(p([0, 2]), _394159, ok), let(w : _394173, all([xpos(rob1, _394180, s0), -(_394180, 1, _394187), _394173 = _394187]), all([w > 29])))
-        21 until(30, sched(p([0, 2]), _394211, ok), let(w : _394225, all([xpos(rob1, _394232, s0), -(_394232, 1, _394239), _394225 = _394239]), all([w > 30])))
-        22 until(30, sched(p([0, 2]), _394263, ok), let(w : _394277, all([xpos(rob1, _394284, s0), -(_394284, 1, _394291), _394277 = _394291]), all([w > 31])))
-        28 one([not2(occur(grab(rob1, item1))), until(5, all([xpos(rob1, _394332, s0), _394332 >= 22]), not2(carrying(rob1, item1, s0)))])
-        35 until(30, sched(p([0, 2]), _394356, ok), let(w : _394370, all([xpos(rob1, _394377, s0), -(_394377, 1, _394384), _394370 = _394384]), all([w > 37])))
-        36 until(30, sched(p([0, 2]), _394408, ok), let(w : _394422, all([xpos(rob1, _394429, s0), -(_394429, 1, _394436), _394422 = _394436]), all([w > 32])))
-        37 until(30, sched(p([0, 2]), _394460, ok), let(w : _394474, all([xpos(rob1, _394481, s0), -(_394481, 1, _394488), _394474 = _394488]), all([w > 33])))
-        38 until(30, sched(p([0, 2]), _394512, ok), let(w : _394526, all([xpos(rob1, _394533, s0), -(_394533, 1, _394540), _394526 = _394540]), all([w > 34])))
-        39 until(30, sched(p([0, 2]), _394564, ok), let(w : _394578, all([xpos(rob1, _394585, s0), -(_394585, 1, _394592), _394578 = _394592]), all([w > 35])))
-        40 until(30, sched(p([0, 2]), _394616, ok), let(w : _394630, all([xpos(rob1, _394637, s0), -(_394637, 1, _394644), _394630 = _394644]), all([w > 36])))
-        41 until(30, one([not2(occur(grab(rob1, item1))), let(startx : _394685, all([xpos(rob1, _394692, s0), _394685 = _394692]), until(5, all([xpos(rob1, _394709, s0), _394709 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _394728, all([xpos(rob1, _394735, s0), -(_394735, 1, _394742), _394728 = _394742]), all([w > 38])))
+         1 all([all([let(z : _317949, all([xpos(rob1, _317956, s0), ypos(rob1, _317962, s0), +(_317956, _317962, _317969), +(_317969, 5, _317975), _317949 = _317975]), until(30, one([not2(occur(grab(rob1, item1))), let(startx : _318004, all([xpos(rob1, _318011, s0), _318004 = _318011]), until(5, all([xpos(rob1, _318028, s0), _318028 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _318047, all([xpos(rob1, _318054, s0), -(_318054, 1, _318061), _318047 = _318061]), all([w > z])))), let(z : _318082, all([xpos(rob1, _318089, s0), ypos(rob1, _318095, s0), +(_318089, _318095, _318102), +(_318102, 5, _318108), _318082 = _318108]), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _318137, all([xpos(rob1, _318144, s0), _318137 = _318144]), until(5, all([xpos(rob1, _318161, s0), _318161 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _318180, all([xpos(rob1, _318187, s0), -(_318187, 1, _318194), _318180 = _318194]), all([w > z]))))]), all([let(z : _318219, all([xpos(rob2, _318226, s0), ypos(rob2, _318232, s0), +(_318226, _318232, _318239), +(_318239, 5, _318245), _318219 = _318245]), until(30, one([not2(occur(grab(rob2, item1))), let(startx : _318274, all([xpos(rob2, _318281, s0), _318274 = _318281]), until(5, all([xpos(rob2, _318298, s0), _318298 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _318317, all([xpos(rob2, _318324, s0), -(_318324, 1, _318331), _318317 = _318331]), all([w > z])))), let(z : _318352, all([xpos(rob2, _318359, s0), ypos(rob2, _318365, s0), +(_318359, _318365, _318372), +(_318372, 5, _318378), _318352 = _318378]), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _318407, all([xpos(rob2, _318414, s0), _318407 = _318414]), until(5, all([xpos(rob2, _318431, s0), _318431 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _318450, all([xpos(rob2, _318457, s0), -(_318457, 1, _318464), _318450 = _318464]), all([w > z]))))])])
+        18 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _318496, ok), let(w : _318518, all([xpos(rob1, _318525, s0), -(_318525, 1, _318532), _318518 = _318532]), all([w > 26]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _318570, all([xpos(rob1, _318577, s0), _318570 = _318577]), until(5, all([xpos(rob1, _318594, s0), _318594 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _318613, all([xpos(rob1, _318620, s0), -(_318620, 1, _318627), _318613 = _318627]), all([w > 26])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _318669, all([xpos(rob2, _318676, s0), _318669 = _318676]), until(5, all([xpos(rob2, _318693, s0), _318693 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _318712, all([xpos(rob2, _318719, s0), -(_318719, 1, _318726), _318712 = _318726]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _318764, all([xpos(rob2, _318771, s0), _318764 = _318771]), until(5, all([xpos(rob2, _318788, s0), _318788 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _318807, all([xpos(rob2, _318814, s0), -(_318814, 1, _318821), _318807 = _318821]), all([w > 35])))])])
+        19 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _318853, ok), let(w : _318875, all([xpos(rob1, _318882, s0), -(_318882, 1, _318889), _318875 = _318889]), all([w > 27]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _318927, all([xpos(rob1, _318934, s0), _318927 = _318934]), until(5, all([xpos(rob1, _318951, s0), _318951 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _318970, all([xpos(rob1, _318977, s0), -(_318977, 1, _318984), _318970 = _318984]), all([w > 27])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _319026, all([xpos(rob2, _319033, s0), _319026 = _319033]), until(5, all([xpos(rob2, _319050, s0), _319050 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _319069, all([xpos(rob2, _319076, s0), -(_319076, 1, _319083), _319069 = _319083]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _319121, all([xpos(rob2, _319128, s0), _319121 = _319128]), until(5, all([xpos(rob2, _319145, s0), _319145 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _319164, all([xpos(rob2, _319171, s0), -(_319171, 1, _319178), _319164 = _319178]), all([w > 35])))])])
+        20 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _319210, ok), let(w : _319232, all([xpos(rob1, _319239, s0), -(_319239, 1, _319246), _319232 = _319246]), all([w > 28]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _319284, all([xpos(rob1, _319291, s0), _319284 = _319291]), until(5, all([xpos(rob1, _319308, s0), _319308 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _319327, all([xpos(rob1, _319334, s0), -(_319334, 1, _319341), _319327 = _319341]), all([w > 28])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _319383, all([xpos(rob2, _319390, s0), _319383 = _319390]), until(5, all([xpos(rob2, _319407, s0), _319407 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _319426, all([xpos(rob2, _319433, s0), -(_319433, 1, _319440), _319426 = _319440]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _319478, all([xpos(rob2, _319485, s0), _319478 = _319485]), until(5, all([xpos(rob2, _319502, s0), _319502 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _319521, all([xpos(rob2, _319528, s0), -(_319528, 1, _319535), _319521 = _319535]), all([w > 35])))])])
+        21 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _319567, ok), let(w : _319589, all([xpos(rob1, _319596, s0), -(_319596, 1, _319603), _319589 = _319603]), all([w > 29]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _319641, all([xpos(rob1, _319648, s0), _319641 = _319648]), until(5, all([xpos(rob1, _319665, s0), _319665 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _319684, all([xpos(rob1, _319691, s0), -(_319691, 1, _319698), _319684 = _319698]), all([w > 29])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _319740, all([xpos(rob2, _319747, s0), _319740 = _319747]), until(5, all([xpos(rob2, _319764, s0), _319764 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _319783, all([xpos(rob2, _319790, s0), -(_319790, 1, _319797), _319783 = _319797]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _319835, all([xpos(rob2, _319842, s0), _319835 = _319842]), until(5, all([xpos(rob2, _319859, s0), _319859 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _319878, all([xpos(rob2, _319885, s0), -(_319885, 1, _319892), _319878 = _319892]), all([w > 35])))])])
+        22 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _319924, ok), let(w : _319946, all([xpos(rob1, _319953, s0), -(_319953, 1, _319960), _319946 = _319960]), all([w > 30]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _319998, all([xpos(rob1, _320005, s0), _319998 = _320005]), until(5, all([xpos(rob1, _320022, s0), _320022 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _320041, all([xpos(rob1, _320048, s0), -(_320048, 1, _320055), _320041 = _320055]), all([w > 30])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _320097, all([xpos(rob2, _320104, s0), _320097 = _320104]), until(5, all([xpos(rob2, _320121, s0), _320121 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _320140, all([xpos(rob2, _320147, s0), -(_320147, 1, _320154), _320140 = _320154]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _320192, all([xpos(rob2, _320199, s0), _320192 = _320199]), until(5, all([xpos(rob2, _320216, s0), _320216 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _320235, all([xpos(rob2, _320242, s0), -(_320242, 1, _320249), _320235 = _320249]), all([w > 35])))])])
+        23 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _320281, ok), let(w : _320303, all([xpos(rob1, _320310, s0), -(_320310, 1, _320317), _320303 = _320317]), all([w > 31]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _320355, all([xpos(rob1, _320362, s0), _320355 = _320362]), until(5, all([xpos(rob1, _320379, s0), _320379 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _320398, all([xpos(rob1, _320405, s0), -(_320405, 1, _320412), _320398 = _320412]), all([w > 31])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _320454, all([xpos(rob2, _320461, s0), _320454 = _320461]), until(5, all([xpos(rob2, _320478, s0), _320478 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _320497, all([xpos(rob2, _320504, s0), -(_320504, 1, _320511), _320497 = _320511]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _320549, all([xpos(rob2, _320556, s0), _320549 = _320556]), until(5, all([xpos(rob2, _320573, s0), _320573 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _320592, all([xpos(rob2, _320599, s0), -(_320599, 1, _320606), _320592 = _320606]), all([w > 35])))])])
+        29 one([not2(occur(grab(rob1, item1))), until(5, all([xpos(rob1, _320647, s0), _320647 >= 22]), not2(carrying(rob1, item1, s0)))])
+        36 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _320679, ok), let(w : _320701, all([xpos(rob1, _320708, s0), -(_320708, 1, _320715), _320701 = _320715]), all([w > 37]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _320753, all([xpos(rob1, _320760, s0), _320753 = _320760]), until(5, all([xpos(rob1, _320777, s0), _320777 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _320796, all([xpos(rob1, _320803, s0), -(_320803, 1, _320810), _320796 = _320810]), all([w > 37])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _320852, all([xpos(rob2, _320859, s0), _320852 = _320859]), until(5, all([xpos(rob2, _320876, s0), _320876 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _320895, all([xpos(rob2, _320902, s0), -(_320902, 1, _320909), _320895 = _320909]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _320947, all([xpos(rob2, _320954, s0), _320947 = _320954]), until(5, all([xpos(rob2, _320971, s0), _320971 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _320990, all([xpos(rob2, _320997, s0), -(_320997, 1, _321004), _320990 = _321004]), all([w > 35])))])])
+        37 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _321036, ok), let(w : _321058, all([xpos(rob1, _321065, s0), -(_321065, 1, _321072), _321058 = _321072]), all([w > 32]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _321110, all([xpos(rob1, _321117, s0), _321110 = _321117]), until(5, all([xpos(rob1, _321134, s0), _321134 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _321153, all([xpos(rob1, _321160, s0), -(_321160, 1, _321167), _321153 = _321167]), all([w > 32])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _321209, all([xpos(rob2, _321216, s0), _321209 = _321216]), until(5, all([xpos(rob2, _321233, s0), _321233 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _321252, all([xpos(rob2, _321259, s0), -(_321259, 1, _321266), _321252 = _321266]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _321304, all([xpos(rob2, _321311, s0), _321304 = _321311]), until(5, all([xpos(rob2, _321328, s0), _321328 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _321347, all([xpos(rob2, _321354, s0), -(_321354, 1, _321361), _321347 = _321361]), all([w > 35])))])])
+        38 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _321393, ok), let(w : _321415, all([xpos(rob1, _321422, s0), -(_321422, 1, _321429), _321415 = _321429]), all([w > 33]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _321467, all([xpos(rob1, _321474, s0), _321467 = _321474]), until(5, all([xpos(rob1, _321491, s0), _321491 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _321510, all([xpos(rob1, _321517, s0), -(_321517, 1, _321524), _321510 = _321524]), all([w > 33])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _321566, all([xpos(rob2, _321573, s0), _321566 = _321573]), until(5, all([xpos(rob2, _321590, s0), _321590 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _321609, all([xpos(rob2, _321616, s0), -(_321616, 1, _321623), _321609 = _321623]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _321661, all([xpos(rob2, _321668, s0), _321661 = _321668]), until(5, all([xpos(rob2, _321685, s0), _321685 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _321704, all([xpos(rob2, _321711, s0), -(_321711, 1, _321718), _321704 = _321718]), all([w > 35])))])])
+        39 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _321750, ok), let(w : _321772, all([xpos(rob1, _321779, s0), -(_321779, 1, _321786), _321772 = _321786]), all([w > 34]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _321824, all([xpos(rob1, _321831, s0), _321824 = _321831]), until(5, all([xpos(rob1, _321848, s0), _321848 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _321867, all([xpos(rob1, _321874, s0), -(_321874, 1, _321881), _321867 = _321881]), all([w > 34])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _321923, all([xpos(rob2, _321930, s0), _321923 = _321930]), until(5, all([xpos(rob2, _321947, s0), _321947 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _321966, all([xpos(rob2, _321973, s0), -(_321973, 1, _321980), _321966 = _321980]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _322018, all([xpos(rob2, _322025, s0), _322018 = _322025]), until(5, all([xpos(rob2, _322042, s0), _322042 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _322061, all([xpos(rob2, _322068, s0), -(_322068, 1, _322075), _322061 = _322075]), all([w > 35])))])])
+        40 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _322107, ok), let(w : _322129, all([xpos(rob1, _322136, s0), -(_322136, 1, _322143), _322129 = _322143]), all([w > 35]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _322181, all([xpos(rob1, _322188, s0), _322181 = _322188]), until(5, all([xpos(rob1, _322205, s0), _322205 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _322224, all([xpos(rob1, _322231, s0), -(_322231, 1, _322238), _322224 = _322238]), all([w > 35])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _322280, all([xpos(rob2, _322287, s0), _322280 = _322287]), until(5, all([xpos(rob2, _322304, s0), _322304 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _322323, all([xpos(rob2, _322330, s0), -(_322330, 1, _322337), _322323 = _322337]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _322375, all([xpos(rob2, _322382, s0), _322375 = _322382]), until(5, all([xpos(rob2, _322399, s0), _322399 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _322418, all([xpos(rob2, _322425, s0), -(_322425, 1, _322432), _322418 = _322432]), all([w > 35])))])])
+        41 all([all([until(30, sched(p([0, 1, 1, 1, 1, 2]), _322464, ok), let(w : _322486, all([xpos(rob1, _322493, s0), -(_322493, 1, _322500), _322486 = _322500]), all([w > 36]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _322538, all([xpos(rob1, _322545, s0), _322538 = _322545]), until(5, all([xpos(rob1, _322562, s0), _322562 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _322581, all([xpos(rob1, _322588, s0), -(_322588, 1, _322595), _322581 = _322595]), all([w > 36])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _322637, all([xpos(rob2, _322644, s0), _322637 = _322644]), until(5, all([xpos(rob2, _322661, s0), _322661 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _322680, all([xpos(rob2, _322687, s0), -(_322687, 1, _322694), _322680 = _322694]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _322732, all([xpos(rob2, _322739, s0), _322732 = _322739]), until(5, all([xpos(rob2, _322756, s0), _322756 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _322775, all([xpos(rob2, _322782, s0), -(_322782, 1, _322789), _322775 = _322789]), all([w > 35])))])])
+        42 all([all([until(30, one([not2(occur(grab(rob1, item1))), let(startx : _322838, all([xpos(rob1, _322845, s0), _322838 = _322845]), until(5, all([xpos(rob1, _322862, s0), _322862 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _322881, all([xpos(rob1, _322888, s0), -(_322888, 1, _322895), _322881 = _322895]), all([w > 38]))), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _322933, all([xpos(rob1, _322940, s0), _322933 = _322940]), until(5, all([xpos(rob1, _322957, s0), _322957 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _322976, all([xpos(rob1, _322983, s0), -(_322983, 1, _322990), _322976 = _322990]), all([w > 38])))]), all([until(30, one([not2(occur(grab(rob2, item1))), let(startx : _323032, all([xpos(rob2, _323039, s0), _323032 = _323039]), until(5, all([xpos(rob2, _323056, s0), _323056 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _323075, all([xpos(rob2, _323082, s0), -(_323082, 1, _323089), _323075 = _323089]), all([w > 35]))), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _323127, all([xpos(rob2, _323134, s0), _323127 = _323134]), until(5, all([xpos(rob2, _323151, s0), _323151 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _323170, all([xpos(rob2, _323177, s0), -(_323177, 1, _323184), _323170 = _323184]), all([w > 35])))])])
 
 
 Cache Candidates:
-f(0) [41, 40, 39, 38, 37, 36, 35, 22, 21, 20, 19, 18, 17, 4, 1]
+f(0) [42, 41, 40, 39, 38, 37, 36, 23, 22, 21, 20, 19, 18, 1]
 
 
 State:
-[fl(domain, agent) - [rob1, rob2], fl(painted, item1) - false, fl(painted, item2) - false, fl(active, rob1) - false, fl(domain, channel) - [], fl(active, rob2) - false, fl(domain, robot) - [rob1, rob2], fl(domain, object) - [item1, item2, rob1, rob2], fl(domain, sensor) - [], fl(xpos, rob1) - 24, fl(domain, item) - [item1, item2], fl(time) - 14, fl(xpos, rob2) - 10, fl(carrying, rob1, item1) - true, fl(carrying, rob1, item2) - false, fl(carrying, rob2, item1) - false, fl(carrying, rob2, item2) - false, fl(domain, connector) - [], fl(domain, message) - [], fl(domain, remoteSensor) - [], fl(ypos, rob1) - 10, fl(domain, sort) - [agent, channel, connector, item, message, object, remoteSensor, robot, sensor, sort], fl(ypos, rob2) - 20]
+[fl(domain, agent) - [rob1, rob2], fl(painted, item1) - false, fl(painted, item2) - false, fl(active, rob1) - false, fl(domain, channel) - [], fl(active, rob2) - false, fl(domain, robot) - [rob1, rob2], fl(domain, object) - [item1, item2, rob1, rob2], fl(domain, sensor) - [], fl(xpos, rob1) - 24, fl(domain, item) - [item1, item2], fl(time) - 14, fl(xpos, rob2) - 10, fl(carrying, rob1, item1) - true, fl(carrying, rob1, item2) - false, fl(carrying, rob2, item1) - false, fl(carrying, rob2, item2) - true, fl(domain, connector) - [], fl(domain, message) - [], fl(domain, remoteSensor) - [], fl(ypos, rob1) - 10, fl(domain, sort) - [agent, channel, connector, item, message, object, remoteSensor, robot, sensor, sort], fl(ypos, rob2) - 20]
 
 --------------------------------------------
 

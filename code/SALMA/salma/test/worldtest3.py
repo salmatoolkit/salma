@@ -251,10 +251,10 @@ forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         self.assertEqual(verdict, OK)
 
-    def create_periodic_agent(self, agent_id, item_id, start=0, period=6, delta=3):
+    def create_periodic_agent(self, agent_id, item_id, target_x=40, start=0, period=6, delta=3):
         proc = Procedure("main", [], [
             While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < 40", [], [
+                  u"xpos(self) < {0:d}".format(target_x), [], [
                     Act("move_right", [Entity.SELF])
                 ])
         ])
@@ -266,7 +266,7 @@ forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
             Act("drop", [Entity.SELF, item_id])
         ])
         p2 = PeriodicProcess(proc2, period, introduction_time=start)
-        p3 = PeriodicProcess(proc3, period, introduction_time=start+delta)
+        p3 = PeriodicProcess(proc3, period, introduction_time=start + delta)
         rob = Agent(agent_id, "robot", [p1, p2, p3])
         return rob
 
@@ -300,7 +300,7 @@ forall([r, robot],
         print("time: {}".format(dt.total_seconds()))
 
         # world.printState()
-        print("\n\n" + ("-"*50) + "\n")
+        print("\n\n" + ("-" * 50) + "\n")
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         return verdict, results
 
@@ -387,7 +387,46 @@ forall([r,robot],
 
     @withHeader()
     def test_property_with_variable_1(self):
-        
+        f_str = """
+forall(r : robot,
+            forall(i : item,
+                let(z : xpos(r) + ypos(r) + 5,
+                    implies(
+                        z = 25,
+                        until(20,
+                            implies(
+                                occur(grab(r, i)),
+                                let(startx : xpos(r),
+                                    until(10,
+                                        xpos(r) >= startx,
+                                        not(carrying(r, i))
+                                    )
+                                )
+                            ),
+                            let(w : xpos(r) - 1,
+                                w > z)
+                        )
+                    )
+                )
+            )
+        ).
+"""
+        world = World.instance()
+        rob1 = self.create_periodic_agent("rob1", "item1", target_x=50)
+        rob2 = self.create_periodic_agent("rob2", "item2",  target_x=50)
+        world.addAgent(rob1)
+        world.addAgent(rob2)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=10)
+        world.registerProperty("f", f_str, World.INVARIANT)
+        verdict, results = world.runExperiment(maxSteps=50)
+        print("Verdict: " + str(verdict))
+        #print("Results: " + str(results))
+        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
+
 
 if __name__ == '__main__':
     unittest.main()

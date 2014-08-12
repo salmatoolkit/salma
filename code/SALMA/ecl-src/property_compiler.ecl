@@ -60,10 +60,10 @@ remove_quantifiers_list([H | Tl], Tl2) :-
 
 remove_quantifiers_term(T, Out) :-
 	
-		T = forall([Var,Type],Formula),
+		(T = forall([Var,Type],Formula) ; T = forall(Var : Type, Formula)),
 		erase_forall(Var, Type, Formula, Out), !
 		;
-		T = exists([Var,Type],Formula),
+		(T = exists([Var,Type],Formula) ; T = exists(Var : Type, Formula)),
 		erase_exists(Var, Type, Formula, Out), !
 		;
 		arity(T, N),

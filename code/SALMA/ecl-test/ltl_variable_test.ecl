@@ -142,18 +142,37 @@ get_prop_7_1(F) :-
 						w > z)
 				)
 		).
-	
-	
+
+get_prop_7_2(F) :-
+	F = forall(r : robot,
+			forall(i : item,
+				let(z : xpos(r) + ypos(r) + 5,	
+						until(30, 
+							implies(
+								occur(grab(r, i)),
+								let(startx : xpos(r),
+									until(5, 
+										xpos(r) >= startx,
+										not(carrying(r, i))
+									)
+								)
+							),					
+							let(w : xpos(r) - 1,
+								w > z)
+						)
+				)
+			)
+		).	
 test_var_7 :-
 	init,
-	get_prop_7_1(F),	
+	get_prop_7_2(F),	
 	register_property(f, F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
 	
 	evaluate_formula(f, [0], 0, F2, 0, Result, ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]),
 	
-	
+	progress([grab(rob2,item2)]), 
 	(count(I,0,20) do
 		time(Time, s0),
 		(mod(Time, 6, 0),
