@@ -23,11 +23,10 @@ _MODE = ESTIMATION
 
 
 class EMobilityScenario1(EMobilityTest):
-    NUM_OF_VEHICLES = 100
-    PLCS_CAPACITY = 1000
-    VEHICLE_SPEED = 1
-    TIME_LIMIT = 100
-
+    NUM_OF_VEHICLES = 5
+    PLCS_CAPACITY = 50
+    VEHICLE_SPEED = 5
+    TIME_LIMIT = 50
 
     def __print_info(self, world):
         """

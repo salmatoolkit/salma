@@ -182,7 +182,7 @@ compile_constraints_term(T, Out, Situation) :-
 		T = possible(GologProg),
 		Out = possible(GologProg, Situation), !	
 		;		
-		T = let(Var, Def, Body),
+		T = let(Var : Def, Body),		
 		var(NewVar),
 		create_constraint(=, [NewVar, Def], NewDef, Situation),
 		compile_constraints_term(Body, NewBody, Situation),

@@ -336,7 +336,7 @@ forall([r, robot],
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    #@unittest.skip
+    @unittest.skip
     def test_property_4(self):
         world = World.instance()
 
@@ -385,6 +385,9 @@ forall([r,robot],
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         self.assertEqual(verdict, OK)
 
+    @withHeader()
+    def test_property_with_variable_1(self):
+        
 
 if __name__ == '__main__':
     unittest.main()

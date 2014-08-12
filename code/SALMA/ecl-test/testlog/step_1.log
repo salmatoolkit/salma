@@ -1,4 +1,4 @@
-1 : _14739 _14740 _14741 _14742
+1 : _15173 _15174 _15175 _15176
 Scheduled Goals:
       Name       Time Level         Id     Params Term
 -------------------------------------------------------
@@ -7,14 +7,13 @@ Scheduled Goals:
 
 
 Formula Cache:
-         1 let(z : _14891, all([xpos(rob1, _14898, s0), ypos(rob1, _14904, s0), +(_14898, _14904, _14911), +(_14911, 5, _14917), _14891 = _14917]), until(30, one([not2(occur(grab(rob1, item1))), let(startx : _14946, all([xpos(rob1, _14953, s0), _14946 = _14953]), until(5, all([xpos(rob1, _14970, s0), _14970 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _14989, all([xpos(rob1, _14996, s0), -(_14996, 1, _15003), _14989 = _15003]), all([w > z]))))
-         2 one([not2(occur(grab(rob1, item1))), until(5, all([xpos(rob1, _15044, s0), _15044 >= 10]), not2(carrying(rob1, item1, s0)))])
-         3 until(30, sched(p([0, 2]), _15068, cf(2)), let(w : _15084, all([xpos(rob1, _15091, s0), -(_15091, 1, _15098), _15084 = _15098]), all([w > 25])))
+         1 let(z : _15325, all([xpos(rob1, _15332, s0), ypos(rob1, _15338, s0), +(_15332, _15338, _15345), +(_15345, 5, _15351), _15325 = _15351]), until(30, one([not2(occur(grab(rob1, item1))), let(startx : _15380, all([xpos(rob1, _15387, s0), _15380 = _15387]), until(5, all([xpos(rob1, _15404, s0), _15404 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _15423, all([xpos(rob1, _15430, s0), -(_15430, 1, _15437), _15423 = _15437]), all([w > z]))))
+         2 one([not2(occur(grab(rob1, item1))), until(5, all([xpos(rob1, _15478, s0), _15478 >= 10]), not2(carrying(rob1, item1, s0)))])
+         3 until(30, sched(p([0, 2]), _15502, cf(2)), let(w : _15518, all([xpos(rob1, _15525, s0), -(_15525, 1, _15532), _15518 = _15532]), all([w > 25])))
 
 
 Cache Candidates:
 f(0) [3, 1]
-f(0, 2) [2]
 
 
 State:

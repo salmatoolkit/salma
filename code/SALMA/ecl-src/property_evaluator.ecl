@@ -98,15 +98,28 @@ set_properties_unsynced(IsUnsynced) :-
 		(properties_unsynced -> retract(properties_unsynced) ; true)
 	).	
 
-% erases all formula cache entries except the ones that are referenced by toplevel entries.
+% erases all formula cache entries except the ones that are referenced by toplevel entries
+% or scheduled goals.
 clean_formula_cache :-
 	stored_keys_and_values(toplevel_goals, L),
 	% first build list of entries to keep
-	(foreach(Entry, L), foreach(E2, EntriesToKeep) do
+	(foreach(Entry, L), foreach(E2, EntriesToKeep1) do
 		Entry = _ - cf(E2)
 	),
-	stored_keys_and_values(formula_cache, L2),
-	(foreach(CacheEntry, L2), param(EntriesToKeep) do
+	
+	stored_keys_and_values(scheduled_goals, L2),
+	(foreach(Entry, L2), fromto([], In, Out, EntriesToKeep2) do
+		Entry = _ - FRef,
+		FRef = app(_, F2),
+		(F2 = cf(CacheId) ->
+			append(In, [CacheId], Out)
+			;
+			Out = In
+		)
+	),	
+	append(EntriesToKeep1, EntriesToKeep2, EntriesToKeep),
+	stored_keys_and_values(formula_cache, L3),
+	(foreach(CacheEntry, L3), param(EntriesToKeep) do
 		CacheEntry = Id - _,
 		(not member(Id, EntriesToKeep) ->
 			store_delete(formula_cache, Id)
@@ -114,8 +127,8 @@ clean_formula_cache :-
 			true
 		)
 	),
-	stored_keys_and_values(formula_cache_candidates, L3),
-	(foreach(CacheCandidateEntry, L3), param(EntriesToKeep) do
+	stored_keys_and_values(formula_cache_candidates, L4),
+	(foreach(CacheCandidateEntry, L4), param(EntriesToKeep) do
 		CacheCandidateEntry = FormulaPath - Candidates,
 		% keep only top level 
 		(FormulaPath =.. [_, 0] ->
@@ -876,7 +889,6 @@ evaluate_scheduled(Key, Result) :-
 	(F2 = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = F2),
 	apply_params(Params, F),
 	setval(negated, 0),
-	printf("evaluate_scheduled start: %w - %w\n\n", [Key, F]),
 	evaluate_formula(ToplevelFormula, [0], T, F, Level, Result, ToSchedule, ScheduleParams2, HasChanged),
 	(Result = nondet ->
 		(HasChanged = true ->
@@ -888,8 +900,7 @@ evaluate_scheduled(Key, Result) :-
 		;
 		ToSchedule2 = Result
 	),
-	store_set(scheduled_goals, Key, app(ScheduleParams2,ToSchedule2)	),
-	printf("evaluate_scheduled end: %w - %w\n\n", [Key, F]).
+	store_set(scheduled_goals, Key, app(ScheduleParams2,ToSchedule2)	).
 	
 
 	

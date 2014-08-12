@@ -27,7 +27,8 @@ evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :
 	evaluate_all_scheduled(ScheduledResults), 
 	get_pending_toplevel_goals(PendingGoals),
 	evaluate_toplevel(ToplevelResults),
-	get_merged_failures(FailureStack).
+	get_merged_failures(FailureStack),
+	clean_formula_cache.
 
 init_agasmc :-
 	init_progression,

@@ -1,11 +1,11 @@
-0 : _10623 _10624 _10625 _10626
+0 : _10720 _10721 _10722 _10723
 Scheduled Goals:
       Name       Time Level         Id     Params Term
 -------------------------------------------------------
 
 
 Formula Cache:
-         1 let(z : _10700, all([xpos(rob1, _10707, s0), ypos(rob1, _10713, s0), +(_10707, _10713, _10720), +(_10720, 5, _10726), _10700 = _10726]), until(30, one([not2(occur(grab(rob1, item1))), let(startx : _10755, all([xpos(rob1, _10762, s0), _10755 = _10762]), until(5, all([xpos(rob1, _10779, s0), _10779 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _10798, all([xpos(rob1, _10805, s0), -(_10805, 1, _10812), _10798 = _10812]), all([w > z]))))
+         1 let(z : _10797, all([xpos(rob1, _10804, s0), ypos(rob1, _10810, s0), +(_10804, _10810, _10817), +(_10817, 5, _10823), _10797 = _10823]), until(30, one([not2(occur(grab(rob1, item1))), let(startx : _10852, all([xpos(rob1, _10859, s0), _10852 = _10859]), until(5, all([xpos(rob1, _10876, s0), _10876 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _10895, all([xpos(rob1, _10902, s0), -(_10902, 1, _10909), _10895 = _10909]), all([w > z]))))
 
 
 Cache Candidates:
