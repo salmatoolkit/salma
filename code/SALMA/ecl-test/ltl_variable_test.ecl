@@ -19,11 +19,26 @@ init :-
 	),
 	set_current(time, [], 0).
 
-test_carry :-
-	init,
-	progress([grab(rob1,item1), move_right(rob1)]),
-	xpos(rob1, 11, s0).
+	
+write_step_report(SD, I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :-
+	printf(SD, "%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
+	printf(SD, "Scheduled Goals:\n",[]),
+	print_scheduled_goals(SD,4),
+	printf(SD, "\n\nFormula Cache:\n",[]),
+	print_formula_cache(SD),
+	printf(SD, "\n\nCache Candidates:\n",[]),
+	print_cache_candidates(SD),
+	current_state(_, State2),
+	printf(SD, "\n\nState:\n%w\n",[State2]),
+	printf(SD, "\n--------------------------------------------\n\n",[]).
 
+report_step(I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :-
+	sprintf(FName, "testlog/step_%d.log",[I]),
+	open(FName, write, SD),
+	write_step_report(SD, I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+	%write_step_report(stdout, I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+	close(SD).
+	
 	
 grabAll :-
 	L = [grab(rob1, item1)],
@@ -34,142 +49,6 @@ moveAll :-
 	progress(L).
 
 	
-test :-
-	init,
-	F = forall([r,robot],
-            forall([j,item],
-                implies(
-                    occur(grab(r,j)),
-                    until(12,
-                        carrying(r,j),
-                        xpos(r) > 20
-                    )
-                )
-            )
-        ),
-	register_property(f, F, _),
-	grabAll,
-	(count(I,0,20) do
-				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
-				printf("%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-				moveAll,
-				progress([tick])
-	).
-	
-test2 :-
-	init,
-	F = until(20,
-			implies(
-				occur(grab(rob1, item1)),
-				until(5,
-					carrying(rob1,item1),
-					not(carrying(rob1,item1))
-				)
-			),
-			xpos(rob1) >= 29
-		),
-	register_property(f, F, F2),
-	printf("F: %w \n F2: %w\n",[F,F2]),
-	progress([grab(rob1, item1)]),
-	(count(I,0,20) do
-				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
-				printf("%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-				moveAll,
-				(time(4, s0) ->
-					progress([drop(rob1, item1)])
-					;
-					true
-				),
-				progress([tick])
-	).
-	
-test3 :-
-	init,
-	F = forall([r, robot],
-			until(20,
-				implies(
-					occur(grab(r, item1)),
-					until(5,
-						true,
-						not(carrying(r,item1))
-					)
-				),
-				xpos(r) >= 29
-			)
-		),
-	register_property(f, F, F2),
-	printf("F: %w \n F2: %w\n",[F,F2]),
-	progress([grab(rob1, item1)]),
-	(count(I,0,20) do
-				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
-				printf("%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-				moveAll,
-				(time(4, s0) ->
-					progress([drop(rob1, item1)])
-					;
-					true
-				),
-				progress([tick])
-	).
-	
-	
-test4 :-
-	init,
-	F = forall([r, robot], forall([i, item],
-			until(20,
-				implies(
-					occur(grab(r, i)),
-					until(5,
-						carrying(r,i),
-						not(carrying(r,i))
-					)
-				),
-				xpos(r) >= 29
-			)
-		)),
-	open("testlog/test4_log.txt", write, SD),
-	register_property(f, F, F2),
-	printf(SD, "F: %w \n F2: %w\n",[F,F2]),
-	printf(SD, "Before:\n--------------------------------------------\n\n",[]),
-	printf(SD, "\n\nToplevel Goals:\n",[]),
-	print_toplevel_goals(SD),
-	printf(SD, "\n\nScheduled Goals:\n",[]),
-	print_scheduled_goals(SD,4),
-	printf(SD, "\n\nFormula Cache:\n",[]),
-	print_formula_cache(SD),
-	printf(SD, "\n\nCache Candidates:\n",[]),
-	print_cache_candidates(SD),
-	current_state(_, State),
-	printf(SD, "\n%w\n",[State]),
-	printf(SD, "\n--------------------------------------------\n\n",[]),
-	close(SD),
-	progress([grab(rob1, item1)]),
-	progress([grab(rob2, item2)]),
-	(count(I,0,20) do
-				
-				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
-				sprintf(FName, "testlog/step_%d.log",[I]),
-				open(FName, write, SD2),
-				printf(SD2, "%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-				printf(SD2, "Scheduled Goals:\n",[]),
-				print_scheduled_goals(SD2,4),
-				printf(SD2, "\n\nFormula Cache:\n",[]),
-				print_formula_cache(SD2),
-				printf(SD2, "\n\nCache Candidates:\n",[]),
-				print_cache_candidates(SD2),
-				current_state(_, State2),
-				printf(SD2, "\n\nSate:\n%w\n",[State2]),
-				printf(SD2, "\n--------------------------------------------\n\n",[]),
-				close(SD2),
-				moveAll,
-				(time(4, s0) ->
-					progress([drop(rob1, item1)]),
-					progress([drop(rob2, item2)])
-					;
-					true
-				),
-				progress([tick])
-	).
 	
 test_var_1 :-
 	init,
@@ -203,16 +82,23 @@ test_var_3 :-
 
 test_var_4 :-
 	init,
-	F = let(z, xpos(rob1) + ypos(rob1),	
+	F = let(z, xpos(rob1) + ypos(rob1) - 5,	
 				until(10, true, 
 					let(w, xpos(rob1) - 1,
 						w > z))),
-	compile_formula(F, F2),
+	register_property(f, F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
-	evaluate_formula(f, [0], 0, F2, 0, Result, 
-	ToSchedule, ScheduleParams, HasChanged),
-	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).	
-
+	
+	evaluate_formula(f, [0], 0, F2, 0, Result, ToSchedule, ScheduleParams, HasChanged),
+	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]),
+	
+	
+	(count(I,0,20) do
+		report_step(I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+		evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+		moveAll,
+		progress([tick])
+	).
 
 test_var_5 :-
 	init,
@@ -235,3 +121,44 @@ test_var_6 :-
 	evaluate_formula(f, [0], 0, F2, 0, Result, 
 	ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).	
+	
+test_var_7 :-
+	init,
+	F = let(z, xpos(rob1) + ypos(rob1) + 5,	
+				until(30, 
+					implies(
+						occur(grab(rob1, item1)),
+						let(startx, xpos(rob1),
+							until(5, 
+								xpos(rob1) >= startx,
+								not(carrying(rob1, item1))
+							)
+						)
+					),					
+					let(w, xpos(rob1) - 1,
+						w > z)
+				)
+		),
+	
+	register_property(f, F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	
+	evaluate_formula(f, [0], 0, F2, 0, Result, ToSchedule, ScheduleParams, HasChanged),
+	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]),
+	
+	
+	(count(I,0,20) do
+		time(Time, s0),
+		(mod(Time, 6, 0),
+			progress([grab(rob1,item1)]), !
+			;
+		mod(Time, 6, 4),
+			progress([drop(rob1, item1)]), !
+			;
+			true			
+		),
+		report_step(I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+		evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+		moveAll,
+		progress([tick])
+	).

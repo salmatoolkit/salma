@@ -1,31 +1,24 @@
-1 : [nondet : f] [nondet : sg(f, 0, 3, 0)] [sg(f, 0, 3, 0)] []
+1 : _14739 _14740 _14741 _14742
 Scheduled Goals:
       Name       Time Level         Id     Params Term
 -------------------------------------------------------
          f          0     1          1 [] cf(2)
-         f          0     0          3 [p([0, 1, 1, 1, 1, 2]) : 1, p([0, 1, 2, 1, 2, 2]) : 2] cf(5)
-         f          0     1          2 [] cf(3)
-         f          1     1          1 [] ok
-         f          1     1          2 [] ok
-         f          1     0          4 [] cf(1)
+         f          0     0          2 [p([0, 2]) : 1] cf(3)
 
 
 Formula Cache:
-         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), all([xpos(rob1, _30391, s0), _30391 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _30437, s0), _30437 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _30487, s0), _30487 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), all([xpos(rob2, _30533, s0), _30533 >= 29]))])])
-         2 one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         3 one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-         4 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _30623, cf(2)), all([xpos(rob1, _30647, s0), _30647 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _30693, s0), _30693 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _30743, s0), _30743 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _30758, cf(3)), all([xpos(rob2, _30782, s0), _30782 >= 29]))])])
-         5 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _30808, ok), all([xpos(rob1, _30830, s0), _30830 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _30876, s0), _30876 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _30926, s0), _30926 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _30941, ok), all([xpos(rob2, _30963, s0), _30963 >= 29]))])])
+         1 let(z : _14891, all([xpos(rob1, _14898, s0), ypos(rob1, _14904, s0), +(_14898, _14904, _14911), +(_14911, 5, _14917), _14891 = _14917]), until(30, one([not2(occur(grab(rob1, item1))), let(startx : _14946, all([xpos(rob1, _14953, s0), _14946 = _14953]), until(5, all([xpos(rob1, _14970, s0), _14970 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _14989, all([xpos(rob1, _14996, s0), -(_14996, 1, _15003), _14989 = _15003]), all([w > z]))))
+         2 one([not2(occur(grab(rob1, item1))), until(5, all([xpos(rob1, _15044, s0), _15044 >= 10]), not2(carrying(rob1, item1, s0)))])
+         3 until(30, sched(p([0, 2]), _15068, cf(2)), let(w : _15084, all([xpos(rob1, _15091, s0), -(_15091, 1, _15098), _15084 = _15098]), all([w > 25])))
 
 
 Cache Candidates:
-f(0) [5, 4, 1]
-f(0, 1, 1, 1, 1, 2) [2]
-f(0, 1, 2, 1, 2, 2) [3]
+f(0) [3, 1]
+f(0, 2) [2]
 
 
-Sate:
-[fl(domain, agent) - [rob1, rob2], fl(painted, item1) - false, fl(painted, item2) - false, fl(active, rob1) - false, fl(domain, channel) - [], fl(active, rob2) - false, fl(domain, robot) - [rob1, rob2], fl(domain, object) - [item1, item2, rob1, rob2], fl(domain, sensor) - [], fl(xpos, rob1) - 11, fl(domain, item) - [item1, item2], fl(time) - 1, fl(xpos, rob2) - 10, fl(carrying, rob1, item1) - true, fl(carrying, rob1, item2) - false, fl(carrying, rob2, item1) - false, fl(carrying, rob2, item2) - true, fl(domain, connector) - [], fl(domain, message) - [], fl(domain, remoteSensor) - [], fl(ypos, rob1) - 10, fl(domain, sort) - [agent, channel, connector, item, message, object, remoteSensor, robot, sensor, sort], fl(ypos, rob2) - 20]
+State:
+[fl(domain, agent) - [rob1, rob2], fl(painted, item1) - false, fl(painted, item2) - false, fl(active, rob1) - false, fl(domain, channel) - [], fl(active, rob2) - false, fl(domain, robot) - [rob1, rob2], fl(domain, object) - [item1, item2, rob1, rob2], fl(domain, sensor) - [], fl(xpos, rob1) - 11, fl(domain, item) - [item1, item2], fl(time) - 1, fl(xpos, rob2) - 10, fl(carrying, rob1, item1) - true, fl(carrying, rob1, item2) - false, fl(carrying, rob2, item1) - false, fl(carrying, rob2, item2) - false, fl(domain, connector) - [], fl(domain, message) - [], fl(domain, remoteSensor) - [], fl(ypos, rob1) - 10, fl(domain, sort) - [agent, channel, connector, item, message, object, remoteSensor, robot, sensor, sort], fl(ypos, rob2) - 20]
 
 --------------------------------------------
 

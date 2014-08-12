@@ -240,12 +240,12 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result,
 			), !		
 			;
 			F = let(OrigVar : FreshVar, Def, Body),
-			append(FormulaPath, [2], SubPath1),
-			evaluate_formula(ToplevelFormula, SubPath1, StartTime, Def, Level, _, _, _, _),
+			%append(FormulaPath, [2], SubPath1),
+			evaluate_formula(ToplevelFormula, FormulaPath, StartTime, Def, Level, _, _, _, _),
 			% FreshVar should be bound now
 			subst_in_term(OrigVar, FreshVar, Body, Body2),
-			append(FormulaPath, [3], SubPath2),
-			evaluate_formula(ToplevelFormula, SubPath2, StartTime, Body2, Level, Result, ToSchedule2, ScheduleParams2, _),
+			%append(FormulaPath, [3], SubPath2),
+			evaluate_formula(ToplevelFormula, FormulaPath, StartTime, Body2, Level, Result, ToSchedule2, ScheduleParams2, _),
 			(Result = nondet ->
 				ToSchedule = ToSchedule2, HasChanged = true, ScheduleParams = ScheduleParams2
 				;
@@ -876,6 +876,7 @@ evaluate_scheduled(Key, Result) :-
 	(F2 = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = F2),
 	apply_params(Params, F),
 	setval(negated, 0),
+	printf("evaluate_scheduled start: %w - %w\n\n", [Key, F]),
 	evaluate_formula(ToplevelFormula, [0], T, F, Level, Result, ToSchedule, ScheduleParams2, HasChanged),
 	(Result = nondet ->
 		(HasChanged = true ->
@@ -887,7 +888,8 @@ evaluate_scheduled(Key, Result) :-
 		;
 		ToSchedule2 = Result
 	),
-	store_set(scheduled_goals, Key, app(ScheduleParams2,ToSchedule2)	).
+	store_set(scheduled_goals, Key, app(ScheduleParams2,ToSchedule2)	),
+	printf("evaluate_scheduled end: %w - %w\n\n", [Key, F]).
 	
 
 	
