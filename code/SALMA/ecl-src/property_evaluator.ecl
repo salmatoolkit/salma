@@ -239,6 +239,20 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result,
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
 			), !		
 			;
+			F = let(OrigVar : FreshVar, Def, Body),
+			append(FormulaPath, [2], SubPath1),
+			evaluate_formula(ToplevelFormula, SubPath1, StartTime, Def, Level, _, _, _, _),
+			% FreshVar should be bound now
+			subst_in_term(OrigVar, FreshVar, Body, Body2),
+			append(FormulaPath, [3], SubPath2),
+			evaluate_formula(ToplevelFormula, SubPath2, StartTime, Body2, Level, Result, ToSchedule2, ScheduleParams2, _),
+			(Result = nondet ->
+				ToSchedule = ToSchedule2, HasChanged = true, ScheduleParams = ScheduleParams2
+				;
+				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+			), !
+			;
+						
 			% for all remaining cases: restore original formula for Level > 0 or nondet.
 			% store original formula as value for ToSchedule later
 			shelf_create(orig/1, null, Shelf),

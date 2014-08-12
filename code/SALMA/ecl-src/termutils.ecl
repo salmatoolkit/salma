@@ -1,4 +1,7 @@
 subst_in_term(Var, Rep, T, T2):-
+		var(T), 
+		T2 = T, !
+		;		
         (T = Var ->
             T2 = Rep
         ;

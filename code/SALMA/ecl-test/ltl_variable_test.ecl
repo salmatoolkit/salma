@@ -172,12 +172,66 @@ test4 :-
 	).
 	
 test_var_1 :-
-	F = forall([r, robot],
-			let([z, xpos(r) + ypos(r)],
-				z > 20)),
-	register_property(f, F, F2),
-	printf(SD, "F: %w \n F2: %w\n",[F,F2]).
+	init,
+	F = let(z, xpos(rob1) + ypos(rob1),	xpos(rob1)*4 > z),
+	compile_formula(F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	evaluate_formula(f, [0], 0, F2, 0, Result, 
+	ToSchedule, ScheduleParams, HasChanged),
+	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).
 	
+test_var_2 :-
+	init,
+	F = let(z, xpos(rob1) + ypos(rob1),	
+		until(10, true, xpos(rob1) > z)),
+	compile_formula(F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	evaluate_formula(f, [0], 0, F2, 0, Result, 
+	ToSchedule, ScheduleParams, HasChanged),
+	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).		
 				
-				
-			
+test_var_3 :-
+	init,
+	F = forall([r, robot],
+			let(z, xpos(r) + ypos(r),	
+				until(10, true, xpos(r) > z))),
+	compile_formula(F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	evaluate_formula(f, [0], 0, F2, 0, Result, 
+	ToSchedule, ScheduleParams, HasChanged),
+	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).		
+
+test_var_4 :-
+	init,
+	F = let(z, xpos(rob1) + ypos(rob1),	
+				until(10, true, 
+					let(w, xpos(rob1) - 1,
+						w > z))),
+	compile_formula(F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	evaluate_formula(f, [0], 0, F2, 0, Result, 
+	ToSchedule, ScheduleParams, HasChanged),
+	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).	
+
+
+test_var_5 :-
+	init,
+	F = let(z, xpos(rob1) + ypos(rob1),	
+			let(w, xpos(rob1) -1, 
+				w > 10)),
+	compile_formula(F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	evaluate_formula(f, [0], 0, F2, 0, Result, 
+	ToSchedule, ScheduleParams, HasChanged),
+	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).	
+	
+test_var_6 :-
+	init,
+	F = let(z, xpos(rob1) + ypos(rob1),	
+			let(w, xpos(rob1) -1, 
+				z+ w > 10)),
+	compile_formula(F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	evaluate_formula(f, [0], 0, F2, 0, Result, 
+	ToSchedule, ScheduleParams, HasChanged),
+	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).	

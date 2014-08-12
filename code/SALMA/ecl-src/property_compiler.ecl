@@ -90,7 +90,7 @@ compile_constraints_list([H | Tl], Tl2, Situation) :-
 
 gather_evaluations_list([H], Tl2, InList, OutList, Situation) :-
 		gather_evaluations_term(H, T1, InList, OutList, Situation),
-		Tl2 = [T1].
+		Tl2 = [T1], !.
 		
 gather_evaluations_list([H | Tl], Tl2, InList, OutList, Situation) :-
 		gather_evaluations_term(H, T1, InList, OutList2, Situation),
@@ -110,6 +110,10 @@ gather_evaluations_term(T, Out, InList, OutList, Situation):-
 		is_list(T),
 		gather_evaluations_list(T, Subterms, InList, OutList, Situation), 
 		Out = Subterms, !
+		;
+		var(T),
+		OutList = InList,
+		Out = T, !
 		;
 		functor(T, Functor, N),	
 		(N > 0 ->
@@ -176,8 +180,14 @@ compile_constraints_term(T, Out, Situation) :-
 		Out = T, !
 		;
 		T = possible(GologProg),
-		Out = possible(GologProg, Situation), !
+		Out = possible(GologProg, Situation), !	
 		;		
+		T = let(Var, Def, Body),
+		var(NewVar),
+		create_constraint(=, [NewVar, Def], NewDef, Situation),
+		compile_constraints_term(Body, NewBody, Situation),
+		Out = let(Var : NewVar, NewDef, NewBody), !
+		;
 		functor(T, Functor, N),		
 		(
 			% for fluents we assume that the arguments are either atoms or variables
