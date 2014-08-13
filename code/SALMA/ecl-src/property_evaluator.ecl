@@ -252,13 +252,41 @@ evaluate_formula(ToplevelFormula, FormulaPath, StartTime, F, Level, Result,
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
 			), !		
 			;
-			F = let(OrigVar : FreshVar, Def, Body),
-			%append(FormulaPath, [2], SubPath1),
+			F = let(Var : FreshVar, Def, Body),		
 			evaluate_formula(ToplevelFormula, FormulaPath, StartTime, Def, Level, _, _, _, _),
-			% FreshVar should be bound now
-			subst_in_term(OrigVar, FreshVar, Body, Body2),
-			%append(FormulaPath, [3], SubPath2),
-			evaluate_formula(ToplevelFormula, FormulaPath, StartTime, Body2, Level, Result, ToSchedule2, ScheduleParams2, _),
+			% only proceed if FreshVar has been bound in the previous evaluation
+			(ground(FreshVar) ->
+				subst_in_term(Var, FreshVar, Body, Body2),
+				evaluate_formula(ToplevelFormula, FormulaPath, StartTime, Body2, Level, Result, ToSchedule2, ScheduleParams2, _)
+				;
+				Result = not_ok
+			),			
+			(Result = nondet ->
+				ToSchedule = ToSchedule2, HasChanged = true, ScheduleParams = ScheduleParams2
+				;
+				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+			), !
+			;
+			F = match(VarSpecs, Def, Body),
+			evaluate_formula(ToplevelFormula, FormulaPath, StartTime, Def, Level, _, _, _, _),
+			(foreach(VarSpec, VarSpecs), fromto(Body, BodyIn, BodyOut, Body2), 
+				fromto(true, GIn, GOut, GroundStat) do
+					VarSpec = Var : FreshVar,
+					% only proceed if FreshVar has been bound in the previous evaluation
+					(ground(FreshVar) ->
+						subst_in_term(Var, FreshVar, BodyIn, BodyOut),
+						GOut = GIn						
+						;
+						BodyOut = BodyIn,
+						GOut = false
+					)
+			),
+			(GroundStat = true ->
+				evaluate_formula(ToplevelFormula, FormulaPath, StartTime, 
+					Body2, Level, Result, ToSchedule2, ScheduleParams2, _)
+				;
+				Result = not_ok
+			),
 			(Result = nondet ->
 				ToSchedule = ToSchedule2, HasChanged = true, ScheduleParams = ScheduleParams2
 				;

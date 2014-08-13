@@ -185,8 +185,20 @@ compile_constraints_term(T, Out, Situation) :-
 		T = let(Var : Def, Body),		
 		var(NewVar),
 		create_constraint(=, [NewVar, Def], NewDef, Situation),
+		% FreshVar should be bound now
 		compile_constraints_term(Body, NewBody, Situation),
 		Out = let(Var : NewVar, NewDef, NewBody), !
+		;
+		T = match(VarSpec : Def, Body),
+		(is_list(VarSpec) -> Vars = VarSpec ; Vars = [VarSpec]),
+		compile_constraints_term(Def, Def2, Situation),
+		compile_constraints_term(Body, NewBody, Situation),
+		(foreach(Var, Vars), foreach(NV, NewVarSpecs), fromto(Def2, InDef, OutDef, NewDef) do
+				var(NewVar),
+				subst_in_term(Var, NewVar, InDef, OutDef),
+				NV = Var : NewVar
+		),		
+		Out = match(NewVarSpecs, NewDef, NewBody), !
 		;
 		functor(T, Functor, N),		
 		(

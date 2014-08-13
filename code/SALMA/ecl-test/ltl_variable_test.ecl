@@ -115,7 +115,7 @@ test_var_5 :-
 test_var_6 :-
 	init,
 	F = let(z : xpos(rob1) + ypos(rob1),	
-			let(w : xpos(rob1) - 1, 
+			let(w : xpos(rob1) - 1 + (z / 2), 
 				z+ w > 10)),
 	compile_formula(F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
@@ -165,7 +165,7 @@ get_prop_7_2(F) :-
 		).	
 test_var_7 :-
 	init,
-	get_prop_7_2(F),	
+	get_prop_7_1(F),	
 	register_property(f, F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
 	
@@ -188,3 +188,50 @@ test_var_7 :-
 		moveAll,
 		progress([tick])
 	).
+	
+make_match_formula(Robot, F) :-
+	F =	implies(
+			occur(collision(Robot, ?, ?)),
+			match([r2, sev] : occur(collision(Robot, r2, sev)),
+				let(sev2 : sev + 10,
+					until(20,
+						true,
+						occur(collision(Robot, r2, sev2))
+					)
+				)
+			)
+		).	
+test_match_1 :-
+	init,
+	F = forall(r : robot,
+			implies(
+				occur(collision(r, ?, ?)),
+				match([r2, sev] : occur(collision(r, r2, sev)),
+					let(sev2 : sev + 10,
+						until(20,
+							true,
+							occur(collision(r, r2, sev2))
+						)
+					)
+				)
+			)
+		),
+	register_property(f, F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+		
+	progress([collision(rob1, rob2, 42)]), 
+	(count(I,0,20) do
+		time(Time, s0),
+		(Time =:= 4,
+			progress([collision(rob2, rob1, 22)]), !
+		; Time =:= 10,
+			progress([collision(rob1, rob2, 52)]), !
+		;
+		true
+		),
+		report_step(I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+		evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+		moveAll,
+		progress([tick])
+	).
+	

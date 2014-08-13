@@ -426,6 +426,7 @@ forall(r : robot,
         print("Verdict: " + str(verdict))
         #print("Results: " + str(results))
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
+        self.assertAlmostEqual(verdict, OK)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,11 @@
-0 : _29265 _29266 _29267 _29268
+0 : _9169 _9170 _9171 _9172
 Scheduled Goals:
       Name       Time Level         Id     Params Term
 -------------------------------------------------------
 
 
 Formula Cache:
-         1 all([all([let(z : _29350, all([xpos(rob1, _29357, s0), ypos(rob1, _29363, s0), +(_29357, _29363, _29370), +(_29370, 5, _29376), _29350 = _29376]), until(30, one([not2(occur(grab(rob1, item1))), let(startx : _29405, all([xpos(rob1, _29412, s0), _29405 = _29412]), until(5, all([xpos(rob1, _29429, s0), _29429 >= startx]), not2(carrying(rob1, item1, s0))))]), let(w : _29448, all([xpos(rob1, _29455, s0), -(_29455, 1, _29462), _29448 = _29462]), all([w > z])))), let(z : _29483, all([xpos(rob1, _29490, s0), ypos(rob1, _29496, s0), +(_29490, _29496, _29503), +(_29503, 5, _29509), _29483 = _29509]), until(30, one([not2(occur(grab(rob1, item2))), let(startx : _29538, all([xpos(rob1, _29545, s0), _29538 = _29545]), until(5, all([xpos(rob1, _29562, s0), _29562 >= startx]), not2(carrying(rob1, item2, s0))))]), let(w : _29581, all([xpos(rob1, _29588, s0), -(_29588, 1, _29595), _29581 = _29595]), all([w > z]))))]), all([let(z : _29620, all([xpos(rob2, _29627, s0), ypos(rob2, _29633, s0), +(_29627, _29633, _29640), +(_29640, 5, _29646), _29620 = _29646]), until(30, one([not2(occur(grab(rob2, item1))), let(startx : _29675, all([xpos(rob2, _29682, s0), _29675 = _29682]), until(5, all([xpos(rob2, _29699, s0), _29699 >= startx]), not2(carrying(rob2, item1, s0))))]), let(w : _29718, all([xpos(rob2, _29725, s0), -(_29725, 1, _29732), _29718 = _29732]), all([w > z])))), let(z : _29753, all([xpos(rob2, _29760, s0), ypos(rob2, _29766, s0), +(_29760, _29766, _29773), +(_29773, 5, _29779), _29753 = _29779]), until(30, one([not2(occur(grab(rob2, item2))), let(startx : _29808, all([xpos(rob2, _29815, s0), _29808 = _29815]), until(5, all([xpos(rob2, _29832, s0), _29832 >= startx]), not2(carrying(rob2, item2, s0))))]), let(w : _29851, all([xpos(rob2, _29858, s0), -(_29858, 1, _29865), _29851 = _29865]), all([w > z]))))])])
+         1 all([one([not2(occur(collision(rob1, _9254, _9255))), match([r2 : _9266, sev : _9271], occur(collision(rob1, _9266, _9271)), let(sev2 : _9284, all([+(sev, 10, _9292), _9284 = _9292]), until(20, true, occur(collision(rob1, r2, sev2)))))]), one([not2(occur(collision(rob2, _9320, _9321))), match([r2 : _9332, sev : _9337], occur(collision(rob2, _9332, _9337)), let(sev2 : _9350, all([+(sev, 10, _9358), _9350 = _9358]), until(20, true, occur(collision(rob2, r2, sev2)))))])])
 
 
 Cache Candidates:
@@ -13,7 +13,7 @@ f(0) [1]
 
 
 State:
-[fl(domain, agent) - [rob1, rob2], fl(painted, item1) - false, fl(painted, item2) - false, fl(active, rob1) - false, fl(domain, channel) - [], fl(active, rob2) - false, fl(domain, robot) - [rob1, rob2], fl(domain, object) - [item1, item2, rob1, rob2], fl(domain, sensor) - [], fl(xpos, rob1) - 10, fl(domain, item) - [item1, item2], fl(time) - 0, fl(xpos, rob2) - 10, fl(carrying, rob1, item1) - true, fl(carrying, rob1, item2) - false, fl(carrying, rob2, item1) - false, fl(carrying, rob2, item2) - true, fl(domain, connector) - [], fl(domain, message) - [], fl(domain, remoteSensor) - [], fl(ypos, rob1) - 10, fl(domain, sort) - [agent, channel, connector, item, message, object, remoteSensor, robot, sensor, sort], fl(ypos, rob2) - 20]
+[fl(domain, agent) - [rob1, rob2], fl(painted, item1) - false, fl(painted, item2) - false, fl(active, rob1) - false, fl(domain, channel) - [], fl(active, rob2) - false, fl(domain, robot) - [rob1, rob2], fl(domain, object) - [item1, item2, rob1, rob2], fl(domain, sensor) - [], fl(xpos, rob1) - 10, fl(xpos, rob2) - 10, fl(time) - 0, fl(domain, item) - [item1, item2], fl(carrying, rob1, item1) - false, fl(carrying, rob1, item2) - false, fl(carrying, rob2, item1) - false, fl(carrying, rob2, item2) - false, fl(domain, connector) - [], fl(domain, message) - [], fl(domain, remoteSensor) - [], fl(ypos, rob1) - 10, fl(ypos, rob2) - 20, fl(domain, sort) - [agent, channel, connector, item, message, object, remoteSensor, robot, sensor, sort]]
 
 --------------------------------------------
 
