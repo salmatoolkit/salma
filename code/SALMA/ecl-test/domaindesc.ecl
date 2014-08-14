@@ -1,5 +1,5 @@
 :- dynamic xpos/3, ypos/3, carrying/3, active/2, painted/2,
-	robot_radius/2,
+	robot_radius/2, marking/3,
 	gravity/1.
 
 % domain description for worldtest.py
@@ -28,6 +28,7 @@ primitive_action(crash, [r:robot]).
 
 primitive_action(paint, [r:robot, i:item]).
 
+primitive_action(mark, [r:robot, i:item, data:term]).
 
 % distinguish between discriminating entity parameters and additional "augmenting" parameters
 exogenous_action(accidental_drop, [r:robot, i:item], []).
@@ -79,6 +80,7 @@ poss(crash(_), _) :- true.
 
 poss(paint(_,_), _) :- true.
 
+poss(mark(_,_,_), _) :- true.
 
 % successor state axioms
 
@@ -136,7 +138,12 @@ painted(Item, do2(A,S)) :-
 	;
 	painted(Item, S).
 	
-		
+marking(Item, M, do2(A, S)) :-
+	A = mark(_, Item, M), !
+	;
+	marking(Item, M, S), !
+	;
+	M = 0.
 
 %restoreSitArg(xpos(Rob, Pos), S, xpos(Rob, Pos, S)).
 

@@ -16,13 +16,19 @@ class Process(object):
         """
         Creates a process with the given procedure that is owned by the given agent.
         The status is initially set to IDLE.
-        :type procedure: Procedure
+        :type procedure: Procedure|ControlNode|list
         :type introduction_time: int
         """
         self.__agent = None
         self.__state = Process.IDLE
-        self.__procedure = procedure
-        self.__current_control_node = procedure.body
+        if isinstance(procedure, Procedure):
+            self.__procedure = procedure
+        elif isinstance(procedure, (ControlNode, list)):
+            self.__procedure = Procedure("main", [], procedure)
+        else:
+            raise SALMAException("Unsupported type for process procedure.")
+
+        self.__current_control_node = self.__procedure.body
         self.__current_evaluation_context = None
         self.__pending_action = None
         self.__introduction_time = introduction_time
@@ -40,7 +46,7 @@ class Process(object):
         return self.__state
 
     @property
-    def introduction_time(self):
+    def introduction_time(self) -> int:
         """
         The time when the process was introduced / created.
         :rtype: int
@@ -48,64 +54,55 @@ class Process(object):
         return self.__introduction_time
 
     @property
-    def last_start_time(self):
+    def last_start_time(self) -> int:
         return self.__last_start_time
 
     @property
-    def last_end_time(self):
+    def last_end_time(self) -> int:
         return self.__last_end_time
 
-    def get_deadline(self):
+    def get_deadline(self) -> int:
         raise NotImplementedError()
 
     @property
-    def execution_count(self):
+    def execution_count(self) -> int:
         return self.__execution_count
 
-    def is_scheduled(self):
+    def is_scheduled(self) -> bool:
         """
         Returns True if the process is not idle.
-        :rtype: bool
         """
         return not self.terminated and self.__state != Process.IDLE
 
     @property
-    def terminated(self):
+    def terminated(self) -> bool:
         return self.__terminated
 
     @property
-    def agent(self):
+    def agent(self) -> Entity:
         """
         The agent that owns this process.
-        :rtype: Entity
         """
         return self.__agent
 
     @agent.setter
-    def agent(self, agent):
-        """
-        :type agent: Entity
-        """
+    def agent(self, agent: Entity):
         self.__agent = agent
         self.__current_evaluation_context = self.__agent.evaluation_context
 
     @property
-    def procedure(self):
+    def procedure(self) -> Procedure:
         """
         The procedure that defines the behaviour of the process.
-         :rtype: Procedure
         """
         return self.__procedure
 
     @property
-    def process_id(self):
+    def process_id(self) -> str:
         return self.__procedure.name + "@" + self.__agent.id
 
     @property
-    def current_evaluation_context(self):
-        """
-        :rtype: EvaluationContext
-        """
+    def current_evaluation_context(self) -> EvaluationContext:
         return self.__current_evaluation_context
 
     def get_pending_action(self):

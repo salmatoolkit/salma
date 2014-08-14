@@ -46,7 +46,7 @@ class WorldTest3(BaseWorldTest):
         # self.assertEqual(len(a2), 2)
         print("----")
         print(world.describe_actions())
-        self.assertEqual(len(list(world.getAllActions())), 14)
+        self.assertEqual(len(list(world.getAllActions())), 15)
 
     @withHeader()
     def test_load_declaration_full(self):
@@ -409,7 +409,7 @@ forall(r : robot,
                     )
                 )
             )
-        ).
+        )
 """
         world = World.instance()
         rob1 = self.create_periodic_agent("rob1", "item1", target_x=50)
@@ -428,6 +428,79 @@ forall(r : robot,
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         self.assertAlmostEqual(verdict, OK)
 
+    @withHeader()
+    def test_variable_match_ok(self):
+        f_str = """
+forall(r : robot,
+    implies(
+        occur(mark(r, ?, ?)),
+        match([i, m] : occur(mark(r, i, m)),
+            let(m2 : m + 10,
+                until(20,
+                    true,
+                    occur(mark(r, i, m2))
+                )
+            )
+        )
+    )
+)
+"""
+        world = World.instance()
+        p1_1 = OneShotProcess(Act("mark", [Entity.SELF, "item1", 42]), introduction_time=0)
+        p2_1 = OneShotProcess(Act("mark", [Entity.SELF, "item2", 100]), introduction_time=5)
+        p1_2 = OneShotProcess(Act("mark", [Entity.SELF, "item1", 52]), introduction_time=15)
+        p2_2 = OneShotProcess(Act("mark", [Entity.SELF, "item2", 110]), introduction_time=20)
+
+        rob1 = Agent("rob1", "robot", [p1_1, p1_2])
+        rob2 = Agent("rob2", "robot", [p2_1, p2_2])
+        world.addAgent(rob1)
+        world.addAgent(rob2)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=10)
+        world.registerProperty("f", f_str, World.INVARIANT)
+        verdict, results = world.runExperiment(maxSteps=25)
+        print("Verdict: " + str(verdict))
+        self.assertEqual(verdict, OK)
+
+    @withHeader()
+    def test_variable_match_not_ok(self):
+        f_str = """
+forall(r : robot,
+    implies(
+        occur(mark(r, ?, ?)),
+        match([i, m] : occur(mark(r, i, m)),
+            let(m2 : m + 10,
+                until(20,
+                    true,
+                    occur(mark(r, i, m2))
+                )
+            )
+        )
+    )
+)
+"""
+        world = World.instance()
+        p1_1 = OneShotProcess(Act("mark", [Entity.SELF, "item1", 42]), introduction_time=0)
+        p2_1 = OneShotProcess(Act("mark", [Entity.SELF, "item2", 100]), introduction_time=5)
+        p1_2 = OneShotProcess(Act("mark", [Entity.SELF, "item1", 53]), introduction_time=15)
+        p2_2 = OneShotProcess(Act("mark", [Entity.SELF, "item2", 110]), introduction_time=20)
+
+        rob1 = Agent("rob1", "robot", [p1_1, p1_2])
+        rob2 = Agent("rob2", "robot", [p2_1, p2_2])
+        world.addAgent(rob1)
+        world.addAgent(rob2)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=10)
+        world.registerProperty("f", f_str, World.INVARIANT)
+        verdict, results = world.runExperiment(maxSteps=25)
+        print("Verdict: " + str(verdict))
+        self.assertEqual(verdict, NOT_OK)
 
 if __name__ == '__main__':
     unittest.main()

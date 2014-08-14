@@ -5,6 +5,10 @@ from salma.model.infotransfer import ReceivedMessage
 
 
 class Element(object):
+    """
+    The base class for all elements of a process, i.e. procedures and control elements.
+    Each element keeps a unique, automatically generated id.
+    """
     # static field
     __next_id = 1
 
@@ -22,20 +26,32 @@ class Element(object):
 
 
 class Variable(object):
-    def __init__(self, name, sort=None):
+    """
+    A class that marks a typed variable. This class is used in parameter lists of control nodes to
+     distinguish it from other terms.
+    """
+    def __init__(self, name: str, sort: str=None):
         self.__name = name
         self.__sort = sort
 
-    def getName(self): return self.__name
+    @property
+    def name(self) -> str:
+        return self.__name
 
-    def getSort(self): return self.__sort
-
-    name = property(getName)
-    sort = property(getSort)
+    @property
+    def sort(self) -> str:
+        return self.__sort
 
 
 class Procedure(Element):
-    def __init__(self, procedureName, parameters, body):
+    """
+    A procedure that is used either as the main control flow of a process or as a sub-procedure.
+    """
+
+    def __init__(self, procedureName, parameters: list, body):
+        """
+        Creates a procedure with the given name, parameters, and body.
+        """
         Element.__init__(self)
         self.__body = Sequence(body) if isinstance(body, list) else body
         self.__name = procedureName
@@ -54,8 +70,8 @@ class Procedure(Element):
     def parameters(self):
         return self.__parameters
 
-    def restart(self, evaluationContext):
-        self.__body.reset(evaluationContext)
+    def restart(self, evaluation_context: EvaluationContext):
+        self.__body.reset(evaluation_context)
 
 
 class ControlNode(Element):
