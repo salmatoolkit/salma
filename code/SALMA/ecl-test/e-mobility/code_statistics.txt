@@ -1,0 +1,13 @@
+e-mobility-domain_ensemble_vehicle-plcs.ecl
+- 5 fluents 
+- 5 primitive actions
+- 2 events
+- 81 lines
+
+e-mobility-domain_ensemble_vehicle-plcssam.ecl
+- 5 fluents
+- 5 primitive actions
+- 2 events
+- 105 lines
+
+
