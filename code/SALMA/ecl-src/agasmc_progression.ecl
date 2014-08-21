@@ -402,6 +402,10 @@ situation([A | Tl], S1, S2) :-
 	situation(Tl, S3, S2).
 
 situation([A | Tl], S2) :- situation([A | Tl], s0, S2).
+
+
+% The following section contains functions that are used by the simulation engine
+% for automatic initialization of the domain.
 	
 possible_action_instance(ActionName, PossibleInstanceArgs) :-
 	exogenous_action(ActionName, EntityParams, StochasticParams),

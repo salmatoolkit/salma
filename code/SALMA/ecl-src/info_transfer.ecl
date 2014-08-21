@@ -220,31 +220,18 @@ local_channel_in_queue(Agent, Channel, Role, Queue, S) :-
 	).
 
 
+	
 messageSent(Agent, Channel, Role, Dest, DestRole, Content, S) :-
 	domain(message, Msgs),
-	(foreach(M, Msgs), fromto([], In, Out, Result), 
-		param(Agent, Channel, Role, Dest, DestRole, Content, S) do
-		
-		(time(CurrentTime, S),
-		timestamp_S(M, CurrentTime, S),
-		message_spec(M, Spec),
-		Spec = msg(Channel, Agent, Params),
-		Params = [Role, Dest, DestRole],
-		channel_out_content(M, Content, S)) ->
-			append(In, [M], Out)
-			;
-			Out = In		
-	),
-	% length(Result) > 0.
-	true.
+	member(M, Msgs),
+	time(CurrentTime, S),
+	timestamp_S(M, CurrentTime, S),
+	message_spec(M, Spec),
+	Spec = msg(Channel, Agent, Params),
+	Params = [Role, Dest, DestRole],
+	channel_out_content(M, Content, S), !.
 	
-	%time(CurrentTime, S),
-	%timestamp_S(M, CurrentTime, S),
-	%message_spec(M, Spec),
-	%Spec = msg(Channel, Agent, [Role, Dest, DestRole]),
-	%channel_out_content(M, Content, S), !,
-	%true.
-	
+
 
 sensor_transmitted_value(Message, Value, do2(A, S)) :-
 	A = transferStarts(Message, Error),
@@ -310,3 +297,22 @@ poss(transferFails(M), S) :-
 	transferring(M,S).
 
 poss(clean_queue(_, _, _), S) :- true.	
+
+% The following section contains functions that are used by the simulation engine
+% for automatic initialization of the domain.
+
+get_declared_channels(Channels) :-
+	findall(c(ChannelName, End1, End2, Mode), channel(ChannelName, End1, End2, Mode), Channels).
+	
+get_declared_sensors(Sensors) :-
+	findall(s(SensorName, OwnerType, SourceFluent), sensor(SensorName, OwnerType, SourceFluent),
+		Sensors).
+
+get_declared_remote_sensors(RemoteSensors) :-
+	findall(
+		rs(RemoteSensorName, RemoteSensorOwner, LocalSensorName, LocalSensorOwner), 
+		remoteSensor(RemoteSensorName, RemoteSensorOwner, LocalSensorName, LocalSensorOwner),
+		RemoteSensors).
+
+
+

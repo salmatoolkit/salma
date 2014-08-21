@@ -307,6 +307,7 @@ class Engine(object):
         """
         raise NotImplementedError()
 
+
 # TODO: document conversion behavior in general docs
 def createParamTerms(*params, **kwargs):
     """
@@ -364,7 +365,7 @@ class EclipseCLPEngine(Engine):
     '''
     classdocs
     '''
-    #TODO: make this somehow more module relative
+    # TODO: make this somehow more module relative
     PROGRESSION_MODULE = os.path.abspath(
         os.path.join(salma.__path__[0], "../ecl-src/agasmc.ecl"))
 
@@ -399,14 +400,14 @@ class EclipseCLPEngine(Engine):
         if result == pyclp.FLUSHIO:
             stdout = pyclp.Stream(dummy)
             msg = stdout.readall()
-            #result, dummy = pyclp.resume()   
+            # result, dummy = pyclp.resume()
         if result != pyclp.SUCCEED:
             raise (SALMAException("Can't compile Eclipse CLP progression module (msg = {})".format(msg)))
 
         self.reset()
 
     def printToplevelGoals(self):
-        #v = pyclp.Var()
+        # v = pyclp.Var()
         goal = pyclp.Atom("print_toplevel_goals")
         goal.post_goal()
         result, stream_num = pyclp.resume()
@@ -783,7 +784,7 @@ class EclipseCLPEngine(Engine):
             valueCombination[varName] = self.__convert_value_from_engine_result(variables[index].value())
 
         translatedPlan = []
-        #: :type action: pyclp.Compound
+        # : :type action: pyclp.Compound
         for action in plan.value():
             actionName = action.functor()
             actionParams = []
@@ -821,7 +822,7 @@ class EclipseCLPEngine(Engine):
         self.__callGoal('init_sort_hierarchy', domVar,
                         errorMsg="Error while initializing sort hierarchy.")
 
-        #: :type domList: pyclp.PList
+        # : :type domList: pyclp.PList
         domList = domVar.value()
         result = dict()
         #: :type dom: pyclp.Compound
@@ -897,7 +898,6 @@ class EclipseCLPEngine(Engine):
         return "\n".join(lines)
 
 
-
     @staticmethod
     def __translateToplevelEvaluationResults(result):
         """
@@ -917,7 +917,7 @@ class EclipseCLPEngine(Engine):
         Translate scheduled evaluation results to a dict: fname -> list((time, verdict))
         :rtype: dict[str, list[(int, int)]]
         """
-        #: :type: dict[str, list[(int, int)]]
+        # : :type: dict[str, list[(int, int)]]
         result_dict = dict()
 
         for r in result:
@@ -940,7 +940,7 @@ class EclipseCLPEngine(Engine):
         :param list[pyclp.Compound] props: the list of scheduled properties
         :rtype: dict[str, list[int]]
         """
-        #: :type: dict[str, list[int]]
+        # : :type: dict[str, list[int]]
         result_dict = dict()
         for prop in props:
             #sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime)
@@ -970,7 +970,7 @@ class EclipseCLPEngine(Engine):
         result = dict()
         for actionDef in candidates.value():
             actionName = str(actionDef[0])
-            candidates = actionDef[1]  #    [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
+            candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
             instances = []
             for c in candidates:
                 instance = []
@@ -1051,13 +1051,21 @@ class EclipseCLPEngine(Engine):
         exogenous_actions = self.__load_declaration('get_declared_exogenous_actions')
         immediate_actions = list(map(lambda e: e[0],
                                      self.__load_declaration('get_declared_immediate_actions')))
+
+        channels = self.__load_declaration("get_declared_channels")
+        sensors = self.__load_declaration("get_declared_sensors")
+        remote_sensors = self.__load_declaration("get_declared_remote_sensors")
+
         return {'fluents': fluents,
                 'derived_fluents': derived_fluents,
                 'constants': constants,
                 'primitive_actions': primitive_actions,
                 'stochastic_actions': stochastic_actions,
                 'exogenous_actions': exogenous_actions,
-                'immediate_actions': immediate_actions
+                'immediate_actions': immediate_actions,
+                'channels': channels,
+                'sensors': sensors,
+                'remote_sensors': remote_sensors
         }
 
     def evaluate_ad_hoc(self, formula):
@@ -1083,12 +1091,12 @@ class EclipseCLPEngine(Engine):
         :type params: list
         :rtype: int
         """
-        #create_message(Con, Agent, Params, Msg) :-
+        # create_message(Con, Agent, Params, Msg) :-
         pterms = createParamTerms(*params)
         msgid = pyclp.Var()
-        self.__callGoal("create_message", pyclp.Atom(str(connector)), pyclp.Atom(str(agent)), pyclp.PList(pterms), msgid)
+        self.__callGoal("create_message", pyclp.Atom(str(connector)), pyclp.Atom(str(agent)), pyclp.PList(pterms),
+                        msgid)
         return self.__convert_value_from_engine_result(msgid.value())
-
 
 
 __all__ = ["Engine", "EclipseCLPEngine", "FluentValue", "createParamTerms", "createTerm"]

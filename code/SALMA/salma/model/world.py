@@ -22,7 +22,8 @@ from salma.statistics import HypothesisTest
 from .core import Entity, Fluent
 from .agent import Agent
 from .procedure import Variable, Act
-
+from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
+from collections.abc import Iterable
 
 MODULE_LOGGER_NAME = 'agamemnon-smc.world'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -86,6 +87,12 @@ class World(Entity):
         # agents is a dict that stores
         self.__entities = dict()
         self.__agents = dict()
+
+        # ------------------- information transfer ---------------------
+        #: :type: dict[str, Connector]
+        self.__connectors = dict()
+
+        # ------------------- information transfer end ---------------------
 
         self.__expressionContext = dict()
 
@@ -337,6 +344,8 @@ class World(Entity):
         # action_name -> core.Action
         self.__actions = dict()
         self.__exogenousActions = dict()
+        self.__connectors = dict()
+
         declarations = World.logic_engine().load_declarations()
         for f in declarations['fluents']:
             self.addFluent(Fluent(f[0], f[2], f[1]))
@@ -353,6 +362,22 @@ class World(Entity):
 
         for ea in declarations['exogenous_actions']:
             self.addExogenousAction(ExogenousAction(ea[0], ea[1], ea[2]))
+
+        # info transfer
+        for c in declarations["channels"]:
+            chan = Channel(c[0], c[1], c[2], c[3])
+            self.add_connector(chan)
+            self.addEntity(Entity(chan.name, "channel"))
+
+        for s in declarations["sensors"]:
+            sensor = Sensor(s[0], s[1], s[2])
+            self.add_connector(sensor)
+            self.addEntity(Entity(sensor.name, "sensor"))
+
+        for rs in declarations["remote_sensors"]:
+            remote_sensor = RemoteSensor(rs[0], rs[1], rs[2], rs[4])
+            self.add_connector(remote_sensor)
+            self.addEntity(Entity(remote_sensor.name, "remoteSensor"))
 
 
     def sync_domains(self):
@@ -614,6 +639,16 @@ class World(Entity):
         """
         self.__constants[con.name] = con
 
+    def add_connector(self, connector: Connector):
+        """
+        Adds a connector, i.e. a channel, soensor, or remote sensor, to the world instance. This method is
+        used mainly internally in load_declarations().
+        :param connector: the connector to add
+        """
+        self.__connectors[connector.name] = connector
+
+
+
     def getFluents(self):
         """
         Returns a list view of all fluents currently registered in the metamodel as a list of core.Fluent objects.
@@ -659,6 +694,47 @@ class World(Entity):
             return self.__constants[constantName]
         else:
             return None
+
+    def get_connectors(self):
+        """
+        Returns the list of registered connectors (channels, sensors and remote sensors).
+        :return: the list of connectors
+        :rtype: Iterable[Connector]
+        """
+        return self.__connectors.values()
+
+    def get_connector(self, name: str) -> Connector:
+        """
+        Returns the connector (channel, sensor, remote sensor) with the given name or None if the name
+        is unregistered.
+        :param name: the name of the connector.
+        :return: the connector
+        """
+        if name in self.__connectors:
+            return self.__connectors[name]
+        else:
+            return None
+
+    def get_channels(self):
+        """
+        Returns the registered channels.
+        :rtype: Iterable[Channel]
+        """
+        return (chan for chan in self.__connectors.values() if isinstance(chan, Channel))
+
+    def get_sensors(self):
+        """
+        Returns the registered (local/direct) sensors.
+        :rtype: Iterable[Sensor]
+        """
+        return (s for s in self.__connectors.values() if isinstance(s, Sensor))
+
+    def get_remote_sensors(self):
+        """
+        Returns the registered remote sensors.
+        :rtype: Iterable[RemoteSensor]
+        """
+        return (s for s in self.__connectors.values() if isinstance(s, RemoteSensor))
 
     @staticmethod
     def instance():

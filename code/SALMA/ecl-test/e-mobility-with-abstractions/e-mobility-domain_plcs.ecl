@@ -19,10 +19,12 @@ derived_fluent(currentOccupancy, [p:plcs], integer).
 derived_fluent(freeSlots, [p:plcs], integer).
 derived_fluent(avaliableSlots, [p:plcs], integer).
 
+% Declare the free slots sensor and its associated local fluent.
 sensor(freeSlotsL, plcs, freeSlots).
 fluent(freeSlotsL, [p:plcs], integer).
 untracked_fluent(freeSlotsL).
 
+% Declare a dedicated time stamp fluent for freeSlotsL.
 fluent(tstamp_freeSlotsL, [p:plcs], integer).
 untracked_fluent(tstamp_freeSlotsL).
 

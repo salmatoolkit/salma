@@ -43,6 +43,7 @@ class EMobilityTest(unittest.TestCase):
         :type mt: MapTranslator
         """
 
+        #todo: automatize initialization
         world.addEntity(Entity("assignment", "channel"))
         world.addEntity(Entity("reservation", "channel"))
         world.addEntity(Entity("chan_freeSlotsR", "channel"))

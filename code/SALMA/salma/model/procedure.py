@@ -758,16 +758,3 @@ class Sense(ControlNode):
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
-
-
-
-
-
-
-
-
-
-
-
-
-
