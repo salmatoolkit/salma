@@ -176,7 +176,6 @@ class World(Entity):
             candidates.append(list(dom))
             candidate_indexes.append(0)
 
-            # todo: handle fluents without parameters
         finished = False
         while not finished:
             param_selection = []
@@ -375,10 +374,9 @@ class World(Entity):
             self.addEntity(Entity(sensor.name, "sensor"))
 
         for rs in declarations["remote_sensors"]:
-            remote_sensor = RemoteSensor(rs[0], rs[1], rs[2], rs[4])
+            remote_sensor = RemoteSensor(rs[0], rs[1], rs[2], rs[3])
             self.add_connector(remote_sensor)
             self.addEntity(Entity(remote_sensor.name, "remoteSensor"))
-
 
     def sync_domains(self):
         self.__domainMap = dict()
@@ -415,6 +413,9 @@ class World(Entity):
         #keep entityId->entity maps (__entities & __agents)
 
         self.sync_domains()
+
+        for chan in self.get_channels():
+            self.setFluentValue("channel_in_queue", [chan.name], [])
 
         World.logic_engine().setFluentValue('time', [], 0)
 
@@ -1161,7 +1162,6 @@ class World(Entity):
         if verdict != CANCEL:
             verdict = OK if self.is_finished() else NOT_OK
         return verdict, results
-
 
     def __reset_domainmap(self):
         self.__domainMap = dict()

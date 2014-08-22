@@ -48,7 +48,7 @@ class Channel(Connector):
                 self.__mode = Channel.UNICAST
             elif m2 == "multicast":
                 self.__mode = Channel.MULTICAST
-        if mode < 0:
+        if self.__mode < 0:
             raise SALMAException("Unsupported channel mode: {}".format(mode))
 
     @property

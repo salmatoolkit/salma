@@ -106,7 +106,8 @@ exogenous_action(transferFails, [m:message], []).
 
 
 % convention: agent is sender for channels and receiver for (remote) sensors
-% channel: Params = [SrcRole, Dest, DestRole],
+% unicast channel: Params = [SrcRole, Dest, DestRole],
+% multicast channel / remote sensor: Partams = [SrcRole]
 create_message(Con, Agent, Params, Msg) :-
 	getval(nextMsg, Msg),
 	incval(nextMsg),
@@ -297,6 +298,17 @@ poss(transferFails(M), S) :-
 	transferring(M,S).
 
 poss(clean_queue(_, _, _), S) :- true.	
+
+
+get_ensemble_participant_types(EnsembleName, PType1, PType2) :-
+	channel(EnsembleName, P1, P2, _)
+	P1 = _ : PType1,
+	P2 = _ : PType2, !
+	;
+	remoteSensor(EnsembleName, PType1, _, PType2), !.
+
+
+
 
 % The following section contains functions that are used by the simulation engine
 % for automatic initialization of the domain.
