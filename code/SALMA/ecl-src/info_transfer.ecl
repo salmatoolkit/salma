@@ -131,6 +131,8 @@ domain(message, D, do2(A, S)) :-
 	), !
 	;
 	D = [].
+	% TODO: - create multicast messages on transferStarts
+	%       -- how to initialize? 
 	
 awaitingTransfer(Message, do2(A,S)) :-
 	A = requestTransfer(Message), !
@@ -301,14 +303,31 @@ poss(clean_queue(_, _, _), S) :- true.
 
 
 get_ensemble_participant_types(EnsembleName, PType1, PType2) :-
-	channel(EnsembleName, P1, P2, _)
+	channel(EnsembleName, P1, P2, _),
 	P1 = _ : PType1,
 	P2 = _ : PType2, !
 	;
 	remoteSensor(EnsembleName, PType1, _, PType2), !.
 
-
-
+	
+get_ensemble_members(EnsembleName, Spec, Members, S) :-
+	get_ensemble_participant_types(EnsembleName, PType1, PType2),
+	domain(PType1, D1, S),
+	domain(PType2, D2, S),
+	Spec = Source:Dest,
+	(Source = all, Dest = all, !,
+		findall(P1:P2, (member(P1, D1), member(P2, D2), 
+			ensemble(EnsembleName, P1, P2, S)), Members)
+	; Source = all, Dest \= all, !,	
+		findall(P1:Dest, (member(P1, D1), 
+			ensemble(EnsembleName, P1, Dest, S)), Members)
+	; Source \= all, Dest = all, !,
+		findall(Source:P2, (member(P2, D2), 
+			ensemble(EnsembleName, Source, P2, S)), Members)
+	; 
+		findall(Source:Dest, 
+			ensemble(EnsembleName, Source, Dest, S), Members)
+	).
 
 % The following section contains functions that are used by the simulation engine
 % for automatic initialization of the domain.
