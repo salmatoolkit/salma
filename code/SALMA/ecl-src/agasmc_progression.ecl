@@ -78,6 +78,11 @@ get_current(Fluent, Params, Val):-
 	Fluent = domain, 
 	Val = []).
 
+is_undefined(Fluent, Params) :-
+	get_situation_store(cur_sit, S), 
+    make_key_term(Fluent, Params, T),
+	not store_contains(S, T).
+
 current_time(T) :-
 	get_current(time, [], T).
 
