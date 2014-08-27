@@ -140,48 +140,69 @@ get_message_destinations(Msg, DestRole, Destinations, S) :-
 		% determine direction of message
 		(channel(Con, R1:_, R2:_, multicast),
 			(SrcRole = R1,
-				EnsembleSpec = Agent:all, !
+				EnsembleSpec = Agent:all, DestRole = R2, !
 			; SrcRole = R2,
-				EnsembleSpec = all:Agent, !
-			; throw(wrong_role_in_msg(Msg))
+				EnsembleSpec = all:Agent, DestRole = R1, !
+			; throw(wrong_role_in_msg(Msg, Con, SrcRole))
 			), !
-		; 
-			
-		)
-			
-		remoteSensor(Con, 
+		; remoteSensor(Con, _, _, _),
+			% The message was sent by the sensing (remote) agent. 
+			% The ensemble is defined from the perspective 
+			% of the receiving agent.
+			EnsembleSpec = all:Agent, DestRole = Con, !
+		; throw(wrong_connector_type_for_multicastSrc(Msg, Con))			
+		), !
+	; MsgType = multicastDest,
+		Params = [_, Dest, DestRole],
+		EnsembleSpec = none,
+		Destinations = [Dest], !
+	; MsgType = unicast,
+		Params = [_, Dest, DestRole],
+		EnsembleSpec = none,
+		Destinations = [Dest], !
+	; MsgType = sensor,
+		DestRole = Con,
+		EnsembleSpec = none,
+		Destinations = [Agent], !
+	; throw(unsupported_msg_type(Msg, MsgType))
+	),
+	(EnsembleSpec \= none ->
+		get_ensemble_members(Con, EnsembleSpec, Destinations, S)
+		;
+		true
+	).
 		
+			
+get_message_type(Msg, MsgType) :-
+	message_spec(Msg, Spec),
+	Spec = msg(_, MsgType, _, _).
+			
 % for multicast, a new message might be created by transferStarts.
 % there message_spec 
 domain(message, D, do2(A, S)) :-
 	domain(message, OldD, S),
 	((A = transferEnds(Msg, _), ! ; A = transferFails(Msg), !),		
-		delete(Msg, OldD, D), !
-		;
-	 A = transferStarts(Msg, _), 
+		delete(Msg, OldD, D), !,
+		% todo: check for orphaned multicast sorce-half messages
+	; A = transferStarts(Msg, _), 
 		message_spec(Msg, Spec),
 		Spec = msg(Con, MsgType, Agent, Params),
 		MsgType = multicastSrc, !,
-		(channel(Con, con:controller, r:robot, multicast).
-		get_ensemble_members(Con, Agent:all, Members, S),
+		% DE-MULTIPLEX multicast message
+		get_message_destinations(Msg, DestRole, Destinations, S),		
 		getval(nextMsg, NextMsg),		
-		(foreach(M, Members), count(NewMsg, NextMsg, NextMsg2),
+		(foreach(Dest, Destinations), count(NewMsg, NextMsg, NextMsg2),
 			fromto(OldD, In, Out, D), 
-			param(Agent, Msg, Con, Params, S) do
+			param(Agent, Msg, Con, DestRole) do
 				append(In, [NewMsg], Out),
 				setConstant(message_spec, [NewMsg, 
 					msg(Con, multicastDest, Agent, 
-						[Msg, M, DestRole])]).
-		)
-			
-	
-		)
-		
-		
-			D = OldD
-	), !
-	;
-	D = [].
+						[Msg, Dest, DestRole])])				
+		), 
+		NextMsg3 is NextMsg2 + 1,
+		setval(nextMsg, NextMsg3)
+	; D = OldD
+	).
 	% TODO: - create multicast messages on transferStarts
 	%       -- how to initialize? 
 	
@@ -197,30 +218,96 @@ transferring(Message, do2(A,S)) :-
 	;
 	A \= transferEnds(Message, _),
 	A \= transferFails(Message),
-	transferring(Message, S), !
+	transferring(Message, S).
+
+transferring(Message, s0) :-
+	get_current(transferring, [Message], Val), !,
+	Val = true
 	;
+	% the default for multicast destination-half messages is transferring since
+	% they are created in response to a transfer start
+	get_message_type(Message, multicastDest).
 	
-	.	
+transferring(Message, slast) :-
+	get_last(transferring, [Message], Val), !,
+	Val = true.
 	
 timestamp_S(Message, T, do2(A,S)) :-
 	A = requestTransfer(Message), !,
 	time(T, S) 
 	;
-	timestamp_S(Message, T, S), !
+	timestamp_S(Message, T, S).
+	
+timestamp_S(Message, T, s0) :- 
+	get_current(timestamp_S, [Message], T), !
 	;
-	T = -1.
+	(
+		% for multicast destination-half messages, the default is the transmission start (sic!)
+		% timestamp of the source-half message
+		message_spec(Message, Spec), 
+		Spec = msg(_, MsgType, _, Params),
+		MsgType = multicastDest, 
+		Params = [SrcMsg, _, _],
+		get_current(timestamp_T, [SrcMsg], T), !
+		;
+		T = -1
+	).
+
+timestamp_S(Message, T, slast) :- 
+	get_last(timestamp_S, [Message], T), !
+	;
+	(
+		% for multicast destination-half messages, the default is the timestamp of the 
+		% source-half message
+		message_spec(Message, Spec), 
+		Spec = msg(_, MsgType, _, Params),
+		MsgType = multicastDest, 
+		Params = [SrcMsg, _, _],
+		get_last(timestamp_T, [SrcMsg], T), !
+		;
+		T = -1
+	).	
+
 
 timestamp_T(Message, T, do2(A,S)) :-
 	A = transferStarts(Message, _), !,
 	time(T, S) 
 	;
-	timestamp_T(Message, T, S), !
+	timestamp_T(Message, T, S).
+	
+timestamp_T(Message, T, s0) :- 
+	get_current(timestamp_T, [Message], T), !
 	;
-	T = -1.
+	(
+		% for multicast destination-half messages, the default is the timestamp of the 
+		% source-half message
+		message_spec(Message, Spec), 
+		Spec = msg(_, MsgType, _, Params),
+		MsgType = multicastDest, 
+		Params = [SrcMsg, _, _],
+		get_current(timestamp_T, [SrcMsg], T), !
+		;
+		T = -1
+	).
+
+timestamp_T(Message, T, slast) :- 
+	get_last(timestamp_T, [Message], T), !
+	;
+	(
+		% for multicast destination-half messages, the default is the timestamp of the 
+		% source-half message
+		message_spec(Message, Spec), 
+		Spec = msg(_, MsgType, _, Params),
+		MsgType = multicastDest, 
+		Params = [SrcMsg, _, _],
+		get_last(timestamp_T, [SrcMsg], T), !
+		;
+		T = -1
+	).
 
 message_connector(Message, Connector) :-
 	(message_spec(Message, Spec) ->
-		Spec =  msg(Connector, _, _)
+		Spec =  msg(Connector, _, _, _)
 		;
 		Connector = none
 	).
@@ -237,24 +324,50 @@ channel_transmission_content(Message, Content, do2(A,S)) :-
 	message_connector(Message, Connector),
 	error_operator(Connector, Out, Error, Content)
 	;
-	channel_transmission_content(Message, Content, S), !
+	channel_transmission_content(Message, Content, S).
+	
+	
+channel_transmission_content(Message, Content, s0) :-
+	get_current(channel_transmission_content, [Message], Content), !
+	;
+	% for multicast destination-half messages, the transmitted content
+	% is the same as that of the source-half
+	(
+		message_spec(Message, Spec), 
+		Spec = msg(_, MsgType, _, Params),
+		MsgType = multicastDest, 
+		Params = [SrcMsg, _, _],
+		get_current(channel_transmission_content, [SrcMsg], Content), !
+		;
+		Content = none
+	).
+
+channel_transmission_content(Message, Content, slast) :-
+	get_last(channel_transmission_content, [Message], Content), !
 	;
 	Content = none.
-
+	
 % message format: src:agent, srcrole:term, dest:agent, destrole:term, timestamp:integer, content:term, 
 channel_in_queue(Channel, L, do2(A, S)) :-
 	(channel_in_queue(Channel, OldL, S), ! ; OldL = []),
 	(A = transferEnds(Msg, Error),
 		message_spec(Msg, Spec),
-		Spec = msg(Channel, Sender, Params),
-		Params = [SrcRole, Dest, DestRole],
+		Spec = msg(Con, MsgType, Sender, Params),
+		(MsgType = multicastDest ->
+			Params = [SrcMsg, Dest, DestRole],
+			message_spec(SrcMsg, SrcSpec),
+			SrcSpec = msg(_, _, _, SrcParams),
+			SrcParams = [SrcRole]
+			;			
+			Params = [SrcRole, Dest, DestRole]
+		),
 		channel_transmission_content(Msg, Content, S),
 		error_operator(Channel, Content, Error, Content2),
 		time(Time, S),
 		M = msg(Sender, SrcRole, Dest, DestRole, Time, Content2),
 		append(OldL, [M], L), !
-		;
-	A = clean_queue(Agent, Channel, Role),
+		
+	; A = clean_queue(Agent, Channel, Role),
 		(foreach(M, OldL), fromto([], In,  Out, L), param(Agent, Role) do
 			(M \= msg(_, _, Agent, Role, _, _) ->
 			append(In, [M], Out)
@@ -262,8 +375,8 @@ channel_in_queue(Channel, L, do2(A, S)) :-
 			Out = In
 			)
 		), !
-		;
-		L = OldL
+	
+	; L = OldL
 	).
 
 local_channel_in_queue(Agent, Channel, Role, Queue, S) :-
@@ -284,16 +397,25 @@ messageSent(Agent, Channel, Role, Dest, DestRole, Content, S) :-
 	time(CurrentTime, S),
 	timestamp_S(M, CurrentTime, S),
 	message_spec(M, Spec),
-	Spec = msg(Channel, Agent, Params),
-	Params = [Role, Dest, DestRole],
-	channel_out_content(M, Content, S), !.
+	Spec = msg(Channel, MsgType, Agent, Params),
+	channel_out_content(M, Content, S),
+	(MsgType = unicast,
+		Params = [Role, Dest, DestRole], !
+	; MsgType = multicastSrc,
+		Dest = all,
+		Params = [Role], !
+	; MsgType = multicastDest,
+		Params = [SrcMsg, Dest, DestRole],
+		message_spec(SrcMsg, SrcSpec),
+		SrcSpec = msg(_, _, _, SrcParams),
+		SrcParams = [Role]
+	).
 	
-
 
 sensor_transmitted_value(Message, Value, do2(A, S)) :-
 	A = transferStarts(Message, Error),
 	message_spec(Message, Spec),
-	Spec = msg(Sensor, Agent, Params),
+	Spec = msg(Sensor, _, Agent, Params),
 	sensor(Sensor, _, SrcFluent),
 	(fluent(SrcFluent, _, Type), ! ; derived_fluent(SrcFluent, _, Type), ! ;  throw(fluent_undefined(SrcFluent))),
 	L1 = [SrcFluent, Agent | Params],
@@ -315,7 +437,7 @@ sensor_transmitted_value(Message, Value, do2(A, S)) :-
 new_sensor_timestamp(Sensor, Agent, Params, Action, Situation, Timestamp) :-
 	Action = transferEnds(Message, _),
 	message_spec(Message, Spec),
-	Spec = msg(Sensor, Agent, Params),
+	Spec = msg(Sensor, _, Agent, Params),
 	time(Timestamp, Situation).
 
 	
@@ -324,7 +446,7 @@ new_sensor_timestamp(Sensor, Agent, Params, Action, Situation, Timestamp) :-
 message_transmitted_by_agent(Msg, Connector, Agent, S) :-
 	transferring(Msg, S),
 	message_spec(Msg, Spec),
-	Spec = msg(Connector, Agent, _).
+	Spec = msg(Connector, _, Agent, _).
 	
 message_count_transmission(Connector, Agent, Count, S) :-
 	findall(M, message_transmitted_by_agent(M, Connector, Agent, S), Messages),
@@ -334,7 +456,7 @@ message_count_transmission(Connector, Agent, Count, S) :-
 new_sensor_value_received(Sensor, Agent, Params, Action ,Situation, Value) :-
 	Action = transferEnds(Message, Error),
 	message_spec(Message, Spec),
-	Spec = msg(Sensor, Agent, Params),
+	Spec = msg(Sensor, _, Agent, Params),
 	sensor_transmitted_value(Message, TransmittedValue, Situation),
 	error_operator(Sensor, TransmittedValue, Error, Value).
 
@@ -346,12 +468,18 @@ poss(transferStarts(M, _), S) :-
 	awaitingTransfer(M, S).
 
 poss(transferEnds(M, _), S) :-
-	transferring(M, S).
+	transferring(M, S),
+	% a multicast source-half message may not end directly
+	get_message_type(M, MsgType),
+	MsgType \= multicastSrc.
 
 poss(transferFails(M), S) :-
 	awaitingTransfer(M, S), !
 	;
-	transferring(M,S).
+	transferring(M,S),
+	% a multicast source-half message may not end directly
+	get_message_type(M, MsgType),
+	MsgType \= multicastSrc.
 
 poss(clean_queue(_, _, _), S) :- true.	
 
