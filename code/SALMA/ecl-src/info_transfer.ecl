@@ -176,14 +176,56 @@ get_message_destinations(Msg, DestRole, Destinations, S) :-
 get_message_type(Msg, MsgType) :-
 	message_spec(Msg, Spec),
 	Spec = msg(_, MsgType, _, _).
-			
+	
+get_src_message(Msg, SrcMessage) :- 
+	message_spec(Msg, Spec),
+	Spec = msg(_, MsgType, _, Params),
+	(MsgType = multicastDest ->
+		Params = [SrcMessage, _, _]
+		;
+		SrcMessage = Msg
+	).
+
+get_dest_messages(Msg, AllMessages, DestMessages) :-
+	message_spec(Msg, Spec),
+	Spec = msg(_, MsgType, _, _),
+	(MsgType = multicastSrc ->
+		(foreach(M, AllMessages), fromto([], In, Out, DestMessages),
+			param(Msg) do
+				message_spec(M, Spec2),
+				Spec2 = msg(_, MsgType2, _, Params2),
+				(MsgType2 = multicastDest,
+					Params2 = [Msg, _, _],
+					append(In, [M], Out), !
+					; 
+					Out = In
+				)
+		)
+		;
+		DestMessages = [Msg]
+	).
+					
+		
+	
 % for multicast, a new message might be created by transferStarts.
 % there message_spec 
 domain(message, D, do2(A, S)) :-
 	domain(message, OldD, S),
 	((A = transferEnds(Msg, _), ! ; A = transferFails(Msg), !),		
-		delete(Msg, OldD, D), !,
-		% todo: check for orphaned multicast sorce-half messages
+		delete(Msg, OldD, DTemp), !,
+		get_message_type(Msg, MsgType),
+		% Delete orphaned multicast sorce-half messages, i.e.
+		% source-half messages of which all dest-half messageSent
+		% have already been deleted.
+		(MsgType = multicastDest,
+			get_src_message(Msg, SrcMessage),
+			get_dest_messages(SrcMessage, DTemp, DestMessages),
+			length(DestMessages, 0),
+			delete(SrcMessage, DTemp, D), !
+			;
+			D = DTemp
+		)
+	), !			
 	; A = transferStarts(Msg, _), 
 		message_spec(Msg, Spec),
 		Spec = msg(Con, MsgType, Agent, Params),
@@ -201,17 +243,16 @@ domain(message, D, do2(A, S)) :-
 		), 
 		NextMsg3 is NextMsg2 + 1,
 		setval(nextMsg, NextMsg3)
-	; D = OldD
-	).
-	% TODO: - create multicast messages on transferStarts
-	%       -- how to initialize? 
+	; 
+	D = OldD.
+
 	
 awaitingTransfer(Message, do2(A,S)) :-
 	A = requestTransfer(Message), !
 	;
 	A \= transferStarts(Message, _),
 	A \= transferFails(Message),
-	awaitingTransfer(Message, S), !.
+	awaitingTransfer(Message, S).
 
 transferring(Message, do2(A,S)) :-
 	A = transferStarts(Message, _), !

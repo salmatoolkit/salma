@@ -45,4 +45,20 @@ test_ensembles :-
 	Members4 =  [con1 : rob1, con2 : rob1].
 	
 	
+print_message(Msg) :-
+	message_spec(Msg, Spec),
+	printf("%d : %w\n", [Msg, Spec]).
+	
+print_all_messages :-
+	domain(message, Dom),
+	(foreach(M, Dom) do
+		print_message(M)
+	).
+	
+test_messages_1 :-
+	init,
+	create_message(con2rob, con1, multicastSrc, [con], Msg),
+	set_current(channel_out_content, [Msg], 42),
+	print_all_messages.
+	
 	
