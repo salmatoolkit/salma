@@ -6,7 +6,6 @@
 	channel_out_content/3, channel_transmission_content/3,
 	channel_in_queue/3, local_channel_in_queue/5, 
 	sensor_transmitted_value/3,
-	
 	% function that adds error to original value
 	% error_operator(con:Connector, OrigValue, Error, NewValue)
 	error_operator/4.
@@ -43,6 +42,18 @@ untracked_fluent(awaitingTransfer).
 fluent(transferring, [m:message], boolean).
 untracked_fluent(transferring).
 	
+	
+% The constant message_spec stores the message's metadata.
+% Format: msg(Con, MsgType, Agent, Params)
+% convention: agent is sender for channels 
+%    and receiver for (remote) sensors.
+% Sensor: Params are directly used as params for the source fluent,
+%			MsgType = sensor
+% For channels and remote sensors, we distinguish 3 message types:
+%    unicast, multicastSrc, multicastDest
+%    a) unicast: Params = [SrcRole, Dest, DestRole]
+%    b) multicastSrc: Params = [SrcRole]
+%    c) multicastDest: Params = [SrcMessageId, Dest, DestRole]
 constant(message_spec, [m:message], term). 
 
 
@@ -105,10 +116,9 @@ exogenous_action(transferFails, [m:message], []).
 
 
 
-% convention: agent is sender for channels and receiver for (remote) sensors
-% unicast channel: Params = [SrcRole, Dest, DestRole],
-% multicast channel / remote sensor: Partams = [SrcRole]
-create_message(Con, Agent, Params, Msg) :-
+% convention: agent is sender for channels and receiver for (remote) sensors.
+% for 
+create_message(Con, Agent, MsgType, Params, Msg) :-
 	getval(nextMsg, Msg),
 	incval(nextMsg),
 	get_current(domain, [message], Messages),
@@ -118,15 +128,56 @@ create_message(Con, Agent, Params, Msg) :-
 	set_current(transferring, [Msg], false),
 	set_current(timestamp_S, [Msg], -1),
 	set_current(timestamp_T, [Msg], -1),
-	setConstant(message_spec, [Msg, msg(Con, Agent, Params)]).
+	setConstant(message_spec, [Msg, msg(Con, MsgType, Agent, Params)]).
 
 	% SSAs
 	
+get_message_destinations(Msg, DestRole, Destinations, S) :-
+	message_spec(Msg, Spec),
+	Spec = msg(Con, MsgType, Agent, Params),
+	(MsgType = multicastSrc,
+		Params = [SrcRole],
+		% determine direction of message
+		(channel(Con, R1:_, R2:_, multicast),
+			(SrcRole = R1,
+				EnsembleSpec = Agent:all, !
+			; SrcRole = R2,
+				EnsembleSpec = all:Agent, !
+			; throw(wrong_role_in_msg(Msg))
+			), !
+		; 
+			
+		)
+			
+		remoteSensor(Con, 
+		
+% for multicast, a new message might be created by transferStarts.
+% there message_spec 
 domain(message, D, do2(A, S)) :-
 	domain(message, OldD, S),
-	((A = transferEnds(Msg, _), ! ; A = transferFails(Msg), !) ->		
-			delete(Msg, OldD, D)
-			;
+	((A = transferEnds(Msg, _), ! ; A = transferFails(Msg), !),		
+		delete(Msg, OldD, D), !
+		;
+	 A = transferStarts(Msg, _), 
+		message_spec(Msg, Spec),
+		Spec = msg(Con, MsgType, Agent, Params),
+		MsgType = multicastSrc, !,
+		(channel(Con, con:controller, r:robot, multicast).
+		get_ensemble_members(Con, Agent:all, Members, S),
+		getval(nextMsg, NextMsg),		
+		(foreach(M, Members), count(NewMsg, NextMsg, NextMsg2),
+			fromto(OldD, In, Out, D), 
+			param(Agent, Msg, Con, Params, S) do
+				append(In, [NewMsg], Out),
+				setConstant(message_spec, [NewMsg, 
+					msg(Con, multicastDest, Agent, 
+						[Msg, M, DestRole])]).
+		)
+			
+	
+		)
+		
+		
 			D = OldD
 	), !
 	;
@@ -146,7 +197,10 @@ transferring(Message, do2(A,S)) :-
 	;
 	A \= transferEnds(Message, _),
 	A \= transferFails(Message),
-	transferring(Message, S), !.	
+	transferring(Message, S), !
+	;
+	
+	.	
 	
 timestamp_S(Message, T, do2(A,S)) :-
 	A = requestTransfer(Message), !,
