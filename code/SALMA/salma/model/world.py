@@ -417,6 +417,9 @@ class World(Entity):
         for chan in self.get_channels():
             self.setFluentValue("channel_in_queue", [chan.name], [])
 
+        for rs in self.get_remote_sensors():
+            self.setFluentValue("channel_in_queue", [rs.name], [])
+
         World.logic_engine().setFluentValue('time', [], 0)
 
         if sample_fluent_values:
