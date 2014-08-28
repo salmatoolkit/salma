@@ -44,10 +44,7 @@ class InfoTransferTest(unittest.TestCase):
             qc = world.getFluentValue("channel_in_queue", [c.name])
             self.assertListEqual(qc, [])
 
-        channel_entities = world.getDomain("channel")
-        for c in channel_entities:
-            self.assertTrue(c.id in channel_names)
-            self.assertTrue(c.sortName == "channel")
+
 
         #: :type: Channel
         c1 = world.get_connector("con2rob")
@@ -86,6 +83,10 @@ class InfoTransferTest(unittest.TestCase):
         self.assertEqual(len(remote_sensors), 1)
         self.assertListEqual(remote_sensor_names, ["batteryLevelR"])
 
+        for rs in remote_sensors:
+            qc = world.getFluentValue("channel_in_queue", [rs.name])
+            self.assertListEqual(qc, [])
+
         remote_sensor_entities = world.getDomain("remoteSensor")
         for s in remote_sensor_entities:
             self.assertTrue(s.id in remote_sensor_names)
@@ -99,7 +100,10 @@ class InfoTransferTest(unittest.TestCase):
         self.assertEqual(rs1.local_sensor_name, "batteryLevelL")
         self.assertEqual(rs1.local_sensor_owner_type, "robot")
 
-
+        channel_entities = world.getDomain("channel")
+        for c in channel_entities:
+            self.assertTrue(c.id in (channel_names + remote_sensor_names))
+            self.assertTrue(c.sortName == "channel" or c.sortName == "remoteSensor")
 
 
 
