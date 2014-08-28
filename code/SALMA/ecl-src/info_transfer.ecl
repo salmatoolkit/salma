@@ -15,7 +15,8 @@
 sort(message).
 sort(connector).
 sorts([channel, sensor, remoteSensor]).
-subsorts([channel, sensor, remoteSensor], connector).
+subsorts([channel, sensor], connector).
+subsort(remoteSensor, channel).
 
 dynamic_sort(message).
 
