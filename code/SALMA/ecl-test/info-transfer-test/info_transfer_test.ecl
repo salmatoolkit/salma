@@ -37,13 +37,15 @@ test_ensembles :-
 	get_ensemble_participant_types(batteryLevelR, controller, robot),
 	get_ensemble_participant_types(con2rob, controller, robot),
 	get_ensemble_members(batteryLevelR, all:all, Members1, s0),
-	Members1 =  [con1 : rob1, con1 : rob2, con2 : rob1, con2 : rob2],
+	Members1 =  [con1 : rob1, con1 : rob2, con2 : rob2, con2 : rob3],
 	get_ensemble_members(batteryLevelR, con1:all, Members2, s0),
 	Members2 =  [con1 : rob1, con1 : rob2],
 	get_ensemble_members(batteryLevelR, con2:all, Members3, s0),
-	Members3 =  [con2 : rob1, con2 : rob2],
+	Members3 =  [con2 : rob2, con2 : rob3],
 	get_ensemble_members(batteryLevelR, all:rob1, Members4, s0),
-	Members4 =  [con1 : rob1, con2 : rob1].
+	Members4 =  [con1 : rob1],
+	get_ensemble_members(batteryLevelR, all:rob2, Members5, s0),
+	Members5 =  [con1 : rob2, con2 : rob2].
 	
 	
 print_message(Msg) :-
@@ -91,6 +93,32 @@ test_messages_1 :-
 		printf("\nAfter transferEnds(%d):\n--------------\n",[DMsg]),
 		print_all_messages,
 		print_channel(con2rob),
+		progress([tick])
+	).
+		
+test_messages_2 :-
+	init,
+	create_message(batteryLevelR, rob2, multicastSrc, 
+		[batteryLevelR], Msg),
+	set_current(channel_out_content, [Msg], 42),
+	print("Before:\n--------------\n"),
+	print_all_messages,
+	progress([requestTransfer(Msg)]),
+	print("\nAfter requestTransfer:\n--------------\n"),
+	print_all_messages,
+	progress([tick]),
+	progress([transferStarts(Msg, 2)]),
+	print("\nAfter transferStarts:\n--------------\n"),
+	print_all_messages,
+	print_channel(batteryLevelR),
+	progress([tick]),
+	domain(message, Messages1),
+	get_dest_messages(Msg, Messages1, DestMessages1),
+	(foreach(DMsg, DestMessages1) do
+		progress([transferEnds(DMsg, 2)]),
+		printf("\nAfter transferEnds(%d):\n--------------\n",[DMsg]),
+		print_all_messages,
+		print_channel(batteryLevelR),
 		progress([tick])
 	).
 		
