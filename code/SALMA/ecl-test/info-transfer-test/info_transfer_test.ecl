@@ -7,11 +7,12 @@ setPosition(Agent, X, Y) :-
 
 init :- 
 	init_agasmc,
-	setDomain(robot, [rob1, rob2]),
+	setDomain(robot, [rob1, rob2, rob3]),
 	setDomain(controller, [con1, con2]),
 	init_sort_hierarchy(_),
 	setPosition(rob1, 20, 20),
 	setPosition(rob2, 55, 30),
+	setPosition(rob3, 60, 50),
 	setPosition(con1, 30, 30),
 	setPosition(con2, 50, 40),
 	
@@ -47,7 +48,13 @@ test_ensembles :-
 	
 print_message(Msg) :-
 	message_spec(Msg, Spec),
-	printf("%d : %w\n", [Msg, Spec]).
+	(awaitingTransfer(Msg, s0) -> Stat1 = "awaitingTransfer" ; Stat1 = "!awaitingTransfer"),
+	(transferring(Msg, s0) -> Stat2 = "transferring" ; Stat2 = "!transferring"),
+	
+	channel_out_content(Msg, COutContent, s0),
+	channel_transmission_content(Msg, CTransContent, s0),	
+	printf("%d : %w - %s, %s - out: %w, trans: %w\n", [Msg, Spec, Stat1, Stat2, 
+		COutContent, CTransContent]).
 	
 print_all_messages :-
 	domain(message, Dom),
@@ -55,10 +62,41 @@ print_all_messages :-
 		print_message(M)
 	).
 	
+print_channel(Channel) :-
+	channel_in_queue(Channel, L, s0),
+	printf("Channel %w:\n",[Channel]),
+	(foreach(M, L) do
+		printf("   %w\n",[M])
+	).
+	
 test_messages_1 :-
 	init,
-	create_message(con2rob, con1, multicastSrc, [con], Msg),
+	create_message(con2rob, con2, multicastSrc, [con], Msg),
 	set_current(channel_out_content, [Msg], 42),
-	print_all_messages.
+	print("Before:\n--------------\n"),
+	print_all_messages,
+	progress([requestTransfer(Msg)]),
+	print("\nAfter requestTransfer:\n--------------\n"),
+	print_all_messages,
+	progress([tick]),
+	progress([transferStarts(Msg, 2)]),
+	print("\nAfter transferStarts:\n--------------\n"),
+	print_all_messages,
+	print_channel(con2rob),
+	progress([tick]),
+	domain(message, Messages1),
+	get_dest_messages(Msg, Messages1, DestMessages1),
+	(foreach(DMsg, DestMessages1) do
+		progress([transferEnds(DMsg, 2)]),
+		printf("\nAfter transferEnds(%d):\n--------------\n",[DMsg]),
+		print_all_messages,
+		print_channel(con2rob),
+		progress([tick])
+	).
+		
+	
+	
+	
+	
 	
 	

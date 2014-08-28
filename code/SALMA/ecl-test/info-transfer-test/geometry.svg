@@ -13,7 +13,7 @@
    height="1052.3622047"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.4 r9939"
+   inkscape:version="0.48.5 r10040"
    sodipodi:docname="geometry.svg">
   <sodipodi:namedview
      id="base"
@@ -28,8 +28,8 @@
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1440"
-     inkscape:window-height="837"
+     inkscape:window-width="1920"
+     inkscape:window-height="1137"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1" />
@@ -43,7 +43,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -682,5 +682,51 @@
        sodipodi:rx="332"
        sodipodi:ry="332"
        d="m 748,652.36218 a 332,332 0 1 1 -664,0 332,332 0 1 1 664,0 z" />
+    <path
+       d="m 210,552.36218 a 12.857142,12.857142 0 1 1 -25.71429,0 12.857142,12.857142 0 1 1 25.71429,0 z"
+       sodipodi:ry="12.857142"
+       sodipodi:rx="12.857142"
+       sodipodi:cy="552.36218"
+       sodipodi:cx="197.14285"
+       id="path2985-4-1"
+       style="fill:#ffffff;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       sodipodi:type="arc"
+       transform="translate(298.85715,3)" />
+    <text
+       xml:space="preserve"
+       style="font-size:28px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="182.79297"
+       y="840.08875"
+       id="text3285-7"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3287-4"
+         x="182.79297"
+         y="840.08875"
+         style="font-size:16px">R1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:28px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="465.79297"
+       y="731.08875"
+       id="text3285-0"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3287-9"
+         x="465.79297"
+         y="731.08875"
+         style="font-size:16px">R2</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:28px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="514.79297"
+       y="558.08875"
+       id="text3285-48"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3287-8"
+         x="514.79297"
+         y="558.08875"
+         style="font-size:16px">R3</tspan></text>
   </g>
 </svg>

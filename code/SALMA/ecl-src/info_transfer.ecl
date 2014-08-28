@@ -167,7 +167,12 @@ get_message_destinations(Msg, DestRole, Destinations, S) :-
 	; throw(unsupported_msg_type(Msg, MsgType))
 	),
 	(EnsembleSpec \= none ->
-		get_ensemble_members(Con, EnsembleSpec, Destinations, S)
+		get_ensemble_members(Con, EnsembleSpec, EnsemblePairs, S),
+		% select parts of ensemble pairs according to query direction
+		(foreach(Pair, EnsemblePairs), foreach(D, Destinations), param(EnsembleSpec) do
+			Pair = D1:D2,
+			(EnsembleSpec = _:all -> D = D2 ; D = D1)
+		)		
 		;
 		true
 	).
@@ -211,40 +216,41 @@ get_dest_messages(Msg, AllMessages, DestMessages) :-
 % there message_spec 
 domain(message, D, do2(A, S)) :-
 	domain(message, OldD, S),
-	((A = transferEnds(Msg, _), ! ; A = transferFails(Msg), !),		
-		delete(Msg, OldD, DTemp), !,
-		get_message_type(Msg, MsgType),
-		% Delete orphaned multicast sorce-half messages, i.e.
-		% source-half messages of which all dest-half messageSent
-		% have already been deleted.
-		(MsgType = multicastDest,
-			get_src_message(Msg, SrcMessage),
-			get_dest_messages(SrcMessage, DTemp, DestMessages),
-			length(DestMessages, 0),
-			delete(SrcMessage, DTemp, D), !
-			;
-			D = DTemp
-		)
-	), !			
-	; A = transferStarts(Msg, _), 
-		message_spec(Msg, Spec),
-		Spec = msg(Con, MsgType, Agent, Params),
-		MsgType = multicastSrc, !,
-		% DE-MULTIPLEX multicast message
-		get_message_destinations(Msg, DestRole, Destinations, S),		
-		getval(nextMsg, NextMsg),		
-		(foreach(Dest, Destinations), count(NewMsg, NextMsg, NextMsg2),
-			fromto(OldD, In, Out, D), 
-			param(Agent, Msg, Con, DestRole) do
-				append(In, [NewMsg], Out),
-				setConstant(message_spec, [NewMsg, 
-					msg(Con, multicastDest, Agent, 
-						[Msg, Dest, DestRole])])				
-		), 
-		NextMsg3 is NextMsg2 + 1,
-		setval(nextMsg, NextMsg3)
-	; 
-	D = OldD.
+	(
+		((A = transferEnds(Msg, _), ! ; A = transferFails(Msg), !),		
+			delete(Msg, OldD, DTemp), !,
+			get_message_type(Msg, MsgType),
+			% Delete orphaned multicast sorce-half messages, i.e.
+			% source-half messages of which all dest-half messageSent
+			% have already been deleted.
+			(MsgType = multicastDest,
+				get_src_message(Msg, SrcMessage),
+				get_dest_messages(SrcMessage, DTemp, DestMessages),
+				length(DestMessages, 0),
+				delete(SrcMessage, DTemp, D), !
+				;
+				D = DTemp
+			)
+		), !			
+		; A = transferStarts(Msg, _), 
+			message_spec(Msg, Spec),
+			Spec = msg(Con, MsgType, Agent, Params),
+			MsgType = multicastSrc, !,
+			% DE-MULTIPLEX multicast message
+			get_message_destinations(Msg, DestRole, Destinations, S),		
+			getval(nextMsg, NextMsg),		
+			(foreach(Dest, Destinations), count(NewMsg, NextMsg, NextMsg2),
+				fromto(OldD, In, Out, D), 
+				param(Agent, Msg, Con, DestRole) do
+					append(In, [NewMsg], Out),
+					setConstant(message_spec, [NewMsg, 
+						msg(Con, multicastDest, Agent, 
+							[Msg, Dest, DestRole])])				
+			), 
+			NextMsg3 is NextMsg2 + 1,
+			setval(nextMsg, NextMsg3)
+		; D = OldD
+	).
 
 	
 awaitingTransfer(Message, do2(A,S)) :-
@@ -355,10 +361,18 @@ message_connector(Message, Connector) :-
 		
 % this fluent is set directly by the process and doesn't change
 channel_out_content(Message, Content, do2(A, S)) :-
-	channel_out_content(Message, Content, S), !
+	channel_out_content(Message, Content, S).
+	
+channel_out_content(Message, Content, s0) :-
+	get_current(channel_out_content, [Message], Content), !
 	;
 	Content = none.
-	
+
+channel_out_content(Message, Content, slast) :-
+	get_last(channel_out_content, [Message], Content), !
+	;
+	Content = none.
+
 channel_transmission_content(Message, Content, do2(A,S)) :-
 	A = transferStarts(M, Error), !,
 	channel_out_content(Message, Out, S),
