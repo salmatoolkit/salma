@@ -29,7 +29,7 @@ remoteSensor(batteryLevelR, controller, batteryLevelL, robot).
 
 ensemble(batteryLevelR, Con, Robot, S) :-
 	dist(Con, Robot, D, S),
-	D =< 40.
+	D =< 30.
 
 ensemble(con2rob, Con, Robot, S) :-
 	dist(Con, Robot, D, S),
