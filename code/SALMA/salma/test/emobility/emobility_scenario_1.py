@@ -23,7 +23,7 @@ _MODE = ESTIMATION
 
 
 class EMobilityScenario1(EMobilityTest):
-    NUM_OF_VEHICLES = 100
+    NUM_OF_VEHICLES = 5
     PLCS_CAPACITY = 100
     VEHICLE_SPEED = 5
     TIME_LIMIT = 50
