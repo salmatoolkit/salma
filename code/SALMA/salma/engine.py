@@ -293,15 +293,18 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def create_message(self, connector, agent, params):
+    def create_message(self, connector, agent, msg_type, params):
         """
-        Creates and returns a mew message for the given channel, the given agent, and the given parameters.
+        Creates and returns a new message for the given channel, the given agent, and the given parameters. The
+        message type can be one of "unicast", "multicastSrc" and "sensor".
+
         A new "virtual" object of sort "message" is created and its id returned. The message
          is added to the domain of sort message. Additionally, the constant message_spec is set with the term
-         msg(Con, Agent, Params).
+         msg(Con, MsgType, Agent, Params).
 
         :type connector: str
         :type agent: str
+        :type msg_type: str
         :type params: list
         :rtype: int
         """
@@ -1098,23 +1101,22 @@ class EclipseCLPEngine(Engine):
         self.__callGoal("evaluate_ad_hoc_str", formula, result, sit)
         return EclipseCLPEngine.__verdictMapping[str(result.value())]
 
-    def create_message(self, connector, agent, params):
+    def create_message(self, connector, agent, msg_type, params):
         """
-        Creates and returns a mew message for the given channel, the given agent, and the given parameters.
-        A new "virtual" object of sort "message" is created and its id returned. The message
-         is added to the domain of sort message. Additionally, the constant message_spec is set with the term
-         msg(Con, Agent, Params).
+        See documentation in superclass.
 
         :type connector: str
         :type agent: str
+        :type msg_type: str
         :type params: list
         :rtype: int
         """
-        # create_message(Con, Agent, Params, Msg) :-
+        # In ECL: create_message(Con, Agent, MsgType, Params, Msg)
         pterms = createParamTerms(*params)
         msgid = pyclp.Var()
-        self.__callGoal("create_message", pyclp.Atom(str(connector)), pyclp.Atom(str(agent)), pyclp.PList(pterms),
-                        msgid)
+        self.__callGoal("create_message", pyclp.Atom(str(connector)), pyclp.Atom(str(agent)),
+                        pyclp.Atom(msg_type), pyclp.PList(pterms), msgid)
+
         return self.__convert_value_from_engine_result(msgid.value())
 
 

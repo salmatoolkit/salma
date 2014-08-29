@@ -1,7 +1,7 @@
 from salma.SALMAException import SALMAException
 from salma.model.core import Entity
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.infotransfer import ReceivedMessage
+from salma.model.infotransfer import ReceivedMessage, Channel
 
 
 class Element(object):
@@ -612,11 +612,12 @@ class Send(ControlNode):
     Sends a message on a channel to a specific agent.
     """
 
-    def __init__(self, channel, own_role, destination, destination_role, message):
+    def __init__(self, channel, own_role, message, destination=None, destination_role=None):
         ControlNode.__init__(self)
         self.__channel = channel
         self.__own_role = own_role
         self.__destination = destination
+
         self.__destination_role = destination_role
         self.__message = message
 
@@ -626,6 +627,13 @@ class Send(ControlNode):
         :type procedureRegistry: ProcedureRegistry
         :return:
         """
+        msg_type = None
+        connector = evaluation_context.get_connector(self.__channel)
+        if connector is None:
+            raise SALMAException("Undefined connector: %s\n".format(self.__channel))
+
+        if isinstance(connector, Channel):
+            connector.
 
         if evaluation_context.getCurrentSequenceIndex(self) is None:
             evaluation_context.setCurrentSequenceIndex(self, 0)

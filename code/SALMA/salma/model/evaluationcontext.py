@@ -1,4 +1,5 @@
 from salma.SALMAException import SALMAException
+from salma.model.infotransfer import Connector
 
 
 class EvaluationContext(object):
@@ -242,4 +243,10 @@ class EvaluationContext(object):
         
         :param propertyName: str
         '''
+        raise NotImplementedError()
+
+    def get_connector(self, name: str) -> Connector:
+        """
+        See documentation in World.get_connector
+        """
         raise NotImplementedError()
