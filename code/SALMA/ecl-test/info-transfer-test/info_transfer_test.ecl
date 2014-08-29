@@ -1,4 +1,5 @@
 :- ['../../ecl-src/agasmc'].
+:- ['../../ecl-src/test_utils'].
 :- [domaindesc_info_transfer_test].
 
 setPosition(Agent, X, Y) :-
@@ -71,12 +72,15 @@ print_channel(Channel) :-
 		printf("   %w\n",[M])
 	).
 	
-test_messages_1 :-
+test_unicast_channel :-
 	init,
-	create_message(con2rob, con2, multicastSrc, [con], Msg),
+	create_message(rob2rob, rob1, unicast, [r1, rob2, r2], Msg),
 	set_current(channel_out_content, [Msg], 42),
 	print("Before:\n--------------\n"),
 	print_all_messages,
+	channel_in_queue(con2rob, [], s0),
+	channel_in_queue(rob2rob, [], s0),
+	assertEquals(length(domain(message)), 1, check_1),
 	progress([requestTransfer(Msg)]),
 	print("\nAfter requestTransfer:\n--------------\n"),
 	print_all_messages,
@@ -84,7 +88,40 @@ test_messages_1 :-
 	progress([transferStarts(Msg, 2)]),
 	print("\nAfter transferStarts:\n--------------\n"),
 	print_all_messages,
+	assertEquals(length(domain(message)), 1, check_2),
+	print_channel(rob2rob),
+	channel_in_queue(con2rob, [], s0),
+	channel_in_queue(rob2rob, [], s0),
+	progress([tick]),
+	progress([transferEnds(Msg, 2)]),
+	printf("\nAfter transferEnds(%d):\n--------------\n",[Msg]),
+	print_all_messages,
+	print_channel(rob2rob),
+	progress([tick]),
+	assertEquals(length(domain(message)), 0, check_3),
+	channel_in_queue(rob2rob, [msg(rob1, r1, rob2, r2, 2, 46)], s0),
+	channel_in_queue(con2rob, [], s0).
+	
+test_multicast_channel :-
+	init,
+	create_message(con2rob, con2, multicastSrc, [con], Msg),
+	set_current(channel_out_content, [Msg], 42),
+	print("Before:\n--------------\n"),
+	print_all_messages,
+	channel_in_queue(con2rob, [], s0),
+	channel_in_queue(rob2rob, [], s0),
+	assertEquals(length(domain(message)), 1, check_1),
+	progress([requestTransfer(Msg)]),
+	print("\nAfter requestTransfer:\n--------------\n"),
+	print_all_messages,
+	progress([tick]),
+	progress([transferStarts(Msg, 2)]),
+	print("\nAfter transferStarts:\n--------------\n"),
+	print_all_messages,
+	assertEquals(length(domain(message)), 3, check_2),
 	print_channel(con2rob),
+	channel_in_queue(con2rob, [], s0),
+	channel_in_queue(rob2rob, [], s0),
 	progress([tick]),
 	domain(message, Messages1),
 	get_dest_messages(Msg, Messages1, DestMessages1),
@@ -94,9 +131,12 @@ test_messages_1 :-
 		print_all_messages,
 		print_channel(con2rob),
 		progress([tick])
-	).
+	),
+	assertEquals(length(domain(message)), 0, check_3),
+	channel_in_queue(con2rob, [msg(con2, con, rob2, r, 2, 46), msg(con2, con, rob3, r, 3, 46)], s0),
+	channel_in_queue(rob2rob, [], s0).
 		
-test_messages_2 :-
+test_remote_sensor :-
 	init,
 	create_message(batteryLevelR, rob2, multicastSrc, 
 		[batteryLevelR], Msg),
