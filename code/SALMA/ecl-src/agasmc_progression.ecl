@@ -83,6 +83,45 @@ is_undefined(Fluent, Params) :-
     make_key_term(Fluent, Params, T),
 	not store_contains(S, T).
 
+get_fluent_value(Fluent, Params, Value, Sit) :-
+	(fluent(Fluent, _, Type), ! ; derived_fluent(Fluent, _, Type), !),
+	(Type = boolean ->
+		append(Params, [Sit], Params2),
+		T =.. [Fluent | Params2],
+		(call(T) -> Value = true ; Value = false)
+		;
+		append(Params, [Value, Sit], Params2),
+		T =.. [Fluent | Params2],
+		(call(T) -> true ; Value = none)
+	), !
+	;
+	throw(undefined_fluent(Fluent)).
+
+get_all_fluent_values(KeyValuePairs, Situation) :-
+	store_create(Store),
+	findall(F,fluent(F,_,_),L),
+    (foreach(F2, L), param(Situation, Store) do
+		not (
+			choose_arguments(F2, Args),
+			fluent(F2,_,RType),
+			make_key_term(F2, Args, Key),
+			(RType = boolean -> 
+				append(Args, [Situation], AllArgs),
+				T =.. [F2 | AllArgs],
+				(call(T) -> store_set(Store, Key, true) 
+					; store_set(Store, Key, false) )
+				;
+				append(Args, [Val, Situation], AllArgs),
+				T =.. [F2 | AllArgs],
+				call(T),
+				store_set(Store, Key, Val) 
+			),
+			fail
+		)
+	),
+	stored_keys_and_values(Store, KeyValuePairs).
+		
+		
 current_time(T) :-
 	get_current(time, [], T).
 
@@ -177,6 +216,9 @@ get_situations(S1, List1, S2, List2, S3, List3):-
 last_state(S1, List1):-
     get_situation_store(last_sit, S1),
     stored_keys_and_values(S1, List1).
+
+
+
 	
 current_state(S1, List1):-
     get_situation_store(cur_sit, S1),

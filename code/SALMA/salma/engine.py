@@ -528,13 +528,32 @@ class EclipseCLPEngine(Engine):
             else:
                 return result
 
-    def __updateCurrentState(self):
-        self.__currentState = dict()
+    def __updateCurrentState(self, key=None):
+        if key is None:
+            self.__load_full_current_state()
+            return
 
-        a = pyclp.Var()
+        if self.__currentState is None:
+            self.__currentState = dict()
+
+        fluent_name = key[0]
+        params = list(key[1])
+        val = pyclp.Var()
+        pterms = createParamTerms(*params)
+        self.__callGoal("get_fluent_value",
+                        pyclp.Atom(fluent_name),
+                        pyclp.PList(pterms),
+                        val,
+                        pyclp.Atom("s0"))
+        val2 = self.__convert_value_from_engine_result(val.value())
+        fv = FluentValue(fluent_name, params, val2)
+        self.__currentState[key] = fv
+
+    def __load_full_current_state(self):
+        self.__currentState = dict()
         b = pyclp.Var()
 
-        self.__callGoal("current_state", a, b)
+        self.__callGoal("get_all_fluent_values", b, pyclp.Atom("s0"))
 
         for x in b.value():
             fluentName = str(x[0][0])
@@ -563,10 +582,11 @@ class EclipseCLPEngine(Engine):
             self.setFluentValue(fv.fluentName, fv.fluentParamValues, fv.value)
 
     def getFluentValue(self, fluentName, *fluentParams):
-        if self.__currentState is None:
-            self.__updateCurrentState()
-
         key = (fluentName, fluentParams)
+
+        if (self.__currentState is None) or (not key in self.__currentState):
+            self.__updateCurrentState(key)
+
         if not key in self.__currentState:
             return None
         else:
@@ -583,7 +603,6 @@ class EclipseCLPEngine(Engine):
         if self.__currentState is not None:
             fv = FluentValue(fluentName, fluentParams, value)
             self.__currentState[(fluentName, tuple(fluentParams))] = fv
-
 
     def cleanup(self):
         pyclp.cleanup()
@@ -825,7 +844,7 @@ class EclipseCLPEngine(Engine):
         # : :type domList: pyclp.PList
         domList = domVar.value()
         result = dict()
-        #: :type dom: pyclp.Compound
+        # : :type dom: pyclp.Compound
         for dom in domList:
             sort = self.__convert_value_from_engine_result(dom[0])
             entities = self.__convert_value_from_engine_result(dom[1])
@@ -921,7 +940,7 @@ class EclipseCLPEngine(Engine):
         result_dict = dict()
 
         for r in result:
-            #not_ok : sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime)
+            # not_ok : sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime)
             verdict = EclipseCLPEngine.__verdictMapping[str(r[0])]
             key = r[1]
             pname = str(key[0])
@@ -943,7 +962,7 @@ class EclipseCLPEngine(Engine):
         # : :type: dict[str, list[int]]
         result_dict = dict()
         for prop in props:
-            #sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime)
+            # sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime)
             pname = str(prop[0])
             time = prop[3]
             if pname in result_dict:

@@ -870,9 +870,11 @@ class WorldTest(BaseWorldTest):
         world.addAgent(rob1)
         world.initialize(False)
 
-        expected_fluents = [('ypos', ['rob1']), ('carrying', ['rob1', 'coffee']), ('carrying', ['rob1', 'chocolate']),
-                            ('xpos', ['rob1']), ('painted', ['coffee']), ('painted', ['chocolate']),
-                            ("active", ["rob1"])]
+        expected_fluents = [('ypos', ['rob1']), ('xpos', ['rob1'])]
+        default_false_fluent_instances = [('carrying', ['rob1', 'coffee']), ('carrying', ['rob1', 'chocolate']),
+                                          ('painted', ['coffee']), ('painted', ['chocolate']),
+                                          ("active", ["rob1"])]
+
         expected_constants = [('gravity', []), ('robot_radius', ['rob1'])]
 
         l1, l2 = world.check_fluent_initialization()
@@ -881,8 +883,10 @@ class WorldTest(BaseWorldTest):
         for e in expected_constants:
             self.assertTrue(e in l2)
         print("l1 = " + str(l1))
-        self.assertEqual(len(l1), 7)
+        self.assertEqual(len(l1), 2)
         self.assertEqual(len(l2), 2)
+        for f in default_false_fluent_instances:
+            self.assertFalse(world.getFluentValue(f[0], f[1]))
 
         world.setFluentValue('xpos', ['rob1'], 10)
         expected_fluents.remove(("xpos", ["rob1"]))
@@ -891,18 +895,9 @@ class WorldTest(BaseWorldTest):
             self.assertTrue(e in l1)
         for e in expected_constants:
             self.assertTrue(e in l2)
-        self.assertEqual(len(l1), 6)
+        self.assertEqual(len(l1), 1)
         self.assertEqual(len(l2), 2)
 
-        world.setFluentValue('carrying', ['rob1', 'coffee'], True)
-        expected_fluents.remove(('carrying', ['rob1', 'coffee']))
-        l1, l2 = world.check_fluent_initialization()
-        for e in expected_fluents:
-            self.assertTrue(e in l1)
-        for e in expected_constants:
-            self.assertTrue(e in l2)
-        self.assertEqual(len(l1), 5)
-        self.assertEqual(len(l2), 2)
 
         world.setConstantValue('gravity', [], 9.81)
         expected_constants.remove(("gravity", []))
@@ -911,7 +906,7 @@ class WorldTest(BaseWorldTest):
             self.assertTrue(e in l1)
         for e in expected_constants:
             self.assertTrue(e in l2)
-        self.assertEqual(len(l1), 5)
+        self.assertEqual(len(l1), 1)
         self.assertEqual(len(l2), 1)
 
         world.setConstantValue('robot_radius', ['rob1'], 20.0)
@@ -921,7 +916,7 @@ class WorldTest(BaseWorldTest):
             self.assertTrue(e in l1)
         for e in expected_constants:
             self.assertTrue(e in l2)
-        self.assertEqual(len(l1), 5)
+        self.assertEqual(len(l1), 1)
         self.assertEqual(len(l2), 0)
 
     def runTest(self):
@@ -936,7 +931,7 @@ def suite():
 
 # def load_tests(loader, tests, pattern):
 # print("Loading SALMA WorldTest")
-#     return suite()
+# return suite()
 
 
 if __name__ == '__main__':

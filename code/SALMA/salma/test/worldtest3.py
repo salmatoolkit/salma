@@ -34,7 +34,7 @@ class WorldTest3(BaseWorldTest):
         fl, const = world.check_fluent_initialization()
         print(fl)
         print(const)
-        self.assertEqual(len(fl), 7)
+        self.assertEqual(len(fl), 2)
         self.assertEqual(len(const), 2)
         a, a2 = world.check_action_initialization()
         print("---------")
@@ -336,7 +336,7 @@ forall([r, robot],
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    @unittest.skip
+    #@unittest.skip
     def test_property_4(self):
         world = World.instance()
 
