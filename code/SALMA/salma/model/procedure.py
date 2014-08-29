@@ -642,7 +642,7 @@ class Send(ControlNode):
             params = []
             connector = evaluation_context.get_connector(channel)
             if connector is None:
-                raise SALMAException("Undefined connector: %s\n".format(channel))
+                raise SALMAException("Undefined connector: {}\n".format(channel))
 
             if isinstance(connector, Channel):
                 if own_role == connector.role1[0]:

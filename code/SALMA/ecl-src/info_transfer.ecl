@@ -88,7 +88,7 @@ untracked_fluent(channel_in_queue).
 derived_fluent(local_channel_in_queue, [a:agent, c:channel, role:term], list).
 
 % checks if a message that matches the given parameters has been sent in this timestep
-derived_fluent(messageSent, [a:agent, c:channel, role:term, dest:channel, 
+derived_fluent(messageSent, [a:agent, c:channel, role:term, dest:agent, 
 	destRole:term, content:term], boolean).
 
 % SENSOR
@@ -253,6 +253,17 @@ domain(message, D, do2(A, S)) :-
 		; D = OldD
 	).
 
+clean_message_specs :-
+	domain(message, Messages),
+	not (
+		clause(message_spec(M,_), _),
+		(not member(M, Messages) -> 
+			retract_constant(message_spec, [M])
+			;
+			true
+		),
+		fail
+	).
 	
 awaitingTransfer(Message, do2(A,S)) :-
 	A = requestTransfer(Message), !
@@ -375,7 +386,7 @@ channel_out_content(Message, Content, slast) :-
 	Content = none.
 
 channel_transmission_content(Message, Content, do2(A,S)) :-
-	A = transferStarts(M, Error), !,
+	A = transferStarts(Message, Error), !,
 	channel_out_content(Message, Out, S),
 	message_connector(Message, Connector),
 	error_operator(Connector, Out, Error, Content)
@@ -583,5 +594,56 @@ get_declared_remote_sensors(RemoteSensors) :-
 		remoteSensor(RemoteSensorName, RemoteSensorOwner, LocalSensorName, LocalSensorOwner),
 		RemoteSensors).
 
+add_direct_sensor_fluents :-
+	get_declared_sensors(Sensors),
+	(foreach(Sensor, Sensors) do
+		Sensor = s(SensorName, _, SourceFluent),
+		(is_dynamic(SensorName/3) -> true ; throw(not_declared_dynamic(SensorName))),
+		(
+			fluent(SourceFluent, Params, Type), !
+			;
+			derived_fluent(SourceFluent, Params, Type), !
+			;
+			throw(undeclared_source_fluent(SourceFluent))
+		),
+		(not fluent(SensorName, _, _) ->
+			assert(fluent(SensorName, Params, Type))
+			;
+			true
+		),
+		(not untracked_fluent(SensorName) ->
+			assert(untracked_fluent(SensorName))
+			;
+			true
+		),
+		length(Params, NArgs),
+		length(NewParams, NArgs),
+		NewParams = [Agent | MsgParams],
+		Sit = do2(Action, OldSit), 
+		(Type = boolean ->
+			append(NewParams, [Sit], NewParams2),
+			append(NewParams, [OldSit], NewParamsOldQuery)
+			;
+			append(NewParams, [Val, Sit], NewParams2),
+			append(NewParams, [Val, OldSit], NewParamsOldQuery)
+		),			
+		Head =.. [SensorName | NewParams2],
+		(not clause(Head, _) ->
+			OldQuery =.. [SensorName | NewParamsOldQuery],
+			
+			Query = (
+				new_sensor_value_received(SensorName, Agent, MsgParams, 
+					Action, OldSit, Val), !
+				;
+				OldQuery
+				),
+			assert((Head :- Query))
+			;
+			true
+		)
+	).
 
-
+init_info_transfer :-
+	setval(nextMsg, 1),
+	add_direct_sensor_fluents,
+	retract_constant(message_spec, [_]).

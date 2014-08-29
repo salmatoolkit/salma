@@ -70,12 +70,7 @@ batteryLevel(Rob, Level, do2(A,S)) :-
 	).
 	
 
-batteryLevelL(Rob, Level, do2(A, S)) :-
-	new_sensor_value_received(batteryLevelL, Rob, [], A ,S, Level), !
-	;
-	batteryLevelL(Rob, Level, S), !
-	;
-	Level = none.
+
 	
 dist(A1, A2, Dist, S) :-
 	xpos(A1, X1, S),

@@ -31,11 +31,13 @@ evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :
 	clean_formula_cache.
 
 init_agasmc :-
+	init_info_transfer,
 	init_progression,
 	init_smc.
 
 	
 reset_agasmc :-
+	init_info_transfer,
 	init_progression,
 	reset_smc.
 

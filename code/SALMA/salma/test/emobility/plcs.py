@@ -13,8 +13,7 @@ def create_plcs_processes(world, world_map, mt):
                                       [
                                           Assign("sensorValue", EvaluationContext.FLUENT, "freeSlotsL",
                                                  [Entity.SELF]),
-                                          Send("chan_freeSlotsR", ("rs", Entity.SELF, Variable("sensorValue")), "plcs",
-                                               "sam1", "sam")
+                                          Send("freeSlotsR", Variable("sensorValue"), "freeSlotsR")
                                       ])
                                ])
 

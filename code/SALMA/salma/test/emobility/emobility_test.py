@@ -43,11 +43,11 @@ class EMobilityTest(unittest.TestCase):
         :type mt: MapTranslator
         """
 
-        #todo: automatize initialization
-        world.addEntity(Entity("assignment", "channel"))
-        world.addEntity(Entity("reservation", "channel"))
-        world.addEntity(Entity("chan_freeSlotsR", "channel"))
-        world.addEntity(Entity("sensor_freeSlotsL", "sensor"))
+        # todo: automatize initialization
+        # world.addEntity(Entity("assignment", "channel"))
+        # world.addEntity(Entity("reservation", "channel"))
+        # world.addEntity(Entity("chan_freeSlotsR", "channel"))
+        # world.addEntity(Entity("sensor_freeSlotsL", "sensor"))
 
         mt.init_world_from_graph()
 
@@ -68,12 +68,6 @@ class EMobilityTest(unittest.TestCase):
             world.setFluentValue("currentTargetPOI", [vehicle.id], None)
             world.setFluentValue("currentRoute", [vehicle.id], [])
 
-        for sam in sams:
-            for plcs in plcses:
-                world.setFluentValue("freeSlotsR", [sam.id, plcs.id], None)
-
-        for channel in world.getDomain("channel"):
-            world.setFluentValue("channel_in_queue", [channel.id], [])
 
     def __log(self, msg):
         print(msg)
@@ -100,14 +94,23 @@ class EMobilityTest(unittest.TestCase):
             self.__log("Step {}".format(step))
             self.__log("   Verdict: {}".format(verdict))
             self.__log("   Actions: {}".format(actions))
-            for a in actions:
-                if a[0] in ("requestTransfer", "transferStarts", "transferEnds", "transferFails"):
-                    msgid = a[1][0]
+
+            messages = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "domain",
+                                                                   "message")
+
+            # for a in actions:
+            #     if a[0] in ("requestTransfer", "transferStarts", "transferEnds", "transferFails"):
+            #         msgid = a[1][0]
+            for msgid in messages:
                     spec = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec",
                                                                        msgid)
                     stransval = world.getFluentValue("sensor_transmitted_value", [msgid])
+                    chtransval = world.getFluentValue("channel_transmission_content", [msgid])
+                    self.__log("      #{}: {}   sensor_transmitted_value: {}    channel_trans_value: {}".format(msgid, spec, stransval, chtransval))
 
-                    self.__log("      #{}: {} = {}   sensor_transmitted_value: {}".format(msgid, a[0], spec, stransval))
+
+            # channels = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "domain",
+            #                                                        "channel")
 
             self.__log("   Toplevel Results: {}".format(toplevel_results))
             self.__log("   Scheduled Results: {}".format(scheduled_results))
@@ -123,6 +126,7 @@ class EMobilityTest(unittest.TestCase):
             for plcs in world.getDomain("plcs"):
                 fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
                 fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])
+
                 fsreal = world.evaluation_context().evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, "freeSlots",
                                                                      plcs.id)
                 self.__log("   {}: real = {}, local = {}, remote = {}".format(plcs, fsreal, fslocal, fsremote))

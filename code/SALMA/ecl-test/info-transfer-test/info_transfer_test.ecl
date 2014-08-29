@@ -82,6 +82,9 @@ test_unicast_channel :-
 	channel_in_queue(rob2rob, [], s0),
 	assertEquals(length(domain(message)), 1, check_1),
 	progress([requestTransfer(Msg)]),
+	messageSent(rob1, rob2rob, _, _, _, _, s0),
+	evaluate_ad_hoc(messageSent(rob1, rob2rob, ?, ?, ?, ?), R),
+	printf("Result: %w\n",[R]),
 	print("\nAfter requestTransfer:\n--------------\n"),
 	print_all_messages,
 	progress([tick]),
@@ -122,7 +125,7 @@ test_multicast_channel :-
 	print_channel(con2rob),
 	channel_in_queue(con2rob, [], s0),
 	channel_in_queue(rob2rob, [], s0),
-	progress([tick]),
+	progress([tick, tick]),
 	domain(message, Messages1),
 	get_dest_messages(Msg, Messages1, DestMessages1),
 	(foreach(DMsg, DestMessages1) do
@@ -133,7 +136,7 @@ test_multicast_channel :-
 		progress([tick])
 	),
 	assertEquals(length(domain(message)), 0, check_3),
-	channel_in_queue(con2rob, [msg(con2, con, rob2, r, 2, 46), msg(con2, con, rob3, r, 3, 46)], s0),
+	channel_in_queue(con2rob, [msg(con2, con, rob2, r, 3, 46), msg(con2, con, rob3, r, 4, 46)], s0),
 	channel_in_queue(rob2rob, [], s0).
 		
 test_remote_sensor :-
@@ -151,17 +154,39 @@ test_remote_sensor :-
 	print("\nAfter transferStarts:\n--------------\n"),
 	print_all_messages,
 	print_channel(batteryLevelR),
-	progress([tick]),
+	progress([tick, tick]),
 	domain(message, Messages1),
 	get_dest_messages(Msg, Messages1, DestMessages1),
 	(foreach(DMsg, DestMessages1) do
-		progress([transferEnds(DMsg, 2)]),
+		progress([transferEnds(DMsg, none)]),
 		printf("\nAfter transferEnds(%d):\n--------------\n",[DMsg]),
 		print_all_messages,
 		print_channel(batteryLevelR),
 		progress([tick])
 	).
 		
+	
+test_all :-
+	print("********************************************\n"),
+	print("test_ensembles\n"),
+	print("********************************************\n"),
+	test_ensembles,
+	
+	print("\n\n********************************************\n"),
+	print("test_unicast_channel\n"),
+	print("********************************************\n"),
+	test_unicast_channel,
+	
+	print("\n\n********************************************\n"),
+	print("test_multicast_channel\n"),
+	print("********************************************\n"),
+	test_multicast_channel,
+	
+	print("\n\n********************************************\n"),
+	print("test_remote_sensor\n"),
+	print("********************************************\n"),
+	test_remote_sensor.
+	
 	
 	
 	

@@ -21,8 +21,6 @@ derived_fluent(avaliableSlots, [p:plcs], integer).
 
 % Declare the free slots sensor and its associated local fluent.
 sensor(freeSlotsL, plcs, freeSlots).
-fluent(freeSlotsL, [p:plcs], integer).
-untracked_fluent(freeSlotsL).
 
 % Declare a dedicated time stamp fluent for freeSlotsL.
 fluent(tstamp_freeSlotsL, [p:plcs], integer).
@@ -70,13 +68,6 @@ freeSlots(PLCS, FreeSlots, S) :-
 	FreeSlots is maxCapacity(PLCS) - Occupancy.
 
 
-
-freeSlotsL(PLCS, FreeSlots, do2(A, S)) :-
-	new_sensor_value_received(freeSlotsL, PLCS, [], A ,S, FreeSlots), !
-	;
-	freeSlotsL(PLCS, FreeSlots, S), !
-	;
-	FreeSlots = none.
 	
 tstamp_freeSlotsL(PLCS, TStamp, do2(A, S)) :-
 	new_sensor_timestamp(freeSlotsL, PLCS, [], A, S, TStamp), !

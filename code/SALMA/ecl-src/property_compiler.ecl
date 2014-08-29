@@ -202,13 +202,6 @@ compile_constraints_term(T, Out, Situation) :-
 		;
 		functor(T, Functor, N),		
 		(
-			% for fluents we assume that the arguments are either atoms or variables
-			% boolean fluents can just be handled directly without introducing a variable
-			isFluent(Functor, boolean),
-			T =.. TempTl ,
-			append(TempTl, [Situation], Tl),
-			Out =.. Tl, !			
-			;			
 			% handle comparison
 			constraint_op(Functor, _),
 			% we assume that there are two subterms	
@@ -230,55 +223,59 @@ compile_constraints_term(T, Out, Situation) :-
 					;
 					compile_constraints_list(Subterms, HandledSubterms, Situation),
 					IsChangeEvent = false
-				),
-				(
-					Functor = and,
-					Out =.. [all, HandledSubterms], !
-					;
-					Functor = or,
-					Out =.. [one, HandledSubterms], !
-					;
-					Functor = not,
-					HandledSubterms = [P],
-					Out =.. [not2, P], !
-					;						
-					Functor = until,
-					% TODO: exception if != 3 params
-					HandledSubterms = [MaxTime, P,Q],
-					Out =.. [until, MaxTime, P, Q], !						
-					;
-					% occur means action/exogenous action occured
-					Functor = occur,
-					HandledSubterms = [Act],
-					Out =.. [occur, Act], !
-					;
-					Functor = start,
-					(IsChangeEvent ->
-						HandledSubtermsLast = [P],
-						HandledSubterms = [Q],
-						Out =.. [changed, P, Q, ok]
-						;
-						HandledSubterms = [PFName],
-						Out =.. [pfswitch, PFName, ok]
-					), !
-					;
-					Functor = end,
-					(IsChangeEvent ->
-						HandledSubtermsLast = [P],
-						HandledSubterms = [Q],
-						Out =.. [changed, P, Q, not_ok]
-						;
-						HandledSubterms = [PFName],
-						Out =.. [pfswitch, PFName, not_ok]
-					), !
-					;						
-					% otherwise just take what we have now
-					Out =.. [Functor | HandledSubterms], !
 				)
 				;
-				% now we basically have only numbers, true or false left
-				Out = T, !
-			), !
+				HandledSubterms = []
+			),
+			(
+				isFluent(Functor, boolean),
+				append(HandledSubterms, [Situation], HandledSubterms2),
+				Out =.. [Functor | HandledSubterms2], !
+				;				
+				Functor = and,
+				Out =.. [all, HandledSubterms], !
+				;
+				Functor = or,
+				Out =.. [one, HandledSubterms], !
+				;
+				Functor = not,
+				HandledSubterms = [P],
+				Out =.. [not2, P], !
+				;						
+				Functor = until,
+				% TODO: exception if != 3 params
+				HandledSubterms = [MaxTime, P,Q],
+				Out =.. [until, MaxTime, P, Q], !						
+				;
+				% occur means action/exogenous action occured
+				Functor = occur,
+				HandledSubterms = [Act],
+				Out =.. [occur, Act], !
+				;
+				Functor = start,
+				(IsChangeEvent ->
+					HandledSubtermsLast = [P],
+					HandledSubterms = [Q],
+					Out =.. [changed, P, Q, ok]
+					;
+					HandledSubterms = [PFName],
+					Out =.. [pfswitch, PFName, ok]
+				), !
+				;
+				Functor = end,
+				(IsChangeEvent ->
+					HandledSubtermsLast = [P],
+					HandledSubterms = [Q],
+					Out =.. [changed, P, Q, not_ok]
+					;
+					HandledSubterms = [PFName],
+					Out =.. [pfswitch, PFName, not_ok]
+				), !
+				;						
+				% otherwise just take what we have now
+				Out =.. [Functor | HandledSubterms], !
+			)
+		
 		).
 	
 

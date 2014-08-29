@@ -486,6 +486,7 @@ class EclipseCLPEngine(Engine):
         if deleteConstants:
             self.__constants = dict()
 
+
         if removeFormulas:
             self.__callGoal("init_agasmc", erorMsg="Can't initialize main module.")
         else:

@@ -39,8 +39,8 @@ def create_plcssam_functions(world_map, mt):
         """
         result = []
         for r in free_slot_msgs:
-            plcs = r.content[1]
-            freeSlots = r.content[2]
+            plcs = r.sender
+            freeSlots = r.content
             result.append((plcs, freeSlots))
         return result
 
@@ -64,7 +64,7 @@ def create_plcssam(world, world_map, mt):
 
     p_free_slots_receiver = Procedure("main", [],
                                       [
-                                          Receive("chan_freeSlotsR", "sam", "free_slot_msgs"),
+                                          Receive("freeSlotsR", "freeSlotsR", "free_slot_msgs"),
                                           Assign("freeSlotsMap", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                  free_slots_receiver, []),
                                           Iterate(EvaluationContext.ITERATOR, Variable("freeSlotsMap"),
@@ -76,7 +76,7 @@ def create_plcssam(world, world_map, mt):
                           "len(local_channel_in_queue(self, 'assignment', 'sam')) > 0", [])
 
     p2 = TriggeredProcess(p_free_slots_receiver, EvaluationContext.PYTHON_EXPRESSION,
-                          "len(local_channel_in_queue(self, 'chan_freeSlotsR', 'sam')) > 0", [])
+                          "len(local_channel_in_queue(self, 'freeSlotsR', 'freeSlotsR')) > 0", [])
 
     sam = Agent("sam1", "plcssam", [p1, p2])
     world.addAgent(sam)

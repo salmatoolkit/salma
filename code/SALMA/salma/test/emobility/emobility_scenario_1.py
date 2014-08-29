@@ -26,7 +26,7 @@ class EMobilityScenario1(EMobilityTest):
     NUM_OF_VEHICLES = 5
     PLCS_CAPACITY = 100
     VEHICLE_SPEED = 5
-    TIME_LIMIT = 50
+    TIME_LIMIT = 52
 
     def __print_info(self, world):
         """
@@ -102,7 +102,7 @@ class EMobilityScenario1(EMobilityTest):
         transferFails.config.set_probability(0.0)
         # messageSent(v, assignment, veh, ?, ?, ?),
         fstr = """
-        forall([v,vehicle],
+        forall(v:vehicle,
             implies(
                 messageSent(v, assignment, ?, ?, ?, ?),
                 until({},

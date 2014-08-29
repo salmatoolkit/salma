@@ -326,7 +326,8 @@ progress_sequential(ActionSequence, FailedActions) :-
 			;
 			append(In, [Act], Out)
 		)
-	).
+	),
+	clean_message_specs.
  
 
 % TODO: optionally add constraints to ensure that all args are different? 
@@ -408,7 +409,8 @@ add_storage_query_to_ssa(Name, Args, Type, Sit, QueryName) :-
 		append(NewArgs,[Val,Sit], NewArgsWithSit),
 		Head =.. [Name | NewArgsWithSit],
 		(not clause(Head, _) ->
-			assert(Head :- Query)
+			%assert((Head :- Query, ! ; Val = none))
+			assert((Head :- Query))
 			;
 			true
 		)
@@ -487,6 +489,12 @@ get_declared_derived_fluents(Fluents) :-
 
 get_declared_constants(Constants) :-
 	findall(c(CName,Params,Type),constant(CName,Params,Type),Constants).
+	
+retract_constant(ConstantName, Params) :-
+	append(Params, [_], Params2),
+	Head =.. [ConstantName | Params2],
+	retractall(Head).
+	
 	
 get_declared_primitive_actions(Actions) :-
 	findall(pa(AName,Params),primitive_action(AName,Params),Actions).

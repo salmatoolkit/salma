@@ -36,7 +36,6 @@ doc(responsiblePLCSSAM : constant, [
 
 channel(assignment, veh:vehicle, sam:plcssam, unicast).
 channel(reservation, veh:vehicle, plcs:plcs, unicast).
-channel(chan_freeSlotsR, plcs:plcs, sam:plcssam, unicast).
 remoteSensor(freeSlotsR, plcssam, freeSlotsL, plcs).
 
 ensemble(freeSlotsR, SAM, PLCS, S) :- true.
