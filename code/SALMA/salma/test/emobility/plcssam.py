@@ -58,8 +58,8 @@ def create_plcssam(world, world_map, mt):
                                               request_processor, []),
                                        Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
                                                [("v", "vehicle"), ("p", "plcs")],
-                                               Send("assignment", "sam", Variable("v"), "veh",
-                                                    ("aresp", 0, 0, Variable("p"))))
+                                               Send("assignment", ("aresp", 0, 0, Variable("p")), "sam", Variable("v"),
+                                                    "veh"))
                                    ])
 
     p_free_slots_receiver = Procedure("main", [],

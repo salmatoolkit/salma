@@ -13,8 +13,8 @@ def create_plcs_processes(world, world_map, mt):
                                       [
                                           Assign("sensorValue", EvaluationContext.FLUENT, "freeSlotsL",
                                                  [Entity.SELF]),
-                                          Send("chan_freeSlotsR", "plcs", "sam1", "sam",
-                                               ("rs", Entity.SELF, Variable("sensorValue")))
+                                          Send("chan_freeSlotsR", ("rs", Entity.SELF, Variable("sensorValue")), "plcs",
+                                               "sam1", "sam")
                                       ])
                                ])
 
@@ -32,12 +32,16 @@ def create_plcs_processes(world, world_map, mt):
                                                                 [
                                                                     Act("add_reservation",
                                                                         [Entity.SELF, Variable("vehicle"), 0, 0]),
-                                                                    Send("reservation", "plcs", Variable("vehicle"),
-                                                                         "veh", ("rresp", Entity.SELF, True, 0, 0))
+                                                                    Send("reservation",
+                                                                         ("rresp", Entity.SELF, True, 0, 0), "plcs",
+                                                                         Variable("vehicle"),
+                                                                         "veh")
                                                                 ],
                                                                 elseBody=[
-                                                                    Send("reservation", "plcs", Variable("vehicle"),
-                                                                         "veh", ("rresp", Entity.SELF, False, 0, 0))
+                                                                    Send("reservation",
+                                                                         ("rresp", Entity.SELF, False, 0, 0), "plcs",
+                                                                         Variable("vehicle"),
+                                                                         "veh")
 
                                                                 ])
                                                          ])

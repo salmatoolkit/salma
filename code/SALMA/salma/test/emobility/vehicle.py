@@ -41,8 +41,8 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                                    Assign("possible_targets",
                                           EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                           target_chooser, []),
-                                   Send("assignment", "veh", "sam1", "sam",
-                                        ("areq", Entity.SELF, Variable("possible_targets"), 0, 0)),
+                                   Send("assignment", ("areq", Entity.SELF, Variable("possible_targets"), 0, 0), "veh",
+                                        "sam1", "sam"),
                                    SetFluent("waitingForAssignment", EvaluationContext.PYTHON_EXPRESSION, "True",
                                              [Entity.SELF])
                                ])
@@ -52,8 +52,8 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                                        Receive("assignment", "veh", "sam_responses"),
                                        Assign("chosen_plcs", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                               response_selector, []),
-                                       Send("reservation", "veh", Variable("chosen_plcs"), "plcs",
-                                            ("res", Entity.SELF, 0, 0))
+                                       Send("reservation", ("res", Entity.SELF, 0, 0), "veh", Variable("chosen_plcs"),
+                                            "plcs")
                                    ])
 
     p_set_target = Procedure("main", [],
