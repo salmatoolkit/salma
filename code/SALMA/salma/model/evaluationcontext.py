@@ -97,15 +97,13 @@ class EvaluationContext(object):
         """
         raise NotImplementedError()
 
-    def create_message(self, connector, agent, params):
+    def create_message(self, connector, agent, msg_type, params):
         """
-        Creates and returns a mew message for the given channel, the given agent, and the given parameters.
-        A new "virtual" object of sort "message" is created and its id returned. The message
-         is added to the domain of sort message. Additionally, the constant message_spec is set with the term
-         msg(Con, Agent, Params).
+        See documentation in Engine.create_message .
 
         :type connector: str
         :type agent: str
+        :type msg_type: str
         :type params: list
         :rtype: int
         """
