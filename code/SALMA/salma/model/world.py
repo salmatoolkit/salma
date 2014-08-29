@@ -304,7 +304,8 @@ class World(Entity):
         self.__expressionContext['actionClock'] = __actionClock
         # add a "variable" for each entity to allow access without quotation marks
         for id in self.__entities.keys():
-            self.__expressionContext[str(id)] = str(id)
+            if not str(id) in self.__expressionContext:
+                self.__expressionContext[str(id)] = str(id)
 
 
     def sample_fluent_values(self):
