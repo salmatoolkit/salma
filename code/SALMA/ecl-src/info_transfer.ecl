@@ -408,7 +408,7 @@ channel_in_queue(Channel, L, do2(A, S)) :-
 	(channel_in_queue(Channel, OldL, S), ! ; OldL = []),
 	(A = transferEnds(Msg, Error),
 		message_spec(Msg, Spec),
-		Spec = msg(Con, MsgType, Sender, Params),
+		Spec = msg(Channel, MsgType, Sender, Params),
 		(MsgType = multicastDest ->
 			Params = [SrcMsg, Dest, DestRole],
 			message_spec(SrcMsg, SrcSpec),
