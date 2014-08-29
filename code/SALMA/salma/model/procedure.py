@@ -1,8 +1,8 @@
 from salma.SALMAException import SALMAException
 from salma.model.core import Entity
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.infotransfer import ReceivedMessage, Channel
-
+from salma.model.infotransfer import ReceivedMessage, Channel, RemoteSensor
+from salma.constants import *
 
 class Element(object):
     """
@@ -30,6 +30,7 @@ class Variable(object):
     A class that marks a typed variable. This class is used in parameter lists of control nodes to
      distinguish it from other terms.
     """
+
     def __init__(self, name: str, sort: str=None):
         self.__name = name
         self.__sort = sort
@@ -612,12 +613,11 @@ class Send(ControlNode):
     Sends a message on a channel to a specific agent.
     """
 
-    def __init__(self, channel, own_role, message, destination=None, destination_role=None):
+    def __init__(self, channel, message, own_role=None, destination=None, destination_role=None):
         ControlNode.__init__(self)
         self.__channel = channel
         self.__own_role = own_role
         self.__destination = destination
-
         self.__destination_role = destination_role
         self.__message = message
 
@@ -627,13 +627,6 @@ class Send(ControlNode):
         :type procedureRegistry: ProcedureRegistry
         :return:
         """
-        msg_type = None
-        connector = evaluation_context.get_connector(self.__channel)
-        if connector is None:
-            raise SALMAException("Undefined connector: %s\n".format(self.__channel))
-
-        if isinstance(connector, Channel):
-            connector.
 
         if evaluation_context.getCurrentSequenceIndex(self) is None:
             evaluation_context.setCurrentSequenceIndex(self, 0)
@@ -645,7 +638,46 @@ class Send(ControlNode):
                 self.__channel, Entity.SELF, self.__own_role, self.__destination, self.__destination_role,
                 self.__message)
 
-            msgid = evaluation_context.create_message(channel, agent, [own_role, dest, dest_role])
+            msg_type = None
+            params = []
+            connector = evaluation_context.get_connector(channel)
+            if connector is None:
+                raise SALMAException("Undefined connector: %s\n".format(channel))
+
+            if isinstance(connector, Channel):
+                if own_role == connector.role1[0]:
+                    if dest_role is None:
+                        dest_role = connector.role2[0]
+                elif own_role == connector.role2[0]:
+                    if dest_role is None:
+                        dest_role = connector.role1[0]
+                else:
+                    raise SALMAException("Role {} is undefined for channel {}.".format(own_role, connector.name))
+
+                if dest_role is None:
+                    raise SALMAException(
+                        "Using wrong destination role {} for channel {} with source role {}.".format(dest_role,
+                                                                                                     connector.name,
+                                                                                                     own_role))
+
+                if dest is None:
+                    # assume multicast
+                    if connector.mode != Channel.MULTICAST:
+                        raise SALMAException("No destination given for unicast channel {}.".format(connector.name))
+                    msg_type = MSG_TYPE_MULTICAST_SRC
+                    params = [own_role]
+                else:
+                    # we allow direct messages for unicast and multicast channels
+                    msg_type = MSG_TYPE_UNICAST
+                    params = [own_role, dest, dest_role]
+            elif isinstance(connector, RemoteSensor):
+                # ignore destination and roles
+                msg_type = MSG_TYPE_MULTICAST_SRC
+                params = [connector.name]
+            else:
+                raise SALMAException("Unsupported connector type for Send: {}.".format(type(connector)))
+
+            msgid = evaluation_context.create_message(channel, agent, msg_type, params)
             evaluation_context.set_fluent_value("channel_out_content", [msgid], message)
             reqTransfer = Act("requestTransfer", [msgid])
             reqTransfer.parent = self
@@ -695,7 +727,6 @@ class Receive(ControlNode):
 
 
 class WaitForSensor(ControlNode):
-
     def __init__(self, sensor, agent, params, start_time):
         self.__sensor = sensor
         self.__agent = agent
@@ -744,7 +775,7 @@ class Sense(ControlNode):
         agent, sensor, params = evaluation_context.resolve(Entity.SELF, self.__sensor, self.__params)
         if csi == 0:
 
-            msgid = evaluation_context.create_message(sensor, agent, params)
+            msgid = evaluation_context.create_message(sensor, agent, MSG_TYPE_SENSOR, params)
             reqTransfer = Act("requestTransfer", [msgid])
             reqTransfer.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
