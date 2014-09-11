@@ -138,7 +138,37 @@ test_multicast_channel :-
 	assertEquals(length(domain(message)), 0, check_3),
 	channel_in_queue(con2rob, [msg(con2, con, rob2, r, 3, 46), msg(con2, con, rob3, r, 4, 46)], s0),
 	channel_in_queue(rob2rob, [], s0).
-		
+	
+test_local_sensor :-
+	init,
+	is_undefined(batteryLevelL, [rob1]),
+	create_message(batteryLevelL, rob1, sensor, [], Msg),
+	print("Before:\n--------------\n"),
+	print_all_messages,
+	progress([requestTransfer(Msg)]),
+	print("\nAfter requestTransfer:\n--------------\n"),
+	print_all_messages,
+	progress([tick]),
+	progress([transferStarts(Msg, 2)]),
+	print("\nAfter transferStarts:\n--------------\n"),
+	print_all_messages,
+	progress([tick]),
+	progress([transferEnds(Msg, 2)]),
+	printf("\nAfter transferEnds(%d):\n--------------\n",[Msg]),
+	print_all_messages,
+	batteryLevelL(rob1, 104, s0),
+	progress([tick]),
+	%---
+	set_current(batteryLevel, [rob1], 50),
+	create_message(batteryLevelL, rob1, sensor, [], Msg2),
+	progress([requestTransfer(Msg2)]),
+	progress([tick]),
+	progress([transferStarts(Msg2, 3)]),
+	progress([tick]),
+	batteryLevelL(rob1, 104, s0),
+	progress([transferEnds(Msg2, 3)]),
+	batteryLevelL(rob1, 56, s0).
+	
 test_remote_sensor :-
 	init,
 	create_message(batteryLevelR, rob2, multicastSrc, 
@@ -185,7 +215,12 @@ test_all :-
 	print("\n\n********************************************\n"),
 	print("test_remote_sensor\n"),
 	print("********************************************\n"),
-	test_remote_sensor.
+	test_remote_sensor,
+	
+	print("\n\n********************************************\n"),
+	print("test_local_sensor\n"),
+	print("********************************************\n"),
+	test_local_sensor.
 	
 	
 	

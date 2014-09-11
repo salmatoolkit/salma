@@ -593,7 +593,7 @@ get_declared_remote_sensors(RemoteSensors) :-
 		rs(RemoteSensorName, RemoteSensorOwner, LocalSensorName, LocalSensorOwner), 
 		remoteSensor(RemoteSensorName, RemoteSensorOwner, LocalSensorName, LocalSensorOwner),
 		RemoteSensors).
-
+		
 add_direct_sensor_fluents :-
 	get_declared_sensors(Sensors),
 	(foreach(Sensor, Sensors) do
