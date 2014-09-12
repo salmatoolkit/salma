@@ -1,4 +1,5 @@
-:- dynamic xpos/3, ypos/3, batteryLevel/3, batteryLevelL/3.
+:- dynamic xpos/3, ypos/3, batteryLevel/3, batteryLevelL/3, 
+	batteryLevelR/4.
 
 sorts([robot, controller]).
 subsort(robot, agent).

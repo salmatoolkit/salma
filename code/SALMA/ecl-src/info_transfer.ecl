@@ -598,7 +598,6 @@ add_direct_sensor_fluents :-
 	get_declared_sensors(Sensors),
 	(foreach(Sensor, Sensors) do
 		Sensor = s(SensorName, _, SourceFluent),
-		(is_dynamic(SensorName/3) -> true ; throw(not_declared_dynamic(SensorName))),
 		(
 			fluent(SourceFluent, Params, Type), !
 			;
@@ -642,8 +641,52 @@ add_direct_sensor_fluents :-
 			true
 		)
 	).
+	
+add_remote_sensor_fluents :-
+	get_declared_remote_sensors(RemoteSensors),
+	(foreach(RemoteSensor, RemoteSensors) do
+		RemoteSensor = rs(RemoteSensorName, RemoteSensorOwner, LocalSensorName, LocalSensorOwner),
+		(
+			fluent(LocalSensorName, LocalParams, Type), !
+			;
+			throw(undeclared_local_fluent(LocalSensorName))
+		),
+		% ignore source agent for local sensor
+		LocalParams = [_ | LocalParams2],
+		Params = [dest:RemoteSensorOwner, src:LocalSensorOwner],
+		append(Params, LocalParams2, Params2),		
+		
+		(not fluent(RemoteSensorName, _, _) ->
+			assert(fluent(RemoteSensorName, Params2, Type))
+			;
+			true
+		),
+		(not untracked_fluent(RemoteSensorName) ->
+			assert(untracked_fluent(RemoteSensorName))
+			;
+			true
+		),
+		length(Params2, NArgs),
+		(Type = boolean ->
+			NArgs2 = NArgs
+			;
+			NArgs2 is NArgs + 1
+		),
+		length(NewParams, NArgs2),
+		append(NewParams, [do2(_, OldSit)], NewParams2), 
+		append(NewParams, [OldSit], NewParamsOldQuery),		
+		Head =.. [RemoteSensorName | NewParams2],
+		(not clause(Head, _) ->
+			Query =.. [RemoteSensorName | NewParamsOldQuery],			
+			assert((Head :- Query))
+			;
+			true
+		)
+	).
+	
 
 init_info_transfer :-
 	setval(nextMsg, 1),
 	add_direct_sensor_fluents,
+	add_remote_sensor_fluents,
 	retract_constant(message_spec, [_]).
