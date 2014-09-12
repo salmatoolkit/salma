@@ -1,7 +1,4 @@
 :- dynamic freeSlotsR/4.
 
-fluent(freeSlotsR, [sam:plcssam, plcs:plcs], integer).
-
-% this fluent is set directly for now
-freeSlotsR(Sam, PLCS, FreeSlots, do2(A,S)) :-
-	freeSlotsR(Sam, PLCS, FreeSlots, S).
+% the following fluent will be introduced automatically:
+% fluent(freeSlotsR, [sam:plcssam, plcs:plcs], integer).

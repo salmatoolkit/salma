@@ -69,7 +69,7 @@ class World(Entity):
         # fluentName -> core.Fluent
         self.__fluents = dict()
 
-        #: :type: dict[str, (str, str, list)]
+        # : :type: dict[str, (str, str, list)]
         self.__derived_fluents = dict()
 
         #: :type: dict[str, Constant]
@@ -78,7 +78,6 @@ class World(Entity):
         self.__actions = dict()
 
         self.__exogenousActions = dict()
-
 
         self.__virtualSorts = set(["sort", "message"])
 
@@ -269,23 +268,27 @@ class World(Entity):
     def __make_fluent_access_function(self, fluent_name):
         def __f(*params):
             return self.getFluentValue(fluent_name, params)
+
         return __f
 
 
     def __make_constant_access_function(self, constant_name):
         def __f(*params):
             return self.getConstantValue(constant_name, params)
+
         return __f
 
     def __make_derived_fluent_access_function(self, derived_fluent_name):
         def __f(*params):
-            return self.__evaluationContext.evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, derived_fluent_name, *params)
+            return self.__evaluationContext.evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, derived_fluent_name,
+                                                             *params)
+
         return __f
 
     def __create_expression_context(self):
         self.__expressionContext = dict()
         self.__expressionContext.update(self.__additional_expression_context_globals)
-        #: :type fluent: Fluent
+        # : :type fluent: Fluent
         for fluent in self.__fluents.values():
             self.__expressionContext[fluent.name] = self.__make_fluent_access_function(fluent.name)
         for df in self.__derived_fluents.values():
@@ -299,6 +302,7 @@ class World(Entity):
 
         def __actionClock(actionName, *params):
             return self.getActionClock(actionName, params)
+
         #todo: add action count
         self.__expressionContext['fluentClock'] = __fluentChangeClock
         self.__expressionContext['actionClock'] = __actionClock
@@ -390,7 +394,7 @@ class World(Entity):
                 try:
                     entity = self.__entities[entityId]
                 except KeyError:
-                    #raise SALMAException("No Entity instance registered for {}:{}".format(entityId, sort))
+                    # raise SALMAException("No Entity instance registered for {}:{}".format(entityId, sort))
                     entity = Entity(entityId, sort)
                     self.__entities[entityId] = entity
                 self.__domainMap[sort].add(entity)
@@ -411,7 +415,7 @@ class World(Entity):
                 oids.append(entity.id)
             World.logic_engine().defineDomain(sort, oids)
 
-        #keep entityId->entity maps (__entities & __agents)
+        # keep entityId->entity maps (__entities & __agents)
 
         self.sync_domains()
 
@@ -488,6 +492,7 @@ class World(Entity):
         """
         self.addEntity(agent)
         agent.evaluation_context = LocalEvaluationContext(agent, None)
+        agent.init_info_transfer(self.get_channels(), self.get_sensors(), self.get_remote_sensors())
 
     def removeEntity(self, entity):
         """
@@ -651,7 +656,6 @@ class World(Entity):
         :param connector: the connector to add
         """
         self.__connectors[connector.name] = connector
-
 
 
     def getFluents(self):
@@ -877,7 +881,7 @@ class World(Entity):
         # A set that keeps track of all processes that have been entered already in this step.
         # This is used to by the process to determine whether a new step is started and hence a pending
         # action should be discarded.
-        #: :type : set of process.Process
+        # : :type : set of process.Process
         entered_processes = set()
 
         while True:
@@ -1070,7 +1074,7 @@ class World(Entity):
         finish_reason = None
         failed_invariants = set()
         failed_sustain_goals = set()
-        #: :type: dict[str, list[int]]
+        # : :type: dict[str, list[int]]
         scheduled_keys = dict()
         time_out = False
 
@@ -1129,9 +1133,9 @@ class World(Entity):
             # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
             else:
                 if ((self.is_finished() or time_out is True) and
-                             len(self.__achieve_goals) == 0 and
-                             len(self.__achieve_and_sustain_goals) == 0 and
-                             len(scheduled_keys) == 0):
+                            len(self.__achieve_goals) == 0 and
+                            len(self.__achieve_and_sustain_goals) == 0 and
+                            len(scheduled_keys) == 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
@@ -1184,7 +1188,7 @@ class World(Entity):
         self.initialize(sample_fluent_values=False, removeFormulas=False)
 
         self.__already_achieved_goals = set()
-        #: :type agent: Agent
+        # : :type agent: Agent
         for agent in self.getAgents():
             agent.restart()
 
@@ -1232,8 +1236,9 @@ class World(Entity):
                 else:
                     failures += 1
                 conclusive_trial_count += 1
-                #moduleLogger.info("Trial #{} --> {}".format(trial_number, verdict))
-                self.log_info("Trial #{} --> {}, steps = {}, time = {}".format(trial_number, verdict, res["steps"], res["time"]))
+                # moduleLogger.info("Trial #{} --> {}".format(trial_number, verdict))
+                self.log_info(
+                    "Trial #{} --> {}, steps = {}, time = {}".format(trial_number, verdict, res["steps"], res["time"]))
                 #print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
             trial_number += 1
 
@@ -1361,9 +1366,6 @@ class World(Entity):
         :param propertyName: str
         '''
         return self.logic_engine().queryPersistentProperty(propertyName)
-
-
-
 
 
 # --------------------------------------------------------------------------------------
@@ -1564,7 +1566,7 @@ class LocalEvaluationContext(EvaluationContext):
 
         refined_result = []
 
-        #: :type result_entry: dict
+        # : :type result_entry: dict
 
         for result_entry in result_list:
             assignment = None
@@ -1610,7 +1612,7 @@ class LocalEvaluationContext(EvaluationContext):
 
         refinedResult = dict()
 
-        #: :type valueCombination: dict 
+        # : :type valueCombination: dict
 
         for name, value in result.items():
             #TODO: handle params with interval domains?

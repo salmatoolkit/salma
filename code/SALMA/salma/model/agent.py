@@ -1,17 +1,18 @@
 from .core import Entity
-from .procedure import ProcedureRegistry, Procedure
+from .procedure import ProcedureRegistry, Procedure, Sense, Send, Receive, SetFluent
 from salma.SALMAException import SALMAException
 from .evaluationcontext import EvaluationContext
 from salma.model import process
-from salma.model.process import OneShotProcess
-
+from salma.model.process import OneShotProcess, PeriodicProcess
+from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
+from collections.abc import Iterable
 
 class Agent(Entity):
     """
     An agent is an active entity that executes one or several processes.
     """
 
-    def __init__(self, entity_id, sort_name, processes=[], procedure_registry=None):
+    def __init__(self, entity_id, sort_name, processes=[], procedure_registry=None, automatic_info_transfer=True):
         """
         Creates an agent with the given id, sort and control procedure. Additionally,
         a procedure registry can be specified to allow procedure calls within the agent's control
@@ -21,11 +22,22 @@ class Agent(Entity):
         :type sort_name: str
         :type processes: object
         :type procedure_registry: ProcedureRegistry
+        :type automatic_info_transfer: bool
         """
         Entity.__init__(self, entity_id, sort_name)
         self.__evaluation_context = None
-        #: :type : list of process.Process
+        #: :type : list[process.Process]
         self.__processes = []
+        #: :type : dict[str, Process]
+        self.__sensor_processes = dict()
+
+        #: :type : dict[str, Process]
+        self.__remote_sensor_src_processes = dict()
+
+        #: :type : dict[str, Process]
+        self.__remote_sensor_dest_processes = dict()
+
+        self.__automatic_info_transfer = automatic_info_transfer
         if isinstance(processes, Procedure):
             self.add_process(OneShotProcess(processes))
         elif isinstance(processes, list):
@@ -68,6 +80,10 @@ class Agent(Entity):
         :rtype: list of process.Process
         """
         return self.__processes
+
+    @property
+    def automatic_info_transfer(self) -> bool:
+        return self.__automatic_info_transfer
 
     def add_process(self, p):
         """
@@ -113,3 +129,28 @@ class Agent(Entity):
                     running_processes.append(p)
 
         return running_processes
+
+    def init_info_transfer(self, channels, sensors, remote_sensors):
+        """
+
+        :param Iterable[Channel] channels: the declared channels
+        :param Iterable[Sensor] sensors: the declared sensors
+        :param Iterable[RemoteSensor] remote_sensors: the declared remote sensors
+        """
+        if not self.automatic_info_transfer:
+            return
+
+        for s in sensors:
+            proc = Procedure("main", [],
+                             [
+                                 Sense(s.name, [])
+                             ])
+            p = PeriodicProcess(proc, 5)
+            self.add_process(p)
+            self.__sensor_processes[s.name] = p
+
+
+        # todo:
+        for s in remote_sensors:
+
+

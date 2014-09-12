@@ -4,6 +4,7 @@ from salma.model.evaluationcontext import EvaluationContext
 from salma.model.infotransfer import ReceivedMessage, Channel, RemoteSensor
 from salma.constants import *
 
+
 class Element(object):
     """
     The base class for all elements of a process, i.e. procedures and control elements.
