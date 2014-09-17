@@ -171,9 +171,9 @@ test_local_sensor :-
 	
 test_remote_sensor :-
 	init,
-	create_message(batteryLevelR, rob2, multicastSrc, 
-		[batteryLevelR], Msg),
-	set_current(channel_out_content, [Msg], 42),
+	create_message(batteryLevelR, rob2, remoteSensorSrc, 
+		[], Msg),
+	%set_current(channel_out_content, [Msg], 42),
 	print("Before:\n--------------\n"),
 	print_all_messages,
 	progress([requestTransfer(Msg)]),

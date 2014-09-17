@@ -54,7 +54,9 @@ untracked_fluent(transferring).
 %    unicast, multicastSrc, multicastDest
 %    a) unicast: Params = [SrcRole, Dest, DestRole]
 %    b) multicastSrc: Params = [SrcRole]
-%    c) multicastDest: Params = [SrcMessageId, Dest, DestRole]
+%	 c) remoteSensorSrc: Params = original params for local sensor
+%    d) multicastDest: Params = [SrcMessageId, Dest, DestRole]
+
 constant(message_spec, [m:message], term). 
 
 
@@ -108,8 +110,15 @@ untracked_fluent(sensor_transmitted_value).
 
 primitive_action(requestTransfer, [m:message]).
 immediate_action(requestTransfer).
+
 primitive_action(clean_queue, [a:agent, c:channel, role:term]).
 immediate_action(clean_queue).
+
+% Updates the value map stored in the automatically introdcued 
+% remote sensor fluent. This reads and removes relevant 
+% messages in channel_in_queue
+primitive_action(update_remote_sensor, [a:agent, r:remoteSensor]).
+immediate_action(update_remote_sensor).
 
 exogenous_action(transferStarts, [m:message], [error:term]).
 exogenous_action(transferEnds, [m:message], [error:term]).
@@ -146,13 +155,16 @@ get_message_destinations(Msg, DestRole, Destinations, S) :-
 				EnsembleSpec = all:Agent, DestRole = R1, !
 			; throw(wrong_role_in_msg(Msg, Con, SrcRole))
 			), !
-		; remoteSensor(Con, _, _, _),
+		; throw(wrong_connector_type_for_multicastSrc(Msg, Con))
+		), !			
+	; MsgType = remoteSensorSrc,	
+		(remoteSensor(Con, _, _, _),
 			% The message was sent by the sensing (remote) agent. 
 			% The ensemble is defined from the perspective 
 			% of the receiving agent.
 			EnsembleSpec = all:Agent, DestRole = Con, !
-		; throw(wrong_connector_type_for_multicastSrc(Msg, Con))			
-		), !
+			; throw(undefined_remote_sensor(Msg, Con))
+		), !			
 	; MsgType = multicastDest,
 		Params = [_, Dest, DestRole],
 		EnsembleSpec = none,
@@ -195,7 +207,7 @@ get_src_message(Msg, SrcMessage) :-
 get_dest_messages(Msg, AllMessages, DestMessages) :-
 	message_spec(Msg, Spec),
 	Spec = msg(_, MsgType, _, _),
-	(MsgType = multicastSrc ->
+	((MsgType = multicastSrc, ! ; MsgType = remoteSensorSrc) ->
 		(foreach(M, AllMessages), fromto([], In, Out, DestMessages),
 			param(Msg) do
 				message_spec(M, Spec2),
@@ -213,7 +225,7 @@ get_dest_messages(Msg, AllMessages, DestMessages) :-
 					
 		
 	
-% for multicast, a new message might be created by transferStarts.
+% for multicast or remoteSensorSrc, a new message might be created by transferStarts.
 % there message_spec 
 domain(message, D, do2(A, S)) :-
 	domain(message, OldD, S),
@@ -236,7 +248,7 @@ domain(message, D, do2(A, S)) :-
 		; A = transferStarts(Msg, _), 
 			message_spec(Msg, Spec),
 			Spec = msg(Con, MsgType, Agent, Params),
-			MsgType = multicastSrc, !,
+			(MsgType = multicastSrc, ! ; MsgType = remoteSensorSrc), !,
 			% DE-MULTIPLEX multicast message
 			get_message_destinations(Msg, DestRole, Destinations, S),		
 			getval(nextMsg, NextMsg),		
@@ -253,6 +265,10 @@ domain(message, D, do2(A, S)) :-
 		; D = OldD
 	).
 
+	
+% performs garbage collection for message specifications, i.e. 
+% retracts all message specifications for messages that are not
+% in the current domain
 clean_message_specs :-
 	domain(message, Messages),
 	not (
@@ -386,9 +402,18 @@ channel_out_content(Message, Content, slast) :-
 	Content = none.
 
 channel_transmission_content(Message, Content, do2(A,S)) :-
-	A = transferStarts(Message, Error), !,
-	channel_out_content(Message, Out, S),
-	message_connector(Message, Connector),
+	A = transferStarts(Message, Error), !,	
+	message_spec(Message, Spec),
+	Spec = msg(Connector, MsgType, Agent, Params),
+	(MsgType = remoteSensorSrc ->
+		remoteSensor(Connector, _, LocalSensor, _),
+		append([Agent], Params, Params2),
+		get_fluent_value(LocalSensor, Params2, Out, S)
+		;
+		% channel_out_content is used both for unicast and 
+		% multicast intentionally sent messages
+		channel_out_content(Message, Out, S)
+	),		
 	error_operator(Connector, Out, Error, Content)
 	;
 	channel_transmission_content(Message, Content, S).
@@ -420,18 +445,25 @@ channel_in_queue(Channel, L, do2(A, S)) :-
 	(A = transferEnds(Msg, Error),
 		message_spec(Msg, Spec),
 		Spec = msg(Channel, MsgType, Sender, Params),
-		(MsgType = multicastDest ->
-			Params = [SrcMsg, Dest, DestRole],
-			message_spec(SrcMsg, SrcSpec),
-			SrcSpec = msg(_, _, _, SrcParams),
-			SrcParams = [SrcRole]
-			;			
-			Params = [SrcRole, Dest, DestRole]
-		),
 		channel_transmission_content(Msg, Content, S),
 		error_operator(Channel, Content, Error, Content2),
 		time(Time, S),
-		M = msg(Sender, SrcRole, Dest, DestRole, Time, Content2),
+		(MsgType = multicastDest ->
+			Params = [SrcMsg, Dest, DestRole],
+			message_spec(SrcMsg, SrcSpec),
+			SrcSpec = msg(_, SrcMsgType, _, SrcParams),
+			(SrcMsgType = remoteSensorSrc ->
+				% for remote sensor messages, also store the original parameters
+				% used for the local (direct) sensor
+				M = msg(Sender, SrcParams, Dest, Channel, Time, Content2)
+				;
+				SrcParams = [SrcRole],
+				M = msg(Sender, SrcRole, Dest, DestRole, Time, Content2)
+			)			
+			;			
+			Params = [SrcRole, Dest, DestRole],
+			M = msg(Sender, SrcRole, Dest, DestRole, Time, Content2)
+		),
 		append(OldL, [M], L), !
 		
 	; A = clean_queue(Agent, Channel, Role),
@@ -442,7 +474,6 @@ channel_in_queue(Channel, L, do2(A, S)) :-
 			Out = In
 			)
 		), !
-	
 	; L = OldL
 	).
 
@@ -479,6 +510,8 @@ messageSent(Agent, Channel, Role, Dest, DestRole, Content, S) :-
 	).
 	
 
+	
+% the value that is transmitted for a local (direct) sensor member
 sensor_transmitted_value(Message, Value, do2(A, S)) :-
 	A = transferStarts(Message, Error),
 	message_spec(Message, Spec),
@@ -642,6 +675,22 @@ add_direct_sensor_fluents :-
 		)
 	).
 	
+	
+get_latest_remote_sensor_value(RemoteSensorName, Agent, SrcAgent, LocalParams, Value, S) :-
+	channel_in_queue(RemoteSensorName, QAll, S),
+	(foreach(M, QAll), fromto(none:-1, In, Out, V), 
+		param(Agent, RemoteSensorName, SrcAgent, LocalParams) do
+			(M = msg(SrcAgent, LocalParams, Agent, RemoteSensor, MsgTime, Content),
+				In = _:Latest,
+				MsgTime >= Latest,
+				Out = Content:MsgTime, !
+				;
+				Out = In
+			)
+	),
+	V = Value:_.		
+				
+				
 add_remote_sensor_fluents :-
 	get_declared_remote_sensors(RemoteSensors),
 	(foreach(RemoteSensor, RemoteSensors) do
@@ -667,18 +716,20 @@ add_remote_sensor_fluents :-
 			true
 		),
 		length(Params2, NArgs),
-		(Type = boolean ->
-			NArgs2 = NArgs
-			;
-			NArgs2 is NArgs + 1
-		),
-		length(NewParams, NArgs2),
-		append(NewParams, [do2(_, OldSit)], NewParams2), 
+		length(NewParamsTemp, NArgs),
+		NewParamsTemp = [Agent | [SrcAgent | LocalParams]],
+		append(NewParamsTemp, [Value], NewParams),
+		append(NewParams, [do2(Action, OldSit)], NewParams2), 
 		append(NewParams, [OldSit], NewParamsOldQuery),		
 		Head =.. [RemoteSensorName | NewParams2],
+		OldQuery =.. [RemoteSensorName | NewParamsOldQuery],
 		(not clause(Head, _) ->
-			Query =.. [RemoteSensorName | NewParamsOldQuery],			
-			assert((Head :- Query))
+			assert((Head :- 
+				Action = update_remote_sensor(Agent, RemoteSensorName),
+				get_latest_remote_sensor_value(RemoteSensorName, Agent, SrcAgent, LocalParams, 
+					Value, OldSit), !
+				;
+				OldQuery))
 			;
 			true
 		)

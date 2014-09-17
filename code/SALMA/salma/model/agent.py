@@ -141,16 +141,22 @@ class Agent(Entity):
             return
 
         for s in sensors:
-            proc = Procedure("main", [],
-                             [
-                                 Sense(s.name, [])
-                             ])
-            p = PeriodicProcess(proc, 5)
-            self.add_process(p)
-            self.__sensor_processes[s.name] = p
-
+            if s.owner_type == self.sortName:
+                proc = Procedure("main", [],
+                                 [
+                                     Sense(s.name, [])
+                                 ])
+                p = PeriodicProcess(proc, 5)
+                self.add_process(p)
+                self.__sensor_processes[s.name] = p
 
         # todo:
-        for s in remote_sensors:
+        for rs in remote_sensors:
+            if rs.local_sensor_owner_type == self.sortName:
+                proc = Procedure("main", [],
+                                 [
+
+                                 ])
+
 
 
