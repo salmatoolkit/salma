@@ -678,9 +678,9 @@ add_direct_sensor_fluents :-
 	
 get_latest_remote_sensor_value(RemoteSensorName, Agent, SrcAgent, LocalParams, Value, S) :-
 	channel_in_queue(RemoteSensorName, QAll, S),
-	(foreach(M, QAll), fromto(none:-1, In, Out, V), 
+	(foreach(M, QAll), fromto(none: -1, In, Out, V), 
 		param(Agent, RemoteSensorName, SrcAgent, LocalParams) do
-			(M = msg(SrcAgent, LocalParams, Agent, RemoteSensor, MsgTime, Content),
+			(M = msg(SrcAgent, LocalParams, Agent, RemoteSensorName, MsgTime, Content),
 				In = _:Latest,
 				MsgTime >= Latest,
 				Out = Content:MsgTime, !
@@ -717,7 +717,7 @@ add_remote_sensor_fluents :-
 		),
 		length(Params2, NArgs),
 		length(NewParamsTemp, NArgs),
-		NewParamsTemp = [Agent | [SrcAgent | LocalParams]],
+		NewParamsTemp = [AgentVar | [SrcAgentVar | LocalParamsVar]],
 		append(NewParamsTemp, [Value], NewParams),
 		append(NewParams, [do2(Action, OldSit)], NewParams2), 
 		append(NewParams, [OldSit], NewParamsOldQuery),		
@@ -725,8 +725,8 @@ add_remote_sensor_fluents :-
 		OldQuery =.. [RemoteSensorName | NewParamsOldQuery],
 		(not clause(Head, _) ->
 			assert((Head :- 
-				Action = update_remote_sensor(Agent, RemoteSensorName),
-				get_latest_remote_sensor_value(RemoteSensorName, Agent, SrcAgent, LocalParams, 
+				Action = update_remote_sensor(AgentVar, RemoteSensorName),
+				get_latest_remote_sensor_value(RemoteSensorName, AgentVar, SrcAgentVar, LocalParamsVar, 
 					Value, OldSit), !
 				;
 				OldQuery))

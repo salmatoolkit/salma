@@ -171,6 +171,14 @@ test_local_sensor :-
 	
 test_remote_sensor :-
 	init,
+	% sense locally
+	create_message(batteryLevelL, rob2, sensor, [], MsgLocal),
+	progress([requestTransfer(MsgLocal)]),
+	progress([tick]),	
+	progress([transferStarts(MsgLocal, 0)]),
+	progress([tick]),	
+	progress([transferEnds(MsgLocal, 0)]),
+	progress([tick]),	
 	create_message(batteryLevelR, rob2, remoteSensorSrc, 
 		[], Msg),
 	%set_current(channel_out_content, [Msg], 42),
