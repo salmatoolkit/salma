@@ -3,6 +3,10 @@ from salma.SALMAException import SALMAException
 from salma.model.procedure import ControlNode, Act, Procedure
 from salma.model.evaluationcontext import EvaluationContext
 
+ONE_SHOT_PROCESS = 0
+PERIODIC_PROCESS = 1
+TRIGGERED_PROCESS = 2
+
 
 class Process(object):
     """
@@ -36,6 +40,10 @@ class Process(object):
         self.__last_end_time = None
         self.__terminated = False
         self.__execution_count = 0
+
+    @property
+    def process_type(self) -> int:
+        raise NotImplementedError()
 
     @property
     def state(self):
@@ -260,6 +268,9 @@ class OneShotProcess(Process):
         Process.__init__(self, procedure, introduction_time)
         self.__absolute_deadline = absolute_deadline
 
+    def process_type(self) -> int:
+        return ONE_SHOT_PROCESS
+
     def get_deadline(self):
         return self.__absolute_deadline
 
@@ -279,6 +290,9 @@ class PeriodicProcess(Process):
     def __init__(self, procedure, period, introduction_time=0):
         Process.__init__(self, procedure, introduction_time)
         self.__period = period
+
+    def process_type(self) -> int:
+        return PERIODIC_PROCESS
 
     @property
     def period(self):
@@ -337,6 +351,9 @@ class TriggeredProcess(Process):
         self.__condition = condition
         self.__condition_params = condition_params
         self.__relative_deadline = relative_deadline
+
+    def process_type(self) -> int:
+        return TRIGGERED_PROCESS
 
     def should_start(self):
         min_time = self.introduction_time or 0

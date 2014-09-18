@@ -4,9 +4,10 @@ from salma.SALMAException import SALMAException
 from .evaluationcontext import EvaluationContext
 from salma.model import process
 from salma.model.procedure import TransmitRemoteSensorReading, UpdateRemoteSensor
-from salma.model.process import OneShotProcess, PeriodicProcess
+from salma.model.process import OneShotProcess, PeriodicProcess, Process
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
 from collections.abc import Iterable
+from salma.model.world_declaration import WorldDeclaration
 
 
 class Agent(Entity):
@@ -14,7 +15,9 @@ class Agent(Entity):
     An agent is an active entity that executes one or several processes.
     """
 
-    def __init__(self, entity_id, sort_name, processes=[], procedure_registry=None, automatic_info_transfer=True):
+    def __init__(self, entity_id, sort_name, processes=[], procedure_registry=None,
+                 world_declaration=None, mode_remote_sensor_src=process.PERIODIC_PROCESS,
+                 mode_remote_sensor_dest=process.TRIGGERED_PROCESS):
         """
         Creates an agent with the given id, sort and control procedure. Additionally,
         a procedure registry can be specified to allow procedure calls within the agent's control
@@ -24,6 +27,7 @@ class Agent(Entity):
         :type sort_name: str
         :type processes: object
         :type procedure_registry: ProcedureRegistry
+        :type world_declaration: WorldDeclaration
         :type automatic_info_transfer: bool
         """
         Entity.__init__(self, entity_id, sort_name)
@@ -33,13 +37,12 @@ class Agent(Entity):
         # : :type : dict[str, Process]
         self.__sensor_processes = dict()
 
-        #: :type : dict[str, Process]
+        # : :type : dict[str, Process]
         self.__remote_sensor_src_processes = dict()
 
         #: :type : dict[str, Process]
         self.__remote_sensor_dest_processes = dict()
 
-        self.__automatic_info_transfer = automatic_info_transfer
         if isinstance(processes, Procedure):
             self.add_process(OneShotProcess(processes))
         elif isinstance(processes, list):
@@ -47,7 +50,10 @@ class Agent(Entity):
                 self.add_process(p)
 
         self.evaluation_context = None
+        self.__world_declaration = world_declaration
         self.__procedure_registry = procedure_registry or ProcedureRegistry()
+        if self.__world_declaration is not None:
+            self.add_default_connector_processes()
 
     @property
     def evaluation_context(self):
@@ -90,6 +96,13 @@ class Agent(Entity):
         :rtype: dict[str, process.Process]
         """
         return self.__sensor_processes
+
+    def set_local_sensor_process(self, sensor_name: str, sensor_process: Process):
+        if sensor_name in self.__sensor_processes:
+            self.__processes.remove(self.__sensor_processes[sensor_name])
+
+
+
 
     @property
     def remote_sensor_src_processes(self):
@@ -155,17 +168,15 @@ class Agent(Entity):
 
         return running_processes
 
-    def init_info_transfer(self, channels, sensors, remote_sensors):
+    def add_default_connector_processes(self, mode_remote_sensor_src, mode_remote_sensor_dest):
         """
         Initializes background processes for information transfer according to connector declarations.
 
-        :param Iterable[Channel] channels: the declared channels
-        :param Iterable[Sensor] sensors: the declared sensors
-        :param Iterable[RemoteSensor] remote_sensors: the declared remote sensors
         """
-        if not self.automatic_info_transfer:
-            return
+        if self.__world_declaration is None:
+            raise SALMAException("No world declaration specified for agent {}.".format(self.id))
 
+        sensors = self.__world_declaration.get_sensors()
         for s in sensors:
             if s.owner_type == self.sortName:
                 proc = Procedure("main", [],
