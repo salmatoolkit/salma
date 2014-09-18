@@ -59,7 +59,6 @@ class Procedure(Element):
         self.__name = procedureName
         self.__parameters = parameters
 
-
     @property
     def body(self):
         return self.__body
@@ -671,12 +670,8 @@ class Send(ControlNode):
                     # we allow direct messages for unicast and multicast channels
                     msg_type = MSG_TYPE_UNICAST
                     params = [own_role, dest, dest_role]
-            elif isinstance(connector, RemoteSensor):
-                # ignore destination and roles
-                msg_type = MSG_TYPE_MULTICAST_SRC
-                params = [connector.name]
             else:
-                raise SALMAException("Unsupported connector type for Send: {}.".format(type(connector)))
+                raise SALMAException("Unsupported connector type for Send of connector {}.".format(type(connector)))
 
             msgid = evaluation_context.create_message(channel, agent, msg_type, params)
             evaluation_context.set_fluent_value("channel_out_content", [msgid], message)
@@ -690,6 +685,45 @@ class Send(ControlNode):
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
+
+
+class TransmitRemoteSensorReading(ControlNode):
+    """
+    Transmits the most recent sensor readings for the given remote sensor.
+
+    The transmitted value is taken from the local sensor specified in the remote sensor declaration.
+    If the local sensor requires parameters, these can be given as the last argument
+    """
+
+    def __init__(self, remote_sensor_name, sensor_params=[]):
+        """
+        :param str remote_sensor_name: the name of the remote sensor
+        :param list sensor_params: the parameters that will be used for local sensing
+        """
+        super().__init__()
+        self.__remote_sensor_name = remote_sensor_name
+        self.__sensor_params = sensor_params
+
+    def executeStep(self, evaluation_context: EvaluationContext, procedure_registry):
+        if evaluation_context.getCurrentSequenceIndex(self) is None:
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+
+        csi = evaluation_context.getCurrentSequenceIndex(self)
+
+        if csi == 0:
+            agent, remote_sensor_name, sensor_params = evaluation_context.resolve(Entity.SELF,
+                                                                                  self.__remote_sensor_name,
+                                                                                  self.__sensor_params)
+            msgid = evaluation_context.create_message(remote_sensor_name, agent, MSG_TYPE_REMOTE_SENSOR_SRC,
+                                                      sensor_params)
+
+            req_transfer_action = Act("requestTransfer", [msgid])
+            req_transfer_action.parent = self
+            evaluation_context.incCurrentSequenceIndex(self)
+            return ControlNode.CONTINUE, req_transfer_action, evaluation_context
+        else:
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+            return ControlNode.CONTINUE, None, evaluation_context
 
 
 class Receive(ControlNode):
@@ -798,3 +832,44 @@ class Sense(ControlNode):
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
+
+
+class UpdateRemoteSensor(ControlNode):
+    """
+    Updates the remote sensor map at the receiving agent using the most recent messages from the information sources.
+    Afterwards, these messages are removed from the incoming queue.
+    """
+
+    def __init__(self, remote_sensor_name):
+        """
+        :param str remote_sensor_name: the name of the remote sensor
+        :param list params: the parameters used for local sensing
+        """
+        self.__remote_sensor_name = remote_sensor_name
+
+    def executeStep(self, evaluation_context: EvaluationContext, procedure_registry):
+        if evaluation_context.getCurrentSequenceIndex(self) is None:
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+
+        csi = evaluation_context.getCurrentSequenceIndex(self)
+
+        if csi == 0:
+            agent, remote_sensor_name = evaluation_context.resolve(Entity.SELF, self.__remote_sensor_name)
+
+            update_action = Act("update_remote_sensor", [Entity.SELF, remote_sensor_name])
+            update_action.parent = self
+            evaluation_context.incCurrentSequenceIndex(self)
+            return ControlNode.CONTINUE, update_action, evaluation_context
+        elif csi == 1:
+            agent, remote_sensor_name = evaluation_context.resolve(Entity.SELF, self.__remote_sensor_name)
+            clean_queue_action = Act("clean_queue", [agent, remote_sensor_name, remote_sensor_name])
+            clean_queue_action.parent = self
+            evaluation_context.incCurrentSequenceIndex(self)
+            return ControlNode.CONTINUE, clean_queue_action, evaluation_context
+        else:
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+            return ControlNode.CONTINUE, None, evaluation_context
+
+    def reset(self, evaluation_context):
+        evaluation_context.setCurrentSequenceIndex(self, 0)
+

@@ -3,19 +3,6 @@ from salma.model.process import PeriodicProcess, TriggeredProcess
 
 
 def create_plcs_processes(world, world_map, mt):
-    sense_slots = Procedure("main", [],
-                            [
-                                Sense("freeSlotsL", [])
-                            ])
-    send_freeSlots = Procedure("main", [],
-                               [
-                                   If(EvaluationContext.PYTHON_EXPRESSION, "freeSlotsL(self) is not None", [],
-                                      [
-                                          Assign("sensorValue", EvaluationContext.FLUENT, "freeSlotsL",
-                                                 [Entity.SELF]),
-                                          Send("freeSlotsR", Variable("sensorValue"), "freeSlotsR")
-                                      ])
-                               ])
 
     process_reservation_requests = Procedure("main", [],
                                              [

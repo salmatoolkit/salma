@@ -11,3 +11,4 @@ CANCEL = -2
 MSG_TYPE_MULTICAST_SRC = "multicastSrc"
 MSG_TYPE_UNICAST = "unicast"
 MSG_TYPE_SENSOR = "sensor"
+MSG_TYPE_REMOTE_SENSOR_SRC = "remoteSensorSrc"

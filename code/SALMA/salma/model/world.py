@@ -1,8 +1,3 @@
-"""
-Created on 21.05.2013
-
-@author: christian
-"""
 import itertools
 import logging
 import random
@@ -18,6 +13,7 @@ from salma.model.actions import StochasticAction, DeterministicAction, Exogenous
 from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
+from salma.model.world_declaration import WorldDeclaration
 from salma.statistics import HypothesisTest
 from .core import Entity, Fluent
 from .agent import Agent
@@ -29,7 +25,7 @@ MODULE_LOGGER_NAME = 'agamemnon-smc.world'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
 
-class World(Entity):
+class World(Entity, WorldDeclaration):
     """
     Singleton class that acts as the *center of the simulation*. The domain model is loaded with load_declaration and
     all actions can be configured using the appropriate configuration classes. The configuration can then be checked with
@@ -311,7 +307,6 @@ class World(Entity):
             if not str(id) in self.__expressionContext:
                 self.__expressionContext[str(id)] = str(id)
 
-
     def sample_fluent_values(self):
         """
         Creates samples for all instances of all fluents except 'time'
@@ -492,7 +487,6 @@ class World(Entity):
         """
         self.addEntity(agent)
         agent.evaluation_context = LocalEvaluationContext(agent, None)
-        agent.init_info_transfer(self.get_channels(), self.get_sensors(), self.get_remote_sensors())
 
     def removeEntity(self, entity):
         """
@@ -544,7 +538,6 @@ class World(Entity):
         except KeyError:
             raise SALMAException("Trying to remove unregistered action %s ." % action.name)
 
-
     def getAction(self, action_name):
         """
         Returns the action (either deterministic or stochastic) with the given name.
@@ -571,7 +564,7 @@ class World(Entity):
     def getAllActions(self):
         """
         Returns a list with all registered deterministic and stochastic actions.
-        :rtype: list
+        :rtype: Iterable[Action]
         """
         return self.__actions.values()
 
@@ -608,7 +601,7 @@ class World(Entity):
     def get_exogenous_actions(self):
         """
         Returns a list view on all exogenous actions.
-        :rtype: list of ExogenousAction
+        :rtype: Iterable[ExogenousAction]
         """
         return self.__exogenousActions.values()
 
@@ -657,26 +650,25 @@ class World(Entity):
         """
         self.__connectors[connector.name] = connector
 
-
     def getFluents(self):
         """
         Returns a list view of all fluents currently registered in the metamodel as a list of core.Fluent objects.
         This list also included constants.
-        :rtype: builtins.dict_values
+        :rtype: Iterable[Fluent]
         """
         return self.__fluents.values()
 
     def get_derived_fluents(self):
         """
-
-        :return:
+        Returns the list of declared derived fluents as tuples of kind (fluent_name, fluent_type, params).
+        :rtype: Iterable[(str, str, list)]
         """
         return self.__derived_fluents.values()
 
     def getConstants(self):
         """
         Returns a list of all registered constants.
-        :rtype: list
+        :rtype: Iterable[Constant]
         """
         return self.__constants.values()
 
@@ -1182,7 +1174,6 @@ class World(Entity):
                 self.__domainMap[entity.sortName] = set([entity])
 
     def reset(self):
-
         # re-init domains
         self.__reset_domainmap()
         self.initialize(sample_fluent_values=False, removeFormulas=False)

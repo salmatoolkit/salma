@@ -179,6 +179,8 @@ test_remote_sensor :-
 	progress([tick]),	
 	progress([transferEnds(MsgLocal, 0)]),
 	progress([tick]),	
+	batteryLevelL(rob2, 100, s0),
+	% send remote sensor src message
 	create_message(batteryLevelR, rob2, remoteSensorSrc, 
 		[], Msg),
 	%set_current(channel_out_content, [Msg], 42),
@@ -201,7 +203,11 @@ test_remote_sensor :-
 		print_all_messages,
 		print_channel(batteryLevelR),
 		progress([tick])
-	).
+	),
+	progress([update_remote_sensor(con1, batteryLevelR)]),
+	progress([update_remote_sensor(con2, batteryLevelR)]),
+	batteryLevelR(con1, rob2, 102, s0),
+	batteryLevelR(con2, rob2, 102, s0).
 		
 	
 test_all :-

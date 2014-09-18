@@ -312,6 +312,10 @@ class PeriodicProcess(Process):
 
     def should_start(self):
         # start if IDLE and the last start time was before the start of this time slot
+        if self.period is None:
+            #TODO: include process name
+            raise SALMAException("Unspecified period for periodic process.")
+
         min_time = self.introduction_time or 0
         current_time = self.agent.evaluation_context.getFluentValue('time')
         tslot = self.time_slot

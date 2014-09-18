@@ -62,16 +62,16 @@ def create_plcssam(world, world_map, mt):
                                                     "veh"))
                                    ])
 
-    p_free_slots_receiver = Procedure("main", [],
-                                      [
-                                          Receive("freeSlotsR", "freeSlotsR", "free_slot_msgs"),
-                                          Assign("freeSlotsMap", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                 free_slots_receiver, []),
-                                          Iterate(EvaluationContext.ITERATOR, Variable("freeSlotsMap"),
-                                                  [("p", "plcs"), ("fs", "integer")],
-                                                  SetFluent("freeSlotsR", EvaluationContext.PYTHON_EXPRESSION, "fs",
-                                                            [Entity.SELF, Variable("p")]))
-                                      ])
+    # p_free_slots_receiver = Procedure("main", [],
+    #                                   [
+    #                                       Receive("freeSlotsR", "freeSlotsR", "free_slot_msgs"),
+    #                                       Assign("freeSlotsMap", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+    #                                              free_slots_receiver, []),
+    #                                       Iterate(EvaluationContext.ITERATOR, Variable("freeSlotsMap"),
+    #                                               [("p", "plcs"), ("fs", "integer")],
+    #                                               SetFluent("freeSlotsR", EvaluationContext.PYTHON_EXPRESSION, "fs",
+    #                                                         [Entity.SELF, Variable("p")]))
+    #                                   ])
     p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
                           "len(local_channel_in_queue(self, 'assignment', 'sam')) > 0", [])
 

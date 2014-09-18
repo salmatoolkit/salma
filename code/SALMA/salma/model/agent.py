@@ -3,9 +3,11 @@ from .procedure import ProcedureRegistry, Procedure, Sense, Send, Receive, SetFl
 from salma.SALMAException import SALMAException
 from .evaluationcontext import EvaluationContext
 from salma.model import process
+from salma.model.procedure import TransmitRemoteSensorReading, UpdateRemoteSensor
 from salma.model.process import OneShotProcess, PeriodicProcess
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
 from collections.abc import Iterable
+
 
 class Agent(Entity):
     """
@@ -26,9 +28,9 @@ class Agent(Entity):
         """
         Entity.__init__(self, entity_id, sort_name)
         self.__evaluation_context = None
-        #: :type : list[process.Process]
+        # : :type : list[process.Process]
         self.__processes = []
-        #: :type : dict[str, Process]
+        # : :type : dict[str, Process]
         self.__sensor_processes = dict()
 
         #: :type : dict[str, Process]
@@ -77,9 +79,32 @@ class Agent(Entity):
     def processes(self):
         """
         The agent's processes.
-        :rtype: list of process.Process
+        :rtype: list[process.Process]
         """
         return self.__processes
+
+    @property
+    def local_sensor_processes(self):
+        """
+        The processes that perform sensing for all declared local sensors of this agent type.
+        :rtype: dict[str, process.Process]
+        """
+        return self.__sensor_processes
+
+    @property
+    def remote_sensor_src_processes(self):
+        """
+        The processes that
+        :rtype: dict[str, process.Process]
+        """
+        return self.__remote_sensor_src_processes
+
+    @property
+    def remote_sensor_dest_processes(self):
+        """
+        :rtype: dict[str, process.Process]
+        """
+        return self.__remote_sensor_dest_processes
 
     @property
     def automatic_info_transfer(self) -> bool:
@@ -110,7 +135,7 @@ class Agent(Entity):
     def update_schedule(self):
         """
         Updates the current schedule and returns the list of currently executed processes.
-        :rtype: list of process.Process
+        :rtype: list[process.Process]
         """
         if self.evaluation_context is None:
             raise SALMAException("No evaluation context for agent " + self.id)
@@ -118,7 +143,7 @@ class Agent(Entity):
         if self.procedure_registry is None:
             raise SALMAException("No procedure registry given for agent " + self.id)
 
-        #: :type: list of process.Process
+        # : :type: list of process.Process
         running_processes = []
 
         for p in self.processes:
@@ -132,6 +157,7 @@ class Agent(Entity):
 
     def init_info_transfer(self, channels, sensors, remote_sensors):
         """
+        Initializes background processes for information transfer according to connector declarations.
 
         :param Iterable[Channel] channels: the declared channels
         :param Iterable[Sensor] sensors: the declared sensors
@@ -146,17 +172,30 @@ class Agent(Entity):
                                  [
                                      Sense(s.name, [])
                                  ])
-                p = PeriodicProcess(proc, 5)
+                p = PeriodicProcess(proc, None)
                 self.add_process(p)
                 self.__sensor_processes[s.name] = p
 
-        # todo:
         for rs in remote_sensors:
             if rs.local_sensor_owner_type == self.sortName:
                 proc = Procedure("main", [],
                                  [
-
+                                     # TODO: think about how to deal with parameters
+                                     TransmitRemoteSensorReading(rs.name)
                                  ])
+                p = PeriodicProcess(proc, None)
+                self.add_process(p)
+                self.__remote_sensor_src_processes[rs.name] = p
+
+            if rs.remote_sensor_owner_type == self.sortName:
+                proc = Procedure("main", [],
+                                 [
+                                     UpdateRemoteSensor(rs.name)
+                                 ])
+
+                p = PeriodicProcess(proc, None)
+                self.add_process(p)
+                self.__remote_sensor_dest_processes[rs.name] = p
 
 
 
