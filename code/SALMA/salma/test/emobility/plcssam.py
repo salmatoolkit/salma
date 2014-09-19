@@ -31,24 +31,11 @@ def create_plcssam_functions(world_map, mt):
         # TODO: consider time slots
         return result
 
-    def receive_free_slots(agent=None, free_slot_msgs=None, **ctx):
-        """
-        :type agent: salma.model.agent.Agent
-        :type free_slot_msgs: list[ReceivedMessage]
-        :rtype: list[(str, int)]
-        """
-        result = []
-        for r in free_slot_msgs:
-            plcs = r.sender
-            freeSlots = r.content
-            result.append((plcs, freeSlots))
-        return result
-
-    return process_assignment_requests, receive_free_slots
+    return process_assignment_requests
 
 
 def create_plcssam(world, world_map, mt):
-    request_processor, free_slots_receiver = create_plcssam_functions(world_map, mt)
+    request_processor = create_plcssam_functions(world_map, mt)
 
     p_process_requests = Procedure("main", [],
                                    [
@@ -72,11 +59,8 @@ def create_plcssam(world, world_map, mt):
     #                                               SetFluent("freeSlotsR", EvaluationContext.PYTHON_EXPRESSION, "fs",
     #                                                         [Entity.SELF, Variable("p")]))
     #                                   ])
-    p1 = TriggeredProcess(p_process_requests, EvaluationContext.PYTHON_EXPRESSION,
-                          "len(local_channel_in_queue(self, 'assignment', 'sam')) > 0", [])
+    p1 = TriggeredProcess(p_process_requests, EvaluationContext.TRANSIENT_FLUENT,
+                          "message_available", [Entity.SELF, "assignment", "sam"])
 
-    p2 = TriggeredProcess(p_free_slots_receiver, EvaluationContext.PYTHON_EXPRESSION,
-                          "len(local_channel_in_queue(self, 'freeSlotsR', 'freeSlotsR')) > 0", [])
-
-    sam = Agent("sam1", "plcssam", [p1, p2])
+    sam = Agent("sam1", "plcssam", [p1], world_declaration=world)
     world.addAgent(sam)

@@ -33,10 +33,6 @@ def create_plcs_processes(world, world_map, mt):
                                                          ])
                                              ])
     for plcs in world.getAgents("plcs"):
-        p1 = PeriodicProcess(sense_slots, 5)
-        p2 = PeriodicProcess(send_freeSlots, 5)
-        p3 = TriggeredProcess(process_reservation_requests, EvaluationContext.PYTHON_EXPRESSION,
-                              "len(local_channel_in_queue(self, 'reservation', 'plcs')) > 0", [])
-        plcs.add_process(p1)
-        plcs.add_process(p2)
-        plcs.add_process(p3)
+        p = TriggeredProcess(process_reservation_requests, EvaluationContext.TRANSIENT_FLUENT,
+                              "message_available", [Entity.SELF, "reservation", "plcs"])
+        plcs.add_process(p)

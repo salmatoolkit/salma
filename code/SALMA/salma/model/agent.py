@@ -4,7 +4,7 @@ from salma.SALMAException import SALMAException
 from .evaluationcontext import EvaluationContext
 from salma.model import process
 from salma.model.procedure import TransmitRemoteSensorReading, UpdateRemoteSensor
-from salma.model.process import OneShotProcess, PeriodicProcess, Process
+from salma.model.process import OneShotProcess, PeriodicProcess, Process, TriggeredProcess
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
 from collections.abc import Iterable
 from salma.model.world_declaration import WorldDeclaration
@@ -32,15 +32,15 @@ class Agent(Entity):
         """
         Entity.__init__(self, entity_id, sort_name)
         self.__evaluation_context = None
-        # : :type : list[process.Process]
-        self.__processes = []
+        # : :type : set[process.Process]
+        self.__processes = set()
         # : :type : dict[str, Process]
         self.__sensor_processes = dict()
 
         # : :type : dict[str, Process]
         self.__remote_sensor_src_processes = dict()
 
-        #: :type : dict[str, Process]
+        # : :type : dict[str, Process]
         self.__remote_sensor_dest_processes = dict()
 
         if isinstance(processes, Procedure):
@@ -53,7 +53,7 @@ class Agent(Entity):
         self.__world_declaration = world_declaration
         self.__procedure_registry = procedure_registry or ProcedureRegistry()
         if self.__world_declaration is not None:
-            self.add_default_connector_processes()
+            self.add_default_connector_processes(mode_remote_sensor_src, mode_remote_sensor_dest)
 
     @property
     def evaluation_context(self):
@@ -85,7 +85,7 @@ class Agent(Entity):
     def processes(self):
         """
         The agent's processes.
-        :rtype: list[process.Process]
+        :rtype: set[process.Process]
         """
         return self.__processes
 
@@ -100,9 +100,11 @@ class Agent(Entity):
     def set_local_sensor_process(self, sensor_name: str, sensor_process: Process):
         if sensor_name in self.__sensor_processes:
             self.__processes.remove(self.__sensor_processes[sensor_name])
-
-
-
+        if sensor_process in self.__processes:
+            raise SALMAException(
+                "Trying to add already used process for local sensor {} of agent {}".format(sensor_name, self.id))
+        self.__processes.add(sensor_process)
+        self.__sensor_processes[sensor_name] = sensor_process
 
     @property
     def remote_sensor_src_processes(self):
@@ -112,6 +114,16 @@ class Agent(Entity):
         """
         return self.__remote_sensor_src_processes
 
+    def set_remote_sensor_src_process(self, sensor_name: str, sensor_process: Process):
+        if sensor_name in self.__remote_sensor_src_processes:
+            self.__processes.remove(self.__remote_sensor_src_processes[sensor_name])
+        if sensor_process in self.__processes:
+            raise SALMAException(
+                "Trying to add already used process for remote sensor source {} of agent {}".format(sensor_name,
+                                                                                                    self.id))
+        self.__processes.add(sensor_process)
+        self.__remote_sensor_src_processes[sensor_name] = sensor_process
+
     @property
     def remote_sensor_dest_processes(self):
         """
@@ -119,17 +131,25 @@ class Agent(Entity):
         """
         return self.__remote_sensor_dest_processes
 
+    def set_remote_sensor_dest_process(self, sensor_name: str, sensor_process: Process):
+        if sensor_name in self.__remote_sensor_dest_processes:
+            self.__processes.remove(self.__remote_sensor_dest_processes[sensor_name])
+        if sensor_process in self.__processes:
+            raise SALMAException(
+                "Trying to add already used process for remote sensor source {} of agent {}".format(sensor_name,
+                                                                                                    self.id))
+        self.__processes.add(sensor_process)
+        self.__remote_sensor_dest_processes[sensor_name] = sensor_process
+
     @property
     def automatic_info_transfer(self) -> bool:
         return self.__automatic_info_transfer
 
-    def add_process(self, p):
+    def add_process(self, p: Process):
         """
         Adds a process to the agent's registry.
-
-        :type p: process.Process
         """
-        self.__processes.append(p)
+        self.__processes.add(p)
         p.agent = self
 
     def restart(self):
@@ -168,10 +188,10 @@ class Agent(Entity):
 
         return running_processes
 
-    def add_default_connector_processes(self, mode_remote_sensor_src, mode_remote_sensor_dest):
+    def add_default_connector_processes(self, mode_remote_sensor_src=process.PERIODIC_PROCESS,
+                                        mode_remote_sensor_dest=process.PERIODIC_PROCESS):
         """
         Initializes background processes for information transfer according to connector declarations.
-
         """
         if self.__world_declaration is None:
             raise SALMAException("No world declaration specified for agent {}.".format(self.id))
@@ -183,10 +203,10 @@ class Agent(Entity):
                                  [
                                      Sense(s.name, [])
                                  ])
-                p = PeriodicProcess(proc, None)
-                self.add_process(p)
-                self.__sensor_processes[s.name] = p
 
+                p = PeriodicProcess(proc, None)
+                self.set_local_sensor_process(s.name, p)
+        remote_sensors = self.__world_declaration.get_remote_sensors()
         for rs in remote_sensors:
             if rs.local_sensor_owner_type == self.sortName:
                 proc = Procedure("main", [],
@@ -195,8 +215,8 @@ class Agent(Entity):
                                      TransmitRemoteSensorReading(rs.name)
                                  ])
                 p = PeriodicProcess(proc, None)
-                self.add_process(p)
-                self.__remote_sensor_src_processes[rs.name] = p
+                self.set_remote_sensor_src_process(rs.name, p)
+                # TODO: allow triggered processes that react to changes / updates
 
             if rs.remote_sensor_owner_type == self.sortName:
                 proc = Procedure("main", [],
@@ -204,9 +224,16 @@ class Agent(Entity):
                                      UpdateRemoteSensor(rs.name)
                                  ])
 
-                p = PeriodicProcess(proc, None)
-                self.add_process(p)
-                self.__remote_sensor_dest_processes[rs.name] = p
+                p = None
+                if mode_remote_sensor_dest == process.PERIODIC_PROCESS:
+                    p = PeriodicProcess(proc, None)
+                else:
+                    p = TriggeredProcess(proc, EvaluationContext.TRANSIENT_FLUENT,
+                                         "message_available", [Entity.SELF, rs.name, rs.name])
+                self.set_remote_sensor_dest_process(rs.name, p)
+
+
+
 
 
 

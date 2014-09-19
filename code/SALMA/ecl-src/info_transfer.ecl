@@ -4,7 +4,7 @@
 	message_spec/2, 
 	message_count_transmission/4, messageSent/7,
 	channel_out_content/3, channel_transmission_content/3,
-	channel_in_queue/3, local_channel_in_queue/5, 
+	channel_in_queue/3, local_channel_in_queue/5, message_available/4,
 	sensor_transmitted_value/3,
 	% function that adds error to original value
 	% error_operator(con:Connector, OrigValue, Error, NewValue)
@@ -92,6 +92,8 @@ derived_fluent(local_channel_in_queue, [a:agent, c:channel, role:term], list).
 % checks if a message that matches the given parameters has been sent in this timestep
 derived_fluent(messageSent, [a:agent, c:channel, role:term, dest:agent, 
 	destRole:term, content:term], boolean).
+
+derived_fluent(message_available, [a:agent, c:channel, role:term], boolean).
 
 % SENSOR
 
@@ -487,7 +489,10 @@ local_channel_in_queue(Agent, Channel, Role, Queue, S) :-
 		)
 	).
 
-
+message_available(Agent, Channel, Role, S) :-
+	channel_in_queue(Channel, QAll, S),
+	M = msg(_, _, Agent, Role, _, _),
+	member(M, QAll), !.
 	
 messageSent(Agent, Channel, Role, Dest, DestRole, Content, S) :-
 	domain(message, Msgs),

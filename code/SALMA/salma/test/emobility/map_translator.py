@@ -25,10 +25,9 @@ class MapTranslator(object):
                 if data["loctype"] == "poi":
                     self.__world.addEntity(Entity(node, "poi"))
                 elif data["loctype"] == "plcs":
-                    self.__world.addAgent(Agent(node, "plcs"))
+                    self.__world.addAgent(Agent(node, "plcs", world_declaration=self.__world))
                 elif data["loctype"] == "crossing":
                     self.__world.addEntity(Entity(node, "crossing"))
-        self.__world.addEntity(Entity("sam1", "plcssam"))
         self.__world.initialize(False)
         self.__world.setConstantValue("locX", ["sam1"], 500)
         self.__world.setConstantValue("locY", ["sam1"], 500)
