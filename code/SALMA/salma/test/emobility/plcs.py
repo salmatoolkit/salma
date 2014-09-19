@@ -14,7 +14,7 @@ def create_plcs_processes(world, world_map, mt):
                                                              Assign("vehicle", EvaluationContext.PYTHON_EXPRESSION,
                                                                     "req.content[1]", []),
                                                              If(EvaluationContext.PYTHON_EXPRESSION,
-                                                                "avaliableSlots(self) > 0", [],
+                                                                "avaliableSlotsL(self) > 0", [],
                                                                 [
                                                                     Act("add_reservation",
                                                                         [Entity.SELF, Variable("vehicle"), 0, 0]),

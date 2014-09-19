@@ -709,7 +709,7 @@ class World(Entity, WorldDeclaration):
         Returns the connector (channel, sensor, remote sensor) with the given name or None if the name
         is unregistered.
         :param name: the name of the connector.
-        :return: the connector
+        :return: the connector or None if no connector with the given name exists
         """
         if name in self.__connectors:
             return self.__connectors[name]

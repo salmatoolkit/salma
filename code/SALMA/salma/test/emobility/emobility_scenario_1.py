@@ -68,27 +68,33 @@ class EMobilityScenario1(EMobilityTest):
 
         create_plcs_processes(world, world_map, mt)
 
-        vehicles = world.getDomain("vehicle")
+        vehicles = world.getAgents("vehicle")
         crossings = list(world.getDomain("crossing"))
         starts = crossings.copy()
         pois = list(world.getDomain("poi"))
         target_pois = pois.copy()
-        sams = world.getDomain("plcssam")
-        plcses = world.getDomain("plcs")
+        sams = world.getAgents("plcssam")
+        plcses = world.getAgents("plcs")
 
+        # -------------------------------
+        # Simulation config
+        # -------------------------------
         for plcs in plcses:
             world.setConstantValue("maxCapacity", [plcs.id], EMobilityScenario1.PLCS_CAPACITY)
+            plcs.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
 
         for vehicle in vehicles:
             start = random.choice(starts)
             # starts.remove(start)
             target_poi = random.choice(target_pois)
             # target_pois.remove(target_poi)
-
             world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", start.id, start.id, 0))
             world.setFluentValue("vehicleSpeed", [vehicle.id], EMobilityScenario1.VEHICLE_SPEED)
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 0, 0)])
+            vehicle.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
+        for sam in sams:
+            sam.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
 
         transferStarts = world.get_exogenous_action("transferStarts")
         transferStarts.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 5, 1))
