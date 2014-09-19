@@ -46,7 +46,7 @@ class WorldTest3(BaseWorldTest):
         # self.assertEqual(len(a2), 2)
         print("----")
         print(world.describe_actions())
-        self.assertEqual(len(list(world.getAllActions())), 15)
+        self.assertEqual(len(list(world.getAllActions())), 16)
 
     @withHeader()
     def test_load_declaration_full(self):

@@ -1,5 +1,5 @@
 :- dynamic plcsReservations/3, currentOccupancy/3, maxCapacity/2, freeSlots/3, 
-	freeSlotsL/3, avaliableSlots/3, tstamp_freeSlotsL/3.
+	freeSlotsL/3, availableSlots/3, tstamp_freeSlotsL/3.
 % PLCS
 constant(maxCapacity, [p:plcs], integer).
 
@@ -17,7 +17,7 @@ poss(update_reservations(_),_) :- true.
 
 derived_fluent(currentOccupancy, [p:plcs], integer).
 derived_fluent(freeSlots, [p:plcs], integer).
-derived_fluent(avaliableSlots, [p:plcs], integer).
+derived_fluent(availableSlots, [p:plcs], integer).
 
 % Declare the free slots sensor and its associated local fluent.
 sensor(freeSlotsL, plcs, freeSlots).
@@ -54,7 +54,7 @@ plcsReservations(PLCS, Reservations, do2(A,S)) :-
 		Reservations = OldReservations
 	).
 	
-avaliableSlots(PLCS, AvailableSlots, S) :-
+availableSlots(PLCS, AvailableSlots, S) :-
 	plcsReservations(PLCS, Reservations, S),
 	AvailableSlots is maxCapacity(PLCS) - length(Reservations).
 

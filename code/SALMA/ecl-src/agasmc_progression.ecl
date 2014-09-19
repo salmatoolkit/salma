@@ -504,3 +504,5 @@ get_declared_exogenous_actions(Actions) :-
 	findall(ea(AName,P1,P2),exogenous_action(AName,P1,P2),Actions).
 get_declared_immediate_actions(ImmediateActions) :-
 	findall(ia(AName), immediate_action(AName), ImmediateActions).
+
+	

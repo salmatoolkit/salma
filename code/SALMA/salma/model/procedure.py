@@ -725,6 +725,8 @@ class TransmitRemoteSensorReading(ControlNode):
             evaluation_context.setCurrentSequenceIndex(self, 0)
             return ControlNode.CONTINUE, None, evaluation_context
 
+    def reset(self, evaluation_context):
+        evaluation_context.setCurrentSequenceIndex(self, 0)
 
 class Receive(ControlNode):
     def __init__(self, channel, role, variable):

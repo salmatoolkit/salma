@@ -586,8 +586,9 @@ poss(transferFails(M), S) :-
 	get_message_type(M, MsgType),
 	MsgType \= multicastSrc.
 
-poss(clean_queue(_, _, _), S) :- true.	
+poss(clean_queue(_, _, _), _) :- true.	
 
+poss(update_remote_sensor(_,_), _) :- true.
 
 get_ensemble_participant_types(EnsembleName, PType1, PType2) :-
 	channel(EnsembleName, P1, P2, _),

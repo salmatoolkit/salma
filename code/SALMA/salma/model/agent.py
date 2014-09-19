@@ -86,6 +86,14 @@ class Agent(Entity):
         return self.__processes
 
     @property
+    def world_declaration(self) -> WorldDeclaration:
+        return self.__world_declaration
+
+    @world_declaration.setter
+    def world_declaration(self, wd: WorldDeclaration):
+        self.__world_declaration = wd
+
+    @property
     def local_sensor_processes(self):
         """
         The processes that perform sensing for all declared local sensors of this agent type.
@@ -108,7 +116,7 @@ class Agent(Entity):
             raise SALMAException(
                 "Trying to add already used process for local sensor {} of agent {}".format(sensor_name, self.id))
 
-        self.__processes.add(sensor_process)
+        self.add_process(sensor_process)
         self.__sensor_processes[sensor_name] = sensor_process
 
     def set_local_sensor_period(self, sensor_name, period):
@@ -143,7 +151,7 @@ class Agent(Entity):
             raise SALMAException(
                 "Trying to add already used process for remote sensor source {} of agent {}".format(sensor_name,
                                                                                                     self.id))
-        self.__processes.add(sensor_process)
+        self.add_process(sensor_process)
         self.__remote_sensor_src_processes[sensor_name] = sensor_process
 
     def set_remote_sensor_send_period(self, sensor_name: str, period: int):
@@ -177,7 +185,7 @@ class Agent(Entity):
             raise SALMAException(
                 "Trying to add already used process for remote sensor source {} of agent {}".format(sensor_name,
                                                                                                     self.id))
-        self.__processes.add(sensor_process)
+        self.add_process(sensor_process)
         self.__remote_sensor_dest_processes[sensor_name] = sensor_process
 
     def set_remote_sensor_update_period(self, sensor_name: str, period: int):

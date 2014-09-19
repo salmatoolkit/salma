@@ -487,6 +487,7 @@ class World(Entity, WorldDeclaration):
         """
         self.addEntity(agent)
         agent.evaluation_context = LocalEvaluationContext(agent, None)
+        agent.world_declaration = self
 
     def removeEntity(self, entity):
         """

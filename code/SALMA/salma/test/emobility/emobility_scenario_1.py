@@ -19,7 +19,7 @@ import numpy as np
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = ESTIMATION
+_MODE = VISUALIZE
 
 
 class EMobilityScenario1(EMobilityTest):
