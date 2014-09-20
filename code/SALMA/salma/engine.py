@@ -613,7 +613,6 @@ class EclipseCLPEngine(Engine):
 
     # actions: list of tuples: (action_name:string, parameters:list) 
     def progress(self, actions):
-
         self.__currentState = None  # invalidate cache
         actionTerms = []
         for action in actions:

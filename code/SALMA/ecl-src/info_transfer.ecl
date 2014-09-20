@@ -576,7 +576,8 @@ poss(transferEnds(M, _), S) :-
 	transferring(M, S),
 	% a multicast source-half message may not end directly
 	get_message_type(M, MsgType),
-	MsgType \= multicastSrc.
+	MsgType \= multicastSrc,
+	MsgType \= remoteSensorSrc.
 
 poss(transferFails(M), S) :-
 	awaitingTransfer(M, S), !
@@ -584,7 +585,8 @@ poss(transferFails(M), S) :-
 	transferring(M,S),
 	% a multicast source-half message may not end directly
 	get_message_type(M, MsgType),
-	MsgType \= multicastSrc.
+	MsgType \= multicastSrc,
+	MsgType \= remoteSensorSrc.
 
 poss(clean_queue(_, _, _), _) :- true.	
 
