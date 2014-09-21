@@ -696,7 +696,8 @@ get_latest_remote_sensor_value(RemoteSensorName, Agent, SrcAgent, LocalParams, V
 				Out = In
 			)
 	),
-	V = Value:_.		
+	V = Value:_,
+	Value \= none.
 				
 				
 add_remote_sensor_fluents :-

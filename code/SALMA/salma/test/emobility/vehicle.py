@@ -1,6 +1,6 @@
 from salma.model.agent import Agent
 from salma.model.procedure import *
-from salma.model.process import TriggeredProcess
+from salma.model.process import TriggeredProcess, PeriodicProcess
 import networkx as nx
 from salma.model.infotransfer import ReceivedMessage
 
@@ -38,13 +38,17 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
 
     p_request_plcs = Procedure("main", [],
                                [
-                                   Assign("possible_targets",
-                                          EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                          target_chooser, []),
-                                   Send("assignment", ("areq", Entity.SELF, Variable("possible_targets"), 0, 0), "veh",
-                                        "sam1", "sam"),
-                                   SetFluent("waitingForAssignment", EvaluationContext.PYTHON_EXPRESSION, "True",
-                                             [Entity.SELF])
+                                   If(EvaluationContext.PYTHON_EXPRESSION, "currentTargetPLCS(self) is None", [],
+                                      [
+                                          Assign("possible_targets",
+                                                 EvaluationContext.EXTENDED_PYTHON_FUNCTION,
+                                                 target_chooser, []),
+                                          Send("assignment", ("areq", Entity.SELF, Variable("possible_targets"), 0, 0),
+                                               "veh",
+                                               "sam1", "sam")
+                                      ])
+                                   # SetFluent("waitingForAssignment", EvaluationContext.PYTHON_EXPRESSION, "True",
+                                   # [Entity.SELF])
                                ])
 
     p_make_reservation = Procedure("main", [],
@@ -77,11 +81,11 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                              ])
 
     for i in range(number_of_vehicles):
-        p1 = TriggeredProcess(p_request_plcs, EvaluationContext.PYTHON_EXPRESSION,
-                              "currentTargetPLCS(self) is None and "
-                              "not waitingForAssignment(self)", [])
+        # p1 = TriggeredProcess(p_request_plcs, EvaluationContext.PYTHON_EXPRESSION,
+        # "currentTargetPLCS(self) is None and "
+        #                       "not waitingForAssignment(self)", [])
         # TODO: handle time-out for response from SAM
-
+        p1 = PeriodicProcess(p_request_plcs, 10)
         p2 = TriggeredProcess(p_find_route, EvaluationContext.PYTHON_EXPRESSION,
                               "len(currentRoute(self)) == 0 and currentTargetPLCS(self) is not None", [])
 
@@ -89,6 +93,7 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                               "len(local_channel_in_queue(self, 'reservation', 'veh')) > 0", [])
 
         p4 = TriggeredProcess(p_make_reservation, EvaluationContext.PYTHON_EXPRESSION,
+                              "currentTargetPLCS(self) is None and "
                               "len(local_channel_in_queue(self, 'assignment', 'veh')) > 0", [])
 
         vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3, p4])

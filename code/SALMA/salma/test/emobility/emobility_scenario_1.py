@@ -19,14 +19,14 @@ import numpy as np
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = VISUALIZE
+_MODE = ESTIMATION
 
 
 class EMobilityScenario1(EMobilityTest):
     NUM_OF_VEHICLES = 5
-    PLCS_CAPACITY = 100
+    PLCS_CAPACITY = 2
     VEHICLE_SPEED = 5
-    TIME_LIMIT = 52
+    TIME_LIMIT = 152
 
     def __print_info(self, world):
         """

@@ -138,9 +138,11 @@ class EvaluationContext(object):
         raise NotImplementedError()
         
     def getDomain(self, sortName):
-        '''
+        """
         Returns a list with all entities for the given sort.
-        '''
+        :type sortName: str
+        :rtype: list[Entity]
+        """
         raise NotImplementedError()
     
     def getCurrentSequenceIndex(self, sequence):

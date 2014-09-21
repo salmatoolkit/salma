@@ -5,7 +5,6 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 
-from salma.model.core import Entity
 from salma.model.evaluationcontext import EvaluationContext
 from salma.test.emobility.map_translator import MapTranslator
 from salma.test.emobility.visualizer import Visualizer

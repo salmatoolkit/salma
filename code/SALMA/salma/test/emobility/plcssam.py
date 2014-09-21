@@ -6,7 +6,7 @@ from salma.model.infotransfer import ReceivedMessage
 
 
 def create_plcssam_functions(world_map, mt):
-    def process_assignment_requests(agent=None, assignment_requests=None, **ctx):
+    def process_assignment_requests(agent=None, assignment_requests=None, freeSlotsR=None, **ctx):
         """
         :type agent: salma.model.agent.Agent
         :type assignment_requests: list[ReceivedMessage]
@@ -18,17 +18,38 @@ def create_plcssam_functions(world_map, mt):
         # format: rreq(Vehicle, Alternatives, StartTime, PlannedDuration)
         schedule = []
         assignment = dict()
-        for r in assignment_requests:
-            schedule.append((r.content[1], r.content[2]))  # remember that position 0 is the "message envelope" "rreq"
-        success = utils.choose_alternative(schedule, assignment)
-        if not success:
-            return []
-        result = []
-        for vehicle, plcs in assignment.items():
-            result.append((vehicle, plcs))
+        plcsdom = ec.getDomain("plcs")
 
-        # todo: establish communication between SAM and PLCs to check availability
-        # TODO: consider time slots
+
+        # for r in assignment_requests:
+        # schedule.append((r.content[1], r.content[2]))  # remember that position 0 is the "message envelope" "rreq"
+        # success = utils.choose_alternative(schedule, assignment)
+        # if not success:
+        # return []
+        # result = []
+        # for vehicle, plcs in assignment.items():
+        #     result.append((vehicle, plcs))
+
+        free_slot_map = dict()
+        for plcs in plcsdom:
+            fs = freeSlotsR(agent.id, plcs.id)
+            free_slot_map[plcs.id] = fs
+
+        result = []
+        for r in assignment_requests:
+            vehicle = r.content[1]
+            #: :type: list
+            alternatives = r.content[2]
+            for plcs in alternatives:
+                fs = (free_slot_map[plcs] if plcs in free_slot_map
+                      else freeSlotsR(agent.id, plcs))
+                if fs is None:
+                    fs = 0
+                if fs > 0:
+                    result.append((vehicle, plcs))
+                    fs -= 1
+                free_slot_map[plcs] = fs
+
         return result
 
     return process_assignment_requests
@@ -50,8 +71,8 @@ def create_plcssam(world, world_map, mt):
                                    ])
 
     # p_free_slots_receiver = Procedure("main", [],
-    #                                   [
-    #                                       Receive("freeSlotsR", "freeSlotsR", "free_slot_msgs"),
+    # [
+    # Receive("freeSlotsR", "freeSlotsR", "free_slot_msgs"),
     #                                       Assign("freeSlotsMap", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
     #                                              free_slots_receiver, []),
     #                                       Iterate(EvaluationContext.ITERATOR, Variable("freeSlotsMap"),

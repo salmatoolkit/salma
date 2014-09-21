@@ -617,7 +617,7 @@ class World(Entity, WorldDeclaration):
         """
         Returns the list of all entities that make the domain of the given sort.
         :type sort_name: str
-        :rtype: list of Entity
+        :rtype: list[Entity]
         """
         try:
             return self.__domainMap[sort_name]
@@ -1645,6 +1645,11 @@ class LocalEvaluationContext(EvaluationContext):
         return World.instance().getSorts()
 
     def getDomain(self, sortName):
+        """
+        Returns a list with all entities for the given sort.
+        :type sortName: str
+        :rtype: list[Entity]
+        """
         return World.instance().getDomain(sortName)
 
     def get_connector(self, name: str) -> Connector:
