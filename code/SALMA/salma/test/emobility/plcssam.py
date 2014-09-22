@@ -16,19 +16,7 @@ def create_plcssam_functions(world_map, mt):
         ec = agent.evaluation_context
 
         # format: rreq(Vehicle, Alternatives, StartTime, PlannedDuration)
-        schedule = []
-        assignment = dict()
         plcsdom = ec.getDomain("plcs")
-
-
-        # for r in assignment_requests:
-        # schedule.append((r.content[1], r.content[2]))  # remember that position 0 is the "message envelope" "rreq"
-        # success = utils.choose_alternative(schedule, assignment)
-        # if not success:
-        # return []
-        # result = []
-        # for vehicle, plcs in assignment.items():
-        #     result.append((vehicle, plcs))
 
         free_slot_map = dict()
         for plcs in plcsdom:
@@ -49,7 +37,7 @@ def create_plcssam_functions(world_map, mt):
                     result.append((vehicle, plcs))
                     fs -= 1
                 free_slot_map[plcs] = fs
-
+        #todo: solve constraint
         return result
 
     return process_assignment_requests
@@ -70,16 +58,6 @@ def create_plcssam(world, world_map, mt):
                                                     "veh"))
                                    ])
 
-    # p_free_slots_receiver = Procedure("main", [],
-    # [
-    # Receive("freeSlotsR", "freeSlotsR", "free_slot_msgs"),
-    #                                       Assign("freeSlotsMap", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-    #                                              free_slots_receiver, []),
-    #                                       Iterate(EvaluationContext.ITERATOR, Variable("freeSlotsMap"),
-    #                                               [("p", "plcs"), ("fs", "integer")],
-    #                                               SetFluent("freeSlotsR", EvaluationContext.PYTHON_EXPRESSION, "fs",
-    #                                                         [Entity.SELF, Variable("p")]))
-    #                                   ])
     p1 = TriggeredProcess(p_process_requests, EvaluationContext.TRANSIENT_FLUENT,
                           "message_available", [Entity.SELF, "assignment", "sam"])
 

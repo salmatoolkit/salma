@@ -44,11 +44,8 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                                                  EvaluationContext.EXTENDED_PYTHON_FUNCTION,
                                                  target_chooser, []),
                                           Send("assignment", ("areq", Entity.SELF, Variable("possible_targets"), 0, 0),
-                                               "veh",
-                                               "sam1", "sam")
+                                               "veh", "sam1", "sam")
                                       ])
-                                   # SetFluent("waitingForAssignment", EvaluationContext.PYTHON_EXPRESSION, "True",
-                                   # [Entity.SELF])
                                ])
 
     p_make_reservation = Procedure("main", [],
@@ -81,16 +78,13 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                              ])
 
     for i in range(number_of_vehicles):
-        # p1 = TriggeredProcess(p_request_plcs, EvaluationContext.PYTHON_EXPRESSION,
-        # "currentTargetPLCS(self) is None and "
-        #                       "not waitingForAssignment(self)", [])
-        # TODO: handle time-out for response from SAM
         p1 = PeriodicProcess(p_request_plcs, 10)
         p2 = TriggeredProcess(p_find_route, EvaluationContext.PYTHON_EXPRESSION,
                               "len(currentRoute(self)) == 0 and currentTargetPLCS(self) is not None", [])
 
         p3 = TriggeredProcess(p_set_target, EvaluationContext.PYTHON_EXPRESSION,
-                              "len(local_channel_in_queue(self, 'reservation', 'veh')) > 0", [])
+                              "len(local_channel_in_queue(self, 'reservation', 'veh')) > 0 "
+                              "and currentTargetPLCS(self) is None", [])
 
         p4 = TriggeredProcess(p_make_reservation, EvaluationContext.PYTHON_EXPRESSION,
                               "currentTargetPLCS(self) is None and "
