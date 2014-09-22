@@ -33,7 +33,7 @@
 
 
 % action declaration
-primitive_action(tick,[]).
+primitive_action(tick,[steps:integer]).
 primitive_action(nop,[]).
 immediate_action(nop).
 
@@ -42,15 +42,15 @@ untracked_fluent(time).
 
 time(T,do2(A,S)) :-
 		time(TOld, S),
-		(A = tick -> 
-			T is TOld + 1
+		(A = tick(Steps) -> 
+			T is TOld + Steps
 		;
 			T  is TOld
 		).
 		
 time(T, s0) :- get_current(time, [], T).		
 time(T, slast) :- get_last(time, [], T).	
-poss(tick, _) :- true.
+poss(tick(_), _) :- true.
 poss(nop, _) :- true.
 
 
