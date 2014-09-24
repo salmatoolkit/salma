@@ -186,6 +186,26 @@ recompile_all :-
 	set_properties_unsynced(false).
 		
 
+% Evaluates F for each step up to EndTime
+%
+% StartTime: marks the start of the interval that is checked
+% CurrentStep: refers to the currently ealuated step relative to StartTime
+evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
+	Mode, StartStep, StartTime, EndTime, F, Level, Result) :-
+	% StartTime could be before the current time
+	time(CurrentTime, do2(step(StartStep), s0)),
+	TimeDiff is EndTime - CurrentTime,
+	(TimeDiff < 0 -> throw(end_time_before_current) ; true),
+	(count(_, CurrentTime, EndTime), fromto(StartStep, Step, NextStep, _),
+		param(ToplevelFormula, FormulaPath, Mode, StartTime, F, Level) do
+		Sit = do2(step(Step), s0),
+		subst_in_current_term_level
+		% idea: only substitute until reaching until block
+	)
+	
+	
+		
+		
 
 % Evaluates the given (sub-)formula.		
 % in ToplevelFormula: name of the top-level formula that F belongs to.
