@@ -186,28 +186,21 @@ recompile_all :-
 	set_properties_unsynced(false).
 		
 
-% Evaluates F for each step up to EndTime
-%
-% StartTime: marks the start of the interval that is checked
-% CurrentStep: refers to the currently ealuated step relative to StartTime
-evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
-	Mode, StartStep, StartTime, EndTime, F, Level, Result, ToSchedule, ScheduleParams, HasChanged) :-
-	% StartTime could be before the current time
-	time(CurrentTime, do2(step(StartStep), s0)),
-	TimeDiff is EndTime - CurrentTime,
-	(TimeDiff < 0 -> throw(end_time_before_current) ; true),
-	EndTime2 is EndTime + 1,
+		
+evaluate_for_all_timesteps(ToplevelFormula, FormulaPath, 
+	Mode, StartStep, CurrentTime, StartTime, EndTime, P, Level, Result, 
+	ScheduleIdOut) :-
 	(fromto(CurrentTime, T, T2, EndTime2), fromto(StartStep, Step, NextStep, _), fromto(nondet, ResIn, ResOut, Result),
-		fromto(-1, SIdIn, SIdOut, SchedId), param(ToplevelFormula, FormulaPath, Mode, StartTime, F, Level) do
+		fromto(-1, SId1, SId2, ScheduleIdOut), 
+		param(ToplevelFormula, FormulaPath, Mode, StartTime, P, Level) do
 		Sit = do2(step(Step), s0),
 		% idea: only substitute until reaching until block
 		% TODO: handle change predicate 
-		subst_in_outer_term_level(F, s0, Sit, F2), 	
+		subst_in_outer_term_level(P, s0, Sit, P2), 	
 		% TODO: handle F = sched(...)
 		CacheId = -1,
-		SchedIdIn = SIdIn,
 		evaluate_and_schedule(ToplevelFormula, FormulaPath, Step, StartTime, EndTime, 
-			F2, CacheId, Level, SchedIdIn, Res, ToSchedule2, SIdOut, HasChanged2),		
+			P2, CacheId, Level, SchedIdIn, Res, ToSchedule2, SIdOut, HasChanged2),		
 		% TODO: how to deal with ToSchedule2?
 		NextStep is Step + 1,
 		(Res = nondet,
@@ -235,7 +228,38 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 		; throw(wrong_mode(Mode))		
 		)			
 		% TODO: handle last parameters: ToSchedule, ScheduleParams, HasChanged		
-	),
+	).
+		
+% Evaluates F for each step up to EndTime
+%
+% StartTime: marks the start of the interval that is checked
+% CurrentStep: refers to the currently ealuated step relative to StartTime
+evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
+	Mode, StartStep, StartTime, EndTime, P, Level, Result, ToSchedule, ScheduleParams, HasChanged) :-
+	% StartTime could be before the current time
+	time(CurrentTime, do2(step(StartStep), s0)),
+	TimeDiff is EndTime - CurrentTime,
+	(TimeDiff < 0 -> throw(end_time_before_current) ; true),
+	% make sure that interval [T-T] includes the current step
+	EndTime2 is EndTime + 1,
+	% if the formula had been scheduled before,
+	% we don't have to re-evaluate  again. instead just gather results of the 
+	% referenced scheduled instances
+	(P = sched(_, PSchedId, PRefTerm) ->  
+		% If we have sched here, then all time steps have been evaluated 
+		% already before. Therefore we don't have to evaluate again but 
+		% check the results of the scheduled evaluations.
+		(PRefTerm = cf(PCacheId) ->
+			get_cached_formula(PCacheId, SubP)
+			;
+			SubP = PRefTerm,
+			PCacheId is -1
+		)
+		;
+		
+		
+		
+	
 	(Result = nondet ->
 		
 		;
