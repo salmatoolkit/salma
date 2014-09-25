@@ -503,184 +503,123 @@ evaluate_until(ToplevelFormula, FormulaPath,
 	CurrentStep, Level, StartTime, EndTime, MaxTime, P, Q, 
 				Result, NewP, NewQ, ScheduleParams, HasChanged) :-
 		NextLevel is Level + 1,
+		Deadline is StartTime + MaxTime,
 		% the end of the interval that is to be inspected
-		IntervalEnd is min(StartTime + MaxTime, EndTime),
+		IntervalEnd is min(Deadline, EndTime),
 		time(CurrentTime, do2(tick(CurrentStep), s0)),
 		getval(current_failure_stack, CFS),
 		record_create(MyFailures),
 		setval(current_failure_stack, MyFailures),
+		% pqres(NewP, NewQ, Result, HasChanged, ScheduleParams)
 		shelf_create(pqres/5, null, Shelf),
-		(
-			shelf_set(Shelf, 1, P),
-			shelf_set(Shelf, 2, Q),
-			% changed = false
-			shelf_set(Shelf, 4, false),
-			%schedule params
-			shelf_set(Shelf, 5, []),
-			% also evaluate history: schedule for each time step and store in list. 
 		
-			
-			append(FormulaPath, [2], SubPathP), % start with subterm 2 since first is max time
-			append(FormulaPath, [3], SubPathQ),
-			(
-						
-				% in this block we look for StartQ, the earliest time that Q was true
-				(Q = sched(_, QSchedIdIn, QRefTerm) ->  
-					(QRefTerm = cf(QCacheId) ->
-						get_cached_formula(QCacheId, SubQ)
-						;
-						SubQ = QRefTerm,
-						QCacheId = -1
-					)
-					;
-					SubQ = Q,
-					QSchedIdIn = -1, QCacheId = -1
-				),				
-				% check from current time to end of interval
-				% ignore result for now since it will be examined later together with previously
-				% scheduled results
+		shelf_set(Shelf, 1, P),
+		shelf_set(Shelf, 2, Q),
+		% changed = false
+		shelf_set(Shelf, 4, false),
+		%schedule params
+		shelf_set(Shelf, 5, []),
+		% also evaluate history: schedule for each time step and store in list. 
 		
-				evaluate_for_all_timesteps(ToplevelFormula, SubPathQ, 
-					eventually, CurrentStep, CurrentTime, StartTime, IntervalEnd, SubQ, NextLevel, _, 
-					QSchedIdIn, QSchedId, 
-					_, _, _, _),
-				
-				check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, ResQ1, 
-					QEarliestDefinite, _, QEarliestPossible, _),				
-				(
-					% ---------------------------
-					% POSSIBLE SUCCESS
-					% ---------------------------
-					QEarliestPossible =< IntervalEnd,
-					(P = sched(_, PSchedIdIn, PRefTerm) ->  
-						(PRefTerm = cf(PCacheId) ->
-							get_cached_formula(PCacheId, SubP)
-							;
-							SubP = PRefTerm,
-							PCacheId is -1
-						)
-						;
-						SubP = P,
-						PSchedIdIn = -1, PCacheId is -1
-					),
-					evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
-						always, CurrentStep, CurrentTime, StartTime, QEarliestDefinite, 
-						SubP, NextLevel, _, PSchedIdIn, PSchedId, 
-						_, PLatestDefinite1, _, PLatestPossible1),
-					check_schedule_for_interval(PSchedId, StartTime, IntervalEnd, eventually, ResQ1, 
-						QEarliestDefinite2, _, QEarliestPossible2, _),
-					
-				
-					; 
-					% ---------------------------
-					% FAIL
-					% ---------------------------					
-					
-				
-				
-				%TODO: check P2
-				% * PLatestDefinite >= QEarliestDefinite --> ok
-				% * PLatestPossible < QEarliestPossible --> not_ok
-				% * otherwise: nondet
-				
-				
-					
-			
-			
-			
-				
-			
-				
-					
-					evaluate_and_schedule(ToplevelFormula, SubPathP, CurrentStep, StartTime, EndTime,
-						SubP, PCacheId, NextLevel, PSchedId, _, ToScheduleP, _, HasChangedP), 
-					
-					% retrieve the successive sequence of "ok" entries in the schedule beginning from 
-					% our starting point. Due to the call above, this also includes the current time point.
-					
-					getEndP(PSchedId, StartTime, EndP, LatestPossibleEndP)
-					;
-					% not scheduled yet so evaluate and possibly schedule with fresh id. don't force adding to history if ok/not_ok
-					evaluate_and_schedule(ToplevelFormula, SubPathP, 
-						CurrentStep, StartTime, EndTime, P, -1, NextLevel, -1, ResP, ToScheduleP, PSchedId, HasChangedP),
-					(
-						ResP = ok, current_time(EndP), LatestPossibleEndP = nondet, !
-						; 
-						% if not_ok we can stop only if we're at StartTime. Otherwise it might be that Q does fit.
-						ResP = not_ok, 
-						(
-							current_time(T2),
-							(T2 > StartTime ->
-								EndP is T2 - 1
-								;
-								EndP = not_ok
-							), 
-							LatestPossibleEndP is T2 - 1
-						), !
-						; ResP = nondet, EndP = nondet, LatestPossibleEndP = nondet
-					)
-			),	
-			(EndP = not_ok ->
-				shelf_set(Shelf, 3, not_ok),
-				record(MyFailures, until_fail_p(not_ok, ToplevelFormula, FormulaPath, StartTime, P, Level)),
-				HasChangedQ = true
-				;	
-				% handle Q in a very similiar fashion as P
-				
-				% determine top level outcome
-				(
-					% we handled EndP = not_ok above
-					EndP = nondet ->
-						% this actually only covers the case when P was nondet at start time
-						shelf_set(Shelf, 3, nondet)
-					;
-						% we have EndP >= 0 now
-						(
-							% we can stop if EarliestPossibleStartQ is higher that P's actual max time bound, which is
-							% set either by the fact that there was a not_ok in the history (calculated in getEndP) or 
-							% by StartTime+ MaxTime
-							IntervalEnd is StartTime + MaxTime,
-							getMin(LatestPossibleEndP, IntervalEnd, LatestPossibleEndP2),
-							(EarliestPossibleStartQ  > LatestPossibleEndP2 + 1 ->
-								shelf_set(Shelf, 3, not_ok),
-								record(MyFailures, until_timeot(not_ok, ToplevelFormula, FormulaPath, StartTime, Q, Level))
-								;
-								(StartQ = nondet -> 
-									shelf_set(Shelf, 3, nondet)
-									;
-									% we have StartQ >= 0 now
-									((StartQ =< EndP + 1, StartQ =< StartTime + MaxTime) ->
-										shelf_set(Shelf, 3, ok)
-										;
-										shelf_set(Shelf, 3, nondet)
-									)
-								)
-							)
-						)
-				)
-			),
-			
-			(not PSchedId is -1 ->
-				KeyP =.. [p, SubPathP],
-				var(VarPSchedId),
-				SParams1 = [KeyP : PSchedId],
-				shelf_set(Shelf, 1, sched(KeyP, VarPSchedId, ToScheduleP)) 
-				; 
-				SParams1 = []
-			),
-			(not QSchedId is -1 ->
-				KeyQ =.. [q, SubPathQ],
-				var(VarQSchedId),
-				append(SParams1, [KeyQ : QSchedId], SParams2),
-				shelf_set(Shelf, 2, sched(KeyQ, VarQSchedId, ToScheduleQ)) 
-				; 
-				SParams2 = SParams1
-			),
-			((HasChangedP, !; HasChangedQ,!) -> shelf_set(Shelf, 4, true) ; true),
-			shelf_set(Shelf, 5, SParams2),
-			% retrieve all output values from shelf
-			shelf_get(Shelf, 0, pqres(NewP, NewQ, Result, HasChanged, ScheduleParams))
+		append(FormulaPath, [2], SubPathP), % start with subterm 2 since first is max time
+		append(FormulaPath, [3], SubPathQ),
+		
+		(Q = sched(_, QSchedIdIn, QRefTerm) ->  
+			(QRefTerm = cf(QCacheId) ->
+				get_cached_formula(QCacheId, SubQ)
+				;
+				SubQ = QRefTerm,
+				QCacheId = -1
+			)
+			;
+			SubQ = Q,
+			QSchedIdIn = -1, QCacheId = -1
+		),				
+		% check from current time to end of interval
+		% ignore result for now since it will be examined later together with previously
+		% scheduled results
+
+		evaluate_for_all_timesteps(ToplevelFormula, SubPathQ, 
+			eventually, CurrentStep, CurrentTime, StartTime, IntervalEnd, SubQ, NextLevel, _, 
+			QSchedIdIn, QSchedId, 
+			QEarliestDefinite1, _, QEarliestPossible1, _),	
+		(QSchedId >= 0 ->		
+			check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, ResQ1, 
+				QEarliestDefinite2, _, QEarliestPossible2, _),
+			QEarliestDefinite is min(QEarliestDefinite1, QEarliestDefinite2),
+			QEarliestPossible is min(QEarliestPossible1, QEarliestPossible2)
+			;
+			QEarliestDefinite = QEarliestDefinite1,
+			QEarliestPossible = QEarliestPossible1
 		),
+		(
+			QEarliestPossible =< Deadline -> 
+				% Q is at least possible in time
+				(P = sched(_, PSchedIdIn, PRefTerm) ->  
+					(PRefTerm = cf(PCacheId) ->
+						get_cached_formula(PCacheId, SubP)
+						;
+						SubP = PRefTerm,
+						PCacheId is -1
+					)
+					;
+					SubP = P,
+					PSchedIdIn = -1, PCacheId is -1
+				),
+				evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
+					always, CurrentStep, CurrentTime, StartTime, QEarliestDefinite, 
+					SubP, NextLevel, _, PSchedIdIn, PSchedId, 
+					_, PLatestDefinite1, _, PLatestPossible1),
+				(PSchedId >= 0 ->
+					check_schedule_for_interval(PSchedId, StartTime, QEarliestDefinite, 
+						always, _, 
+						_, PLatestDefinite2, _, PLatestPossible2),
+					PLatestDefinite is max(PLatestDefinite1, PLatestDefinite2),
+					PLatestPossible is max(PLatestPossible1, PLatestPossible2)
+					;
+					PLatestDefinite = PLatestDefinite1,
+					PLatestPossible = PLatestPossible1
+				),
+				
+				printf("PLatestDefinite=%d \nQEarliestDefinite=%d \nDeadline=%d \nIntervalEnd=%d\n",
+					[PLatestDefinite, QEarliestDefinite, Deadline, IntervalEnd]),
+				(PLatestDefinite >= QEarliestDefinite,
+					shelf_set(Shelf, 3, ok), !
+				; PLatestPossible < QEarliestPossible,
+					shelf_set(Shelf, 3, not_ok), 
+					record(MyFailures, until_p_violated(not_ok, 
+						ToplevelFormula, FormulaPath, CurrentTime, StartTime, EndTime)), !
+				;
+					shelf_set(Shelf, 3, nondet)
+				)
+			; % QEarliestPossible > Deadline --> time out
+			shelf_set(Shelf, 3, not_ok),
+			record(MyFailures, until_q_timeout(not_ok, 
+				ToplevelFormula, FormulaPath, CurrentTime, StartTime, EndTime)),
+			PSchedIdIn = -1, PSchedId = -1
+		),			
+		(not PSchedId =:= -1 ->
+			KeyP =.. [p, SubPathP],
+			var(VarPSchedId),
+			SParams1 = [KeyP : PSchedId],
+			shelf_set(Shelf, 1, sched(KeyP, VarPSchedId, ToScheduleP)) 
+			; 
+			SParams1 = []
+		),
+		(not QSchedId =:= -1 ->
+			KeyQ =.. [q, SubPathQ],
+			var(VarQSchedId),
+			append(SParams1, [KeyQ : QSchedId], SParams2),
+			shelf_set(Shelf, 2, sched(KeyQ, VarQSchedId, ToScheduleQ)) 
+			; 
+			SParams2 = SParams1
+		),
+		(QSchedIdIn =\= QSchedId, !
+			; PSchedIdIn =\= PSchedId -> 
+				shelf_set(Shelf, 4, true) ; true),
+		shelf_set(Shelf, 5, SParams2),
+		% retrieve all output values from shelf
+		shelf_get(Shelf, 0, pqres(NewP, NewQ, Result, HasChanged, ScheduleParams)),
 		shelf_abolish(Shelf),
 		getval(negated, Negated),
 		((Negated = 0, Result = not_ok ; Negated = 1, Result = ok) ->
@@ -705,92 +644,7 @@ getMax(V1, V2, Result) :-
 	V1 = nondet, Result = V2, ! ;
 	V2 = nondet, Result = V1, ! ;
 	(V2 > V1 -> Result = V2 ; Result = V1).
-	
-% Retrieve the earliest  "ok" entry in the schedule beginning from 
-% our starting point. This also includes the current time point.
-% - We also retrieve a EarliestPossibleStartQ that marks the earliest registered start point.
-getStartQ(QSchedId, StartTime, StartQ, EarliestPossibleStartQ) :-
-		stored_keys_and_values(scheduled_goals, List1),
-		shelf_create(starts(nondet, nondet), Shelf),
-		(foreach(Entry, List1), param(Shelf, QSchedId, StartTime) do
-			((Entry = sg(_,_, QSchedId, T,_,_) - Goal, T >= StartTime) ->
-				% if we find ok, check whether we've got a new real minimum. 
-				(Goal = ok ->
-					shelf_get(Shelf, 1, OldMin),
-					getMin(T, OldMin, NewMin),
-					shelf_set(Shelf, 1, NewMin)			
-					;
-					true
-				),
-				% If we didn't get not_ok, check whether we've found a new possible minimum
-				(not(Goal = not_ok) ->
-					shelf_get(Shelf, 2, OldMinPossible),
-					getMin(T, OldMinPossible, NewMinPossible),
-					shelf_set(Shelf, 2, NewMinPossible)
-					;
-					% skip if not_ok
-					true
-				)
-				;
-				% skip if key or time doesn't match or
-				true
-			)
-		),
-		shelf_get(Shelf, 1, StartQ),
-		shelf_get(Shelf, 2, EarliestPossibleStartQ),
-		shelf_abolish(Shelf).
-		
-
-		
-% pre: ListIn is list of Elements (T : Goal), sorted ascending by T.
-checkTimeSequence(ListIn, Result, LatestPossibleResult) :-
-		flatten(ListIn, List2),
-		sort(List2, List3),
-		shelf_create(t(not_ok, nondet), Shelf),
-		(fromto(List3, In, Out, []), param(Shelf) do
-			In = [Head | Tail],
-			Head = T : Goal,
-			(Goal = app(_, ok),
-				shelf_set(Shelf, 1, T),
-				Out = Tail,
-				!
-				;
-			Goal = app(_, not_ok),
-				% result will be not_ok iff the shelf entry hasn't been overwritten yet == at first
-				Out = [],
-				T2 is T - 1,
-				shelf_set(Shelf,2,T2),
-				!
-				;
-			% nondet
-				shelf_get(Shelf, 1, CurrentT),
-				% only set to nondet for first entry
-				(CurrentT = not_ok -> shelf_set(Shelf, 1, nondet) ; true),
-				Out = []				
-			)
-		),
-		shelf_get(Shelf,1,Result),
-		shelf_get(Shelf,2,LatestPossibleResult),
-		shelf_abolish(Shelf).
 			
-			
-		
-
-	
-		
-% Retrieve the successive sequence of "ok" entries in the schedule beginning from 
-% our starting point. This also includes the current time point.
-getEndP(PSchedId, StartTime, EndP, LatestPossibleEndP) :-
-		stored_keys_and_values(scheduled_goals, List1),
-		% select all for given Id >= StartTime
-		(foreach(Entry, List1), foreach(Out, List2), param(PSchedId, StartTime) do
-			% level can be ignored since we assume that each id is unique
-			% TODO: is it right to ignore EndTime?
-			(Entry = sg(_,_, PSchedId, T, _, _) - Goal , T >= StartTime) -> Out = [T:Goal] ; Out = []
-		),
-		checkTimeSequence(List2, EndP, LatestPossibleEndP).
-				
-		
 
 
 % Evaluates F at the current time. If an Id is given, the result is stored in the list associated with the id

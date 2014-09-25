@@ -54,13 +54,16 @@ test2(End, MaxX) :-
 	printf(" Result=%w\n ToSchedule=%w\n ScheduleParams=%w\n HasChanged=%w",
 		[Result, ToSchedule, ScheduleParams, HasChanged]).
 
-test3 :-
+test3(TLimit, XTarget) :-
 	init,
-	F = until(20, xpos(rob1) > 2, xpos(rob1) > 10),
+	F = until(TLimit, xpos(rob1) >= 0, xpos(rob1) > XTarget),
 	register_property(f, F, F2),
 	printf("F2: %w\n",[F2]),
 	evaluate_formula(f, [0], 0, 0, 10, F2, 0, Result, 
 		ToSchedule, ScheduleParams, HasChanged),
 	printf(" Result=%w\n ToSchedule=%w\n ScheduleParams=%w\n HasChanged=%w",
-		[Result, ToSchedule, ScheduleParams, HasChanged]).
+		[Result, ToSchedule, ScheduleParams, HasChanged]),
+	print_scheduled_goals(stdout, 2),
+	print_formula_cache(stdout).
+	
 	

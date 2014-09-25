@@ -78,64 +78,96 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	).
 	
 
+% Returns a sorted list of T : Result entries for the 
+% given schedule id. The list is sorted by time.
+get_schedule_sequence(PSchedId, StartTime, EndTime, L) :-
+	stored_keys_and_values(scheduled_goals, List1),
+		
+	% select all for given PSchedId and T >= StartTime
+	(foreach(Entry, List1), fromto([], In, Out, List2), 
+		param(PSchedId, StartTime, EndTime) do
+		% level can be ignored since we assume that each id is unique
+		(Entry = sg(_,_, PSchedId, T, _, _) - Goal , T >= StartTime, T =< EndTime) 
+			-> append(In, [T:Goal], Out)
+			; Out = In
+		),
+	sort(List2, L).
 
+% checks the current states of the scheduled goals for the
+% given PSchedId to determine the definite and possible time markers. 
+% Note: only considers schedule, the actual time markers could differ
+% due to current results (evaluate_for_all_timesteps).
 check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result, 
 	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
 	EndTime2 is EndTime + 1,
-	(CurrentTime < EndTime2 ->
+	(StartTime < EndTime2 ->
 		(Mode = eventually ->
 			R0 = nondet
 			;
 			R0 = ok
 		),
-		(fromto(StartTime, T, T2, EndTime2), fromto(R0, R1, R2, Result),
+		get_schedule_sequence(PSchedId, StartTime, EndTime, 
+			ScheduleSequence),		
+		(	fromto(ScheduleSequence, SeqIn, SeqOut, []),
+			fromto(R0, R1, R2, Result),
 			fromto(EndTime2, EDIn, EDOut, EarliestDefinite), 
 			fromto(EndTime2, EPIn, EPOut, EarliestPossible),
 			fromto(0, LDIn, LDOut, LatestDefinite), 
 			fromto(0, LPIn, LPOut, LatestPossible),
-			param(PSchedId, Mode, EndTime2) do
-			store_get(scheduled_goals, sg(_, _, PSchedId, T, _), F),
+			param(Mode) do
+			SeqIn = [SeqEntry | SeqTail],
+			SeqEntry = T : F,
 			F = app(_, Res),
 			(Mode = eventually ->
-				(Res = ok ->
+				(Res = ok,
 					R2 = ok,
-					T2 = EndTime2
-				; % not_ok or nondet
+					SeqOut = [],
+					EDOut is min(EDIn, T),
+					EPOut is min(EDIn, T),
+					LDOut = T,			
+					LPOut = T, !
+				; Res = not_ok,
 					R2 = R1,
-					T2 is T + 1
+					SeqOut = SeqTail,
+					EDOut = EDIn,
+					EPOut = EPIn,
+					LDOut = LDIn,			
+					LPOut = LPIn, !
+				; % nondet
+					R2 = R1,
+					SeqOut = SeqTail,			
+					EDOut = EDIn,
+					EPOut is min(EPIn, T),
+					LDOut = LDIn,			
+					LPOut = T
 				)
 			; % always
 				(Res = not_ok,
 					R2 = not_ok,
-					T2 = EndTime2, !
+					SeqOut = [], 
+					EDOut = EDIn,
+					EPOut = EPIn,
+					LDOut = LDIn,			
+					LPOut = LPIn, !					
 					;
-				Res = nondet,
-					R2 = nondet,
-					T2 is T + 1, !
-				; % ok
+				Res = ok,
 					R2 = R1,
-					T2 is T + 1
+					SeqOut = SeqTail, 
+					EDOut is min(EDIn, T),
+					EPOut is min(EPIn, T),
+					LDOut = T,			
+					LPOut = T, !
+				; % nondet
+					R2 = nondet,
+					SeqOut = SeqTail,
+					EDOut = EDIn,
+					EPOut is min(EPIn, T),
+					LDOut = LDIn,			
+					LPOut = T
 				)
-			),
-			(Res = ok,
-				EDOut is min(EDIn, T),
-				EPOut is min(EDIn, T),
-				LDOut = T,			
-				LPOut = T, !
-				;
-			Res = nondet,
-				EDOut = EDIn,
-				EPOut is min(EPIn, T),
-				LDOut = LDIn,			
-				LPOut = T, !
-			; % not_ok
-				EDOut = EDIn,
-				EPOut = EPIn,
-				LDOut = LDIn,			
-				LPOut = LPIn
 			)		
 		)
-	; % CurrentTime > EndTime2
+	; % StartTime > EndTime2
 		Result = not_ok,
 		EarliestDefinite = EndTime2,
 		LatestDefinite = -1, 
