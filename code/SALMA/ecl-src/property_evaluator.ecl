@@ -533,21 +533,50 @@ evaluate_until(ToplevelFormula, FormulaPath,
 						QCacheId = -1
 					)
 					;
+					SubQ = Q,
 					QSchedIdIn = -1, QCacheId = -1
 				),				
 				% check from current time to end of interval
 				% ignore result for now since it will be examined later together with previously
 				% scheduled results
+		
 				evaluate_for_all_timesteps(ToplevelFormula, SubPathQ, 
 					eventually, CurrentStep, CurrentTime, StartTime, IntervalEnd, SubQ, NextLevel, _, 
 					QSchedIdIn, QSchedId, 
-					QEarliestDefinite1, _, QEarliestPossible1, _),
+					_, _, _, _),
 				
 				check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, ResQ1, 
-					QEarliestDefinite2, _, QEarliestPossible2, _),
+					QEarliestDefinite, _, QEarliestPossible, _),				
+				(
+					% ---------------------------
+					% POSSIBLE SUCCESS
+					% ---------------------------
+					QEarliestPossible =< IntervalEnd,
+					(P = sched(_, PSchedIdIn, PRefTerm) ->  
+						(PRefTerm = cf(PCacheId) ->
+							get_cached_formula(PCacheId, SubP)
+							;
+							SubP = PRefTerm,
+							PCacheId is -1
+						)
+						;
+						SubP = P,
+						PSchedIdIn = -1, PCacheId is -1
+					),
+					evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
+						always, CurrentStep, CurrentTime, StartTime, QEarliestDefinite, 
+						SubP, NextLevel, _, PSchedIdIn, PSchedId, 
+						_, PLatestDefinite1, _, PLatestPossible1),
+					check_schedule_for_interval(PSchedId, StartTime, IntervalEnd, eventually, ResQ1, 
+						QEarliestDefinite2, _, QEarliestPossible2, _),
+					
 				
-				QEarliestDefinite is min(QEarliestDefinite1, QEarliestDefinite2),
-				QEarliestPossible is min(QEarliestPossible1, QEarliestPossible2),
+					; 
+					% ---------------------------
+					% FAIL
+					% ---------------------------					
+					
+				
 				
 				%TODO: check P2
 				% * PLatestDefinite >= QEarliestDefinite --> ok
@@ -555,40 +584,13 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				% * otherwise: nondet
 				
 				
-					;
-					% not scheduled yet so evaluate and possibly schedule with fresh id
-					evaluate_and_schedule(ToplevelFormula, SubPathQ, 
-						CurrentStep, StartTime, EndTime, Q, -1, NextLevel, -1, 
-						ResQ, ToScheduleQ, QSchedId, HasChangedQ),
-					(
-						ResQ = ok, 
-						current_time(StartQ), 
-						EarliestPossibleStartQ  = StartQ 
-						; 
-						ResQ = nondet, 
-						StartQ = nondet,
-						current_time(EarliestPossibleStartQ)
-						;
-						ResQ = not_ok,
-						StartQ = nondet,
-						current_time(T),
-						EarliestPossibleStartQ is T + 1
-					)
-				,
+					
 			
 			
 			
 				
 			
-				P = sched(_, PSchedId, PRefTerm) ->  
-					% evaluate the formula of P for the current time and add also ok/not_ok to the id's history
-					% - we might have a cached formula or a simple term (should currently be ok/not_ok in this case)
-					(PRefTerm = cf(PCacheId) ->
-						get_cached_formula(PCacheId, SubP)
-						;
-						SubP = PRefTerm,
-						PCacheId is -1
-					),
+				
 					
 					evaluate_and_schedule(ToplevelFormula, SubPathP, CurrentStep, StartTime, EndTime,
 						SubP, PCacheId, NextLevel, PSchedId, _, ToScheduleP, _, HasChangedP), 
