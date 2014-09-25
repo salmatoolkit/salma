@@ -11,10 +11,10 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 		(fromto(CurrentTime, T, T2, EndTime2), fromto(StartStep, Step, NextStep, _), 
 			fromto(ok, ResIn, ResOut, Result), % start with ok, might be switched to nondet and stay that way
 			fromto(ScheduleIdIn, SId1, SId2, ScheduleIdOut), 
-			fromto(EndTime2, EDIn, EDOut, EarliestDefinite), 
-			fromto(EndTime2, EPIn, EPOut, EarliestPossible),
-			fromto(-1, LDIn, LDOut, LatestDefinite), 
-			fromto(-1, LPIn, LPOut, LatestPossible),
+			fromto(nondet, EDIn, EDOut, EarliestDefinite), 
+			fromto(nondet, EPIn, EPOut, EarliestPossible),
+			fromto(nondet, LDIn, LDOut, LatestDefinite), 
+			fromto(nondet, LPIn, LPOut, LatestPossible),
 			param(Shelf, ToplevelFormula, FormulaPath, Mode, StartTime, Level, EndTime, EndTime2) do
 			shelf_get(Shelf, 1, OrigP),
 			Sit = do2(tick(Step), s0),
@@ -33,15 +33,14 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 				ResOut = nondet, 
 				T2 is T + 1, 
 				EDOut = EDIn,
-				EPOut is min(EPIn, T),
+				EPOut = getMin(EPIn, T),
 				LDOut = LDIn,			
 				LPOut = T,
 				!
-				% ...
 				;
 			Res = ok,
-				EDOut is min(EDIn, T),
-				EPOut is min(EPIn, T),
+				EDOut is getMin(EDIn, T),
+				EPOut is getMin(EPIn, T),
 				LDOut = T,			
 				LPOut = T,
 				(Mode = always ->
@@ -71,10 +70,10 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	; % CurrentTime > EndTime2
 		Result = not_ok,
 		ScheduleIdOut = ScheduleIdIn,
-		EarliestDefinite = EndTime2,
-		LatestDefinite = -1, 
-		EarliestPossible = EndTime2, 
-		LatestPossible = -1
+		EarliestDefinite = nondet,
+		LatestDefinite = nondet, 
+		EarliestPossible = nondet, 
+		LatestPossible = nondet
 	).
 	
 
@@ -110,10 +109,10 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 			ScheduleSequence),		
 		(	fromto(ScheduleSequence, SeqIn, SeqOut, []),
 			fromto(R0, R1, R2, Result),
-			fromto(EndTime2, EDIn, EDOut, EarliestDefinite), 
-			fromto(EndTime2, EPIn, EPOut, EarliestPossible),
-			fromto(0, LDIn, LDOut, LatestDefinite), 
-			fromto(0, LPIn, LPOut, LatestPossible),
+			fromto(nondet, EDIn, EDOut, EarliestDefinite), 
+			fromto(nondet, EPIn, EPOut, EarliestPossible),
+			fromto(nondet, LDIn, LDOut, LatestDefinite), 
+			fromto(nondet, LPIn, LPOut, LatestPossible),
 			param(Mode) do
 			SeqIn = [SeqEntry | SeqTail],
 			SeqEntry = T : F,
@@ -122,8 +121,8 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 				(Res = ok,
 					R2 = ok,
 					SeqOut = [],
-					EDOut is min(EDIn, T),
-					EPOut is min(EDIn, T),
+					EDOut is getMin(EDIn, T),
+					EPOut is getMin(EDIn, T),
 					LDOut = T,			
 					LPOut = T, !
 				; Res = not_ok,
@@ -137,7 +136,7 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 					R2 = R1,
 					SeqOut = SeqTail,			
 					EDOut = EDIn,
-					EPOut is min(EPIn, T),
+					EPOut is getMin(EPIn, T),
 					LDOut = LDIn,			
 					LPOut = T
 				)
@@ -153,15 +152,15 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 				Res = ok,
 					R2 = R1,
 					SeqOut = SeqTail, 
-					EDOut is min(EDIn, T),
-					EPOut is min(EPIn, T),
+					EDOut is getMin(EDIn, T),
+					EPOut is getMin(EPIn, T),
 					LDOut = T,			
 					LPOut = T, !
 				; % nondet
 					R2 = nondet,
 					SeqOut = SeqTail,
 					EDOut = EDIn,
-					EPOut is min(EPIn, T),
+					EPOut is getMin(EPIn, T),
 					LDOut = LDIn,			
 					LPOut = T
 				)
@@ -169,10 +168,10 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 		)
 	; % StartTime > EndTime2
 		Result = not_ok,
-		EarliestDefinite = EndTime2,
-		LatestDefinite = -1, 
-		EarliestPossible = EndTime2, 
-		LatestPossible = -1
+		EarliestDefinite = nondet,
+		LatestDefinite = nondet, 
+		EarliestPossible = nondet, 
+		LatestPossible = nondet
 	).
 		
 		
@@ -226,3 +225,65 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 	).
 	
 
+calculate_until_result(PLatestDefinite, PLatestPossible,
+	QEarliestDefinite, QEarliestPossible,
+	EndTime, Deadline, Result, FailureTerm) :-
+	IntervalEnd is min(Deadline, EndTime),
+	(QEarliestPossible = nondet ->
+		(Deadline =< EndTime ->
+			Result = not_ok,
+			FailureTerm = until_q_timeout
+			;
+			% Q could still happen in next interval
+			% make sure that P is possible for the
+			% whole interval
+			(PLatestPossible = nondet,
+				Result = not_ok, 
+				FailureTerm = until_p_failed, !
+			; PLatestPossible =< IntervalEnd,
+				Result = not_ok, 
+				FailureTerm = until_p_timeout, !
+			; % PLatestPossible > IntervalEnd
+				Result = nondet,
+				FailureTerm = none			
+			)
+		)
+		; % QEarliestPossible not nondet	
+		(QEarliestPossible > Deadline ->
+			Result = not_ok,
+			FailureTerm = until_q_timeout
+			; %QEarliestPossible <= Deadline
+			(PLatestPossible = nondet,
+				Result = not_ok, 
+				FailureTerm = until_p_failed, !
+			; PLatestPossible < QEarliestPossible,
+				Result = not_ok,
+				FailureTerm = until_p_failed, !
+			; % PLatestPossible >= QEarliestPossible
+			  % -> at least nondet
+				( % check for OK
+					PLatestDefinite \= nondet, 
+					QEarliestDefinite \= nondet,
+					PLatestDefinite >= QEarliestDefinite,
+					Result = ok, !
+					;
+					Result = nondet
+				),
+				FailureTerm = none
+			)
+		)
+	).				
+				
+					
+					
+				
+				
+				
+				
+				
+				
+			
+			
+			
+
+				

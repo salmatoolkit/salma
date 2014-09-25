@@ -498,7 +498,9 @@ evaluate_action_occured(ActionTerm, Time, Result) :-
 		ActionTerm =.. [Action | Params],
 		get_action_clock(Action, Params, T2),
 		(T2 is Time -> Result = ok ; Result = not_ok).
-	
+
+		
+
 evaluate_until(ToplevelFormula, FormulaPath, 
 	CurrentStep, Level, StartTime, EndTime, MaxTime, P, Q, 
 				Result, NewP, NewQ, ScheduleParams, HasChanged) :-
@@ -546,58 +548,68 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		(QSchedId >= 0 ->		
 			check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, ResQ1, 
 				QEarliestDefinite2, _, QEarliestPossible2, _),
-			QEarliestDefinite is min(QEarliestDefinite1, QEarliestDefinite2),
-			QEarliestPossible is min(QEarliestPossible1, QEarliestPossible2)
+			QEarliestDefinite is getMin(QEarliestDefinite1, QEarliestDefinite2),
+			QEarliestPossible is getMin(QEarliestPossible1, QEarliestPossible2)
 			;
 			QEarliestDefinite = QEarliestDefinite1,
 			QEarliestPossible = QEarliestPossible1
 		),
-		(
-			QEarliestPossible =< Deadline -> 
-				% Q is at least possible in time
-				(P = sched(_, PSchedIdIn, PRefTerm) ->  
-					(PRefTerm = cf(PCacheId) ->
-						get_cached_formula(PCacheId, SubP)
-						;
-						SubP = PRefTerm,
-						PCacheId is -1
-					)
-					;
-					SubP = P,
-					PSchedIdIn = -1, PCacheId is -1
-				),
-				evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
-					always, CurrentStep, CurrentTime, StartTime, QEarliestDefinite, 
-					SubP, NextLevel, _, PSchedIdIn, PSchedId, 
-					_, PLatestDefinite1, _, PLatestPossible1),
-				(PSchedId >= 0 ->
-					check_schedule_for_interval(PSchedId, StartTime, QEarliestDefinite, 
-						always, _, 
-						_, PLatestDefinite2, _, PLatestPossible2),
-					PLatestDefinite is max(PLatestDefinite1, PLatestDefinite2),
-					PLatestPossible is max(PLatestPossible1, PLatestPossible2)
-					;
-					PLatestDefinite = PLatestDefinite1,
-					PLatestPossible = PLatestPossible1
-				),
-				
-				printf("PLatestDefinite=%d \nQEarliestDefinite=%d \nDeadline=%d \nIntervalEnd=%d\n",
-					[PLatestDefinite, QEarliestDefinite, Deadline, IntervalEnd]),
-				(PLatestDefinite >= QEarliestDefinite,
-					shelf_set(Shelf, 3, ok), !
-				; PLatestPossible < QEarliestPossible,
-					shelf_set(Shelf, 3, not_ok), 
-					record(MyFailures, until_p_violated(not_ok, 
-						ToplevelFormula, FormulaPath, CurrentTime, StartTime, EndTime)), !
+		(			
+			( % determine if it's necessary to evaluate P
+				(QEarliestPossible = nondet, Deadline > EndTime), !
 				;
-					shelf_set(Shelf, 3, nondet)
+				(QEarliestPossible \= nondet, QEarliestPossible =< Deadline)
+			),
+			(QEarliestDefinite = nondet ->
+				PEndTime = IntervalEnd
+				;
+				PEndTime = QEarliestDefinite
+			),
+			% Q is at least possible in time
+			(P = sched(_, PSchedIdIn, PRefTerm) ->  
+				(PRefTerm = cf(PCacheId) ->
+					get_cached_formula(PCacheId, SubP)
+					;
+					SubP = PRefTerm,
+					PCacheId is -1
 				)
-			; % QEarliestPossible > Deadline --> time out
-			shelf_set(Shelf, 3, not_ok),
-			record(MyFailures, until_q_timeout(not_ok, 
-				ToplevelFormula, FormulaPath, CurrentTime, StartTime, EndTime)),
+				;
+				SubP = P,
+				PSchedIdIn = -1, PCacheId is -1
+			),
+			evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
+				always, CurrentStep, CurrentTime, StartTime, PEndTime, 
+				SubP, NextLevel, _, PSchedIdIn, PSchedId, 
+				_, PLatestDefinite1, _, PLatestPossible1),
+			(PSchedId >= 0 ->
+				check_schedule_for_interval(PSchedId, StartTime, PEndTime, 
+					always, _, 
+					_, PLatestDefinite2, _, PLatestPossible2),
+				PLatestDefinite is getMax(PLatestDefinite1, PLatestDefinite2),
+				PLatestPossible is getMax(PLatestPossible1, PLatestPossible2)
+				;
+				PLatestDefinite = PLatestDefinite1,
+				PLatestPossible = PLatestPossible1
+			), !
+			;
+			% no Q can and will be found -> P was skipped
+			PLatestDefinite = nondet,
+			PLatestPossible = nondet,
 			PSchedIdIn = -1, PSchedId = -1
-		),			
+		), 
+		% now we have all 4 time markers so the overall result can be determined.
+		printf("PLatestDefinite=%w \nQEarliestDefinite=%w \nDeadline=%w \nIntervalEnd=%w\n",
+			[PLatestDefinite, QEarliestDefinite, Deadline, IntervalEnd]),
+		
+		calculate_until_result(PLatestDefinite, PLatestPossible,	
+			QEarliestDefinite, QEarliestPossible, EndTime, Deadline, Res, FailureTerm),
+		shelf_set(Shelf, 3, Res),
+		(FailureTerm \= none ->
+			record(MyFailures, until_failed(FailureTerm, 
+				ToplevelFormula, FormulaPath, CurrentTime, StartTime, EndTime))
+			;
+			true
+		),		
 		(not PSchedId =:= -1 ->
 			KeyP =.. [p, SubPathP],
 			var(VarPSchedId),
@@ -632,7 +644,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		),
 		setval(current_failure_stack, CFS),
 		erase_all(MyFailures).
-	
+
 
 % Calculates the minimum among V1 and V2. Handles nondet.
 getMin(V1, V2, Result) :-
