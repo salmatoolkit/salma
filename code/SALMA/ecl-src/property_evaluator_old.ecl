@@ -503,9 +503,6 @@ evaluate_until(ToplevelFormula, FormulaPath,
 	CurrentStep, Level, StartTime, EndTime, MaxTime, P, Q, 
 				Result, NewP, NewQ, ScheduleParams, HasChanged) :-
 		NextLevel is Level + 1,
-		% the end of the interval that is to be inspected
-		IntervalEnd is min(StartTime + MaxTime, EndTime),
-		time(CurrentTime, do2(tick(CurrentStep), s0)),
 		getval(current_failure_stack, CFS),
 		record_create(MyFailures),
 		setval(current_failure_stack, MyFailures),
@@ -518,68 +515,38 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			%schedule params
 			shelf_set(Shelf, 5, []),
 			% also evaluate history: schedule for each time step and store in list. 
-		
+			
+			% procedure:
+			% - check p -> if not_ok result = not_ok ; if nondet, schedule and go on
+			% - check q 
+			% -- if ok: determine when it has become true --> t_q = starting point
+			% --- verify that p had been true until t_q -> if not result is not_ok
+			% --- for non-temporal formulas, this is just assumed if we find p=true now because 
+			%     if p had not been true until now, we would not be here
+			% -- if not_ok:
+		    % --- just go on, it might become ok
+			% - for both p and q: 
+			% -- evaluate
+			% -- if nondet: schedule goal with current time as starting point 
+			% -- if a scheduled goal is evaluated to ok / not_ok, the scheduled formula is replaced by this goal
+			%
+			% we need a procedure that calculates the time when a goal has become true
+			% - evaluate_and_schedule needs an output var for this time
+			
+			%e.g. scheduled(id)
+			% -- scheduled at id: f(id,time) -> until(true, maxtime, all([xpos(rob1, _123, s0), _123 > 100]))
 			
 			append(FormulaPath, [2], SubPathP), % start with subterm 2 since first is max time
 			append(FormulaPath, [3], SubPathQ),
+			
 			(
-						
-				% in this block we look for StartQ, the earliest time that Q was true
-				(Q = sched(_, QSchedIdIn, QRefTerm) ->  
-					(QRefTerm = cf(QCacheId) ->
-						get_cached_formula(QCacheId, SubQ)
-						;
-						SubQ = QRefTerm,
-						QCacheId = -1
-					)
-					;
-					QSchedIdIn = -1, QCacheId = -1
-				),				
-				% check from current time to end of interval
-				% ignore result for now since it will be examined later together with previously
-				% scheduled results
-				evaluate_for_all_timesteps(ToplevelFormula, SubPathQ, 
-					eventually, CurrentStep, CurrentTime, StartTime, IntervalEnd, SubQ, NextLevel, _, 
-					QSchedIdIn, QSchedId, 
-					QEarliestDefinite1, _, QEarliestPossible1, _),
+				% in this block we define EndP, the end point until P has been true. 
+				% - not_ok means that beginning from the start time there was a sequence with length >= 1 with not_ok
+				% - nondet means no ok is there yet.
+				% - otherwise EndP >= StartTime
+				% note that EndP can change in the following evaluation rounds
 				
-				check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, ResQ1, 
-					QEarliestDefinite2, _, QEarliestPossible2, _),
-				
-				QEarliestDefinite is min(QEarliestDefinite1, QEarliestDefinite2),
-				QEarliestPossible is min(QEarliestPossible1, QEarliestPossible2),
-				
-				%TODO: check P2
-				% * PLatestDefinite >= QEarliestDefinite --> ok
-				% * PLatestPossible < QEarliestPossible --> not_ok
-				% * otherwise: nondet
-				
-				
-					;
-					% not scheduled yet so evaluate and possibly schedule with fresh id
-					evaluate_and_schedule(ToplevelFormula, SubPathQ, 
-						CurrentStep, StartTime, EndTime, Q, -1, NextLevel, -1, 
-						ResQ, ToScheduleQ, QSchedId, HasChangedQ),
-					(
-						ResQ = ok, 
-						current_time(StartQ), 
-						EarliestPossibleStartQ  = StartQ 
-						; 
-						ResQ = nondet, 
-						StartQ = nondet,
-						current_time(EarliestPossibleStartQ)
-						;
-						ResQ = not_ok,
-						StartQ = nondet,
-						current_time(T),
-						EarliestPossibleStartQ is T + 1
-					)
-				,
-			
-			
-			
-				
-			
+				% check if P is a scheduled subformula
 				P = sched(_, PSchedId, PRefTerm) ->  
 					% evaluate the formula of P for the current time and add also ok/not_ok to the id's history
 					% - we might have a cached formula or a simple term (should currently be ok/not_ok in this case)
@@ -624,7 +591,40 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				HasChangedQ = true
 				;	
 				% handle Q in a very similiar fashion as P
-				
+				(		
+					% in this block we look for StartQ, the earliest time that Q was true
+					Q = sched(_, QSchedId, QRefTerm) ->  
+						% evaluate the formula of Q for the current time and add also ok/not_ok to the id's history
+						(QRefTerm = cf(QCacheId) ->
+							get_cached_formula(QCacheId, SubQ)
+							;
+							SubQ = QRefTerm,
+							QCacheId is -1
+						),
+						evaluate_and_schedule(ToplevelFormula, SubPathQ,
+							CurrentStep, StartTime, EndTime, SubQ, QCacheId, NextLevel, 
+							QSchedId, _, ToScheduleQ, _, HasChangedQ),						
+						getStartQ(QSchedId, StartTime, StartQ, EarliestPossibleStartQ)
+						;
+						% not scheduled yet so evaluate and possibly schedule with fresh id
+						evaluate_and_schedule(ToplevelFormula, SubPathQ, 
+							CurrentStep, StartTime, EndTime, Q, -1, NextLevel, -1, 
+							ResQ, ToScheduleQ, QSchedId, HasChangedQ),
+						(
+							ResQ = ok, 
+							current_time(StartQ), 
+							EarliestPossibleStartQ  = StartQ 
+							; 
+							ResQ = nondet, 
+							StartQ = nondet,
+							current_time(EarliestPossibleStartQ)
+							;
+							ResQ = not_ok,
+							StartQ = nondet,
+							current_time(T),
+							EarliestPossibleStartQ is T + 1
+						)
+				),
 				% determine top level outcome
 				(
 					% we handled EndP = not_ok above

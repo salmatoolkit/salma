@@ -71,5 +71,10 @@ create_combination(Domains, Instance) :-
 ortest(X,Y) :-
 	(X = a ; X = b), Y = 1 ; (X = c; X = d), Y = b1.
 
+fromtotest(End, Start, Stop, Result) :-
+	(fromto(Start, I, O, End), fromto(0, I2, O2, Result), param(End, Stop) do
+		print(I), nl,
+		O2 is I2 + 1,
+		(I = Stop -> O = End ; O is I +1)
+	).
 
-		
