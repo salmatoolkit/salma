@@ -71,3 +71,5 @@ create_combination(Domains, Instance) :-
 ortest(X,Y) :-
 	(X = a ; X = b), Y = 1 ; (X = c; X = d), Y = b1.
 
+
+		
