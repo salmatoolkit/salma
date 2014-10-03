@@ -182,8 +182,7 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 % StartTime: marks the start of the interval that is checked
 % CurrentStep: refers to the currently ealuated step relative to StartTime
 evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
-	Mode, StartStep, StartTime, EndTime, P, Level, Result, ToSchedule, ScheduleParams, HasChanged, 
-	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
+	Mode, StartStep, StartTime, EndTime, P, Level, Result, ToSchedule, ScheduleParams, HasChanged) :-
 	% StartTime could be before the current time
 	% TODO: should we really distinguish StartTime from CurrentTime?
 	append(FormulaPath, [1], SubPathP),
@@ -204,12 +203,12 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 		% already before. Therefore we don't have to evaluate again but 
 		% check the results of the scheduled evaluations.
 		check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result, 
-			EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible)
+			_, _, _, _)
 		;
 		SubP = P,
 		evaluate_for_all_timesteps(ToplevelFormula, FormulaPath, 
 			Mode, StartStep, CurrentTime, StartTime, EndTime, P, NextLevel, Result, 
-			-1, PSchedId, EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible)
+			-1, PSchedId, _, _, _, _)
 	),	
 	(Result = nondet ->
 		KeyP =.. [p, SubPathP],

@@ -532,12 +532,11 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			(QRefTerm = cf(QCacheId) ->
 				get_cached_formula(QCacheId, SubQ)
 				;
-				SubQ = QRefTerm,
-				QCacheId = -1
+				SubQ = QRefTerm
 			)
 			;
 			SubQ = Q,
-			QSchedIdIn = -1, QCacheId = -1
+			QSchedIdIn = -1
 		),				
 		% check from current time to end of interval
 		% ignore result for now since it will be examined later together with previously
@@ -548,7 +547,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			QSchedIdIn, QSchedId, 
 			QEarliestDefinite1, _, QEarliestPossible1, _),	
 		(QSchedId >= 0 ->		
-			check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, ResQ1, 
+			check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, _, 
 				QEarliestDefinite2, _, QEarliestPossible2, _),
 			QEarliestDefinite is getMin(QEarliestDefinite1, QEarliestDefinite2),
 			QEarliestPossible is getMin(QEarliestPossible1, QEarliestPossible2)
@@ -572,12 +571,11 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				(PRefTerm = cf(PCacheId) ->
 					get_cached_formula(PCacheId, SubP)
 					;
-					SubP = PRefTerm,
-					PCacheId is -1
+					SubP = PRefTerm
 				)
 				;
 				SubP = P,
-				PSchedIdIn = -1, PCacheId is -1
+				PSchedIdIn = -1
 			),
 			evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
 				always, CurrentStep, CurrentTime, StartTime, PEndTime, 
@@ -616,7 +614,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			KeyP =.. [p, SubPathP],
 			var(VarPSchedId),
 			SParams1 = [KeyP : PSchedId],
-			shelf_set(Shelf, 1, sched(KeyP, VarPSchedId, ToScheduleP)) 
+			shelf_set(Shelf, 1, sched(KeyP, VarPSchedId, _)) 
 			; 
 			SParams1 = []
 		),
@@ -624,7 +622,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			KeyQ =.. [q, SubPathQ],
 			var(VarQSchedId),
 			append(SParams1, [KeyQ : QSchedId], SParams2),
-			shelf_set(Shelf, 2, sched(KeyQ, VarQSchedId, ToScheduleQ)) 
+			shelf_set(Shelf, 2, sched(KeyQ, VarQSchedId, _)) 
 			; 
 			SParams2 = SParams1
 		),
@@ -839,7 +837,7 @@ apply_params(Params, F) :-
 	).
 
 evaluate_scheduled(Key, EndTime, Result) :-
-	Key = sg(ToplevelFormula, Level, _, StartTime, _),
+	Key = sg(ToplevelFormula, Level, Id, StartTime, OrigEndTime),
 	store_get(scheduled_goals, Key, FRef),
 	FRef = app(Params, F2),
 	(F2 = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = F2),
@@ -858,7 +856,13 @@ evaluate_scheduled(Key, EndTime, Result) :-
 		;
 		ToSchedule2 = Result
 	),
-	store_set(scheduled_goals, Key, app(ScheduleParams2,ToSchedule2)	).
+	(OrigEndTime =:= EndTime ->
+		Key2 = Key
+		;
+		Key2 = sg(ToplevelFormula, Level, Id, StartTime, EndTime),
+		store_delete(scheduled_goals, Key)
+	),
+	store_set(scheduled_goals, Key2, app(ScheduleParams2,ToSchedule2)).
 	
 
 	
