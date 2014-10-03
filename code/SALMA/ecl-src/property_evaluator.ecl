@@ -474,12 +474,14 @@ evaluate_checkone(ToplevelFormula, FormulaPath,
 % - The result can't be nondet
 evaluate_changed(ToplevelFormula, FormulaPath, CurrentStep, StartTime, Last, Now, ExpectedNow, Level, Result, ToSchedule) :-	
 		append(FormulaPath, [2], SubPathNow),
-		evaluate_formula(ToplevelFormula, SubPathNow, CurrentStep, StartTime, Now, Level, ResNow, _, _, _),
+		evaluate_formula(ToplevelFormula, SubPathNow, CurrentStep, 
+			StartTime, StartTime, Now, Level, ResNow, _, _, _),
 		(not ResNow = ExpectedNow ->
 			Result = not_ok
 			;
 			append(FormulaPath, [1], SubPathLast),
-			evaluate_formula(ToplevelFormula, SubPathLast, CurrentStep, StartTime, Last, Level, ResLast, _, _, _),
+			evaluate_formula(ToplevelFormula, SubPathLast, CurrentStep, 
+				StartTime, StartTime, Last, Level, ResLast, _, _, _),
 			(ResNow \= ResLast -> Result = ok ; Result = not_ok)
 		),
 		ToSchedule = Result.
@@ -791,18 +793,23 @@ print_cache_candidates(Stream):-
 		
 % Evaluates all registered toplevel goals. 
 % Results: list of Term with schema Name - Result
-evaluate_toplevel(Results) :-
+evaluate_toplevel(EndTime, Results) :-
+		get_current(time, [], CurrentTime),
 		stored_keys_and_values(toplevel_goals, L),
 		setval(negated, 0),
 		getval(current_failure_stack, CFS),
-		(fromto(L, In, Out, []), fromto([], In2, Out2, Results), param(CFS) do
+		(fromto(L, In, Out, []), fromto([], In2, Out2, Results), 
+			param(CFS, CurrentTime, EndTime) do
 			In = [Entry | Rest],
 			Entry = Name - cf(CacheId),
 			get_cached_formula(CacheId, F),
 			record_create(MyFailureStack),
 			setval(current_failure_stack, MyFailureStack),
 			setval(negated, 0),
-			evaluate_and_schedule(Name, [0], F, CacheId, 0, -1, R, _, _, _),
+			% CurrentStep = 0
+			% StartTime = CurrentTime
+			evaluate_and_schedule(Name, [0], 0, CurrentTime, EndTime,			
+				F, CacheId, 0, -1, R, _, _, _),
 			(
 				R = ok, append(In2, [ok : Name], Out2), !
 				;
@@ -831,15 +838,16 @@ apply_params(Params, F) :-
 		Var is SchedId		
 	).
 
-evaluate_scheduled(Key, Result) :-
-	Key = sg(ToplevelFormula, Level, _, T, EndTime),
+evaluate_scheduled(Key, EndTime, Result) :-
+	Key = sg(ToplevelFormula, Level, _, StartTime, _),
 	store_get(scheduled_goals, Key, FRef),
 	FRef = app(Params, F2),
 	(F2 = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = F2),
 	apply_params(Params, F),
 	setval(negated, 0),
-	
-	evaluate_formula(ToplevelFormula, [0], T, EndTime, F, Level, Result, ToSchedule, ScheduleParams2, HasChanged),
+	% CurrentStep = 0
+	evaluate_formula(ToplevelFormula, [0], 0,
+		StartTime, EndTime, F, Level, Result, ToSchedule, ScheduleParams2, HasChanged),
 	(Result = nondet ->
 		(HasChanged = true ->
 			cache_formula(ToplevelFormula, [0], ToSchedule, CacheId2)
@@ -858,7 +866,7 @@ get_pending_goals(PendingGoals, LevelFilter) :-
 	stored_keys_and_values(scheduled_goals, L),
 	(foreach(Entry, L), fromto([], In, Out, PendingGoals), param(LevelFilter) do
 		Entry = Key - app(_, Content),
-		Key = sg(_, Level, _, _, _, _),
+		Key = sg(_, Level, _, _, _),
 		( ( (LevelFilter = all, ! ; Level == LevelFilter),
 			Content \= ok, Content \= not_ok
 			) ->
@@ -873,17 +881,18 @@ get_pending_toplevel_goals(PendingGoals) :-
 	
 % claim schedule ids when entering evaluation --> from outside to inside. in evaluation first sort and then evaluate in descending order.
 % This makes sure that dependencies are resolved.
-evaluate_all_scheduled(Results) :-
+evaluate_all_scheduled(EndTime, Results) :-
 	getval(current_failure_stack, CFS),
 	get_pending_goals(PendingGoals, all),
 	% sort by  1st argument = level
 	sort(2, >=, PendingGoals, SortedKeys),
-	(fromto(SortedKeys, In, Out, []), fromto([], In2, Out2, Results), param(CFS) do
+	(fromto(SortedKeys, In, Out, []), fromto([], In2, Out2, Results), 
+		param(EndTime, CFS) do
 		In = [Key | Rest],
-		Key = sg(_, Level, _, _, _, _),
+		Key = sg(_, Level, _, _, _),
 		record_create(MyFailureStack),
 		setval(current_failure_stack, MyFailureStack),
-		evaluate_scheduled(Key, R),
+		evaluate_scheduled(Key, EndTime, R),
 		% only report properties with level 0
 		(Level == 0 ->
 			append(In2, [R : Key], Out2)
@@ -907,13 +916,13 @@ print_scheduled_goals(Stream, SortPositions) :-
 	stored_keys(scheduled_goals, Keys),
 	sort(SortPositions, =<, Keys, SortedKeys),
 	nl,
-	printf(Stream, "%10s %10s %5s %10s %10s %s\n",["Name", "Time","Level","Id","Params","Term"]),
+	printf(Stream, "%10s %10s %10s %5s %5s %10s %s\n",["Name", "Time","End Time", "Level","Id","Params","Term"]),
 	printf(Stream, "-------------------------------------------------------\n",[]),
 	(foreach(Key, SortedKeys), param(Stream) do
 		Key = sg(Name, Level, Id, T, EndTime),
 		store_get(scheduled_goals, Key, app(Params, F)),
 		
-		printf(Stream, "%10s %10d %10d %10s %5d %10d %w %w\n",[Name, T, EndTime, Level, Id, Params, F])
+		printf(Stream, "%10s %10d %10d %5d %5d %w %w\n",[Name, T, EndTime, Level, Id, Params, F])
 	).
 
 	
@@ -944,7 +953,8 @@ update_persistent_fluents :-
 	(foreach(Entry, L), param(CurrentTime) do
 		Entry = Name - Formula,
 		internal_query_persistent_fluent(Name, CurrentState, _),
-		evaluate_formula(null, [0], CurrentTime, Formula, 0, Result, _, _, _),
+		evaluate_formula(null, [0], 0,
+			CurrentTime, CurrentTime, Formula, 0, Result, _, _, _),
 		(Result \= CurrentState ->
 			store_set(persistent_fluent_states, Name, Result : CurrentTime)
 			;

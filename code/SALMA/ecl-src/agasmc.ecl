@@ -19,14 +19,14 @@
 
 
 
-evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :-
+evaluation_step(EndTime, ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :-
 	% TODO: check for events and set clocks
 	(properties_unsynced -> recompile_all ; true),
 	erase_failure_stack,
 	update_persistent_fluents,
-	evaluate_all_scheduled(ScheduledResults), 
+	evaluate_all_scheduled(EndTime, ScheduledResults), 
 	get_pending_toplevel_goals(PendingGoals),
-	evaluate_toplevel(ToplevelResults),
+	evaluate_toplevel(EndTime, ToplevelResults),
 	get_merged_failures(FailureStack),
 	clean_formula_cache.
 
