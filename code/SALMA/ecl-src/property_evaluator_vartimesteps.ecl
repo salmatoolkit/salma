@@ -240,7 +240,7 @@ calculate_until_result(PLatestDefinite, PLatestPossible,
 			(PLatestPossible = nondet,
 				Result = not_ok, 
 				FailureTerm = until_p_failed, !
-			; PLatestPossible =< IntervalEnd,
+			; PLatestPossible < IntervalEnd,
 				Result = not_ok, 
 				FailureTerm = until_p_timeout, !
 			; % PLatestPossible > IntervalEnd
