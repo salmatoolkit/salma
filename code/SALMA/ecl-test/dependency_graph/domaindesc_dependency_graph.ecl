@@ -23,6 +23,7 @@ effect(xpos(Robot), jump(Robot, NewX), _, X, _) :-
 	
 construct_fluents :-
 	findall(Fluent, clause(effect(Fluent, _, _, _, _), _), Fluents),
+	
 	print(Fluents).
 	
 
