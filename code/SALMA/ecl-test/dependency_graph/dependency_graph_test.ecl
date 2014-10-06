@@ -49,17 +49,7 @@ analyze_fluent(Fluent) :-
 	nl,
 	analyze_term(Body, "").
 	
-check_dependency(Fluent) :-
-	fluent(Fluent, Params, Type),
-	(Type = boolean ->
-		Arity is length(Params)
-		;
-		Arity is length(Params) + 1
-	),
-	length(NewParams, Arity),
-	append(NewParams, [do2(A,S)], NewParams2),
-	Head =.. [Fluent | NewParams2],
-	clause(Head, Body),
+
 	
 	
 	
