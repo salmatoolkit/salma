@@ -35,7 +35,7 @@ test1 :-
 	T2 = xpos(rob1) + ypos(rob2)*3,
 	term_affected_by_action(T2, jump(rob2, 100,100)).
 	
-	 
+
 	
 	
 

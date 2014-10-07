@@ -338,15 +338,16 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				F = changed(P, Q, ExpectedNow),
 				% for now ignore ToSchedule output of changed
 				evaluate_changed(ToplevelFormula, FormulaPath, 
-					CurrentStep, StartTime, P, Q, ExpectedNow, Level, Result, _),	
+					 StartTime, P, Q, ExpectedNow, Level, Result, _),	
 				!
 				;
 				F = pfswitch(PFName, ExpectedNow),
-				evaluate_persistent_fluent_switched(PFName, CurrentStep, StartTime, ExpectedNow, Result),
+				evaluate_persistent_fluent_switched(PFName, StartTime, ExpectedNow, Result),
 				!
 				;
 				F = occur(ActionTerm),
-				evaluate_action_occured(ActionTerm, CurrentStep, StartTime, Result),
+				% for now: ignore step since only tick is allowed for step
+				evaluate_action_occured(ActionTerm, StartTime, Result),
 				!
 				;
 				% is golog program possible?
@@ -472,15 +473,15 @@ evaluate_checkone(ToplevelFormula, FormulaPath,
 % checks whether the result of Now differs from the result of Last and Now = ExpectedNow. 
 % - No until is allowed for Last and Now
 % - The result can't be nondet
-evaluate_changed(ToplevelFormula, FormulaPath, CurrentStep, StartTime, Last, Now, ExpectedNow, Level, Result, ToSchedule) :-	
+evaluate_changed(ToplevelFormula, FormulaPath, StartTime, Last, Now, ExpectedNow, Level, Result, ToSchedule) :-	
 		append(FormulaPath, [2], SubPathNow),
-		evaluate_formula(ToplevelFormula, SubPathNow, CurrentStep, 
+		evaluate_formula(ToplevelFormula, SubPathNow, 0, 
 			StartTime, StartTime, Now, Level, ResNow, _, _, _),
 		(not ResNow = ExpectedNow ->
 			Result = not_ok
 			;
 			append(FormulaPath, [1], SubPathLast),
-			evaluate_formula(ToplevelFormula, SubPathLast, CurrentStep, 
+			evaluate_formula(ToplevelFormula, SubPathLast, 0, 
 				StartTime, StartTime, Last, Level, ResLast, _, _, _),
 			(ResNow \= ResLast -> Result = ok ; Result = not_ok)
 		),

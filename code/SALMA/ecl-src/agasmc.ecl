@@ -17,7 +17,9 @@
 
 
 
-
+evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :-
+	current_time(CurrentTime),
+	evaluation_step(CurrentTime, ToplevelResults, ScheduledResults, PendingGoals, FailureStack).	
 
 
 evaluation_step(EndTime, ToplevelResults, ScheduledResults, PendingGoals, FailureStack) :-

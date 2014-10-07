@@ -30,10 +30,12 @@ grabAll :-
 	progress(L).
 
 moveAll :-
-	L = [move_right(rob1)],
+	L = [move_right(rob1), move_right(rob2)],
 	progress(L).
 
 	
+	
+
 test :-
 	init,
 	F = forall([r,robot],
@@ -53,7 +55,7 @@ test :-
 				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 				printf("%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
 				moveAll,
-				progress([tick])
+				progress([tick(1)])
 	).
 	
 test2 :-
@@ -80,8 +82,36 @@ test2 :-
 					;
 					true
 				),
-				progress([tick])
+				progress([tick(1)])
 	).
+	
+test2_b :-
+	init,
+	F = until(20,
+			implies(
+				xpos(rob1) = 10,
+				until(5,
+					carrying(rob1,item1),
+					not(carrying(rob1,item1))
+				)
+			),
+			xpos(rob1) >= 29
+		),
+	register_property(f, F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	progress([grab(rob1, item1)]),
+	(count(I,0,20) do
+				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+				printf("%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
+				moveAll,
+				(time(4, s0) ->
+					progress([drop(rob1, item1)])
+					;
+					true
+				),
+				progress([tick(1)])
+	).
+	
 	
 test3 :-
 	init,
@@ -109,7 +139,7 @@ test3 :-
 					;
 					true
 				),
-				progress([tick])
+				progress([tick(1)])
 	).
 	
 	
@@ -168,5 +198,37 @@ test4 :-
 					;
 					true
 				),
-				progress([tick])
+				progress([tick(1)])
 	).
+	
+	
+test5 :-
+	init,
+	F = forall([r,robot],
+			implies(
+				xpos(r) = 12,
+				until(20, xpos(r) > 0, xpos(r) > 16)
+			)            
+        ),
+	register_property(f, F, _),
+	grabAll.
+
+test6 :-
+	init,
+	F = forall([r,robot],
+			implies(
+				occur(grab(r, item1)),
+				until(20, xpos(r) > 0, xpos(r) > 16)
+			)            
+        ),
+	register_property(f, F, _),
+	grabAll.
+	
+evstep :-
+	current_time(T),
+	evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+	printf("%d : %w %w %w %w\n",[T,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
+	print_scheduled_goals(stdout,4),
+	moveAll,
+	progress([tick(1)]).
+	
