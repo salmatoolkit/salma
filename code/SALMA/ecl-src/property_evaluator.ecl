@@ -141,14 +141,14 @@ clean_formula_cache :-
 	
 
 result_and(Res1, Res2, Res3) :-
-		(Res1 = not_ok ; Res2 = not_ok), Res3 = not_ok, !
+		(Res1 = not_ok, ! ; Res2 = not_ok), Res3 = not_ok, !
 		;
 		Res1 = ok, Res2 = ok, Res3 = ok, !
 		;
 		Res3 = nondet.
 		
 result_or(Res1, Res2, Res3) :-
-		(Res1 = ok ; Res2 = ok), Res3 = ok, !
+		(Res1 = ok, ! ; Res2 = ok), Res3 = ok, !
 		;
 		Res1 = not_ok, Res2 = not_ok, Res3 = not_ok, !
 		;

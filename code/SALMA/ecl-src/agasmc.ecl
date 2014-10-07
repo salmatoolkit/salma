@@ -1,5 +1,6 @@
 :- lib(ic).
 :- dynamic fluent/3.
+:- dynamic effect/5.
 :- dynamic constant/3.
 :- dynamic doc/2.
 :- dynamic derived_fluent/3.

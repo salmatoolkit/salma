@@ -368,6 +368,7 @@ init_progression :-
 	setval(last_sit, 0),
 	retractall(action_clock(_,_,_)),
 	retractall(action_count(_,_,_)),
+	construct_ssas,
 	close_successor_state_axioms.
 
 	
@@ -416,7 +417,73 @@ add_storage_query_to_ssa(Name, Args, Type, Sit, QueryName) :-
 		)
 	).	
 	
+construct_boolean_fluent_ssa(FluentName, Params, Head, Body) :-
+	Len is length(Params),
+	length(Args1, Len),
+	Qualifier =.. [FluentName | Args1],
+	append(Args1, [do2(A,S)], Args),
+	append(Args1, [S], OldArgs),
+	Head =.. [FluentName | Args],
+	OldQuery =.. [FluentName | OldArgs],
+	Body = (
+				(OldQuery -> OldValue = true ; OldValue = false),
+				(
+					effect(Qualifier, A, OldValue, NewValue, S), !
+					;
+					NewValue = OldValue
+				),
+				NewValue = true
+	).						
+									
+construct_nonboolean_fluent_ssa(FluentName, Params, Head, Body) :-
+	Len is length(Params),
+	length(Args1, Len),
+	Qualifier =.. [FluentName | Args1],
+	append(Args1, [NewValue, do2(A,S)], Args),
+	append(Args1, [OldValue, S], OldArgs),
+	Head =.. [FluentName | Args],
+	OldQuery =.. [FluentName | OldArgs],
+	Body = (
+				OldQuery,
+				(
+					effect(Qualifier, A, OldValue, NewValue, S), !
+					;
+					NewValue = OldValue
+				)
+	).	
+
+construct_ssas :-
+	findall(Fluent, clause(effect(Fluent, _, _, _, _), _), Fluents),
+	(foreach(F, Fluents), fromto([], HandledIn, HandledOut, _) do
+		F =.. [FluentName | _],
+		(member(FluentName, HandledIn) ->
+			HandledOut = HandledIn
+			;
+			(fluent(FluentName, Params, Type) -> true ; throw(undefined_fluent(FluentName))),
+			(Type = boolean ->
+				construct_boolean_fluent_ssa(FluentName, Params, Head, Body)
+				;
+				construct_nonboolean_fluent_ssa(FluentName, Params, Head, Body)
+			),	
+			retractall(Head),
+			asserta((Head :- Body)),
+			append(HandledIn, [FluentName], HandledOut)
+		)
+	).
+
+
+term_affected_by_action(Term, Action) :-
+	clause(effect(Term, Action, _, _, _), _), !
+	;
+	Term =.. [_ | Args],
+	(
+		member(Arg, Args),
+		term_affected_by_action(Arg, Action), !
+	).
 		
+	
+	
+
 
 
 	
