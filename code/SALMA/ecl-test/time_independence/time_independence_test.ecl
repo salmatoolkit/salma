@@ -29,6 +29,12 @@ test1 :-
 	xpos(rob1, 6, do2(tick(6), s0)),
 	xpos(rob1, 0, s0),
 	xpos(rob1, 6, do2(activate(rob2), do2(tick(6), s0))),
+	T1 = xpos(rob1) + vx(rob1)*3,
+	term_affected_by_action(T1, tick(_)),
+	not term_affected_by_action(T1, jump(rob2, 100,100)),
+	T2 = xpos(rob1) + ypos(rob2)*3,
+	term_affected_by_action(T2, jump(rob2, 100,100)).
+	
 	 
 	
 	
