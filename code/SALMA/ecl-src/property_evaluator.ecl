@@ -533,11 +533,13 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			(QRefTerm = cf(QCacheId) ->
 				get_cached_formula(QCacheId, SubQ)
 				;
-				SubQ = QRefTerm
+				SubQ = QRefTerm,
+				QCacheId = -1
 			)
 			;
 			SubQ = Q,
-			QSchedIdIn = -1
+			QSchedIdIn = -1,
+			QCacheId = -1
 		),				
 		% check from current time to end of interval
 		% ignore result for now since it will be examined later together with previously
@@ -545,7 +547,8 @@ evaluate_until(ToplevelFormula, FormulaPath,
 
 		evaluate_for_all_timesteps(ToplevelFormula, SubPathQ, 
 			eventually, CurrentStep, CurrentTime, StartTime, IntervalEnd, SubQ, NextLevel, _, 
-			QSchedIdIn, QSchedId, 
+			QSchedIdIn, QCacheId,
+			QSchedId, ToScheduleQ,
 			QEarliestDefinite1, _, QEarliestPossible1, _),	
 		(QSchedId >= 0 ->		
 			check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, _, 
@@ -572,15 +575,19 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				(PRefTerm = cf(PCacheId) ->
 					get_cached_formula(PCacheId, SubP)
 					;
-					SubP = PRefTerm
+					SubP = PRefTerm,
+					PCacheId = -1
 				)
 				;
 				SubP = P,
-				PSchedIdIn = -1
+				PSchedIdIn = -1,
+				PCacheId = -1
 			),
 			evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
 				always, CurrentStep, CurrentTime, StartTime, PEndTime, 
-				SubP, NextLevel, _, PSchedIdIn, PSchedId, 
+				SubP, NextLevel, _, 
+				PSchedIdIn, PCacheId,
+				PSchedId, ToScheduleP,
 				_, PLatestDefinite1, _, PLatestPossible1),
 			(PSchedId >= 0 ->
 				check_schedule_for_interval(PSchedId, StartTime, PEndTime, 
@@ -596,11 +603,11 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			% no Q can and will be found -> P was skipped
 			PLatestDefinite = nondet,
 			PLatestPossible = nondet,
-			PSchedIdIn = -1, PSchedId = -1
+			PSchedIdIn = -1, PSchedId = -1, ToScheduleP = nondet
 		), 
 		% now we have all 4 time markers so the overall result can be determined.
-		printf("PLatestDefinite=%w \nQEarliestDefinite=%w \nDeadline=%w \nIntervalEnd=%w\n",
-			[PLatestDefinite, QEarliestDefinite, Deadline, IntervalEnd]),
+		%printf("PLatestDefinite=%w \nQEarliestDefinite=%w \nDeadline=%w \nIntervalEnd=%w\n",
+		%	[PLatestDefinite, QEarliestDefinite, Deadline, IntervalEnd]),
 		
 		calculate_until_result(PLatestDefinite, PLatestPossible,	
 			QEarliestDefinite, QEarliestPossible, EndTime, Deadline, Res, FailureTerm),
@@ -615,7 +622,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			KeyP =.. [p, SubPathP],
 			var(VarPSchedId),
 			SParams1 = [KeyP : PSchedId],
-			shelf_set(Shelf, 1, sched(KeyP, VarPSchedId, _)) 
+			shelf_set(Shelf, 1, sched(KeyP, VarPSchedId, ToScheduleP)) 
 			; 
 			SParams1 = []
 		),
@@ -623,7 +630,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			KeyQ =.. [q, SubPathQ],
 			var(VarQSchedId),
 			append(SParams1, [KeyQ : QSchedId], SParams2),
-			shelf_set(Shelf, 2, sched(KeyQ, VarQSchedId, _)) 
+			shelf_set(Shelf, 2, sched(KeyQ, VarQSchedId, ToScheduleQ)) 
 			; 
 			SParams2 = SParams1
 		),

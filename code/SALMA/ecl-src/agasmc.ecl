@@ -30,8 +30,8 @@ evaluation_step(EndTime, ToplevelResults, ScheduledResults, PendingGoals, Failur
 	evaluate_all_scheduled(EndTime, ScheduledResults), 
 	get_pending_toplevel_goals(PendingGoals),
 	evaluate_toplevel(EndTime, ToplevelResults),
-	get_merged_failures(FailureStack),
-	clean_formula_cache.
+	get_merged_failures(FailureStack).
+	%,clean_formula_cache.
 
 init_agasmc :-
 	init_info_transfer,

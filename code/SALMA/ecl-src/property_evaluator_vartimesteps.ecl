@@ -1,11 +1,13 @@
 evaluate_for_all_timesteps(ToplevelFormula, FormulaPath, 
 	Mode, StartStep, CurrentTime, StartTime, EndTime, P, Level, Result, 
-	ScheduleIdIn, ScheduleIdOut, 
+	ScheduleIdIn, CacheIdIn,
+	ScheduleIdOut, ToSchedule,
 	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
 	% make sure that interval [T-T] includes the current step
 	EndTime2 is EndTime + 1,
 	shelf_create(orig/1, null, Shelf),
 	shelf_set(Shelf,1,P),
+	
 	(CurrentTime < EndTime2 ->
 	
 		(fromto(CurrentTime, T, T2, EndTime2), fromto(StartStep, Step, NextStep, _), 
@@ -15,57 +17,57 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 			fromto(nondet, EPIn, EPOut, EarliestPossible),
 			fromto(nondet, LDIn, LDOut, LatestDefinite), 
 			fromto(nondet, LPIn, LPOut, LatestPossible),
-			param(Shelf, ToplevelFormula, FormulaPath, Mode, StartTime, Level, EndTime, EndTime2) do
-			shelf_get(Shelf, 1, OrigP),
-			Sit = do2(tick(Step), s0),
-			print(Sit), nl,
-			% idea: only substitute until reaching until block
-			
-			subst_in_term(s0, Sit, OrigP, P2, [until]), 	
-			print(P2), nl,
-			CacheId = -1,
-			evaluate_and_schedule(ToplevelFormula, FormulaPath, Step, StartTime, EndTime, 
-				P2, CacheId, Level, SId1, Res, _, SId2, _),		
-			print(Res), nl,
-			% TODO: how to deal with ToSchedule2?
-			NextStep is Step + 1,
-			(Res = nondet,
-				ResOut = nondet, 
-				T2 is T + 1, 
-				EDOut = EDIn,
-				EPOut = getMin(EPIn, T),
-				LDOut = LDIn,			
-				LPOut = T,
-				!
-				;
-			Res = ok,
-				EDOut is getMin(EDIn, T),
-				EPOut is getMin(EPIn, T),
-				LDOut = T,			
-				LPOut = T,
-				(Mode = always ->
-					ResOut = ResIn,
-					T2 is T + 1
-					; % eventually
-					ResOut = ok,
-					T2 = EndTime2 % this stops the iteration
-				), !
-			; 
-			Res = not_ok,
-				EDOut = EDIn,
-				EPOut = EPIn,
-				LDOut = LDIn,			
-				LPOut = LPIn,
-				(Mode = eventually ->
-					ResOut = nondet,
-					T2 is T + 1
-					; % always
-					ResOut = not_ok,
-					T2 = EndTime2 % this stops the iteration
-				), !
-			; throw(wrong_mode(Mode))		
-			)			
-			% TODO: handle last parameters: ToSchedule, ScheduleParams, HasChanged		
+			param(Shelf, ToplevelFormula, FormulaPath, Mode, StartTime, EndTime, EndTime2) do
+				shelf_get(Shelf, 1, OrigP),
+				Sit = do2(tick(Step), s0),
+				%print(Sit), nl,
+				% idea: only substitute until reaching until block
+				
+				subst_in_term(s0, Sit, OrigP, P2, [until]), 	
+				%print(P2), nl,
+				% TODO: is 0 as level ok here?
+				evaluate_and_schedule(ToplevelFormula, FormulaPath, Step, StartTime, EndTime, 
+					P2, -1, 0, SId1, Res, _, SId2, _),		
+				%print(Res), nl,
+				% TODO: how to deal with ToSchedule2?
+				NextStep is Step + 1,
+				(Res = nondet,
+					ResOut = nondet, 
+					T2 is T + 1, 
+					EDOut = EDIn,
+					EPOut = getMin(EPIn, T),
+					LDOut = LDIn,			
+					LPOut = T,
+					!
+					;
+				Res = ok,
+					EDOut is getMin(EDIn, T),
+					EPOut is getMin(EPIn, T),
+					LDOut = T,			
+					LPOut = T,
+					(Mode = always ->
+						ResOut = ResIn,
+						T2 is T + 1
+						; % eventually
+						ResOut = ok,
+						T2 = EndTime2 % this stops the iteration
+					), !
+				; 
+				Res = not_ok,
+					EDOut = EDIn,
+					EPOut = EPIn,
+					LDOut = LDIn,			
+					LPOut = LPIn,
+					(Mode = eventually ->
+						ResOut = nondet,
+						T2 is T + 1
+						; % always
+						ResOut = not_ok,
+						T2 = EndTime2 % this stops the iteration
+					), !
+				; throw(wrong_mode(Mode))		
+				)			
+				
 		)
 	; % CurrentTime > EndTime2
 		Result = not_ok,
@@ -74,7 +76,20 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 		LatestDefinite = nondet, 
 		EarliestPossible = nondet, 
 		LatestPossible = nondet
-	).
+	),
+	(Result = nondet ->
+		% cache original formula if necessary
+		(CacheIdIn = -1 ->
+			shelf_get(Shelf, 1, OrigP),
+			cache_formula(ToplevelFormula, FormulaPath, OrigP, CacheId)
+			;
+			CacheId = CacheIdIn
+		),
+		ToSchedule = cf(CacheId)
+		;
+		ToSchedule = Result
+	),
+	shelf_abolish(Shelf).
 	
 
 % Returns a sorted list of T : Result entries for the 

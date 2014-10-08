@@ -66,19 +66,26 @@ test3(TLimit, XTarget) :-
 	print_scheduled_goals(stdout, 2),
 	print_formula_cache(stdout).
 	
-test4(TLimit, XTarget, EndTime) :-
+test4(TLimit, XTarget) :-
 	init,
 	F = until(TLimit, xpos(rob1) >= 0, xpos(rob1) > XTarget),
 	register_property(f, F, F2),
-	printf("F2: %w\n",[F2]),
+	printf("F2: %w\n",[F2]).
+
+evstep(TimeDelta) :-
+	current_time(T),
+	EndTime is T + TimeDelta,
 	evaluation_step(EndTime, ToplevelResults, ScheduledResults, 
 		PendingGoals, FailureStack),
+	printf("%d : %w %w %w %w\n",[T, ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
+	print_scheduled_goals(stdout,4),
+	print("\n-------\n"),
+	print_formula_cache(stdout),
+	TD2 is TimeDelta + 1,
+	progress([tick(TD2)]).
 	
-	printf(" ToplevelResults=%w\n ScheduledResults=%w\n PendingGoals=%w\n FailureStack=%w",
-		[ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-	print_scheduled_goals(stdout, 2),
-	print_formula_cache(stdout).
-
+	
+	
 test5(XTarget, EndTime) :-
 	init,
 	F = always(
