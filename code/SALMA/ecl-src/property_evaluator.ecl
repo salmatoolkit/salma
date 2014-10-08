@@ -226,7 +226,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				Res2 = ok, Result = not_ok ;
 				Res2 = not_ok, Result = ok
 			),
-			((Result = nondet, !; Level > 0) -> 	
+			(Result = nondet -> 	
 				ToSchedule = not2(ToSchedule2),
 				ScheduleParams = ScheduleParams2,
 				HasChanged = HasChanged2
@@ -238,7 +238,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			evaluate_checkall(ToplevelFormula, FormulaPath, 
 				CurrentStep, StartTime, EndTime, Sf2, Level, Result, 
 				OutVar2, ScheduleParams2, HasChanged2), 
-			((Result = nondet, !; Level > 0) -> 
+			((Result = nondet) -> 
 				ToSchedule = all(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
@@ -247,7 +247,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			F = one(Sf2),
 			evaluate_checkone(ToplevelFormula, FormulaPath, 
 				CurrentStep, StartTime, EndTime, Sf2, Level, Result, OutVar2, ScheduleParams2, HasChanged2), 
-			((Result = nondet, !; Level > 0) -> 
+			((Result = nondet) -> 
 				ToSchedule = one(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
@@ -258,7 +258,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			evaluate_until(ToplevelFormula, FormulaPath, 
 				CurrentStep, Level, StartTime, EndTime, MaxTime, 
 				P, Q, Result, NewP, NewQ, ScheduleParams2, HasChanged2),
-			((Result = nondet, ! ; Level > 0) ->
+			((Result = nondet) ->
 				ToSchedule = until(MaxTime, NewP, NewQ), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
@@ -267,7 +267,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			F = always(P),
 			evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
 				always, CurrentStep, StartTime, EndTime, P, Level, Result, ToSchedule2, ScheduleParams2, HasChanged2),
-			((Result = nondet, ! ; Level > 0) ->
+			((Result = nondet) ->
 				ToSchedule = always(ToSchedule2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
@@ -276,7 +276,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			F = eventually(P),
 			evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
 				eventually, CurrentStep, StartTime, EndTime, P, Level, Result, ToSchedule2, ScheduleParams2, HasChanged2),
-			((Result = nondet, ! ; Level > 0) ->
+			((Result = nondet) ->
 				ToSchedule = eventually(ToSchedule2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
@@ -371,7 +371,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				call(F), Result = ok, !
 			),
 			
-			((Result = nondet, ! ; Level > 0) ->
+			((Result = nondet) ->
 					shelf_get(Shelf, 1, ToSchedule), HasChanged = false
 					;
 					ToSchedule = Result, HasChanged = true

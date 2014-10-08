@@ -2,77 +2,62 @@
 Scheduled Goals:
       Name       Time   End Time Level    Id     Params Term
 -------------------------------------------------------
-         f          0          5     0     2 [] not_ok
-         f          0         12     0     3 [p([0, 1, 1, 1, 1, 2]) : 1, p([0, 1, 2, 1, 2, 2]) : 2] cf(12)
-         f          0          5     0     1 [] not_ok
+         f          0          5     1     1 [] not_ok
+         f          0         12     0     3 [p([0, 1, 1, 1, 1, 2]) : 1, p([0, 1, 2, 1, 2, 2]) : 2] cf(6)
+         f          0          5     1     2 [] not_ok
          f          1         12     0     4 [] cf(1)
-         f          1          1     0     1 [] ok
-         f          1          1     0     2 [] ok
-         f          2          2     0     1 [] ok
+         f          1          1     1     1 [] ok
+         f          1          1     1     2 [] ok
          f          2         12     0     5 [] cf(1)
-         f          2          2     0     2 [] ok
-         f          3          3     0     1 [] ok
-         f          3          3     0     2 [] ok
+         f          2          2     1     1 [] ok
+         f          2          2     1     2 [] ok
+         f          3          3     1     2 [] ok
+         f          3          3     1     1 [] ok
          f          3         12     0     6 [] cf(1)
+         f          4          4     1     2 [] ok
          f          4         12     0     7 [] cf(1)
-         f          4          4     0     1 [] ok
-         f          4          4     0     2 [] ok
+         f          4          4     1     1 [] ok
+         f          5          5     1     1 [] ok
+         f          5          5     1     2 [] ok
          f          5         12     0     8 [] cf(1)
-         f          5          5     0     1 [] ok
-         f          5          5     0     2 [] ok
          f          6         12     0     9 [] cf(1)
-         f          6          6     0     2 [] ok
-         f          6          6     0     1 [] ok
-         f          7          7     0     2 [] ok
+         f          6          6     1     1 [] ok
+         f          6          6     1     2 [] ok
+         f          7          7     1     1 [] ok
          f          7         12     0    10 [] cf(1)
-         f          7          7     0     1 [] ok
-         f          8          8     0     1 [] ok
-         f          8          8     0     2 [] ok
+         f          7          7     1     2 [] ok
+         f          8          8     1     1 [] ok
+         f          8          8     1     2 [] ok
          f          8         12     0    11 [] cf(1)
          f          9         12     0    12 [] cf(1)
-         f          9          9     0     1 [] ok
-         f          9          9     0     2 [] ok
-         f         10         10     0     1 [] ok
+         f          9          9     1     1 [] ok
+         f          9          9     1     2 [] ok
+         f         10         10     1     2 [] ok
          f         10         12     0    13 [] cf(1)
-         f         10         10     0     2 [] ok
+         f         10         10     1     1 [] ok
+         f         11         11     1     1 [] ok
          f         11         12     0    14 [] cf(1)
-         f         11         11     0     1 [] ok
-         f         11         11     0     2 [] ok
-         f         12         12     0     2 [] ok
+         f         11         11     1     2 [] ok
+         f         12         12     1     1 [] ok
+         f         12         12     1     2 [] ok
          f         12         12     0    15 [] cf(1)
-         f         12         12     0     1 [] ok
 
 
 Formula Cache:
-        16 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), all([xpos(rob1, _899967, s0), _899967 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _900013, s0), _900013 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _900063, s0), _900063 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), all([xpos(rob2, _900109, s0), _900109 >= 29]))])])
-         2 all([xpos(rob1, _900127, s0), _900127 >= 29])
-         3 not2(carrying(rob1, item1, s0))
-         4 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         5 one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         6 all([xpos(rob1, _900213, s0), _900213 >= 29])
-         7 all([xpos(rob2, _900231, s0), _900231 >= 29])
-         8 all([xpos(rob2, _900249, s0), _900249 >= 29])
-         9 not2(carrying(rob2, item2, s0))
-        10 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        11 one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        12 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _900343, cf(5)), all([xpos(rob1, _900367, s0), _900367 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _900413, s0), _900413 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _900463, s0), _900463 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _900478, cf(11)), all([xpos(rob2, _900502, s0), _900502 >= 29]))])])
-        13 not2(carrying(rob2, item2, s0))
-        14 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        15 not2(carrying(rob1, item1, s0))
+         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), all([xpos(rob1, _877408, s0), _877408 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _877454, s0), _877454 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _877504, s0), _877504 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), all([xpos(rob2, _877550, s0), _877550 >= 29]))])])
+         2 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
+         3 one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
+         4 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
+         5 one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
+         6 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _877690, cf(3)), all([xpos(rob1, _877714, s0), _877714 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _877760, s0), _877760 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _877810, s0), _877810 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _877825, cf(5)), all([xpos(rob2, _877849, s0), _877849 >= 29]))])])
 
 
 Cache Candidates:
-f(0, 1, 1, 1, 1, 2, 1, 2, 3) [3]
-f(0, 1, 2, 1, 2, 2, 1, 2, 3) [9]
-f(0) [16, 14, 12, 1]
-f(0, 1, 1, 1, 2, 3) [6]
-f(0, 1, 2, 1, 1, 3) [7]
-f(0, 1, 1, 1, 1, 2) [5, 4]
-f(0, 1, 2, 3) [15, 13]
-f(0, 1, 1, 1, 1, 3) [2]
-f(0, 1, 2, 1, 2, 2) [11, 10]
-f(0, 1, 2, 1, 2, 3) [8]
+f2(0, 1, 2, 1, 2, 2) [5]
+f(0) [6, 1]
+f(0, 1, 1, 1, 1, 2) [2]
+f2(0, 1, 1, 1, 1, 2) [3]
+f(0, 1, 2, 1, 2, 2) [4]
 
 
 Sate:

@@ -113,6 +113,30 @@ test2_c :-
 	register_property(f, F, F2),
 	grabAll,
 	printf("F: %w \n F2: %w\n",[F,F2]).	
+
+test2_d :-
+	init,
+	F = until(20,
+			implies(
+				occur(grab(rob1, item1)),
+				until(5,
+					carrying(rob1,item1),
+					not(carrying(rob1,item1))
+				)
+			),
+			xpos(rob1) >= 29
+		),
+	register_property(f, F, F2),
+	printf("F: %w \n F2: %w\n",[F,F2]),
+	progress([grab(rob1, item1)]),
+	evaluation_step(3, ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+	printf("%d : %w %w %w %w\n",[0,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
+	progress([tick(4)]),
+	moveAll, moveAll, moveAll, moveAll,
+	progress([drop(rob1, item1)]),
+	evaluation_step(20, ToplevelResults2, ScheduledResults2, PendingGoals2, FailureStack2),
+	printf("%d : %w %w %w %w\n",[4,ToplevelResults2, ScheduledResults2, PendingGoals2, FailureStack2]).
+
 	
 test3 :-
 	init,
@@ -232,6 +256,8 @@ evstep :-
 	print_scheduled_goals(stdout,4),
 	print("\n-------\n"),
 	print_formula_cache(stdout),
+	print("\n-------\n"),
+	print_cache_candidates(stdout),
 	moveAll,
 	progress([tick(1)]).
 	

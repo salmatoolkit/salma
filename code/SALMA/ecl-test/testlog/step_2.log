@@ -1,48 +1,33 @@
-2 : [nondet : f] [nondet : sg(f, 0, 2, 0, 1), nondet : sg(f, 0, 3, 0, 1), nondet : sg(f, 0, 4, 1, 1), nondet : sg(f, 0, 1, 0, 1)] [sg(f, 0, 2, 0, 2), sg(f, 0, 3, 0, 2), sg(f, 0, 4, 1, 2), sg(f, 0, 1, 0, 2)] []
+2 : [nondet : f] [nondet : sg(f, 0, 4, 1, 1), nondet : sg(f, 0, 3, 0, 1)] [sg(f, 0, 4, 1, 2), sg(f, 0, 3, 0, 2)] []
 Scheduled Goals:
       Name       Time   End Time Level    Id     Params Term
 -------------------------------------------------------
-         f          0          2     0     2 [] cf(14)
-         f          0          2     0     3 [p([0, 1, 1, 1, 1, 2]) : 1, p([0, 1, 2, 1, 2, 2]) : 2] cf(12)
-         f          0          2     0     1 [] cf(16)
-         f          1          1     0     1 [] ok
-         f          1          1     0     2 [] ok
+         f          0          2     1     1 [] cf(2)
+         f          0          2     1     2 [] cf(4)
+         f          0          2     0     3 [p([0, 1, 1, 1, 1, 2]) : 1, p([0, 1, 2, 1, 2, 2]) : 2] cf(6)
          f          1          2     0     4 [] cf(1)
-         f          2          2     0     1 [] ok
+         f          1          1     1     1 [] ok
+         f          1          1     1     2 [] ok
          f          2          2     0     5 [] cf(1)
-         f          2          2     0     2 [] ok
+         f          2          2     1     1 [] ok
+         f          2          2     1     2 [] ok
 
 
 Formula Cache:
-        16 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), all([xpos(rob1, _80642, s0), _80642 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _80688, s0), _80688 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _80738, s0), _80738 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), all([xpos(rob2, _80784, s0), _80784 >= 29]))])])
-         2 all([xpos(rob1, _80802, s0), _80802 >= 29])
-         3 not2(carrying(rob1, item1, s0))
-         4 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         5 one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         6 all([xpos(rob1, _80888, s0), _80888 >= 29])
-         7 all([xpos(rob2, _80906, s0), _80906 >= 29])
-         8 all([xpos(rob2, _80924, s0), _80924 >= 29])
-         9 not2(carrying(rob2, item2, s0))
-        10 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        11 one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        12 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _81018, cf(5)), all([xpos(rob1, _81042, s0), _81042 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _81088, s0), _81088 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _81138, s0), _81138 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _81153, cf(11)), all([xpos(rob2, _81177, s0), _81177 >= 29]))])])
-        13 not2(carrying(rob2, item2, s0))
-        14 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        15 not2(carrying(rob1, item1, s0))
+         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), all([xpos(rob1, _77412, s0), _77412 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _77458, s0), _77458 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _77508, s0), _77508 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), all([xpos(rob2, _77554, s0), _77554 >= 29]))])])
+         2 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
+         3 one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
+         4 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
+         5 one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
+         6 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _77694, cf(3)), all([xpos(rob1, _77718, s0), _77718 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _77764, s0), _77764 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _77814, s0), _77814 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _77829, cf(5)), all([xpos(rob2, _77853, s0), _77853 >= 29]))])])
 
 
 Cache Candidates:
-f(0, 1, 1, 1, 1, 2, 1, 2, 3) [3]
-f(0, 1, 2, 1, 2, 2, 1, 2, 3) [9]
-f(0) [16, 14, 12, 1]
-f(0, 1, 1, 1, 2, 3) [6]
-f(0, 1, 2, 1, 1, 3) [7]
-f(0, 1, 1, 1, 1, 2) [5, 4]
-f(0, 1, 2, 3) [15, 13]
-f(0, 1, 1, 1, 1, 3) [2]
-f(0, 1, 2, 1, 2, 2) [11, 10]
-f(0, 1, 2, 1, 2, 3) [8]
+f2(0, 1, 2, 1, 2, 2) [5]
+f(0) [6, 1]
+f(0, 1, 1, 1, 1, 2) [2]
+f2(0, 1, 1, 1, 1, 2) [3]
+f(0, 1, 2, 1, 2, 2) [4]
 
 
 Sate:

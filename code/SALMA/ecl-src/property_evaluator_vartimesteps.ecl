@@ -1,3 +1,13 @@
+% iterates over the given interval and evaluates P for all timesteps
+% Result:
+% - for eventually: 
+%		- Result is nondet if one of the timesteps was nondet
+%		- Result is not_ok if only not_oks were found
+% 		- Result is ok if one ok was found
+% - for always:
+%		- Result is not_ok if one timestep was not_ok
+%		- Result is ok if all timesteps were ok
+%		- Result is nondet if at least one timestep was nondet and all others were ok
 evaluate_for_all_timesteps(ToplevelFormula, FormulaPath, 
 	Mode, StartStep, CurrentTime, StartTime, EndTime, P, Level, Result, 
 	ScheduleIdIn, CacheIdIn,
@@ -7,17 +17,21 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	EndTime2 is EndTime + 1,
 	shelf_create(orig/1, null, Shelf),
 	shelf_set(Shelf,1,P),
-	
+	(Mode = eventually ->
+		ResStart = not_ok
+		;
+		ResStart = ok
+	),
 	(CurrentTime < EndTime2 ->
 	
 		(fromto(CurrentTime, T, T2, EndTime2), fromto(StartStep, Step, NextStep, _), 
-			fromto(ok, ResIn, ResOut, Result), % start with ok, might be switched to nondet and stay that way
+			fromto(ResStart, ResIn, ResOut, Result), % start with ok, might be switched to nondet and stay that way
 			fromto(ScheduleIdIn, SId1, SId2, ScheduleIdOut), 
 			fromto(nondet, EDIn, EDOut, EarliestDefinite), 
 			fromto(nondet, EPIn, EPOut, EarliestPossible),
 			fromto(nondet, LDIn, LDOut, LatestDefinite), 
 			fromto(nondet, LPIn, LPOut, LatestPossible),
-			param(Shelf, ToplevelFormula, FormulaPath, Mode, StartTime, EndTime, EndTime2) do
+			param(Shelf, ToplevelFormula, FormulaPath, Mode, StartTime, EndTime, EndTime2, Level) do
 				shelf_get(Shelf, 1, OrigP),
 				Sit = do2(tick(Step), s0),
 				%print(Sit), nl,
@@ -27,7 +41,7 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 				%print(P2), nl,
 				% TODO: is 0 as level ok here?
 				evaluate_and_schedule(ToplevelFormula, FormulaPath, Step, StartTime, EndTime, 
-					P2, -1, 0, SId1, Res, _, SId2, _),		
+					P2, -1, Level, SId1, Res, _, SId2, _),		
 				%print(Res), nl,
 				% TODO: how to deal with ToSchedule2?
 				NextStep is Step + 1,
@@ -59,7 +73,7 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 					LDOut = LDIn,			
 					LPOut = LPIn,
 					(Mode = eventually ->
-						ResOut = nondet,
+						ResOut = ResIn,
 						T2 is T + 1
 						; % always
 						ResOut = not_ok,
@@ -111,12 +125,22 @@ get_schedule_sequence(PSchedId, StartTime, EndTime, L) :-
 % given PSchedId to determine the definite and possible time markers. 
 % Note: only considers schedule, the actual time markers could differ
 % due to current results (evaluate_for_all_timesteps).
+%
+% Result:
+% - for eventually: 
+%		- Result is nondet if one of the timesteps was nondet
+%		- Result is not_ok if only not_oks were found
+% 		- Result is ok if one ok was found
+% - for always:
+%		- Result is not_ok if one timestep was not_ok
+%		- Result is ok if all timesteps were ok
+%		- Result is nondet if at least one timestep was nondet and all others were ok
 check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result, 
 	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
 	EndTime2 is EndTime + 1,
 	(StartTime < EndTime2 ->
 		(Mode = eventually ->
-			R0 = nondet
+			R0 = not_ok
 			;
 			R0 = ok
 		),
@@ -148,7 +172,7 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 					LDOut = LDIn,			
 					LPOut = LPIn, !
 				; % nondet
-					R2 = R1,
+					R2 = nondet,
 					SeqOut = SeqTail,			
 					EDOut = EDIn,
 					EPOut is getMin(EPIn, T),

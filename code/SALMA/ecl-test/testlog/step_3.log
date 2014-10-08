@@ -1,51 +1,36 @@
-3 : [nondet : f] [nondet : sg(f, 0, 2, 0, 2), nondet : sg(f, 0, 5, 2, 2), nondet : sg(f, 0, 3, 0, 2), nondet : sg(f, 0, 4, 1, 2), nondet : sg(f, 0, 1, 0, 2)] [sg(f, 0, 2, 0, 3), sg(f, 0, 5, 2, 3), sg(f, 0, 3, 0, 3), sg(f, 0, 4, 1, 3), sg(f, 0, 1, 0, 3)] []
+3 : [nondet : f] [nondet : sg(f, 0, 5, 2, 2), nondet : sg(f, 0, 4, 1, 2), nondet : sg(f, 0, 3, 0, 2)] [sg(f, 0, 5, 2, 3), sg(f, 0, 4, 1, 3), sg(f, 0, 3, 0, 3)] []
 Scheduled Goals:
       Name       Time   End Time Level    Id     Params Term
 -------------------------------------------------------
-         f          0          3     0     2 [] cf(14)
-         f          0          3     0     3 [p([0, 1, 1, 1, 1, 2]) : 1, p([0, 1, 2, 1, 2, 2]) : 2] cf(12)
-         f          0          3     0     1 [] cf(16)
-         f          1          1     0     1 [] ok
-         f          1          1     0     2 [] ok
+         f          0          3     1     1 [] cf(2)
+         f          0          3     1     2 [] cf(4)
+         f          0          3     0     3 [p([0, 1, 1, 1, 1, 2]) : 1, p([0, 1, 2, 1, 2, 2]) : 2] cf(6)
          f          1          3     0     4 [] cf(1)
-         f          2          2     0     1 [] ok
+         f          1          1     1     1 [] ok
+         f          1          1     1     2 [] ok
          f          2          3     0     5 [] cf(1)
-         f          2          2     0     2 [] ok
-         f          3          3     0     1 [] ok
-         f          3          3     0     2 [] ok
+         f          2          2     1     1 [] ok
+         f          2          2     1     2 [] ok
+         f          3          3     1     1 [] ok
+         f          3          3     1     2 [] ok
          f          3          3     0     6 [] cf(1)
 
 
 Formula Cache:
-        16 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), all([xpos(rob1, _124145, s0), _124145 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _124191, s0), _124191 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _124241, s0), _124241 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), all([xpos(rob2, _124287, s0), _124287 >= 29]))])])
-         2 all([xpos(rob1, _124305, s0), _124305 >= 29])
-         3 not2(carrying(rob1, item1, s0))
-         4 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         5 one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
-         6 all([xpos(rob1, _124391, s0), _124391 >= 29])
-         7 all([xpos(rob2, _124409, s0), _124409 >= 29])
-         8 all([xpos(rob2, _124427, s0), _124427 >= 29])
-         9 not2(carrying(rob2, item2, s0))
-        10 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        11 one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        12 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _124521, cf(5)), all([xpos(rob1, _124545, s0), _124545 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _124591, s0), _124591 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _124641, s0), _124641 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _124656, cf(11)), all([xpos(rob2, _124680, s0), _124680 >= 29]))])])
-        13 not2(carrying(rob2, item2, s0))
-        14 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-        15 not2(carrying(rob1, item1, s0))
+         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), all([xpos(rob1, _119314, s0), _119314 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _119360, s0), _119360 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _119410, s0), _119410 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), all([xpos(rob2, _119456, s0), _119456 >= 29]))])])
+         2 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
+         3 one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
+         4 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
+         5 one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
+         6 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _119596, cf(3)), all([xpos(rob1, _119620, s0), _119620 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), all([xpos(rob1, _119666, s0), _119666 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), all([xpos(rob2, _119716, s0), _119716 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _119731, cf(5)), all([xpos(rob2, _119755, s0), _119755 >= 29]))])])
 
 
 Cache Candidates:
-f(0, 1, 1, 1, 1, 2, 1, 2, 3) [3]
-f(0, 1, 2, 1, 2, 2, 1, 2, 3) [9]
-f(0) [16, 14, 12, 1]
-f(0, 1, 1, 1, 2, 3) [6]
-f(0, 1, 2, 1, 1, 3) [7]
-f(0, 1, 1, 1, 1, 2) [5, 4]
-f(0, 1, 2, 3) [15, 13]
-f(0, 1, 1, 1, 1, 3) [2]
-f(0, 1, 2, 1, 2, 2) [11, 10]
-f(0, 1, 2, 1, 2, 3) [8]
+f2(0, 1, 2, 1, 2, 2) [5]
+f(0) [6, 1]
+f(0, 1, 1, 1, 1, 2) [2]
+f2(0, 1, 1, 1, 1, 2) [3]
+f(0, 1, 2, 1, 2, 2) [4]
 
 
 Sate:
