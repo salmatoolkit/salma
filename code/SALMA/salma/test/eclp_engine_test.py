@@ -52,7 +52,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
                               ('move_right',['rob1']),
                               ("move_left",["rob2"]),
                               ("grab",["rob1","item1"]),
-                              ("tick",[])
+                              ("tick",[1])
                               ])                    
         
         print("AFTER:\n\n")

@@ -139,20 +139,6 @@ clean_formula_cache :-
 		)
 	).
 	
-
-result_and(Res1, Res2, Res3) :-
-		(Res1 = not_ok, ! ; Res2 = not_ok), Res3 = not_ok, !
-		;
-		Res1 = ok, Res2 = ok, Res3 = ok, !
-		;
-		Res3 = nondet.
-		
-result_or(Res1, Res2, Res3) :-
-		(Res1 = ok, ! ; Res2 = ok), Res3 = ok, !
-		;
-		Res1 = not_ok, Res2 = not_ok, Res3 = not_ok, !
-		;
-		Res3 = nondet.
 				
 flip_negated :-
 	getval(negated, N),
@@ -421,23 +407,36 @@ evaluate_checkall(ToplevelFormula, FormulaPath,
 	CurrentStep, StartTime, EndTime, Subformulas, Level, 
 	Result, ToSchedule, ScheduleParams, HasChanged) :- 
 		%  check all subformulas. if result can be determined (ok, not_ok) only that result is stored 
-		% TODO break as soon as possible! Maybe use exit_block?
-		(foreach(F, Subformulas), foreach(F2, Handled), fromto(ok, In, Out, Result), fromto(false, In2, Out2, HasChanged), 
-			param(CurrentStep, StartTime, EndTime, Level, ToplevelFormula, FormulaPath), fromto([], In3, Out3, ScheduleParams), count(I,1,_) do
+		
+		(fromto(Subformulas, SFIn, SFOut, []), 
+			foreach(F2, Handled), fromto(ok, ResIn, ResOut, Result), fromto(false, In2, Out2, HasChanged), 
+			fromto([], In3, Out3, ScheduleParams), count(I,1,_),
+			param(CurrentStep, StartTime, EndTime, Level, ToplevelFormula, FormulaPath) do
 				% handle cases
+				SFIn = [F | SFRest],
 				append(FormulaPath, [1,I], SubPath),
 				evaluate_formula(ToplevelFormula, SubPath, 
 					CurrentStep, StartTime, EndTime, F, Level, Res2, Ts1, ScheduleParams2, HC1),
-				((Res2 = nondet, ! ; Level > 0) -> 
+				(Res2 = nondet, 
+					ResOut = nondet,
+					SFOut = SFRest,
 					F2 = Ts1, 
 					HC2 = false,
-					append(In3, ScheduleParams2, Out3)
-					; 
-					F2 = Res2, 
+					append(In3, ScheduleParams2, Out3), !
+				; Res2 = ok,
+					ResOut = ResIn,
+					SFOut = SFRest,		
+					F2 = ok, 
+					Out3 = In3,
+					HC2 = true, !
+				; % not_ok
+					ResOut = not_ok,
+					SFOut = [], % break iteration
+					F2 = not_ok,
 					Out3 = In3,
 					HC2 = true
 				),
-				result_and(In, Res2, Out),
+		
 				% update changed flag
 				((In2 = true, ! ; HC1 = true, ! ; HC2 = true, !) -> Out2 = true ; Out2 = false)
 		), 
@@ -447,23 +446,35 @@ evaluate_checkall(ToplevelFormula, FormulaPath,
 evaluate_checkone(ToplevelFormula, FormulaPath, 
 	CurrentStep, StartTime, EndTime, Subformulas, Level, Result, ToSchedule, ScheduleParams, HasChanged) :- 
 		%  check all subformulas. if result can be determined (ok, not_ok) only that result is stored 
-		% TODO break as soon as possible! Maybe use exit_block?
-		(foreach(F, Subformulas), foreach(F2, Handled), fromto(not_ok, In, Out, Result), fromto(false, In2, Out2, HasChanged), 
-			param(CurrentStep, StartTime, EndTime, Level, ToplevelFormula, FormulaPath), fromto([], In3, Out3, ScheduleParams), count(I,1,_) do
+
+		(fromto(Subformulas, SFIn, SFOut, []), foreach(F2, Handled), fromto(not_ok, ResIn, ResOut, Result), 
+			fromto(false, In2, Out2, HasChanged), 
+			fromto([], In3, Out3, ScheduleParams), count(I,1,_),
+			param(CurrentStep, StartTime, EndTime, Level, ToplevelFormula, FormulaPath) do
 				% handle cases
+				SFIn = [F | SFRest],
 				append(FormulaPath, [1,I], SubPath),
 				evaluate_formula(ToplevelFormula, SubPath, 
 					CurrentStep, StartTime, EndTime, F, Level, Res2, Ts1, ScheduleParams2, HC1),
-				((Res2 = nondet, ! ; Level > 0) -> 
+				(Res2 = nondet, 
+					ResOut = nondet,
+					SFOut = SFRest,
 					F2 = Ts1, 
 					HC2 = false ,
-					append(In3, ScheduleParams2, Out3)
-					; 		
-					F2 = Res2, 
+					append(In3, ScheduleParams2, Out3), !
+				; Res2 = not_ok,
+					ResOut = ResIn,
+					SFOut = SFRest,
+					F2 = not_ok, 
+					HC2 = true,
+					Out3 = In3, !
+				; % ok
+					ResOut = ok,
+					SFOut = [], % break iteration
+					F2 = ok,
 					HC2 = true,
 					Out3 = In3
 				),
-				result_or(In, Res2, Out),
 				((In2 = true, ! ; HC1 = true, ! ; HC2 = true, !) -> Out2 = true ; Out2 = false)
 		), 
 		flatten(Handled, ToSchedule).

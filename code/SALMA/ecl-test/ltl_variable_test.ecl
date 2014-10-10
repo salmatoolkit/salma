@@ -56,8 +56,9 @@ test_var_1 :-
 		xpos(rob1)*4 > z),
 	compile_formula(F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
-	evaluate_formula(f, [0], 0, F2, 0, Result, 
-	ToSchedule, ScheduleParams, HasChanged),
+	current_time(T),
+	evaluate_formula(f, [0], 0, T, T, F2, 0, Result, 
+		ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).
 	
 test_var_2 :-
@@ -66,8 +67,9 @@ test_var_2 :-
 		until(10, true, xpos(rob1) > z)),
 	compile_formula(F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
-	evaluate_formula(f, [0], 0, F2, 0, Result, 
-	ToSchedule, ScheduleParams, HasChanged),
+	current_time(T),
+	evaluate_formula(f, [0], 0, T, T, F2, 0, Result, 
+		ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).		
 				
 test_var_3 :-
@@ -77,8 +79,9 @@ test_var_3 :-
 				until(10, true, xpos(r) > z))),
 	compile_formula(F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
-	evaluate_formula(f, [0], 0, F2, 0, Result, 
-	ToSchedule, ScheduleParams, HasChanged),
+	current_time(T),
+	evaluate_formula(f, [0], 0, T, T, F2, 0, Result, 
+		ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).		
 
 test_var_4 :-
@@ -90,7 +93,9 @@ test_var_4 :-
 	register_property(f, F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
 	
-	evaluate_formula(f, [0], 0, F2, 0, Result, ToSchedule, ScheduleParams, HasChanged),
+	current_time(T),
+	evaluate_formula(f, [0], 0, T, T, F2, 0, Result, 
+		ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]),
 	
 	
@@ -108,8 +113,9 @@ test_var_5 :-
 				w > 10)),
 	compile_formula(F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
-	evaluate_formula(f, [0], 0, F2, 0, Result, 
-	ToSchedule, ScheduleParams, HasChanged),
+	current_time(T),
+	evaluate_formula(f, [0], 0, T, T, F2, 0, Result, 
+		ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).	
 	
 test_var_6 :-
@@ -119,8 +125,9 @@ test_var_6 :-
 				z+ w > 10)),
 	compile_formula(F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
-	evaluate_formula(f, [0], 0, F2, 0, Result, 
-	ToSchedule, ScheduleParams, HasChanged),
+	current_time(T),
+	evaluate_formula(f, [0], 0, T, T, F2, 0, Result, 
+		ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]).	
 	
 	
@@ -169,7 +176,9 @@ test_var_7 :-
 	register_property(f, F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
 	
-	evaluate_formula(f, [0], 0, F2, 0, Result, ToSchedule, ScheduleParams, HasChanged),
+	current_time(T),
+	evaluate_formula(f, [0], 0, T, T, F2, 0, Result, 
+		ToSchedule, ScheduleParams, HasChanged),
 	printf("%w %w %w %w\n",[Result, ToSchedule, ScheduleParams, HasChanged]),
 	
 	progress([grab(rob2,item2)]), 
@@ -232,6 +241,6 @@ test_match_1 :-
 		report_step(I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 		evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 		moveAll,
-		progress([tick])
+		progress([tick(1)])
 	).
 	

@@ -127,7 +127,7 @@ sub_list(X1,X2,[T1|L1],[T2|L2]) :- sub(X1,X2,T1,T2), sub_list(X1,X2,L1,L2).
 holds(A,S) :-
 	compile_formula(A, F, S), 
 	time(T, S),
-	evaluate_formula(null, [0], T, F, 0, Result, _, _, _),
+	evaluate_formula(null, [0], 0, T, T, F, 0, Result, _, _, _),
 	Result = ok.
 	
 

@@ -37,4 +37,4 @@ test1(F,Result) :-
 		xpos(rob1) > 20, 
 		F, 
 		do2(move_right(rob1),s0)), 
-	evaluate_formula(null, 0, 0, F, 0, Result, _, _, _).
+	evaluate_formula(null, [0], 0, 0, 0, F, 0, Result, _, _, _).

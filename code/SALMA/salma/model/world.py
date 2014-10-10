@@ -953,7 +953,7 @@ class World(Entity, WorldDeclaration):
             failure_stack = []
             failed_invariants, failed_sustain_goals = set(), set()
 
-        World.logic_engine().progress([('tick', [])])
+        World.logic_engine().progress([('tick', [1])])
         # it's ok if events fail but if regular actions fail, we're in trouble!
 
         # TODO: distinguish between actions that take time and actions that don't
