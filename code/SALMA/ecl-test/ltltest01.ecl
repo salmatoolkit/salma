@@ -63,12 +63,12 @@ test2 :-
 	F = until(20,
 			implies(
 				occur(grab(rob1, item1)),
-				until(5,
+				until(2,
 					carrying(rob1,item1),
 					not(carrying(rob1,item1))
 				)
 			),
-			xpos(rob1) >= 29
+			xpos(rob1) >= 209
 		),
 	register_property(f, F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
@@ -77,7 +77,7 @@ test2 :-
 				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 				printf("%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
 				moveAll,
-				(time(4, s0) ->
+				(time(10, s0) ->
 					progress([drop(rob1, item1)])
 					;
 					true
@@ -119,7 +119,7 @@ test2_d :-
 	F = until(20,
 			implies(
 				occur(grab(rob1, item1)),
-				until(5,
+				until(10,
 					carrying(rob1,item1),
 					not(carrying(rob1,item1))
 				)
@@ -131,12 +131,28 @@ test2_d :-
 	progress([grab(rob1, item1)]),
 	evaluation_step(3, ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 	printf("%d : %w %w %w %w\n",[0,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-	progress([tick(4)]),
+	progress([tick(3)]),
 	moveAll, moveAll, moveAll, moveAll,
 	progress([drop(rob1, item1)]),
 	evaluation_step(20, ToplevelResults2, ScheduledResults2, PendingGoals2, FailureStack2),
 	printf("%d : %w %w %w %w\n",[4,ToplevelResults2, ScheduledResults2, PendingGoals2, FailureStack2]).
 
+test2_e :-
+	init,
+	F = until(20,
+			implies(
+				occur(grab(rob1, item1)),
+				until(5,
+					carrying(rob1,item2),
+					not(carrying(rob1,item1))
+				)
+			),
+			xpos(rob1) >= 29
+		),
+	register_property(f, F, F2),
+	grabAll,
+	printf("F: %w \n F2: %w\n",[F,F2]).
+	
 	
 test3 :-
 	init,

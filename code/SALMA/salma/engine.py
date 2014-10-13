@@ -943,7 +943,7 @@ class EclipseCLPEngine(Engine):
         result_dict = dict()
 
         for r in result:
-            # not_ok : sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime)
+            # not_ok : sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime,_)
             verdict = EclipseCLPEngine.__verdictMapping[str(r[0])]
             key = r[1]
             pname = str(key[0])
@@ -965,7 +965,7 @@ class EclipseCLPEngine(Engine):
         # : :type: dict[str, list[int]]
         result_dict = dict()
         for prop in props:
-            # sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime)
+            # sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime,_)
             pname = str(prop[0])
             time = prop[3]
             if pname in result_dict:

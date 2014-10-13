@@ -239,7 +239,16 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
 			), !
 			;
-		
+			F = c_(Sf2), !, % constraint
+			evaluate_checkall(ToplevelFormula, FormulaPath, 
+				CurrentStep, StartTime, EndTime, Sf2, Level, Result, 
+				_, _, _),
+			(Result = nondet -> 
+				throw(nondet_result_in_constraint(F))
+				;
+				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+			)
+			;			
 			F = until(MaxTime, P, Q),
 			evaluate_until(ToplevelFormula, FormulaPath, 
 				CurrentStep, Level, StartTime, EndTime, MaxTime, 
@@ -596,19 +605,30 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			),
 			evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
 				always, CurrentStep, CurrentTime, StartTime, PEndTime, 
-				SubP, NextLevel, _, 
+				SubP, NextLevel, PResult1, 
 				PSchedIdIn, PCacheId,
 				PSchedId, ToScheduleP,
 				_, PLatestDefinite1, _, PLatestPossible1),
-			(PSchedId >= 0 ->
-				check_schedule_for_interval(PSchedId, StartTime, PEndTime, 
-					always, _, 
-					_, PLatestDefinite2, _, PLatestPossible2),
-				PLatestDefinite is getMax(PLatestDefinite1, PLatestDefinite2),
-				PLatestPossible is getMax(PLatestPossible1, PLatestPossible2)
-				;
-				PLatestDefinite = PLatestDefinite1,
-				PLatestPossible = PLatestPossible1
+			(PResult1 \= not_ok ->
+				(PSchedId >= 0 ->
+					check_schedule_for_interval(PSchedId, StartTime, PEndTime, 
+						always, PResult2, 
+						_, PLatestDefinite2, _, PLatestPossible2),
+					(PResult2 \= not_ok ->
+						PLatestDefinite is getMax(PLatestDefinite1, PLatestDefinite2),
+						PLatestPossible is getMax(PLatestPossible1, PLatestPossible2)
+						;
+						PLatestDefinite = nondet,
+						PLatestPossible = nondet
+					)
+					;
+					% PSchedId = -1
+					PLatestDefinite = PLatestDefinite1,
+					PLatestPossible = PLatestPossible1
+				)
+				;				
+				PLatestDefinite = nondet,
+				PLatestPossible = nondet
 			), !
 			;
 			% no Q can and will be found -> P was skipped

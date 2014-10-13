@@ -271,23 +271,50 @@ forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
         return rob
 
     def __test_nested_until(self, world: World) -> (int, dict):
+#         f_str = """
+# forall([r, robot], forall([i, item],
+#     until(20,
+#         implies(
+#             occur(grab(r, i)),
+#             until(10,
+#                 carrying(r,i),
+#                 not(carrying(r,i))
+#             )
+#         ),
+#         xpos(r) >= 29
+#     )
+# ))
+# """
+#         f_str = """
+# forall([r, robot], forall([i, item],
+#     until(20,
+#         implies(
+#             xpos(r) =:= 10,
+#             until(3,
+#                 carrying(rob1,i),
+#                 not(carrying(r,i))
+#             )
+#         ),
+#         xpos(r) >= 29
+#     )
+# ))
+# """
         f_str = """
-forall([r, robot], forall([i, item],
-    until(20,
-        implies(
-            occur(grab(r, i)),
-            until(5,
-                carrying(r,i),
-                not(carrying(r,i))
-            )
-        ),
-        xpos(r) >= 29
-    )
-))
+until(20,
+    implies(
+        time =:= 0,
+        until(6,
+            carrying(rob1,item1),
+            not(carrying(rob1,item1))
+        )
+    ),
+    xpos(rob1) >= 29
+)
 """
+# TODO: possible problem above in nested until: P switches at the same time as Q
         g_str = """
 forall([r, robot],
-   xpos(r) = 35
+   xpos(r) =:= 35
 )
 """
         world.registerProperty("f", f_str, World.INVARIANT)
@@ -307,7 +334,7 @@ forall([r, robot],
     @withHeader()
     def test_nested_until_ok(self):
         world = World.instance()
-        rob1 = self.create_periodic_agent("rob1", "item1")
+        rob1 = self.create_periodic_agent("rob1", "item1", delta=4)
         rob2 = self.create_periodic_agent("rob2", "item2")
         world.addAgent(rob1)
         world.addAgent(rob2)
@@ -426,7 +453,7 @@ forall(r : robot,
         print("Verdict: " + str(verdict))
         #print("Results: " + str(results))
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
-        self.assertAlmostEqual(verdict, OK)
+        self.assertEqual(verdict, OK)
 
     @withHeader()
     def test_variable_match_ok(self):

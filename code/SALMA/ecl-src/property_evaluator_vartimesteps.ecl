@@ -106,7 +106,7 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	shelf_abolish(Shelf).
 	
 
-% Returns a sorted list of T : Result entries for the 
+% Returns a sorted list of e(StartTime, EndTime, Goal) : Result entries for the 
 % given schedule id. The list is sorted by time.
 get_schedule_sequence(PSchedId, StartTime, EndTime, L) :-
 	stored_keys_and_values(scheduled_goals, List1),
@@ -115,10 +115,12 @@ get_schedule_sequence(PSchedId, StartTime, EndTime, L) :-
 	(foreach(Entry, List1), fromto([], In, Out, List2), 
 		param(PSchedId, StartTime, EndTime) do
 		% level can be ignored since we assume that each id is unique
-		(Entry = sg(_,_, PSchedId, T, _, _) - Goal , T >= StartTime, T =< EndTime) 
-			-> append(In, [T:Goal], Out)
+		(Entry = sg(_,_, PSchedId, TS, TE) - Goal , 
+			( (TS >= StartTime, TS =< EndTime), ! ; (TE >= StartTime, TE =< EndTime))
+			-> append(In, [e(TS,TE,Goal)], Out)
 			; Out = In
-		),
+		)
+	),
 	sort(List2, L).
 
 % checks the current states of the scheduled goals for the
@@ -154,16 +156,16 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 			fromto(nondet, LPIn, LPOut, LatestPossible),
 			param(Mode) do
 			SeqIn = [SeqEntry | SeqTail],
-			SeqEntry = T : F,
+			SeqEntry = e(TS, TE, F),
 			F = app(_, Res),
 			(Mode = eventually ->
 				(Res = ok,
 					R2 = ok,
 					SeqOut = [],
-					EDOut is getMin(EDIn, T),
-					EPOut is getMin(EDIn, T),
-					LDOut = T,			
-					LPOut = T, !
+					EDOut is getMin(EDIn, TS),
+					EPOut is getMin(EDIn, TS),
+					LDOut is getMax(LDIn, TE),			
+					LPOut is getMax(LDIn, TE), !
 				; Res = not_ok,
 					R2 = R1,
 					SeqOut = SeqTail,
@@ -175,9 +177,9 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 					R2 = nondet,
 					SeqOut = SeqTail,			
 					EDOut = EDIn,
-					EPOut is getMin(EPIn, T),
+					EPOut is getMin(EPIn, TS),
 					LDOut = LDIn,			
-					LPOut = T
+					LPOut is getMax(LPIn, TE)
 				)
 			; % always
 				(Res = not_ok,
@@ -191,17 +193,17 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 				Res = ok,
 					R2 = R1,
 					SeqOut = SeqTail, 
-					EDOut is getMin(EDIn, T),
-					EPOut is getMin(EPIn, T),
-					LDOut = T,			
-					LPOut = T, !
+					EDOut is getMin(EDIn, TS),
+					EPOut is getMin(EPIn, TS),
+					LDOut is getMax(LPIn, TE),			
+					LPOut is getMax(LPIn, TE), !
 				; % nondet
 					R2 = nondet,
 					SeqOut = SeqTail,
 					EDOut = EDIn,
-					EPOut is getMin(EPIn, T),
+					EPOut is getMin(EPIn, TS),
 					LDOut = LDIn,			
-					LPOut = T
+					LPOut is getMax(LPIn, TE)
 				)
 			)		
 		)

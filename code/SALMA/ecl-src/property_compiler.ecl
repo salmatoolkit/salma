@@ -152,7 +152,7 @@ create_constraint(Op, Subterms, Out, Situation) :-
 		gather_evaluations_list(Subterms, HandledSubterms, [], InitGoals, Situation),
 		T =.. [Op | HandledSubterms],
 		append(InitGoals, [T], Subterms2),
-		Out =.. [all, Subterms2].
+		Out = c_(Subterms2).
 
 		
 		
