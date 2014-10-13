@@ -57,6 +57,18 @@ test :-
 				moveAll,
 				progress([tick(1)])
 	).
+
+test1_b :-
+	init,
+	F = implies(
+			occur(grab(rob1,item1)),
+			until(5,
+				carrying(rob1,item1),
+				not(carrying(rob1,item1))
+			)
+		),
+	register_property(f, F, _),
+	grabAll.
 	
 test2 :-
 	init,
@@ -143,7 +155,7 @@ test2_e :-
 			implies(
 				occur(grab(rob1, item1)),
 				until(5,
-					carrying(rob1,item2),
+					carrying(rob1,item1),
 					not(carrying(rob1,item1))
 				)
 			),
@@ -254,6 +266,9 @@ test5 :-
 	register_property(f, F, _),
 	grabAll.
 
+	
+	
+	
 test6 :-
 	init,
 	F = forall([r,robot],

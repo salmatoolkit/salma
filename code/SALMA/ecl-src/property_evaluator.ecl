@@ -532,6 +532,9 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		% the end of the interval that is to be inspected
 		IntervalEnd is min(Deadline, EndTime),
 		time(CurrentTime, do2(tick(CurrentStep), s0)),
+		printlog("U0: CurrentTime=%d CurrentStep=%d, Level=%d, StartTime=%d, EndTime=%d, MaxTime=%d\n",
+			[CurrentTime, CurrentStep, Level, StartTime, EndTime, MaxTime]),
+		
 		getval(current_failure_stack, CFS),
 		record_create(MyFailures),
 		setval(current_failure_stack, MyFailures),
@@ -570,15 +573,18 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			QSchedIdIn, QCacheId,
 			QSchedId, ToScheduleQ,
 			QEarliestDefinite1, _, QEarliestPossible1, _),	
+		printlog("   Q1: %w - %w\n", [QEarliestDefinite1, QEarliestPossible1]),
 		(QSchedId >= 0 ->		
 			check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, _, 
 				QEarliestDefinite2, _, QEarliestPossible2, _),
+			printlog("   Q2: %w - %w\n", [QEarliestDefinite2, QEarliestPossible2]),
 			QEarliestDefinite is getMin(QEarliestDefinite1, QEarliestDefinite2),
 			QEarliestPossible is getMin(QEarliestPossible1, QEarliestPossible2)
 			;
 			QEarliestDefinite = QEarliestDefinite1,
 			QEarliestPossible = QEarliestPossible1
 		),
+		printlog("   Q3: %w - %w\n", [QEarliestDefinite, QEarliestPossible]),
 		(			
 			( % determine if it's necessary to evaluate P
 				(QEarliestPossible = nondet, Deadline > EndTime), !
@@ -603,33 +609,50 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				PSchedIdIn = -1,
 				PCacheId = -1
 			),
+			(PSchedIdIn >= 0 ->
+				check_schedule_for_interval(PSchedIdIn, StartTime, PEndTime, 
+					always, _, 
+					_, PLatestDefinite1, _, PLatestPossible1),
+				printlog("   P1-A: %w - %w\n", [PLatestDefinite1, PLatestPossible1])
+				;
+				% P has not been scheduled. If we're ahead StartTime, we wouldn't be here if
+				% at any point since StartTime P \= ok
+				PLatestPossible1 is max(CurrentTime - 1, StartTime),
+				(CurrentTime > StartTime ->
+					PLatestDefinite1 is CurrentTime - 1					
+					;
+					PLatestDefinite1 = nondet
+				),
+				printlog("   P1-B: %w - %w\n", [PLatestDefinite1, PLatestPossible1])
+			),			
+			% if PLatestPossible1 \= nondet then thera are some scheduled items
+			% -> make sure that the interval reachus up to the current time
+			( getMin(CurrentTime, PLatestPossible1) < CurrentTime - 1 ->
+				throw(until_p_interval_interrupted(PSchedIdIn))
+				;
+				true
+			),
+			% now we can safely evaluate again. if current evaluation fails then schedule could be
+			% rewritten	to not_ok
 			evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
 				always, CurrentStep, CurrentTime, StartTime, PEndTime, 
-				SubP, NextLevel, PResult1, 
+				SubP, NextLevel, _, 
 				PSchedIdIn, PCacheId,
 				PSchedId, ToScheduleP,
-				_, PLatestDefinite1, _, PLatestPossible1),
-			(PResult1 \= not_ok ->
-				(PSchedId >= 0 ->
-					check_schedule_for_interval(PSchedId, StartTime, PEndTime, 
-						always, PResult2, 
-						_, PLatestDefinite2, _, PLatestPossible2),
-					(PResult2 \= not_ok ->
-						PLatestDefinite is getMax(PLatestDefinite1, PLatestDefinite2),
-						PLatestPossible is getMax(PLatestPossible1, PLatestPossible2)
-						;
-						PLatestDefinite = nondet,
-						PLatestPossible = nondet
-					)
-					;
-					% PSchedId = -1
-					PLatestDefinite = PLatestDefinite1,
-					PLatestPossible = PLatestPossible1
-				)
-				;				
-				PLatestDefinite = nondet,
+				_, PLatestDefinite2, _, PLatestPossible2),
+			printlog("   P2: %w - %w\n", [PLatestDefinite2, PLatestPossible2]),
+			(PLatestDefinite1 \= nondet ->
+				PLatestDefinite is getMin(PLatestDefinite1, PLatestDefinite2)
+				;
+				PLatestDefinite = nondet
+			),
+			(PLatestPossible1 \= nondet ->
+				PLatestPossible is getMax(PLatestPossible1, PLatestPossible2)
+				;
 				PLatestPossible = nondet
-			), !
+			),
+			printlog("   P3: %w - %w\n", [PLatestDefinite, PLatestPossible]),
+			!
 			;
 			% no Q can and will be found -> P was skipped
 			PLatestDefinite = nondet,
@@ -1035,3 +1058,8 @@ evaluate_function(FunctionName, Params) :-
 	
 	T =.. [FunctionName | Params2],
 	call(T).
+
+% printlog(Format, Params) :-
+	% printf(Format, Params).
+	
+printlog(_, _) :- true.	

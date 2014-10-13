@@ -207,10 +207,10 @@ forall([r,robot],
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
-        world.setFluentValue("xpos", ["rob1"], 5)
+        world.setFluentValue("xpos", ["rob1"], 1)
 
         g_str = """
-forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
+forall([r,robot], until(50, xpos(r) > 6, xpos(r) > 10))
 """
         world.registerProperty("g", g_str, World.INVARIANT)
         verdict, results = world.runExperiment()
@@ -271,20 +271,20 @@ forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
         return rob
 
     def __test_nested_until(self, world: World) -> (int, dict):
-#         f_str = """
-# forall([r, robot], forall([i, item],
-#     until(20,
-#         implies(
-#             occur(grab(r, i)),
-#             until(10,
-#                 carrying(r,i),
-#                 not(carrying(r,i))
-#             )
-#         ),
-#         xpos(r) >= 29
-#     )
-# ))
-# """
+        f_str = """
+forall([r, robot], forall([i, item],
+    until(20,
+        implies(
+            occur(grab(r, i)),
+            until(5,
+                carrying(r,i),
+                not(carrying(r,i))
+            )
+        ),
+        xpos(r) >= 29
+    )
+))
+"""
 #         f_str = """
 # forall([r, robot], forall([i, item],
 #     until(20,
@@ -299,18 +299,18 @@ forall([r,robot], until(200, xpos(r) > 6, xpos(r) > 10))
 #     )
 # ))
 # """
-        f_str = """
-until(20,
-    implies(
-        time =:= 0,
-        until(6,
-            carrying(rob1,item1),
-            not(carrying(rob1,item1))
-        )
-    ),
-    xpos(rob1) >= 29
-)
-"""
+#         f_str = """
+# until(20,
+#     implies(
+#         occ
+#         until(6,
+#             carrying(rob1,item1),
+#             not(carrying(rob1,item1))
+#         )
+#     ),
+#     xpos(rob1) >= 29
+# )
+# """
 # TODO: possible problem above in nested until: P switches at the same time as Q
         g_str = """
 forall([r, robot],

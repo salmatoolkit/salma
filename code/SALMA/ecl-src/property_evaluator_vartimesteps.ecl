@@ -280,7 +280,7 @@ calculate_until_result(PLatestDefinite, PLatestPossible,
 			(PLatestPossible = nondet,
 				Result = not_ok, 
 				FailureTerm = until_p_failed, !
-			; PLatestPossible < IntervalEnd,
+			; PLatestPossible < IntervalEnd - 1,
 				Result = not_ok, 
 				FailureTerm = until_p_timeout, !
 			; % PLatestPossible > IntervalEnd
@@ -296,15 +296,15 @@ calculate_until_result(PLatestDefinite, PLatestPossible,
 			(PLatestPossible = nondet,
 				Result = not_ok, 
 				FailureTerm = until_p_failed, !
-			; PLatestPossible < QEarliestPossible,
+			; PLatestPossible < QEarliestPossible - 1,
 				Result = not_ok,
 				FailureTerm = until_p_failed, !
-			; % PLatestPossible >= QEarliestPossible
+			; % PLatestPossible >= QEarliestPossible - 1
 			  % -> at least nondet
 				( % check for OK
 					PLatestDefinite \= nondet, 
 					QEarliestDefinite \= nondet,
-					PLatestDefinite >= QEarliestDefinite,
+					PLatestDefinite >= QEarliestDefinite - 1,
 					Result = ok, !
 					;
 					Result = nondet
