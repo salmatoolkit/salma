@@ -279,6 +279,12 @@ test6 :-
         ),
 	register_property(f, F, _),
 	grabAll.
+
+test7 :-
+	init,
+	F = until(50, xpos(rob1) > 15, xpos(rob1) > 12),
+	register_property(f, F, _).
+	
 	
 evstep :-
 	current_time(T),

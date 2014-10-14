@@ -21,7 +21,7 @@ from .procedure import Variable, Act
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
 from collections.abc import Iterable
 
-MODULE_LOGGER_NAME = 'agamemnon-smc.world'
+MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
 

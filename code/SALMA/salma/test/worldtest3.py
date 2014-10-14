@@ -190,34 +190,74 @@ forall([r,robot],
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         self.assertEqual(verdict, NONDET)
 
-    def test_property_2(self):
+    def _test_property_2(self, agentstop1=20, agentstop2=20, agentstart1=10, agentstart2=10, timelimit=50, px=5,
+                         qx=19) -> (int, map):
         world = World.instance()
 
-        proc = Procedure("main", [], [
+        proc1 = Procedure("main", [], [
             Act("paint", [Entity.SELF, "item1"]),
             While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < 20", [], [
+                  "xpos(self) < {}".format(agentstop1), [], [
                     Act("move_right", [Entity.SELF])
                 ])
         ])
-        rob1 = Agent("rob1", "robot", proc)
+        proc2 = Procedure("main", [], [
+            Act("paint", [Entity.SELF, "item1"]),
+            While(EvaluationContext.PYTHON_EXPRESSION,
+                  "xpos(self) < {}".format(agentstop2), [], [
+                    Act("move_right", [Entity.SELF])
+                ])
+        ])
+        rob1 = Agent("rob1", "robot", proc1)
+        rob2 = Agent("rob2", "robot", proc2)
         world.addAgent(rob1)
+        world.addAgent(rob2)
         world.addEntity(Entity("item1", "item"))
         world.addEntity(Entity("item2", "item"))
         world.initialize(False)
         self.setNoOneCarriesAnything()
-        self.place_agents_in_column(x=10)
-        world.setFluentValue("xpos", ["rob1"], 1)
+
+        world.setFluentValue("xpos", ["rob1"], agentstart1)
+        world.setFluentValue("ypos", ["rob1"], 10)
+        world.setFluentValue("xpos", ["rob2"], agentstart2)
+        world.setFluentValue("ypos", ["rob2"], 10)
 
         g_str = """
-forall([r,robot], until(50, xpos(r) > 6, xpos(r) > 10))
-"""
+forall([r,robot], until({}, xpos(r) > {}, xpos(r) > {}))
+""".format(timelimit, px, qx)
         world.registerProperty("g", g_str, World.INVARIANT)
         verdict, results = world.runExperiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
-        # world.printState()
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
+        return verdict, results
+
+    def test_property_2_ok(self):
+        verdict, results = self._test_property_2()
+        self.assertEqual(verdict, OK)
+
+    def test_property_2_nondet_rob1(self):
+        verdict, results = self._test_property_2(agentstop1=15)
+        self.assertEqual(verdict, NONDET)
+
+    def test_property_2_nondet_rob2(self):
+        verdict, results = self._test_property_2(agentstop2=15)
+        self.assertEqual(verdict, NONDET)
+
+    def test_property_2_not_ok_rob1_fails_p(self):
+        verdict, results = self._test_property_2(agentstart1=4)
+        self.assertEqual(verdict, NOT_OK)
+
+    def test_property_2_not_ok_rob2_fails_p(self):
+        verdict, results = self._test_property_2(agentstart2=4)
+        self.assertEqual(verdict, NOT_OK)
+
+    def test_property_2_not_ok_rob1_fails_q(self):
+        verdict, results = self._test_property_2(agentstart1=6, timelimit=6, qx=15)
+        self.assertEqual(verdict, NOT_OK)
+
+    def test_property_2_not_ok_rob2_fails_q(self):
+        verdict, results = self._test_property_2(agentstart2=6, timelimit=6, qx=15)
         self.assertEqual(verdict, NOT_OK)
 
     def test_property_3(self):
@@ -271,47 +311,32 @@ forall([r,robot], until(50, xpos(r) > 6, xpos(r) > 10))
         return rob
 
     def __test_nested_until(self, world: World) -> (int, dict):
+        # f_str = """
+        # forall([r, robot], forall([i, item],
+        #     until(50,
+        #         implies(
+        #             occur(grab(r, i)),
+        #             until(20,
+        #                 carrying(r,i),
+        #                 not(carrying(r,i))
+        #             )
+        #         ),
+        #         xpos(r) >= 20
+        #     )
+        # ))
+        # """
         f_str = """
 forall([r, robot], forall([i, item],
-    until(20,
+    until(50,
         implies(
             occur(grab(r, i)),
-            until(5,
-                carrying(r,i),
-                not(carrying(r,i))
-            )
+            until(5, carrying(r,i), not(carrying(r,i)))
         ),
-        xpos(r) >= 29
+       xpos(r) >= 20
     )
 ))
 """
-#         f_str = """
-# forall([r, robot], forall([i, item],
-#     until(20,
-#         implies(
-#             xpos(r) =:= 10,
-#             until(3,
-#                 carrying(rob1,i),
-#                 not(carrying(r,i))
-#             )
-#         ),
-#         xpos(r) >= 29
-#     )
-# ))
-# """
-#         f_str = """
-# until(20,
-#     implies(
-#         occ
-#         until(6,
-#             carrying(rob1,item1),
-#             not(carrying(rob1,item1))
-#         )
-#     ),
-#     xpos(rob1) >= 29
-# )
-# """
-# TODO: possible problem above in nested until: P switches at the same time as Q
+
         g_str = """
 forall([r, robot],
    xpos(r) =:= 35
@@ -351,7 +376,7 @@ forall([r, robot],
     def test_nested_until_fail_one_agent_inner(self):
         world = World.instance()
         rob1 = self.create_periodic_agent("rob1", "item1")
-        rob2 = self.create_periodic_agent("rob2", "item2", period=10, delta=6)
+        rob2 = self.create_periodic_agent("rob2", "item2", period=10, delta=7)
         world.addAgent(rob1)
         world.addAgent(rob2)
         world.addEntity(Entity("item1", "item"))
@@ -363,7 +388,7 @@ forall([r, robot],
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    #@unittest.skip
+    # @unittest.skip
     def test_property_4(self):
         world = World.instance()
 
@@ -440,7 +465,7 @@ forall(r : robot,
 """
         world = World.instance()
         rob1 = self.create_periodic_agent("rob1", "item1", target_x=50)
-        rob2 = self.create_periodic_agent("rob2", "item2",  target_x=50)
+        rob2 = self.create_periodic_agent("rob2", "item2", target_x=50)
         world.addAgent(rob1)
         world.addAgent(rob2)
         world.addEntity(Entity("item1", "item"))
@@ -528,6 +553,7 @@ forall(r : robot,
         verdict, results = world.runExperiment(maxSteps=25)
         print("Verdict: " + str(verdict))
         self.assertEqual(verdict, NOT_OK)
+
 
 if __name__ == '__main__':
     unittest.main()

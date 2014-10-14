@@ -578,8 +578,8 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, _, 
 				QEarliestDefinite2, _, QEarliestPossible2, _),
 			printlog("   Q2: %w - %w\n", [QEarliestDefinite2, QEarliestPossible2]),
-			QEarliestDefinite is getMin(QEarliestDefinite1, QEarliestDefinite2),
-			QEarliestPossible is getMin(QEarliestPossible1, QEarliestPossible2)
+			getMin(QEarliestDefinite1, QEarliestDefinite2, QEarliestDefinite),
+			getMin(QEarliestPossible1, QEarliestPossible2, QEarliestPossible)
 			;
 			QEarliestDefinite = QEarliestDefinite1,
 			QEarliestPossible = QEarliestPossible1
@@ -617,21 +617,16 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				;
 				% P has not been scheduled. If we're ahead StartTime, we wouldn't be here if
 				% at any point since StartTime P \= ok
-				PLatestPossible1 is max(CurrentTime - 1, StartTime),
+				
 				(CurrentTime > StartTime ->
-					PLatestDefinite1 is CurrentTime - 1					
+					PLatestDefinite1 is CurrentTime - 1,
+					PLatestPossible1 is CurrentTime - 1
 					;
-					PLatestDefinite1 = nondet
+					PLatestDefinite1 = nondet,
+					PLatestPossible1 = nondet
 				),
 				printlog("   P1-B: %w - %w\n", [PLatestDefinite1, PLatestPossible1])
 			),			
-			% if PLatestPossible1 \= nondet then thera are some scheduled items
-			% -> make sure that the interval reachus up to the current time
-			( getMin(CurrentTime, PLatestPossible1) < CurrentTime - 1 ->
-				throw(until_p_interval_interrupted(PSchedIdIn))
-				;
-				true
-			),
 			% now we can safely evaluate again. if current evaluation fails then schedule could be
 			% rewritten	to not_ok
 			evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
@@ -641,15 +636,32 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				PSchedId, ToScheduleP,
 				_, PLatestDefinite2, _, PLatestPossible2),
 			printlog("   P2: %w - %w\n", [PLatestDefinite2, PLatestPossible2]),
-			(PLatestDefinite1 \= nondet ->
-				PLatestDefinite is getMin(PLatestDefinite1, PLatestDefinite2)
-				;
-				PLatestDefinite = nondet
+			(PLatestDefinite1 = nondet,
+				(PSchedIdIn >= 0 ->
+					% this means that there has been a schedule that didn't return any ok
+					% since we also require that previous instances hold, we can't take 
+					% the current result
+					PLatestDefinite = nondet
+					;
+					% it's a simple P so go with the flow...
+					PLatestDefinite = PLatestDefinite2
+				), !
+			; PLatestDefinite1 < CurrentTime - 1, % there's a gap of definite result points
+				PLatestDefinite = PLatestDefinite1, !
+			; % PLatestDefinite1 >= CurrentTime - 1
+				getMax(PLatestDefinite1, PLatestDefinite2, PLatestDefinite)
 			),
-			(PLatestPossible1 \= nondet ->
-				PLatestPossible is getMax(PLatestPossible1, PLatestPossible2)
-				;
-				PLatestPossible = nondet
+			(PLatestPossible1 = nondet,
+				(PSchedIdIn >= 0 ->
+					% this means that there has been a schedule that didn't return anything -> fail
+					PLatestPossible = nondet
+					;
+					PLatestPossible = PLatestPossible2
+				), !
+			; PLatestPossible1 < CurrentTime - 1, % this is actually very bad and shouldn't really happen
+				PLatestPossible = PLatestPossible1, !
+			; % PLatestPossible1 >= CurrentTime - 1
+				getMax(PLatestPossible1, PLatestPossible2, PLatestPossible)
 			),
 			printlog("   P3: %w - %w\n", [PLatestDefinite, PLatestPossible]),
 			!
@@ -1059,7 +1071,7 @@ evaluate_function(FunctionName, Params) :-
 	T =.. [FunctionName | Params2],
 	call(T).
 
-% printlog(Format, Params) :-
-	% printf(Format, Params).
+printlog(Format, Params) :-
+	printf(Format, Params).
 	
-printlog(_, _) :- true.	
+% printlog(_, _) :- true.	

@@ -154,18 +154,20 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 			fromto(nondet, EPIn, EPOut, EarliestPossible),
 			fromto(nondet, LDIn, LDOut, LatestDefinite), 
 			fromto(nondet, LPIn, LPOut, LatestPossible),
-			param(Mode) do
+			param(Mode, StartTime) do
 			SeqIn = [SeqEntry | SeqTail],
 			SeqEntry = e(TS, TE, F),
+			(TS = nondet -> throw(ts_nondet) ; true),
+			(TE = nondet -> throw(te_nondet) ; true),
 			F = app(_, Res),
 			(Mode = eventually ->
 				(Res = ok,
 					R2 = ok,
 					SeqOut = [],
-					EDOut is getMin(EDIn, TS),
-					EPOut is getMin(EDIn, TS),
-					LDOut is getMax(LDIn, TE),			
-					LPOut is getMax(LDIn, TE), !
+					getMin(EDIn, TS, EDOut),
+					getMin(EPIn, TS, EPOut),
+					getMax(LDIn, TE, LDOut),			
+					getMax(LPIn, TE, LPOut), !
 				; Res = not_ok,
 					R2 = R1,
 					SeqOut = SeqTail,
@@ -177,9 +179,9 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 					R2 = nondet,
 					SeqOut = SeqTail,			
 					EDOut = EDIn,
-					EPOut is getMin(EPIn, TS),
+					getMin(EPIn, TS, EPOut),
 					LDOut = LDIn,			
-					LPOut is getMax(LPIn, TE)
+					getMax(LPIn, TE, LPOut)
 				)
 			; % always
 				(Res = not_ok,
@@ -193,17 +195,28 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 				Res = ok,
 					R2 = R1,
 					SeqOut = SeqTail, 
-					EDOut is getMin(EDIn, TS),
-					EPOut is getMin(EPIn, TS),
-					LDOut is getMax(LPIn, TE),			
-					LPOut is getMax(LPIn, TE), !
+					getMin(EDIn, TS, EDOut),
+					getMin(EPIn, TS, EPOut),
+					% check whether there's a nondet-gap 
+					(LDIn = nondet,
+						(TS =< StartTime ->
+							LDOut = TE
+							;
+							LDOut = nondet
+						), !
+					; LDIn >= TS - 1,
+						getMax(LDIn, TE, LDOut), !
+					; % gap
+						LDOut = LDIn
+					),
+					getMax(LPIn, TE, LPOut), !
 				; % nondet
 					R2 = nondet,
 					SeqOut = SeqTail,
 					EDOut = EDIn,
-					EPOut is getMin(EPIn, TS),
+					getMin(EPIn, TS, EPOut),
 					LDOut = LDIn,			
-					LPOut is getMax(LPIn, TE)
+					getMax(LPIn, TE, LPOut)
 				)
 			)		
 		)
