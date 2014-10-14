@@ -876,7 +876,8 @@ class World(Entity, WorldDeclaration):
         # action should be discarded.
         # : :type : set of process.Process
         entered_processes = set()
-
+        if moduleLogger.isEnabledFor(logging.DEBUG):
+            moduleLogger.debug("T = %d", self.getTime())
         while True:
             #: :type: list[process.Process]
             active_processes = []
@@ -910,7 +911,7 @@ class World(Entity, WorldDeclaration):
             all_actions.extend(immediate_actions)
 
             if moduleLogger.isEnabledFor(logging.DEBUG):
-                moduleLogger.debug("Progressed immediately: %s", immediate_actions)
+                moduleLogger.debug("  Progressed immediately: %s", immediate_actions)
             if len(failed_actions) > 0:
                 return NOT_OK, self.__finished, {}, {}, [], all_actions, failed_actions, set(), set(), []
 
@@ -928,7 +929,7 @@ class World(Entity, WorldDeclaration):
             failed_actions = World.logic_engine().progress(actions)
             all_actions.extend(actions)
             if moduleLogger.isEnabledFor(logging.DEBUG):
-                moduleLogger.debug("Progressed: %s", actions)
+                moduleLogger.debug("  Progressed: %s", actions)
 
             # failed_regular_actions = list(
             #     itertools.filterfalse(lambda fa: World.__get_action_name_from_term(fa) in self.__exogenousActions,
@@ -948,6 +949,10 @@ class World(Entity, WorldDeclaration):
             verdict, failed_invariants, failed_sustain_goals = self.__arbitrate_verdict(toplevel_results,
                                                                                         scheduled_results,
                                                                                         scheduled_keys)
+            if moduleLogger.isEnabledFor(logging.DEBUG):
+                moduleLogger.debug(("  toplevel_results: {}\n"
+                                   "  scheduled_results:{}\n"
+                                   "  scheduled_keys: {}").format(toplevel_results, scheduled_results, scheduled_keys))
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []

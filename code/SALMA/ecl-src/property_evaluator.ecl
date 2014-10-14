@@ -586,15 +586,20 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		),
 		printlog("   Q3: %w - %w\n", [QEarliestDefinite, QEarliestPossible]),
 		(			
+			
+			
+		% ------- BEGIN EVALUATE P ----------------------
 			( % determine if it's necessary to evaluate P
 				(QEarliestPossible = nondet, Deadline > EndTime), !
 				;
-				(QEarliestPossible \= nondet, QEarliestPossible =< Deadline)
+				(QEarliestPossible \= nondet, 
+					QEarliestPossible =< Deadline)
 			),
 			(QEarliestDefinite = nondet ->
 				PEndTime = IntervalEnd
 				;
-				PEndTime = QEarliestDefinite
+				PEndTime = QEarliestDefinite,
+				QEarliestDefinite > StartTime % also don't evaluate P if Q at the beginning
 			),
 			% Q is at least possible in time
 			(P = sched(_, PSchedIdIn, PRefTerm) ->  
@@ -665,8 +670,9 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			),
 			printlog("   P3: %w - %w\n", [PLatestDefinite, PLatestPossible]),
 			!
+		% ------- END EVALUATE P ----------------------
 			;
-			% no Q can and will be found -> P was skipped
+			% either no Q can and will be found or Q is true at StartTime -> P was skipped
 			PLatestDefinite = nondet,
 			PLatestPossible = nondet,
 			PSchedIdIn = -1, PSchedId = -1, ToScheduleP = nondet
@@ -674,9 +680,14 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		% now we have all 4 time markers so the overall result can be determined.
 		%printf("PLatestDefinite=%w \nQEarliestDefinite=%w \nDeadline=%w \nIntervalEnd=%w\n",
 		%	[PLatestDefinite, QEarliestDefinite, Deadline, IntervalEnd]),
-		
-		calculate_until_result(PLatestDefinite, PLatestPossible,	
-			QEarliestDefinite, QEarliestPossible, EndTime, Deadline, Res, FailureTerm),
+		(QEarliestDefinite \= nondet, 
+			QEarliestDefinite =< StartTime,
+			Res = ok, 
+			FailureTerm = none, !
+			;
+			calculate_until_result(PLatestDefinite, PLatestPossible,	
+				QEarliestDefinite, QEarliestPossible, EndTime, Deadline, Res, FailureTerm)
+		),
 		shelf_set(Shelf, 3, Res),
 		(FailureTerm \= none ->
 			record(MyFailures, until_failed(FailureTerm, 

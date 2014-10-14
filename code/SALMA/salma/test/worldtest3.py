@@ -311,35 +311,27 @@ forall([r,robot], until({}, xpos(r) > {}, xpos(r) > {}))
         return rob
 
     def __test_nested_until(self, world: World) -> (int, dict):
-        # f_str = """
-        # forall([r, robot], forall([i, item],
-        #     until(50,
-        #         implies(
-        #             occur(grab(r, i)),
-        #             until(20,
-        #                 carrying(r,i),
-        #                 not(carrying(r,i))
-        #             )
-        #         ),
-        #         xpos(r) >= 20
-        #     )
-        # ))
-        # """
         f_str = """
-forall([r, robot], forall([i, item],
-    until(50,
-        implies(
-            occur(grab(r, i)),
-            until(5, carrying(r,i), not(carrying(r,i)))
-        ),
-       xpos(r) >= 20
-    )
-))
-"""
+            forall([r, robot], forall([i, item],
+                implies(xpos(r) =:= 10,
+
+                    until(50,
+                        implies(
+                            occur(grab(r,i)),
+                            until(4,
+                                carrying(r,i),
+                                not(carrying(r,i))
+                            )
+                        ),
+                        xpos(r) >= 20
+                    )
+                )
+            ))
+        """
 
         g_str = """
 forall([r, robot],
-   xpos(r) =:= 35
+   xpos(r) >=  35
 )
 """
         world.registerProperty("f", f_str, World.INVARIANT)
@@ -359,8 +351,8 @@ forall([r, robot],
     @withHeader()
     def test_nested_until_ok(self):
         world = World.instance()
-        rob1 = self.create_periodic_agent("rob1", "item1", delta=4)
-        rob2 = self.create_periodic_agent("rob2", "item2")
+        rob1 = self.create_periodic_agent("rob1", "item1", start=0)
+        rob2 = self.create_periodic_agent("rob2", "item2", start=0)
         world.addAgent(rob1)
         world.addAgent(rob2)
         world.addEntity(Entity("item1", "item"))

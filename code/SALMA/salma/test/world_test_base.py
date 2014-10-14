@@ -35,6 +35,9 @@ class BaseWorldTest(unittest.TestCase):
         logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         logger.addHandler(ch)
+        logger2 = logging.getLogger('salma.model')
+        logger2.setLevel(logging.DEBUG)
+        logger2.addHandler(ch)
 
     def setUp(self):
         print("setup")

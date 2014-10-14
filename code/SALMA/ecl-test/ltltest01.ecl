@@ -26,9 +26,13 @@ test_carry :-
 
 	
 grabAll :-
-	L = [grab(rob1, item1)],
+	L = [grab(rob1, item1), grab(rob2, item2)],
 	progress(L).
 
+dropAll :-
+	L = [drop(rob1, item1), drop(rob2, item2)],
+	progress(L).
+	
 moveAll :-
 	L = [move_right(rob1), move_right(rob2)],
 	progress(L).
@@ -162,8 +166,41 @@ test2_e :-
 			xpos(rob1) >= 29
 		),
 	register_property(f, F, F2),
-	grabAll,
+	%grabAll,
 	printf("F: %w \n F2: %w\n",[F,F2]).
+
+test2_f :-
+	init,
+	F =  forall([r, robot], forall([i, item],
+                until(50,
+                    implies(
+                        occur(grab(r,i)),
+                        until(4,
+                            carrying(r,i),
+                            not(carrying(r,i))
+                        )
+                    ),
+                    xpos(r) >= 20
+                )
+            )),
+	register_property(f, F, F2),
+	%grabAll,
+	printf("F: %w \n F2: %w\n",[F,F2]).	
+
+pstep :-
+	Period = 6,
+	Delta = 3,
+	Start = 0,
+	current_time(T),
+	printf("T = %d\n", [T]),
+	M is mod(T - Start, Period), 
+	(M =:= 0,
+		grabAll, print("  Grab\n"), !
+	; M =:= Delta,
+		dropAll,print("  Drop\n"), !
+	; true
+	),
+	evstep.
 	
 	
 test3 :-
