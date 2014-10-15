@@ -91,7 +91,7 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 		EarliestPossible = nondet, 
 		LatestPossible = nondet
 	),
-	(Result = nondet ->
+	((Result = nondet, ! ; ScheduleIdIn > -1) -> % schedule original if nondet or O had been scheduled before
 		% cache original formula if necessary
 		(CacheIdIn = -1 ->
 			shelf_get(Shelf, 1, OrigP),
@@ -154,7 +154,7 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 			fromto(nondet, EPIn, EPOut, EarliestPossible),
 			fromto(nondet, LDIn, LDOut, LatestDefinite), 
 			fromto(nondet, LPIn, LPOut, LatestPossible),
-			param(Mode, StartTime) do
+			param(Mode) do
 			SeqIn = [SeqEntry | SeqTail],
 			SeqEntry = e(TS, TE, F),
 			(TS = nondet -> throw(ts_nondet) ; true),
@@ -197,14 +197,9 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 					SeqOut = SeqTail, 
 					getMin(EDIn, TS, EDOut),
 					getMin(EPIn, TS, EPOut),
-					% check whether there's a nondet-gap 
-					(LDIn = nondet,
-						(TS =< StartTime ->
-							LDOut = TE
-							;
-							LDOut = nondet
-						), !
-					; LDIn >= TS - 1,
+					(LDIn = nondet,		% we're at the start
+						LDOut = TE, !
+					; LDIn >= TS - 1,	% check whether there's a nondet-gap 
 						getMax(LDIn, TE, LDOut), !
 					; % gap
 						LDOut = LDIn

@@ -84,7 +84,7 @@ test2 :-
 					not(carrying(rob1,item1))
 				)
 			),
-			xpos(rob1) >= 209
+			xpos(rob1) >= 20
 		),
 	register_property(f, F, F2),
 	printf("F: %w \n F2: %w\n",[F,F2]),
@@ -187,20 +187,23 @@ test2_f :-
 	%grabAll,
 	printf("F: %w \n F2: %w\n",[F,F2]).	
 
-pstep :-
-	Period = 6,
+pstep(Num) :-
+	Period = 8,
 	Delta = 3,
 	Start = 0,
-	current_time(T),
-	printf("T = %d\n", [T]),
-	M is mod(T - Start, Period), 
-	(M =:= 0,
-		grabAll, print("  Grab\n"), !
-	; M =:= Delta,
-		dropAll,print("  Drop\n"), !
-	; true
-	),
-	evstep.
+	(count(_, 1, Num), param(Period, Delta, Start) do
+		current_time(T),
+		printf("T = %d\n", [T]),
+		M is mod(T - Start, Period), 
+		(M =:= 0,
+			grabAll, print("  Grab\n"), !
+		; M =:= Delta,
+			dropAll, print("  Drop\n"), !
+		; true
+		),
+		evstep
+	).
+	
 	
 	
 test3 :-

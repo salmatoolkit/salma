@@ -312,22 +312,19 @@ forall([r,robot], until({}, xpos(r) > {}, xpos(r) > {}))
 
     def __test_nested_until(self, world: World) -> (int, dict):
         f_str = """
-            forall([r, robot], forall([i, item],
-                implies(xpos(r) =:= 10,
-
-                    until(50,
-                        implies(
-                            occur(grab(r,i)),
-                            until(4,
-                                carrying(r,i),
-                                not(carrying(r,i))
-                            )
-                        ),
-                        xpos(r) >= 20
-                    )
+forall(r:robot, forall(i:item,
+        until(50,
+            implies(
+                occur(grab(r,i)),
+                until(4,
+                    carrying(r,i),
+                    not(carrying(r,i))
                 )
-            ))
-        """
+            ),
+            xpos(r) >= 20
+        )
+))
+"""
 
         g_str = """
 forall([r, robot],

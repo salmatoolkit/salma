@@ -552,7 +552,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		append(FormulaPath, [2], SubPathP), % start with subterm 2 since first is max time
 		append(FormulaPath, [3], SubPathQ),
 		
-		(Q = sched(_, QSchedIdIn, QRefTerm) ->  
+		(Q = sched(_, QSchedIdIn, QRefTerm) -> 
 			(QRefTerm = cf(QCacheId) ->
 				get_cached_formula(QCacheId, SubQ)
 				;
@@ -577,7 +577,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		(QSchedId >= 0 ->		
 			check_schedule_for_interval(QSchedId, StartTime, IntervalEnd, eventually, _, 
 				QEarliestDefinite2, _, QEarliestPossible2, _),
-			printlog("   Q2: %w - %w\n", [QEarliestDefinite2, QEarliestPossible2]),
+			printlog("   Q2: %d - %w - %w\n", [QSchedId, QEarliestDefinite2, QEarliestPossible2]),
 			getMin(QEarliestDefinite1, QEarliestDefinite2, QEarliestDefinite),
 			getMin(QEarliestPossible1, QEarliestPossible2, QEarliestPossible)
 			;
@@ -618,7 +618,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				check_schedule_for_interval(PSchedIdIn, StartTime, PEndTime, 
 					always, _, 
 					_, PLatestDefinite1, _, PLatestPossible1),
-				printlog("   P1-A: %w - %w\n", [PLatestDefinite1, PLatestPossible1])
+				printlog("   P1-A: %d - %w - %w\n", [PSchedIdIn, PLatestDefinite1, PLatestPossible1])
 				;
 				% P has not been scheduled. If we're ahead StartTime, we wouldn't be here if
 				% at any point since StartTime P \= ok
@@ -689,6 +689,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				QEarliestDefinite, QEarliestPossible, EndTime, Deadline, Res, FailureTerm)
 		),
 		shelf_set(Shelf, 3, Res),
+		printlog("   Res: %w\n", [Res]),
 		(FailureTerm \= none ->
 			record(MyFailures, until_failed(FailureTerm, 
 				ToplevelFormula, FormulaPath, CurrentTime, StartTime, EndTime))
@@ -1082,7 +1083,7 @@ evaluate_function(FunctionName, Params) :-
 	T =.. [FunctionName | Params2],
 	call(T).
 
-printlog(Format, Params) :-
-	printf(Format, Params).
+% printlog(Format, Params) :-
+	% printf(Format, Params).
 	
-% printlog(_, _) :- true.	
+printlog(_, _) :- true.	
