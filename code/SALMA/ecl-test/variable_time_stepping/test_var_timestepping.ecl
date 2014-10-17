@@ -14,6 +14,7 @@ setVelocity(Agent, VX, VY) :-
 init :- 
 	init_agasmc,
 	setDomain(robot, [rob1, rob2]),
+	setDomain(controller, [con1, con2]),
 	init_sort_hierarchy(_),
 	setPosition(rob1, 0, 0),
 	setVelocity(rob1, 1, 1),
@@ -146,5 +147,74 @@ test7(Steps, X, EndTime) :-
 	print_scheduled_goals(stdout, 2),
 	print_formula_cache(stdout).
 
+% occur(requestReport(con1, rob1))
+test8 :-	
+	init,
+	F = forall(r:robot,
+			forall(c:controller,
+				implies(
+					occur(activate(c, r)),
+					until(50,
+						implies(
+							occur(startReporting(r, c)),
+							until(10,
+								and(
+									reporting(r, c),
+									xpos(r) < 100
+								),
+								occur(finishReporting(r, c))
+							)
+						),
+						and(
+							not(active(r)),
+							xpos(r) >= 20
+						)
+					)
+				)
+			)
+		),
+	register_property(f, F, F2),
+	printf("F2: %w\n",[F2]).
 
+test8_ok :-
+	test8,
+	progress([activate(con1, rob1)]),
+	evstep(10),
+	progress([startReporting(rob1, con1)]),
+	evstep(5),
+	progress([finishReporting(rob1, con1)]),
+	evstep(10),
+	progress([deactivate(con1, rob1)]),
+	evstep(10).
 	
+test8_one_misses_outer_goal :-
+	test8,
+	progress([activate(con1, rob1), activate(con2, rob2)]),
+	evstep(10),
+	progress([startReporting(rob1, con1), startReporting(rob2, con2)]),
+	evstep(5),
+	progress([finishReporting(rob1, con1), finishReporting(rob2, con2)]),
+	evstep(10),
+	progress([deactivate(con1, rob1)]),
+	evstep(30),
+	get_pending_toplevel_goals(PG),
+	printf("pending: %w\n", [PG]),
+	get_scheduled_goals(FailedGoals, not_ok, 0),
+	printf("scheduled toplevel: %w\n", [FailedGoals]),
+	FailedGoals = [sg(f, 0, 1, 0, 58)].
+	
+test8_one_misses_inner_goal :-
+	test8,
+	progress([activate(con1, rob1), activate(con2, rob2)]),
+	evstep(10),
+	progress([startReporting(rob1, con1), startReporting(rob2, con2)]),
+	evstep(5),
+	progress([finishReporting(rob1, con1)]),
+	evstep(10),
+	progress([deactivate(con1, rob1)]),
+	evstep(30),
+	get_pending_toplevel_goals(PG),
+	printf("pending: %w\n", [PG]),
+	get_scheduled_goals(FailedGoals, not_ok, 0),
+	printf("scheduled toplevel: %w\n", [FailedGoals]),
+	FailedGoals = [sg(f, 0, 1, 0, 58)].

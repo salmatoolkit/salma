@@ -341,7 +341,8 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				!
 				;
 				F = occur(ActionTerm),
-				% for now: ignore step since only tick is allowed for step
+				% for occur, only the start time is relevant since only tick can occur
+				% during a time advance phase
 				evaluate_action_occured(ActionTerm, StartTime, Result),
 				!
 				;
@@ -951,20 +952,31 @@ evaluate_scheduled(Key, EndTime, Result) :-
 	store_set(scheduled_goals, Key2, app(ScheduleParams2,ToSchedule2)).
 	
 
+check_state_filter(Content, StateFilter) :-
+	StateFilter = all, !
+	;
+	StateFilter = nondet, !,
+	Content \= ok, 
+	Content \= not_ok
+	; % ok / not_ok				
+	StateFilter = Content.
 	
-get_pending_goals(PendingGoals, LevelFilter) :-
+get_scheduled_goals(ScheduledGoals, StateFilter, LevelFilter) :-
 	stored_keys_and_values(scheduled_goals, L),
-	(foreach(Entry, L), fromto([], In, Out, PendingGoals), param(LevelFilter) do
+	(foreach(Entry, L), fromto([], In, Out, ScheduledGoals), param(StateFilter, LevelFilter) do
 		Entry = Key - app(_, Content),
 		Key = sg(_, Level, _, _, _),
-		( ( (LevelFilter = all, ! ; Level == LevelFilter),
-			Content \= ok, Content \= not_ok
-			) ->
-			append(In, [Key], Out)
-			;
-			Out = In
-		)
+		(  
+			((LevelFilter = all, ! ; Level == LevelFilter),
+				check_state_filter(Content, StateFilter) ) ->			 
+				append(In, [Key], Out)
+				;
+				Out = In
+		)		
 	).	
+	
+get_pending_goals(PendingGoals, LevelFilter) :-
+	get_scheduled_goals(PendingGoals, nondet, LevelFilter).
 		
 get_pending_toplevel_goals(PendingGoals) :-
 	get_pending_goals(PendingGoals, 0).
@@ -1000,8 +1012,7 @@ evaluate_all_scheduled(EndTime, Results) :-
 	setval(current_failure_stack, CFS).
 	
 
-% TODO: cleanup-procedure
-% TODO: reuse compiled terms by referencing if nothing changed in evaluation
+% TODO: proper cleanup-procedure
 print_scheduled_goals(Stream, SortPositions) :-
 	stored_keys(scheduled_goals, Keys),
 	sort(SortPositions, =<, Keys, SortedKeys),
@@ -1015,7 +1026,6 @@ print_scheduled_goals(Stream, SortPositions) :-
 		printf(Stream, "%10s %10d %10d %5d %5d %w %w\n",[Name, T, EndTime, Level, Id, Params, F])
 	).
 
-	
 
 compile_persistent_fluents :-
 	findall((N - F),persistent_fluent(N,F), L),
