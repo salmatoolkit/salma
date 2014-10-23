@@ -40,8 +40,9 @@ test1 :-
 
 cnf_test :-
 	init,
-	implies(active(rob1), xpos(rob1) > 4 and xpos(rob1) < 100),
-	compile_formula(F, F2).
+	F = implies(active(rob1), xpos(rob1) > 4 and xpos(rob1) < 100),
+	compile_formula(F, F2),
+	printf("F2: %w\n",[F2]).
 	
 	
 
