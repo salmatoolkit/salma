@@ -1,6 +1,6 @@
 :- ['../ecl-src/agasmc'].
 :- lib(ic).
-:- dynamic vx/3, vy/3, x/3, y/3.
+:- dynamic vx/3, vy/3, x/3, y/3, ax/3, ay/3.
 
 sort(robot).
 
@@ -12,14 +12,21 @@ fluent(vy, [r:robot], float).
 vx(R, Vx, do2(A, S)) :-
 	vx(R, Vx, S).
 	
-vy(R, Vx, do2(A, S)) :-
-	vy(R, Vx, S).
+vy(R, Vy, do2(A, S)) :-
+	vy(R, Vy, S).
 	
+ax(R, Ax, do2(A, S)) :-
+	ax(R, Vx, S).
+	
+ay(R, Ay, do2(A, S)) :-
+	vy(R, Ay, S).	
+
 x(R, X, do2(A, S)) :-
 	x(R, OldX, S),
 	(A = tick2(T) ->
 		vx(R, Vx, S),
-		X $= OldX + Vx * T
+		ax(R, Ax, S),
+		X $= OldX + Vx * T + 0.5 * Ax * T^2
 		;
 		X $= OldX
 	).
@@ -28,7 +35,8 @@ y(R, Y, do2(A, S)) :-
 	y(R, OldY, S),
 	(A = tick2(T) ->
 		vy(R, Vy, S),
-		Y $= OldY + Vy * T
+		ay(R, Ay, S),
+		Y $= OldY + Vy * T + 0.5 * Ay * T^2
 		;
 		Y $= OldY
 	).	
@@ -42,11 +50,16 @@ init :-
 	set_current(x, [rob2], 100),
 	set_current(y, [rob2], 0),
 	
-	set_current(vx, [rob1], 10),
-	set_current(vy, [rob1], 10),
-	set_current(vx, [rob2], -10),
-	set_current(vy, [rob2], 10),
+	set_current(vx, [rob1], 0),
+	set_current(vy, [rob1], 0),
+	set_current(vx, [rob2], 0),
+	set_current(vy, [rob2], 0),
 	
+	set_current(ax, [rob1], 1.0),
+	set_current(ay, [rob1], 0),
+	
+	set_current(ax, [rob2], -1.0),
+	set_current(ay, [rob2], 0),
 	set_current(time, [], 0).
 	
 	
@@ -71,4 +84,17 @@ test2(X, Y) :-
 	Y $= sin(X*0.1),
 	Y $> 0.2,
 	indomain(X).
+	
+test3(X, Y, Min) :-
+	X :: 0.0..10.0,
+	Y $= sin(X*0.1),
+	Y $> Min.
+	
+test4(T, X1, X2) :-
+	init,
+	set_current(x, [rob1], 10),
+	S = do2(tick2(T), s0),
+	x(rob1, X1, S),
+	x(rob2, X2, S).
+	
 	

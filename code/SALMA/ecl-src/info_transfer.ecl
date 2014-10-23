@@ -50,8 +50,7 @@ untracked_fluent(transferring).
 %    and receiver for (remote) sensors.
 % Sensor: Params are directly used as params for the source fluent,
 %			MsgType = sensor
-% For channels and remote sensors, we distinguish 3 message types:
-%    unicast, multicastSrc, multicastDest
+% For channels and remote sensors, we distinguish 4 message types:
 %    a) unicast: Params = [SrcRole, Dest, DestRole]
 %    b) multicastSrc: Params = [SrcRole]
 %	 c) remoteSensorSrc: Params = original params for local sensor
