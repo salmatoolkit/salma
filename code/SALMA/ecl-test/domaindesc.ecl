@@ -1,6 +1,6 @@
 :- dynamic xpos/3, ypos/3, carrying/3, active/2, painted/2,
 	robot_radius/2, marking/3,
-	gravity/1.
+	gravity/1, partner/3.
 
 % domain description for worldtest.py
 
@@ -49,6 +49,9 @@ fluent(carrying, [r:robot, i:item], boolean).
 fluent(active, [r:robot], boolean).
 % for now we just tread paint as a boolean attribute
 fluent(painted, [i:item], boolean).
+
+fluent(partner, [r:robot], robot).
+
 
 constant(robot_radius, [r:robot], float).
 constant(gravity, [], float).
