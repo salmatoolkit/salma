@@ -231,46 +231,87 @@ check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result,
 % StartTime: marks the start of the interval that is checked
 % CurrentStep: refers to the currently ealuated step relative to StartTime
 evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
-	Mode, StartStep, StartTime, EndTime, P, Level, Result, ToSchedule, ScheduleParams, HasChanged) :-
+	Mode, StartStep, StartTime, EndTime, P, Level, 
+	Result, ToSchedule, ScheduleParams, HasChanged) :-
 	% StartTime could be before the current time
 	% TODO: should we really distinguish StartTime from CurrentTime?
 	append(FormulaPath, [1], SubPathP),
 	time(CurrentTime, do2(tick(StartStep), s0)),
 	TimeDiff is EndTime - CurrentTime,
 	(TimeDiff < 0 -> throw(end_time_before_current) ; true),
-	% increase level so that steps will be evaluated before 
-	% the always/eventually parent formula in 
-	% evaluate_all_scheduled
+	shelf_create(orig/1, null, Shelf),
+	shelf_set(Shelf,1,P),
+	
 	NextLevel is Level + 1,
-	(P = sched(_, PSchedId, PRefTerm) ->  
+	(P = sched(_, PSchedIdIn, PRefTerm) ->  
 		(PRefTerm = cf(PCacheId) ->
 			get_cached_formula(PCacheId, SubP)
 			;
-			SubP = PRefTerm
-		),
-		% If we have sched here, then all time steps have been evaluated 
-		% already before. Therefore we don't have to evaluate again but 
-		% check the results of the scheduled evaluations.
-		check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result, 
-			_, _, _, _)
+			SubP = PRefTerm,
+			PCacheId = -1
+		)
 		;
 		SubP = P,
-		evaluate_for_all_timesteps(ToplevelFormula, FormulaPath, 
-			Mode, StartStep, CurrentTime, StartTime, EndTime, P, NextLevel, Result, 
-			-1, PSchedId, _, _, _, _)
+		PSchedIdIn = -1,
+		PCacheId = -1		
+	),
+	evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
+		Mode, StartStep, CurrentTime, StartTime, EndTime, SubP, NextLevel, Result1, 
+		PSchedIdIn, PCacheId,
+		PSchedId, ToScheduleP,
+		_, _, _, _),
+	
+	(Result1 = ok, Mode = eventually, !,
+		Result = ok
+	; Result1 = not_ok, Mode = always, !,
+		Result = not_ok
+	; % not decided yet  
+		(PSchedId >= 0 ->
+			check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result2, 
+				_, _, _, _),
+			(
+				Result1 = nondet,
+				(
+					Mode = eventually,
+					Result2 = ok,
+					Result = ok, !
+					;
+					Mode = always,
+					Result2 = not_ok,
+					Result = not_ok, !
+					;
+					Result = nondet
+				), !
+				;
+				Result = Result2				
+			)
+			; % PSchedId = -1
+			Result = Result1
+		)
+
 	),	
-	(Result = nondet ->
-		KeyP =.. [p, SubPathP],
-		var(VarPSchedId),
-		ScheduleParams = [KeyP : PSchedId],
-		ToSchedule = sched(KeyP, VarPSchedId, SubP),
-		HasChanged = true		
+	(PSchedIdIn =\= PSchedId ->
+		HasChanged = true
 		;
-		% otherwise we're good...
+		HasChanged = false
+	),
+	(Result = nondet -> 
+		(PSchedId > -1 ->
+			KeyP =.. [p, SubPathP],
+			var(VarPSchedId),
+			ScheduleParams = [KeyP : PSchedId],
+			ToSchedule = sched(KeyP, VarPSchedId, ToScheduleP)
+			;
+			shelf_get(Shelf, 1, OrigP),
+			ScheduleParams = [],
+			ToSchedule = OrigP			
+		)		
+		;
 		ToSchedule = Result,
-		ScheduleParams = [],
-		HasChanged = true		
-	).
+		ScheduleParams= []
+		
+	),
+	shelf_abolish(Shelf).
 	
 
 calculate_until_result(PLatestDefinite, PLatestPossible,

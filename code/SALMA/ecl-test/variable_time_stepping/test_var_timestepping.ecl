@@ -45,33 +45,58 @@ test1(Steps) :-
 		[Result, ToSchedule, ScheduleParams, HasChanged]).
 	
 		
-test2(End, MaxX) :-
+test2(TimeDelta, MaxX) :-
 	init,
-	F = always(xpos(rob1) < MaxX),
+	F = invariant(xpos(rob1) < MaxX),
 	register_property(f, F, F2),
 	printf("F2: %w\n",[F2]),
-	evaluate_formula(f, [0], 0, 0, End, F2, 0, Result, 
-		ToSchedule, ScheduleParams, HasChanged),
-	printf(" Result=%w\n ToSchedule=%w\n ScheduleParams=%w\n HasChanged=%w",
-		[Result, ToSchedule, ScheduleParams, HasChanged]).
+	evstep(TimeDelta).
 
-test3(TLimit, XTarget) :-
+test_notemp1(TimeDelta) :-
 	init,
-	F = until(TLimit, xpos(rob1) >= 0, xpos(rob1) > XTarget),
+	F = (xpos(rob1) =:= 0),
 	register_property(f, F, F2),
 	printf("F2: %w\n",[F2]),
-	evaluate_formula(f, [0], 0, 0, 10, F2, 0, Result, 
-		ToSchedule, ScheduleParams, HasChanged),
-	printf(" Result=%w\n ToSchedule=%w\n ScheduleParams=%w\n HasChanged=%w",
-		[Result, ToSchedule, ScheduleParams, HasChanged]),
-	print_scheduled_goals(stdout, 2),
-	print_formula_cache(stdout).
-	
-test4(TLimit, XTarget) :-
+	evstep(TimeDelta).
+
+test_notemp2(TimeDelta) :-
 	init,
-	F = until(TLimit, xpos(rob1) >= 0, xpos(rob1) > XTarget),
+	F = invariant(xpos(rob1) =:= 0),
+	register_property(f, F, F2),
+	printf("F2: %w\n",[F2]),
+	evstep(TimeDelta).
+	
+test3(TimeDelta, Target) :-
+	init,
+	F = goal(xpos(rob1) =:= Target),
+	register_property(f, F, F2),
+	printf("F2: %w\n",[F2]),
+	evstep(TimeDelta).
+	
+test4(Deadline, MaxX) :-
+	F = always(Deadline, xpos(rob1) < MaxX),
 	register_property(f, F, F2),
 	printf("F2: %w\n",[F2]).
+
+test4_ok_1step :-
+	init,
+	test4(10, 5),
+	evstep(10).
+	
+	
+test5(TimeDelta, Deadline, Target) :-
+	init,
+	F = eventually(Deadline, xpos(rob1) =:= Target),
+	register_property(f, F, F2),
+	printf("F2: %w\n",[F2]),
+	evstep(TimeDelta).
+	
+test6(TimeDelta, TLimit, XTarget) :-
+	init,
+	F = until(TLimit, xpos(rob1) >= 0, xpos(rob1) > XTarget),
+	register_property(f, F, F2),
+	printf("F2: %w\n",[F2]),
+	evstep(TimeDelta).
 
 evstep(TimeDelta) :-
 	current_time(T),
@@ -85,67 +110,18 @@ evstep(TimeDelta) :-
 	TD2 is TimeDelta + 1,
 	progress([tick(TD2)]).
 	
-	
-	
-test5(XTarget, EndTime) :-
-	init,
-	F = always(
-		xpos(rob1) < XTarget
-	),
-	register_property(f, F, F2),
-	printf("F2: %w\n",[F2]),
-	evaluation_step(EndTime, ToplevelResults, ScheduledResults, 
-		PendingGoals, FailureStack),
-	
-	printf(" ToplevelResults=%w\n ScheduledResults=%w\n PendingGoals=%w\n FailureStack=%w",
-		[ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-	print_scheduled_goals(stdout, 2),
-	print_formula_cache(stdout).
 
-test6(XTarget, EndTime) :-
-	init,
-	F = eventually(
-		xpos(rob1) > XTarget
-	),
-	register_property(f, F, F2),
-	printf("F2: %w\n",[F2]),
-	evaluation_step(EndTime, ToplevelResults, ScheduledResults, 
-		PendingGoals, FailureStack),
-	
-	printf(" ToplevelResults=%w\n ScheduledResults=%w\n PendingGoals=%w\n FailureStack=%w",
-		[ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-	print_scheduled_goals(stdout, 2),
-	print_formula_cache(stdout).	
 
-test6(TLimit, XTarget, EndTime) :-
+test7(TimeDelta, TLimit, XTarget) :-
 	init,
-	F = always(
+	F = invariant(
 		until(TLimit, xpos(rob1) >= 0, xpos(rob1) > XTarget)
 	),
 	register_property(f, F, F2),
 	printf("F2: %w\n",[F2]),
-	evaluation_step(EndTime, ToplevelResults, ScheduledResults, 
-		PendingGoals, FailureStack),
-	
-	printf(" ToplevelResults=%w\n ScheduledResults=%w\n PendingGoals=%w\n FailureStack=%w",
-		[ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-	print_scheduled_goals(stdout, 2),
-	print_formula_cache(stdout).
+	evstep(TimeDelta).
 	
 
-test7(Steps, X, EndTime) :-
-	init,
-	F = always(xpos(rob1) =:= X),
-	register_property(f, F, F2),
-	printf("F2: %w\n",[F2]),
-	progress([tick(Steps)]),
-	evaluation_step(EndTime, ToplevelResults, ScheduledResults, 
-		PendingGoals, FailureStack),
-	
-	printf(" ToplevelResults=%w\n ScheduledResults=%w\n PendingGoals=%w\n FailureStack=%w",
-		[ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
-	print_scheduled_goals(stdout, 2),
-	print_formula_cache(stdout).
 
 % occur(requestReport(con1, rob1))
 test8 :-	
