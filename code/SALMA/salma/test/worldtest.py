@@ -883,7 +883,7 @@ class WorldTest(BaseWorldTest):
         for e in expected_constants:
             self.assertTrue(e in l2)
         print("l1 = " + str(l1))
-        self.assertEqual(len(l1), 2)
+        self.assertEqual(len(l1), 3)
         self.assertEqual(len(l2), 2)
         for f in default_false_fluent_instances:
             self.assertFalse(world.getFluentValue(f[0], f[1]))
@@ -895,7 +895,7 @@ class WorldTest(BaseWorldTest):
             self.assertTrue(e in l1)
         for e in expected_constants:
             self.assertTrue(e in l2)
-        self.assertEqual(len(l1), 1)
+        self.assertEqual(len(l1), 2)
         self.assertEqual(len(l2), 2)
 
 
@@ -906,7 +906,7 @@ class WorldTest(BaseWorldTest):
             self.assertTrue(e in l1)
         for e in expected_constants:
             self.assertTrue(e in l2)
-        self.assertEqual(len(l1), 1)
+        self.assertEqual(len(l1), 2)
         self.assertEqual(len(l2), 1)
 
         world.setConstantValue('robot_radius', ['rob1'], 20.0)
@@ -916,7 +916,7 @@ class WorldTest(BaseWorldTest):
             self.assertTrue(e in l1)
         for e in expected_constants:
             self.assertTrue(e in l2)
-        self.assertEqual(len(l1), 1)
+        self.assertEqual(len(l1), 2)
         self.assertEqual(len(l2), 0)
 
     def runTest(self):
