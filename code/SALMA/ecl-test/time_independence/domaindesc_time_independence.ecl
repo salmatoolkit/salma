@@ -36,7 +36,7 @@ effect(ypos(Robot), jump(Robot, _, NewY), _, Y, _) :-
 	Y = NewY.
 	
 effect(vx(Robot), set_velocity(Robot, Vx, _), _, Vx, _).
-effect(vy(Robot), set_velocity(Robot, Vy, _), _, Vy, _). 	
+effect(vy(Robot), set_velocity(Robot, _, Vy), _, Vy, _). 	
 
 effect(active(Robot), activate(Robot), _, true, _).
 effect(active(Robot), deactivate(Robot), _, false, _).

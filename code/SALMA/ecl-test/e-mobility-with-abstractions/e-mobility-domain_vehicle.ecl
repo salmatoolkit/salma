@@ -99,7 +99,7 @@ get_next_target_start(Vehicle, ActPos, NextTargetStart, S) :-
 	).
 	
 
-calculate_new_position(Vehicle, OldPos, Position, S) :-
+calculate_new_position(Vehicle, OldPos, Steps, Position, S) :-
 	OldPos = pos(P1, P2, PosOnRoad),
 	(P1 = P2 ->
 		% we are at the end / beginning of a road
@@ -112,19 +112,14 @@ calculate_new_position(Vehicle, OldPos, Position, S) :-
 			get_next_target_start(Vehicle, P2, Position, S)
 			;
 			vehicleSpeed(Vehicle, Speed, S),
-			NewPosOnRoad is PosOnRoad + Speed,
+			NewPosOnRoad is PosOnRoad + Speed * Steps,
 			Position = pos(P1, P2, NewPosOnRoad)
 		)	
 	).
 
-
-vehiclePosition(Vehicle, Position, do2(A, S)) :-
-	vehiclePosition(Vehicle, OldPos, S),	
-	(A = tick ->
-		calculate_new_position(Vehicle, OldPos, Position, S)
-		;
-		Position = OldPos
-	).
+effect(vehiclePosition(Vehicle), tick(Steps), OldPos, Position, S) :-
+	calculate_new_position(Vehicle, OldPos, Steps, Position, S).
+	
 	
 % a predicate that checks whether Vehicle will arrive at its target in situation
 % S
@@ -134,70 +129,46 @@ arrive_at_targetPLCS(Vehicle, S) :-
 	Position = pos(TargetPLCS, TargetPLCS, 0).
 	
 	
-	
-vehicleSpeed(Vehicle, Speed, do2(A, S)) :-
-	A = speedChanges(Vehicle, NewSpeed),
-	Speed is NewSpeed, !
-	;
-	arrive_at_targetPLCS(Vehicle, do2(A, S)),
-	Speed is 0, !
-	;
-	vehicleSpeed(Vehicle, Speed, S).
 
+effect(vehicleSpeed(Vehicle), speedChanges(Vehicle, NewSpeed), _, NewSpeed, _).
+
+% this ineffective effect will be eliminated by the event schedule! 
+effect(vehicleSpeed(Vehicle), tick(Steps), OldSpeed, NewSpeed, S) :-
+	(arrive_at_targetPLCS(Vehicle, do2(tick(Steps), S)) ->
+		NewSpeed = 0
+		;
+		NewSpeed = OldSpeed
+	).
+
+effect(currentRoute(Vehicle), setRoute(Vehicle, NewRoute), _, NewRoute, _).
 	
-	
-currentRoute(Vehicle, Route, do2(A, S)) :-
-	A = setRoute(Vehicle, NewRoute), !,
-	Route = NewRoute
-	;
-	A = tick, !,
+effect(currentRoute(Vehicle), tick(Steps), OldRoute, Route, S) :-
     currentRoute(Vehicle, OldRoute, S),
 	vehiclePosition(Vehicle, OldPos, S),
-	calculate_new_position(Vehicle, OldPos, NewPos, S),
+	calculate_new_position(Vehicle, OldPos, Steps, NewPos, S),
 	nextTarget(Vehicle, NextTarget, S),
 	NewPos = pos(_, P2, _),
 	((P2 = NextTarget, NextTarget \= none) -> % remove current target if next target was selected
 		OldRoute = [_ | Route]
 		;
 		Route = OldRoute
-	)
-	;
-	currentRoute(Vehicle, Route, S), !.
-	%get_current(currentRoute, [Vehicle], Route).
-	%Route = [x1,x2,x3].
-
-% stores PLCS : POI
-currentTargetPLCS(Vehicle, Target, do2(A,S)) :-
-	(A = setTargetPLCS(Vehicle, NewTarget) ->
-		Target = NewTarget
-	;
-		currentTargetPLCS(Vehicle, Target, S)
 	).
 
-currentPLCS(Vehicle, PLCS, do2(A,S)) :-
-	arrive_at_targetPLCS(Vehicle, do2(A,S)),
-	currentTargetPLCS(Vehicle, PLCS, S), !
-	;
-	A = driverLeavesPLCS(Vehicle),
-	PLCS = none, !
-	;
-	currentPLCS(Vehicle, PLCS, S).
+effect(currentTargetPLCS(Vehicle), setTargetPLCS(Vehicle, NewTarget), _, NewTarget, _).
+
+effect(currentPLCS(Vehicle), tick(Steps), _, PLCS, S) :-
+	arrive_at_targetPLCS(Vehicle, do2(tick(Steps),S)),
+	currentTargetPLCS(Vehicle, PLCS, S).
+
+effect(currentPLCS(Vehicle), driverLeavesPLCS(Vehicle), _, none, _).
 	
-currentTargetPOI(Vehicle, POI, do2(A,S)) :-
-	A = setPOI(Vehicle, NewPOI) ->
-		POI = NewPOI
-	;
-		currentTargetPOI(Vehicle, POI, S).
+effect(currentTargetPOI(Vehicle), setPOI(Vehicle, NewPOI), _, NewPOI, _).
 
 
 	
-waitingForAssignment(Vehicle, do2(A, S)) :-
-	waitingForAssignment(Vehicle, S).
-	
-waitingForReservation(Vehicle, do2(A, S)) :-
-	waitingForReservation(Vehicle, S).
+
 		
 		
-	
+
 	
 		

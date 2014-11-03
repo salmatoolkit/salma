@@ -453,13 +453,12 @@ construct_nonboolean_fluent_ssa(FluentName, Params, Head, Body) :-
 	).	
 
 construct_ssas :-
-	findall(Fluent, clause(effect(Fluent, _, _, _, _), _), Fluents),
+	get_declared_fluents(Fluents),
 	(foreach(F, Fluents), fromto([], HandledIn, HandledOut, _) do
-		F =.. [FluentName | _],
+		F = f(FluentName, Params, Type),
 		(member(FluentName, HandledIn) ->
 			HandledOut = HandledIn
 			;
-			(fluent(FluentName, Params, Type) -> true ; throw(undefined_fluent(FluentName))),
 			(Type = boolean ->
 				construct_boolean_fluent_ssa(FluentName, Params, Head, Body)
 				;

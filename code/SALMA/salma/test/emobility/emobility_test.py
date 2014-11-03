@@ -84,9 +84,11 @@ class EMobilityTest(unittest.TestCase):
         :rtype: (bool, str)
         """
         if self.__should_log:
-            self.__log("Step {}".format(step))
+            time = world.getFluentValue("time", [])
+            self.__log("Step {} (t = {})".format(step, time))
             self.__log("   Verdict: {}".format(verdict))
             self.__log("   Actions: {}".format(actions))
+
 
             messages = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "domain",
                                                                    "message")
@@ -114,8 +116,10 @@ class EMobilityTest(unittest.TestCase):
                 pos = world.getFluentValue("vehiclePosition", [vehicle.id])
                 route = world.getFluentValue("currentRoute", [vehicle.id])
                 target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
-                self.__log("   {}: {} - {} - {}".format(vehicle.id,
-                                                        pos, route, target))
+                speed = world.getFluentValue("vehicleSpeed", [vehicle.id])
+
+                self.__log("   {}: {} - {} - {} - speed: {}".format(vehicle.id,
+                                                        pos, route, target, speed))
             for plcs in world.getDomain("plcs"):
                 fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
                 fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])
