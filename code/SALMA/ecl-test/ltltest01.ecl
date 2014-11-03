@@ -15,7 +15,8 @@ init :-
 	(foreach(R, D1), param(D2) do
 		(foreach(I, D2), param(R) do
 			set_current(carrying, [R, I], false)
-		)
+		),
+		set_current(partner, [R], none)
 	),
 	set_current(time, [], 0).
 
@@ -337,4 +338,12 @@ evstep :-
 	print_cache_candidates(stdout),
 	moveAll,
 	progress([tick(1)]).
-	
+
+test8 :-
+	init,
+	set_current(partner, [rob1], rob2),
+	F = (xpos(partner(rob1)) =:= 10),
+	compile_formula(F, F2),
+	printf("F2: %w\n", [F2]),
+	evaluate_ad_hoc(F, Result),
+	Result = ok.

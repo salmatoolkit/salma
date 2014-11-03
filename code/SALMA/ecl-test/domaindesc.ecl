@@ -30,6 +30,8 @@ primitive_action(paint, [r:robot, i:item]).
 
 primitive_action(mark, [r:robot, i:item, data:term]).
 
+primitive_action(join, [r1:robot, r2:robot]).
+
 % distinguish between discriminating entity parameters and additional "augmenting" parameters
 exogenous_action(accidental_drop, [r:robot, i:item], []).
 
@@ -163,6 +165,18 @@ dist_from_origin(Rob, Dist, S) :-
 	xpos(Rob, X, S),
 	ypos(Rob, Y, S),
 	Dist is sqrt(X*X + Y*Y).
+		
+		
+effect(partner(Rob), join(R1, R2), _, Partner, _) :-
+	Rob = R1, 
+	Partner = R2, !	
+	; 
+	Rob = R2,
+	Partner = R1.
+	
+
+% partner(rob, partner, do2(a, s)) :-
+	% partner(rob, partner, s).
 		
 init_domaindesc :- true.
         

@@ -465,8 +465,13 @@ construct_ssas :-
 				;
 				construct_nonboolean_fluent_ssa(FluentName, Params, Head, Body)
 			),	
-			retractall(Head),
-			asserta((Head :- Body)),
+			% if there's already a fluent clause then back off!
+			(not clause(Head, _) ->
+				retractall(Head),
+				asserta((Head :- Body))
+				;
+				true
+			),
 			append(HandledIn, [FluentName], HandledOut)
 		)
 	).
