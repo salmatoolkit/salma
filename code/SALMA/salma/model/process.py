@@ -239,7 +239,7 @@ class Process(object):
         self.__terminated = False
         self.__execution_count = 0
 
-    def step(self, new_step):
+    def step(self):
         """
         Performs one step of the process.
         :return: returns an Act instance if an action is performed or None

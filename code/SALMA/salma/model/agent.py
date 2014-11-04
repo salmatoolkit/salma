@@ -241,7 +241,8 @@ class Agent(Entity):
 
         for p in self.processes:
             if not p.terminated:
-                if p.
+                if p.state == process.Process.WAITING or p.state == process.Process.SLEEPING:
+                    p.wake_up_if_possible()
                 if p.state == process.Process.IDLE and p.should_start():
                     p.start()
                 if p.is_scheduled():

@@ -904,16 +904,6 @@ class World(Entity, WorldDeclaration):
                 failed_invariants, failed_sustain_goals, failure_stack)
         :rtype: (int, bool, dict[str, int], dict, list, list, set[str], set[str], list)
         """
-        actions = []  # list of tuples: (action_execution, params)
-        all_actions = []
-        # gather actions
-
-        # A set that keeps track of all processes that have been entered already in this step.
-        # This is used to by the process to determine whether a new step is started and hence a pending
-        # action should be discarded.
-        # : :type : set of process.Process
-        entered_processes = set()
-
         current_time = self.getTime()
         if moduleLogger.isEnabledFor(logging.DEBUG):
             moduleLogger.debug("T = %d", current_time)
@@ -926,6 +916,8 @@ class World(Entity, WorldDeclaration):
 
             pre_events = []
             interleaved_events = []
+            #randomly split actions in some that are performed before process flow and some
+            # that are interleaved with actions
             for ev in due_events:
                 if random.random() < 0.5:
                     pre_events.append(ev)
@@ -945,17 +937,15 @@ class World(Entity, WorldDeclaration):
                 if not agent.is_finished():
                     self.__finished = False
                 active_processes.extend(agent.update_schedule())
-
+            actions = []
             for proc in active_processes:
-                action_execution = proc.step(proc not in entered_processes)
-                entered_processes.add(proc)
+                action_execution = proc.step()
                 if action_execution is not None:
                     act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
                     actions.append(act)
 
 
             failed_actions = World.logic_engine().progress(immediate_actions)
-            all_actions.extend(immediate_actions)
 
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug("  Progressed immediately: %s", immediate_actions)
