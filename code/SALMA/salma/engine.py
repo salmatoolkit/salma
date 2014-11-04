@@ -209,12 +209,12 @@ class Engine(object):
         '''
         raise NotImplementedError()
 
-
-    def evaluationStep(self):
+    def evaluationStep(self, interval_end=None):
         """
         returns a tuple with two dicts: (toplevel_results, scheduled_results, scheduled_goals, failure_stack)
         toplevel_results: propertyName : verdict (OK, NOT_OK, NONDET)
         scheduled_results: (propertyName, time) : verdict
+        :param int interval_end : the end time of the inspected interval
         :rtype: (dict[str, int], dict, list, list)
         """
         raise NotImplementedError()
@@ -485,7 +485,6 @@ class EclipseCLPEngine(Engine):
 
         if deleteConstants:
             self.__constants = dict()
-
 
         if removeFormulas:
             self.__callGoal("init_agasmc", erorMsg="Can't initialize main module.")
@@ -890,13 +889,17 @@ class EclipseCLPEngine(Engine):
     def isConstantDefined(self, constantName, constantParams):
         return (constantName, tuple(constantParams)) in self.__constants
 
-    def evaluationStep(self):
+    def evaluationStep(self, interval_end=None):
         toplevel_results = pyclp.Var()
         scheduled_results = pyclp.Var()
         scheduled_keys = pyclp.Var()
         failure_stack = pyclp.Var()
 
-        self.__callGoal('evaluation_step', toplevel_results, scheduled_results, scheduled_keys, failure_stack)
+        if interval_end is None:
+            self.__callGoal('evaluation_step', toplevel_results, scheduled_results, scheduled_keys, failure_stack)
+        else:
+            self.__callGoal('evaluation_step', interval_end, toplevel_results, scheduled_results, scheduled_keys,
+                            failure_stack)
 
         return (EclipseCLPEngine.__translateToplevelEvaluationResults(toplevel_results.value()),
                 EclipseCLPEngine.__translateScheduledEvaluationResults(scheduled_results.value()),

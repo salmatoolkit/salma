@@ -61,11 +61,15 @@ class EvaluationContext(object):
         raise NotImplementedError()
     
     def evaluateCondition(self, sourceType, source, *params):
-        '''
-        # TODO: document 
-        sourceType: FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION or PYTHON_FUNCTION
-        returns: true if evaluation succeeded
-        '''
+        """
+        Evaluates the given condition.
+
+        :param int sourceType: FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION or PYTHON_FUNCTION
+        :param object source: a python function, the name of a fluent, or a pothon expression
+        :param list params: parameters
+        :returns: true if evaluation succeeded
+        :rtype: bool
+        """
         raise NotImplementedError()
     
     def evaluateFunction(self, sourceType, source, *params):

@@ -394,25 +394,37 @@ class Plan(ControlNode):
 
 
 class Wait(ControlNode):
-    def __init__(self, conditionType, condition, conditionGoalParams):
+    """
+    Blocks the process until the given condition is fulfilled.
+    """
+
+    def __init__(self, condition_type, condition, condition_goal_params):
+        """
+        :param int condition_type: the condition type
+        :param object condition: the condition
+        :param list condition_goal_params: parameters
+        """
         ControlNode.__init__(self)
-        self.__conditionType = conditionType
+        self.__condition_type = condition_type
         self.__condition = condition
-        self.__conditionGoalParams = conditionGoalParams
+        self.__condition_goal_params = condition_goal_params
 
-    def getCondition(self):
-        return (self.__condition, self.__conditionGoalParams)
+    def get_condition(self):
+        """
+        Returns the condition as a tuple (condition_type, condition, params)
+        :rtype: (int, object, list)
+        """
+        return self.__condition_type, self.__condition, self.__condition_goal_params
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        groundParams = evaluationContext.resolve(*self.__conditionGoalParams)
-
-        result = evaluationContext.evaluateCondition(self.__conditionType, self.__condition, *groundParams)
+    def executeStep(self, evaluation_context, procedure_registry):
+        result = evaluation_context.evaluateCondition(self.__condition_type, self.__condition,
+                                                      *self.__condition_goal_params)
         if result is True:
-            return (ControlNode.CONTINUE, None, evaluationContext)
+            return ControlNode.CONTINUE, None, evaluation_context
         else:
-            return (ControlNode.BLOCK, self, evaluationContext)
+            return ControlNode.BLOCK, self, evaluation_context
 
-    def reset(self, evaluationContext):
+    def reset(self, evaluation_context):
         pass
 
 
@@ -727,6 +739,7 @@ class TransmitRemoteSensorReading(ControlNode):
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
+
 
 class Receive(ControlNode):
     def __init__(self, channel, role, variable):

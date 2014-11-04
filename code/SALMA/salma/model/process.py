@@ -1,6 +1,6 @@
 from .core import Entity
 from salma.SALMAException import SALMAException
-from salma.model.procedure import ControlNode, Act, Procedure
+from salma.model.procedure import ControlNode, Act, Procedure, Wait
 from salma.model.evaluationcontext import EvaluationContext
 
 ONE_SHOT_PROCESS = 0
@@ -14,7 +14,7 @@ class Process(object):
     by some condition, or one-shot, which is defined in the corresponding subclasses.
     """
 
-    IDLE, RUNNING, BLOCKED, EXECUTING_ACTION = range(4)
+    IDLE, RUNNING, WAITING, SLEEPING, EXECUTING_ACTION = range(5)
 
     def __init__(self, procedure, introduction_time=0):
         """
@@ -25,6 +25,10 @@ class Process(object):
         """
         self.__agent = None
         self.__state = Process.IDLE
+
+        self.__blocking_condition = None
+        self.__suspended_until = None
+
         if isinstance(procedure, Procedure):
             self.__procedure = procedure
         elif isinstance(procedure, (ControlNode, list)):
@@ -34,7 +38,6 @@ class Process(object):
 
         self.__current_control_node = self.__procedure.body
         self.__current_evaluation_context = None
-        self.__pending_action = None
         self.__introduction_time = introduction_time
         self.__last_start_time = None
         self.__last_end_time = None
@@ -113,20 +116,62 @@ class Process(object):
     def current_evaluation_context(self) -> EvaluationContext:
         return self.__current_evaluation_context
 
-    def get_pending_action(self):
+    @property
+    def blocking_condition(self):
         """
-        Returns, if any, the action that was yielded by the agent during the immediate action gathering phase.
-         This action is added to the non-immediate action list in World.step and will thus be executed after the
-         immediate action phase.
-        :rtype: (str, list)
+        Returns the blocking condition as tuple (condition_type, condition, params)
+        :rtype: (int, object, list)
         """
-        return self.__pending_action
+        return self.__blocking_condition
 
-    def set_pending_action(self, pending_action):
+    @blocking_condition.setter
+    def blocking_condition(self, condition_type, condition, params):
+        self.__blocking_condition = (condition_type, condition, params)
+
+    @property
+    def suspended_until(self):
         """
-        :type pending_action: (str, list)
+        Returns the time until which the process is suspended by a sleep node.
+        :rtype: int
         """
-        self.__pending_action = pending_action
+        return self.__suspended_until
+
+    @suspended_until.setter
+    def suspended_until(self, t):
+        self.__suspended_until = t
+
+    def wake_up_if_possible(self):
+        """
+        Wakes the process up (i.e. sets state to RUNNING) if the blocking condition is fulfilled or
+        the suspension period is over.
+        :return: True if the process is running after this call
+        """
+        if self.state == Process.RUNNING:
+            return True
+        elif self.state == Process.WAITING and self.blocking_condition is not None:
+            condition_type, condition, params = self.blocking_condition
+            if self.current_evaluation_context is None:
+                raise SALMAException("Undefined evaluation context in process!")
+            res = self.current_evaluation_context.evaluateCondition(condition_type, condition, *params)
+            if res:
+                self.__state = Process.RUNNING
+                self.__blocking_condition = None
+                return True
+            else:
+                return False
+        elif self.state == Process.SLEEPING and self.suspended_until is not None:
+            current_time = self.current_evaluation_context.getFluentValue('time')
+            if current_time >= self.suspended_until:
+                self.__state = Process.RUNNING
+                self.__suspended_until = None
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+
 
     # TEMPLATE METHODS
 
@@ -165,7 +210,6 @@ class Process(object):
         self.__current_evaluation_context = self.agent.evaluation_context
         self.procedure.restart(self.__current_evaluation_context)
         self.__current_control_node = self.procedure.body
-        self.__pending_action = None
         self.__last_start_time = self.agent.evaluation_context.getFluentValue('time')
 
         self._on_start()
@@ -198,6 +242,7 @@ class Process(object):
     def step(self, new_step):
         """
         Performs one step of the process.
+        :return: returns an Act instance if an action is performed or None
 
         :rtype: Act
         """
@@ -207,10 +252,8 @@ class Process(object):
         if self.__current_control_node is None:
             return None
 
-        if self.__pending_action is not None and new_step is False:
+        if not self.state == Process.RUNNING:
             return None
-        self.__state = Process.RUNNING
-        self.__pending_action = None
 
         status = ControlNode.CONTINUE
         current_node = self.__current_control_node
@@ -239,6 +282,7 @@ class Process(object):
         if self.__current_control_node is not None:
             # status == BLOCKED
             if isinstance(self.__current_control_node, Act):
+                #TODO: add support for activity perform / wait after act
                 self.__state = Process.EXECUTING_ACTION
                 action = self.__current_control_node
 
@@ -249,7 +293,10 @@ class Process(object):
                 else:
                     self.__current_control_node = None
             else:
-                self.__state = Process.BLOCKED
+                self.__state = Process.WAITING
+                if isinstance(self.__current_control_node, Wait):
+                    self.__blocking_condition = self.__current_control_node.get_condition()
+                #TODO: handle sleep
 
         if self.__current_control_node is None:
             self.__execution_count += 1

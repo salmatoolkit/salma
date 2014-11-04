@@ -1,3 +1,4 @@
+import heapq
 import itertools
 import logging
 import random
@@ -68,7 +69,7 @@ class World(Entity, WorldDeclaration):
         # : :type: dict[str, (str, str, list)]
         self.__derived_fluents = dict()
 
-        #: :type: dict[str, Constant]
+        # : :type: dict[str, Constant]
         self.__constants = dict()
         # action_name -> core.Action
         self.__actions = dict()
@@ -82,6 +83,9 @@ class World(Entity, WorldDeclaration):
         # agents is a dict that stores
         self.__entities = dict()
         self.__agents = dict()
+
+        # ------------------- event schedule ---------------------------
+        self.__event_schedule = []
 
         # ------------------- information transfer ---------------------
         #: :type: dict[str, Connector]
@@ -292,14 +296,14 @@ class World(Entity, WorldDeclaration):
         for con in self.__constants.values():
             self.__expressionContext[con.name] = self.__make_constant_access_function(con.name)
 
-        #todo: include derived fluents in expression context?
+        # todo: include derived fluents in expression context?
         def __fluentChangeClock(fluentName, *params):
             return self.getFluentChangeTime(fluentName, params)
 
         def __actionClock(actionName, *params):
             return self.getActionClock(actionName, params)
 
-        #todo: add action count
+        # todo: add action count
         self.__expressionContext['fluentClock'] = __fluentChangeClock
         self.__expressionContext['actionClock'] = __actionClock
         # add a "variable" for each entity to allow access without quotation marks
@@ -426,7 +430,7 @@ class World(Entity, WorldDeclaration):
             self.sample_fluent_values()
 
         self.__initialized = True
-        #self.__persistentPropertiesInitialized = False
+        # self.__persistentPropertiesInitialized = False
         self.__create_expression_context()
 
     def is_finished(self):
@@ -798,31 +802,23 @@ class World(Entity, WorldDeclaration):
 
     def __translate_action_execution(self, evaluation_context, action_execution):
         """
-        Generates a ground deterministic action outcome from the given Act as a
-        (action_name, [ground_params]) tuple. If actionExecution refers to a stochastic action,
-        an outcome is generated according to the distribution that was defined for the action.
-        The given evaluation context is used for generating an outcome.
+        Generates a ground instance of an action from the given Act as a
+        (Action, [ground_params]) tuple. The given evaluation context is used to resolve the action parameters.
 
-        :return: (str, list)
         :raises: SALMAException if action is not registered.
 
-        :type evaluation_context: EvaluationContext
-        :type action_execution: Act
-        :rtype: (str, list)
+        :param EvaluationContext evaluation_context: the evaluation context used for parameter resolution
+        :type Act action_execution: the action execution control node
+        :rtype: (Action, list)
         """
         try:
             action = self.__actions[action_execution.actionName]
+            ground_params = evaluation_context.resolve(*action_execution.actionParameters)
+            return action, ground_params
         except KeyError:
             raise (
                 SALMAException("Trying to execute unregistered action: {}".format(
                     action_execution.actionName)))
-
-        ground_params = evaluation_context.resolve(*action_execution.actionParameters)
-
-        if isinstance(action, StochasticAction):
-            return action.generateOutcome(evaluation_context, ground_params)
-        else:
-            return action_execution.actionName, ground_params
 
     @staticmethod
     def __get_action_name_from_term(action_term):
@@ -859,6 +855,47 @@ class World(Entity, WorldDeclaration):
                         ea_instances.append(instance)
         return ea_instances
 
+    def __progress_interleaved(self, action_instances):
+        """
+        Progresses the given action / event instances in random order. For each instance of stochastic actions,
+        an outcome is generated at the time it is due to be progressed.
+
+        :param list[(Action|ExogenousAction, list, EvaluationContext)] action_instances: action instances
+        :return: list of failed actions / events
+        :rtype: list[str, list]
+        """
+        if len(action_instances) == 0:
+            return []
+        failed = []
+        random.shuffle(action_instances)
+        # progress deterministic action as batch but generate outcome for stochastic actions at hoc
+        act_seq = []
+        for ai in action_instances:
+            act = ai[0]
+
+            if isinstance(act, DeterministicAction):
+                action_name = act.name
+                args = ai[1]
+                act_seq.append((action_name, args))
+            elif isinstance(act, ExogenousAction):
+                action_name = act.action_name
+                args = ai[1]
+                act_seq.append((action_name, args))
+            elif isinstance(act, StochasticAction):
+                if len(act_seq) > 0:
+                    fa = World.logic_engine().progress(act_seq)
+                    failed.extend(fa)
+                    act_seq.clear()
+                action_name, args = act.generateOutcome(ai[2], ai[1])
+                fa = World.logic_engine().progress([(action_name, args)])
+                failed.extend(fa)
+            else:
+                raise SALMAException("Unsupported action instance: {}".format(type(act)))
+        if len(act_seq) > 0:
+            fa = World.logic_engine().progress(act_seq)
+            failed.extend(fa)
+        return failed
+
     def step(self, evaluate_properties=True):
         """
         Performs one discrete time step for all agents and runs the progression.
@@ -876,10 +913,29 @@ class World(Entity, WorldDeclaration):
         # action should be discarded.
         # : :type : set of process.Process
         entered_processes = set()
+
+        current_time = self.getTime()
         if moduleLogger.isEnabledFor(logging.DEBUG):
-            moduleLogger.debug("T = %d", self.getTime())
+            moduleLogger.debug("T = %d", current_time)
+        failed_actions = []
         while True:
-            #: :type: list[process.Process]
+            due_events = []
+
+            while len(self.__event_schedule) > 0 and self.__event_schedule[0][0] <= current_time:
+                due_events.append(heapq.heappop(self.__event_schedule)[1])
+
+            pre_events = []
+            interleaved_events = []
+            for ev in due_events:
+                if random.random() < 0.5:
+                    pre_events.append(ev)
+                else:
+                    interleaved_events.append(ev)
+
+            fa = self.__progress_interleaved(pre_events)
+            failed_actions.extend(fa)
+
+            # : :type: list[process.Process]
             active_processes = []
 
             # The schedule trigger predicate is evaluated iteratively here. This allows processes to
@@ -889,24 +945,15 @@ class World(Entity, WorldDeclaration):
                 if not agent.is_finished():
                     self.__finished = False
                 active_processes.extend(agent.update_schedule())
-            immediate_actions = []
 
             for proc in active_processes:
                 action_execution = proc.step(proc not in entered_processes)
                 entered_processes.add(proc)
                 if action_execution is not None:
                     act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
+                    actions.append(act)
 
-                    if act[0] in self.__actions and self.__actions[act[0]].immediate:
-                        immediate_actions.append(act)
-                    else:
-                        actions.append(act)
-                        proc.set_pending_action(act)
-                        # progress immediate actions without succeeding time step
-                        # leave loop only if we don't have any immediate actions left
-            if len(immediate_actions) == 0:
-                break
-            random.shuffle(immediate_actions)
+
             failed_actions = World.logic_engine().progress(immediate_actions)
             all_actions.extend(immediate_actions)
 
@@ -932,8 +979,8 @@ class World(Entity, WorldDeclaration):
                 moduleLogger.debug("  Progressed: %s", actions)
 
             # failed_regular_actions = list(
-            #     itertools.filterfalse(lambda fa: World.__get_action_name_from_term(fa) in self.__exogenousActions,
-            #                           failed_actions))
+            # itertools.filterfalse(lambda fa: World.__get_action_name_from_term(fa) in self.__exogenousActions,
+            # failed_actions))
 
             for fa in failed_actions:
                 if fa[0] not in self.__exogenousActions:
@@ -951,8 +998,8 @@ class World(Entity, WorldDeclaration):
                                                                                         scheduled_keys)
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug(("  toplevel_results: {}\n"
-                                   "  scheduled_results:{}\n"
-                                   "  scheduled_keys: {}").format(toplevel_results, scheduled_results, scheduled_keys))
+                                    "  scheduled_results:{}\n"
+                                    "  scheduled_keys: {}").format(toplevel_results, scheduled_results, scheduled_keys))
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
@@ -1077,7 +1124,7 @@ class World(Entity, WorldDeclaration):
         time_out = False
 
         while (not self.is_finished()) and (not check_verdict or verdict == NONDET):
-            #self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
+            # self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
             (verdict, _, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
              failed_invariants, failed_sustain_goals, failure_stack) = self.step(evaluate_properties=check_verdict)
             c2 = time.clock()
@@ -1236,7 +1283,7 @@ class World(Entity, WorldDeclaration):
                 # moduleLogger.info("Trial #{} --> {}".format(trial_number, verdict))
                 self.log_info(
                     "Trial #{} --> {}, steps = {}, time = {}".format(trial_number, verdict, res["steps"], res["time"]))
-                #print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
+                # print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
             trial_number += 1
 
             if hypothesis_test is not None:
@@ -1400,6 +1447,15 @@ class LocalEvaluationContext(EvaluationContext):
         return result
 
     def evaluateCondition(self, sourceType, source, *params):
+        """
+        Evaluates the given condition.
+
+        :param int sourceType: FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION or PYTHON_FUNCTION
+        :param object source: a python function, the name of a fluent, or a pothon expression
+        :param list params: parameters
+        :returns: true if evaluation succeeded
+        :rtype: bool
+        """
         resolvedParams = self.resolve(*params)
         result = None
         if sourceType == EvaluationContext.FLUENT:
@@ -1582,7 +1638,7 @@ class LocalEvaluationContext(EvaluationContext):
                         assignment[fv[0]] = value
 
             for name, value in assignment.items():
-                #TODO: handle params with interval domains?
+                # TODO: handle params with interval domains?
                 if isinstance(value, str):
                     refined_assignment[name] = self.getEntity(value)
                 else:
@@ -1612,7 +1668,7 @@ class LocalEvaluationContext(EvaluationContext):
         # : :type valueCombination: dict
 
         for name, value in result.items():
-            #TODO: handle params with interval domains?
+            # TODO: handle params with interval domains?
 
             if isinstance(value, str):
                 refinedResult[name] = self.getEntity(value)
