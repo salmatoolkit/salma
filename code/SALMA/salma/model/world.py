@@ -109,7 +109,7 @@ class World(Entity, WorldDeclaration):
         # : :type: dict[str, (str, int)]
         self.__achieve_and_sustain_goals = dict();
 
-        #: :type: set[str]
+        # : :type: set[str]
         self.__already_achieved_goals = set()
 
         if World.logic_engine() is None:
