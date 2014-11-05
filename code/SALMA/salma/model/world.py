@@ -88,7 +88,7 @@ class World(Entity, WorldDeclaration):
         self.__event_schedule = []
 
         # ------------------- information transfer ---------------------
-        #: :type: dict[str, Connector]
+        # : :type: dict[str, Connector]
         self.__connectors = dict()
 
         # ------------------- information transfer end ---------------------
@@ -98,15 +98,15 @@ class World(Entity, WorldDeclaration):
         self.__finished = False
         self.__initialized = False
 
-        #: :type: dict[str, object]
+        # : :type: dict[str, object]
         self.__additional_expression_context_globals = dict()
 
         # dict with registered properties: name -> (formula, property_type)
-        #: :type: dict[str, (str, int)]
+        # : :type: dict[str, (str, int)]
         self.__invariants = dict()
-        #: :type: dict[str, (str, int)]
+        # : :type: dict[str, (str, int)]
         self.__achieve_goals = dict()
-        #: :type: dict[str, (str, int)]
+        # : :type: dict[str, (str, int)]
         self.__achieve_and_sustain_goals = dict();
 
         #: :type: set[str]
@@ -855,6 +855,12 @@ class World(Entity, WorldDeclaration):
                         ea_instances.append(instance)
         return ea_instances
 
+    def update_event_schedule(self, limit=None):
+        pass
+
+    def get_next_process_time(self):
+        pass
+
     def __progress_interleaved(self, action_instances):
         """
         Progresses the given action / event instances in random order. For each instance of stochastic actions,
@@ -870,6 +876,7 @@ class World(Entity, WorldDeclaration):
         random.shuffle(action_instances)
         # progress deterministic action as batch but generate outcome for stochastic actions at hoc
         act_seq = []
+        performed_actions = []
         for ai in action_instances:
             act = ai[0]
 
@@ -884,17 +891,22 @@ class World(Entity, WorldDeclaration):
             elif isinstance(act, StochasticAction):
                 if len(act_seq) > 0:
                     fa = World.logic_engine().progress(act_seq)
+                    performed_actions.extend(act_seq)
                     failed.extend(fa)
                     act_seq.clear()
                 action_name, args = act.generateOutcome(ai[2], ai[1])
                 fa = World.logic_engine().progress([(action_name, args)])
                 failed.extend(fa)
+                performed_actions.append((action_name, args))
             else:
                 raise SALMAException("Unsupported action instance: {}".format(type(act)))
         if len(act_seq) > 0:
             fa = World.logic_engine().progress(act_seq)
             failed.extend(fa)
-        return failed
+            performed_actions.extend(act_seq)
+        if moduleLogger.isEnabledFor(logging.DEBUG):
+            moduleLogger.debug("  Progressed: %s, failed: ", performed_actions, failed)
+        return performed_actions, failed
 
     def step(self, evaluate_properties=True):
         """
@@ -907,7 +919,9 @@ class World(Entity, WorldDeclaration):
         current_time = self.getTime()
         if moduleLogger.isEnabledFor(logging.DEBUG):
             moduleLogger.debug("T = %d", current_time)
+        performed_actions = []
         failed_actions = []
+        self.update_event_schedule(limit=current_time)
         while True:
             due_events = []
 
@@ -916,7 +930,7 @@ class World(Entity, WorldDeclaration):
 
             pre_events = []
             interleaved_events = []
-            #randomly split actions in some that are performed before process flow and some
+            # randomly split actions in some that are performed before process flow and some
             # that are interleaved with actions
             for ev in due_events:
                 if random.random() < 0.5:
@@ -924,7 +938,8 @@ class World(Entity, WorldDeclaration):
                 else:
                     interleaved_events.append(ev)
 
-            fa = self.__progress_interleaved(pre_events)
+            pa, fa = self.__progress_interleaved(pre_events)
+            performed_actions.extend(pa)
             failed_actions.extend(fa)
 
             # : :type: list[process.Process]
@@ -944,45 +959,32 @@ class World(Entity, WorldDeclaration):
                     act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
                     actions.append(act)
 
+            actions.extend(interleaved_events)
+            pa, fa = self.__progress_interleaved(actions)
+            performed_actions.extend(pa)
+            failed_actions.extend(fa)
 
-            failed_actions = World.logic_engine().progress(immediate_actions)
+            self.update_event_schedule(limit=None)  # TODO: add timeout?
 
-            if moduleLogger.isEnabledFor(logging.DEBUG):
-                moduleLogger.debug("  Progressed immediately: %s", immediate_actions)
-            if len(failed_actions) > 0:
-                return NOT_OK, self.__finished, {}, {}, [], all_actions, failed_actions, set(), set(), []
+            if len(actions) == 0 and len(self.__event_schedule) > 0 and self.__event_schedule[0][0] > current_time:
+                break
 
-        ex_act_instances = self.get_exogenous_action_instances()
-
-        if ex_act_instances is not None:
-            actions.extend(ex_act_instances)
-
-        # regular action means non-exogenous actions
-        failed_regular_actions = []
-
-        if len(actions) > 0:
-            # shuffle actions as means for achieving fairness
-            random.shuffle(actions)
-            failed_actions = World.logic_engine().progress(actions)
-            all_actions.extend(actions)
-            if moduleLogger.isEnabledFor(logging.DEBUG):
-                moduleLogger.debug("  Progressed: %s", actions)
-
-            # failed_regular_actions = list(
-            # itertools.filterfalse(lambda fa: World.__get_action_name_from_term(fa) in self.__exogenousActions,
-            # failed_actions))
-
-            for fa in failed_actions:
-                if fa[0] not in self.__exogenousActions:
-                    failed_regular_actions.append(fa)
-
-        if len(failed_regular_actions) > 0:
-            return (NOT_OK, self.__finished, {}, {}, [], all_actions, failed_regular_actions,
-                    set(), set(), [])
+        t1 = self.get_next_process_time()
+        t2 = self.__event_schedule[0][0] if len(self.__event_schedule) > 0 else None
+        next_time = None
+        if t1 is None:
+            next_time = t2
+        elif t2 is None:
+            next_time = t1
+        else:
+            next_time = min(t1, t2)
+        if next_time is None:
+            next_time = current_time + 1
 
         verdict = NONDET
         if evaluate_properties:
-            toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep()
+            toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
+                interval_end=next_time - 1)  # TODO: check if bound is right
             verdict, failed_invariants, failed_sustain_goals = self.__arbitrate_verdict(toplevel_results,
                                                                                         scheduled_results,
                                                                                         scheduled_keys)
@@ -995,12 +997,9 @@ class World(Entity, WorldDeclaration):
             failure_stack = []
             failed_invariants, failed_sustain_goals = set(), set()
 
-        World.logic_engine().progress([('tick', [1])])
-        # it's ok if events fail but if regular actions fail, we're in trouble!
+        World.logic_engine().progress([('tick', [next_time - current_time])])
 
-        # TODO: distinguish between actions that take time and actions that don't
-        # execute all non-time actions before taking a time step
-        return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, all_actions, [],
+        return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions, [],
                 failed_invariants, failed_sustain_goals, failure_stack)
 
     @staticmethod
