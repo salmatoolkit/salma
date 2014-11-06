@@ -11,8 +11,6 @@
 % :- local initialization(init).
 
 
-
-
 % primitive_action(name, params=[name:sort,...])
 :- dynamic primitive_action/2.
 % declares that a primitive action is immediate
@@ -31,6 +29,8 @@
 
 :- dynamic time/2.
 
+:- [axiom_construction].
+:- [event_scheduling].
 
 % action declaration
 primitive_action(tick,[steps:integer]).
@@ -373,109 +373,10 @@ init_progression :-
 
 	
 
-close_successor_state_axioms :- 
-	add_default_domain_ssas,
-	findall(fluent(Name,Args,Type),fluent(Name,Args,Type), Fluents),
-	(foreach(F, Fluents) do
-		F = fluent(Name,Args,Type),
-		add_storage_query_to_ssa(Name,Args,Type, s0, get_current),
-		add_storage_query_to_ssa(Name,Args,Type, slast, get_last)
-	).
-	
-add_default_domain_ssas :-
-	get_all_sorts(Sorts),
-	(foreach(Sort, Sorts) do
-		(not clause(domain(Sort, _, do2(_,_)), _) ->
-			assert(domain(Sort, D, do2(_,S)) :- domain(Sort, D, S)) 
-			;
-			true
-		)
-	).
-		
-add_storage_query_to_ssa(Name, Args, Type, Sit, QueryName) :-
-	length(Args, NArgs),
-	length(NewArgs, NArgs),
-	var(Val),
-	QueryArgs = [Name, NewArgs, Val],
-	Query =.. [QueryName | QueryArgs],
-	(Type = boolean ->
-		append(NewArgs,[Sit], NewArgsWithSit),
-		Head =.. [Name | NewArgsWithSit],
-		(not clause(Head, _) ->
-			assert((Head :- Query, Val = true))
-			; 
-			true
-		)
-		;
-		append(NewArgs,[Val,Sit], NewArgsWithSit),
-		Head =.. [Name | NewArgsWithSit],
-		(not clause(Head, _) ->
-			%assert((Head :- Query, ! ; Val = none))
-			assert((Head :- Query))
-			;
-			true
-		)
-	).	
-	
-construct_boolean_fluent_ssa(FluentName, Params, Head, Body) :-
-	Len is length(Params),
-	length(Args1, Len),
-	Qualifier =.. [FluentName | Args1],
-	append(Args1, [do2(A,S)], Args),
-	append(Args1, [S], OldArgs),
-	Head =.. [FluentName | Args],
-	OldQuery =.. [FluentName | OldArgs],
-	Body = (
-				(OldQuery -> OldValue = true ; OldValue = false),
-				(
-					effect(Qualifier, A, OldValue, NewValue, S), !
-					;
-					NewValue = OldValue
-				),
-				NewValue = true
-	).						
-									
-construct_nonboolean_fluent_ssa(FluentName, Params, Head, Body) :-
-	Len is length(Params),
-	length(Args1, Len),
-	Qualifier =.. [FluentName | Args1],
-	append(Args1, [NewValue, do2(A,S)], Args),
-	append(Args1, [OldValue, S], OldArgs),
-	Head =.. [FluentName | Args],
-	OldQuery =.. [FluentName | OldArgs],
-	Body = (
-				OldQuery,
-				(
-					effect(Qualifier, A, OldValue, NewValue, S), !
-					;
-					NewValue = OldValue
-				)
-	).	
-
-construct_ssas :-
-	get_declared_fluents(Fluents),
-	(foreach(F, Fluents), fromto([], HandledIn, HandledOut, _) do
-		F = f(FluentName, Params, Type),
-		(member(FluentName, HandledIn) ->
-			HandledOut = HandledIn
-			;
-			(Type = boolean ->
-				construct_boolean_fluent_ssa(FluentName, Params, Head, Body)
-				;
-				construct_nonboolean_fluent_ssa(FluentName, Params, Head, Body)
-			),	
-			% if there's already a fluent clause then back off!
-			(not clause(Head, _) ->
-				retractall(Head),
-				asserta((Head :- Body))
-				;
-				true
-			),
-			append(HandledIn, [FluentName], HandledOut)
-		)
-	).
 
 
+% Checks recursively whether the given term is affected by the given
+% action instance.
 term_affected_by_action(Term, Action) :-
 	clause(effect(Term, Action, _, _, _), _), !
 	;
@@ -485,10 +386,6 @@ term_affected_by_action(Term, Action) :-
 		term_affected_by_action(Arg, Action), !
 	).
 		
-	
-	
-
-
 
 	
 create_situation([A], Time, S1, S2) :-
@@ -527,31 +424,7 @@ situation([A | Tl], S2) :- situation([A | Tl], s0, S2).
 % The following section contains functions that are used by the simulation engine
 % for automatic initialization of the domain.
 	
-possible_action_instance(ActionName, PossibleInstanceArgs) :-
-	exogenous_action(ActionName, EntityParams, StochasticParams),
-	(foreach(Param, EntityParams), foreach(Arg, PossibleInstanceArgs) do
-		Param = _ : DomainName,
-		domain(DomainName, Domain),
-		member(Arg, Domain)
-	), 
-	% generate variable stochastic params to check possibility
-	(foreach(_, StochasticParams), fromto(PossibleInstanceArgs, In, Out, TestArgs) do
-		append(In, [_], Out)
-	),
-	ActionTerm =.. [ActionName | TestArgs],
-	poss(ActionTerm, s0).
 	
-get_exogenous_action_instances(ActionName, Candidates) :-
-	findall(InstanceArgs, possible_action_instance(ActionName, InstanceArgs), Candidates).
-		
-
-get_all_exogenous_action_instances(Candidates) :-
-	findall(ActionName, exogenous_action(ActionName, _, _), ActionNames),
-	(foreach(A, ActionNames), foreach(C, Candidates) do
-		get_exogenous_action_instances(A, CandidatesForAction),
-		C = A : CandidatesForAction
-	).
-
 get_declared_fluents(Fluents) :-
 	findall(f(FName,Params,Type),fluent(FName,Params,Type),Fluents).
 	
