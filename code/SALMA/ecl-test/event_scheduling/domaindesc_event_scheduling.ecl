@@ -10,7 +10,7 @@ fluent(vy, [r:robot], integer).
 fluent(active, [r:robot], boolean).
 
 derived_fluent(dist, [r1:robot, r2:robot], float).
-
+derived_fluent(speed, [r:robot], float).
 
 
 primitive_action(set_velocity,[r:robot, vx:integer, vy:integer]).
@@ -25,9 +25,13 @@ poss(set_velocity(_, _, _), _) :- true.
 poss(jump(_, _, _), _) :- true.
 poss(activate(_), _) :- true.
 
-poss(collide(R1, R2, _), S) :- dist(R1,R2, Dist, S), Dist =< 10.
+poss(collide(R1, R2, _), S) :- R1 \= R2, dist(R1,R2, Dist, S), Dist =< 10.
 
 caused(breakdown(Rob), collide(R1, R2, Severity), Sit) :-
+	(Rob = R1, ! ; ROb = R2),
+	Severity > 0.5,
+	speed(Rob, Speed, S),
+	Speed >= 10.0.
 	
 
 effect(xpos(Robot), tick(Steps), OldX, X, S) :-
@@ -58,3 +62,7 @@ dist(R1, R2, Dist, S) :-
 	xpos(R2, X2, S), ypos(R1, Y2, S),
 	Dist is sqrt( (X2 - X1)^2 + (Y2 - Y1)^2).
 
+speed(Rob, Speed, S) :-
+	vx(Rob, Vx, S),
+	vy(Rob, Vy, S),
+	Speed is sqrt(Vx^2 + Vy^2).

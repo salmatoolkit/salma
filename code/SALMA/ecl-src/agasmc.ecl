@@ -5,6 +5,7 @@
 :- dynamic doc/2.
 :- dynamic derived_fluent/3.
 :- dynamic poss/2.
+:- dynamic caused/3.
 :- dynamic untracked_fluent/1.
 :- ['termutils'].
 :- ['sort_system'].
