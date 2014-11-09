@@ -63,24 +63,32 @@ caused_action_instance(PerformedAction, ActionName, Situation, PossibleInstanceA
 	caused(ActionTerm, PerformedAction, Situation).
 	
 get_caused_exogenous_action_instances(PerformedAction, ActionName, Situation, Candidates) :-
-	findall(InstanceArgs, possible_action_instance(PerformedAction, ActionName, 
+	findall(InstanceArgs, caused_action_instance(PerformedAction, ActionName, 
 		Situation, InstanceArgs), Candidates).
 		
 
 get_exogenous_action_instances_by_cause(PerformedAction, Situation, Candidates) :-
 	findall(ActionName, exogenous_action(ActionName, _, _), ActionNames),
-	(foreach(A, ActionNames), foreach(C, Candidates), param(PerformedAction, Situation) do
+	(foreach(A, ActionNames), fromto([], CIn, COut, Candidates), param(PerformedAction, Situation) do
 		get_caused_exogenous_action_instances(PerformedAction, A, Situation, CandidatesForAction),
-		C = A : CandidatesForAction
+		(length(CandidatesForAction) > 0 ->
+			append(CIn, [A : CandidatesForAction], COut)
+			;
+			COut = CIn
+		)			
 	).
 
 % Determines which events are caused by the given list of actions. 
 % This evaluates all defined caused-clauses and returns a list of
 % Action : Event tuples.
 get_all_caused_exogenous_action_instances(Actions, CausedEvents) :-
-	(foreach(Action, Actions), foreach(EventsByCause, CausedEvents) do
+	(foreach(Action, Actions), fromto([], EvIn, EvOut, CausedEvents) do
 		get_exogenous_action_instances_by_cause(Action, s0, Candidates),
-		EventsByCause = c(Action, Candidates)
+		(length(Candidates) > 0 ->
+			append(EvIn, [c(Action, Candidates)], EvOut)
+			;
+			EvOut = EvIn
+		)
 	).
 	
 	

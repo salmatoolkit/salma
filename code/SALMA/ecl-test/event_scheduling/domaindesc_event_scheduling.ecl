@@ -20,19 +20,22 @@ primitive_action(deactivate, [r:robot]).
 
 exogenous_action(collide, [r1:robot, r2:robot], [severity:integer]).
 exogenous_action(breakdown, [r1:robot], []).
+exogenous_action(slip, [r:robot], []).
+
 
 poss(set_velocity(_, _, _), _) :- true.
 poss(jump(_, _, _), _) :- true.
 poss(activate(_), _) :- true.
 
-poss(collide(R1, R2, _), S) :- R1 \= R2, dist(R1,R2, Dist, S), Dist =< 10.
+poss(collide(R1, R2, _), S) :- R1 @< R2, dist(R1,R2, Dist, S), Dist =< 10.
 
 caused(breakdown(Rob), collide(R1, R2, Severity), Sit) :-
-	(Rob = R1, ! ; ROb = R2),
+	(Rob = R1, ! ; Rob = R2),
 	Severity > 0.5,
-	speed(Rob, Speed, S),
+	speed(Rob, Speed, Sit),
 	Speed >= 10.0.
 	
+poss(slip(Rob), S) :- speed(Rob, Speed, S), Speed > 0.
 
 effect(xpos(Robot), tick(Steps), OldX, X, S) :-
 	vx(Robot, Vx, S),
