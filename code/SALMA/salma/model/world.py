@@ -86,6 +86,8 @@ class World(Entity, WorldDeclaration):
 
         # ------------------- event schedule ---------------------------
         self.__event_schedule = []
+        self.__possible_event_schedule = []
+
 
         # ------------------- information transfer ---------------------
         # : :type: dict[str, Connector]
@@ -803,18 +805,19 @@ class World(Entity, WorldDeclaration):
     def __translate_action_execution(self, evaluation_context, action_execution):
         """
         Generates a ground instance of an action from the given Act as a
-        (Action, [ground_params]) tuple. The given evaluation context is used to resolve the action parameters.
+        (Action, [ground_params], EvaluationContext) tuple. The given evaluation context is used to resolve the action
+        parameters.
 
         :raises: SALMAException if action is not registered.
 
         :param EvaluationContext evaluation_context: the evaluation context used for parameter resolution
-        :type Act action_execution: the action execution control node
-        :rtype: (Action, list)
+        :param Act action_execution: the action execution control node
+        :rtype: (Action, list, EvaluationContext)
         """
         try:
             action = self.__actions[action_execution.actionName]
             ground_params = evaluation_context.resolve(*action_execution.actionParameters)
-            return action, ground_params
+            return action, ground_params, evaluation_context
         except KeyError:
             raise (
                 SALMAException("Trying to execute unregistered action: {}".format(
@@ -841,7 +844,7 @@ class World(Entity, WorldDeclaration):
         select instances that should occur.
         :rtype: list
         """
-        candidates = World.logic_engine().getExogenousActionCandidates()
+        candidates = World.logic_engine().get_currently_possible_ad_hoc_event_instances()
         ea_instances = []
         for candidate in candidates.items():
             action_name = candidate[0]
@@ -866,15 +869,17 @@ class World(Entity, WorldDeclaration):
         Progresses the given action / event instances in random order. For each instance of stochastic actions,
         an outcome is generated at the time it is due to be progressed.
 
-        :param list[(Action|ExogenousAction, list, EvaluationContext)] action_instances: action instances
+        :param list[(Action|ExogenousAction, list, EvaluationContext)] action_instances: action instances = tuples (action, arguments, EvaluationContext)
         :return: list of failed actions / events
         :rtype: list[str, list]
         """
+        #TODO: consider caused / triggered events
+
         if len(action_instances) == 0:
             return []
         failed = []
         random.shuffle(action_instances)
-        # progress deterministic action as batch but generate outcome for stochastic actions at hoc
+        # progress deterministic action as batch but generate outcome for stochastic actions ad hoc
         act_seq = []
         performed_actions = []
         for ai in action_instances:
@@ -885,6 +890,7 @@ class World(Entity, WorldDeclaration):
                 args = ai[1]
                 act_seq.append((action_name, args))
             elif isinstance(act, ExogenousAction):
+                # note: for exogenous actions, the evaluation context is ignored
                 action_name = act.action_name
                 args = ai[1]
                 act_seq.append((action_name, args))
@@ -908,6 +914,9 @@ class World(Entity, WorldDeclaration):
             moduleLogger.debug("  Progressed: %s, failed: ", performed_actions, failed)
         return performed_actions, failed
 
+    def __schedule_possible_actions(self):
+        pass
+
     def step(self, evaluate_properties=True):
         """
         Performs one discrete time step for all agents and runs the progression.
@@ -925,6 +934,7 @@ class World(Entity, WorldDeclaration):
         while True:
             due_events = []
 
+            # TODO:
             while len(self.__event_schedule) > 0 and self.__event_schedule[0][0] <= current_time:
                 due_events.append(heapq.heappop(self.__event_schedule)[1])
 

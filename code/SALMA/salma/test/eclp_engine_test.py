@@ -101,14 +101,14 @@ class EclipseCLPEngineTest(unittest.TestCase):
         
     @withHeader()
     def testGetExogenousActionCandidates(self):
-        candidates = self.engine.getExogenousActionCandidates()
+        candidates = self.engine.get_currently_possible_ad_hoc_event_instances()
         print("BEFORE:\n")
         print("-" * 20)
         pprint.pprint(candidates)
         
         self.engine.setFluentValue("carrying", ["rob1", "item1"] , True)
         
-        candidates = self.engine.getExogenousActionCandidates()
+        candidates = self.engine.get_currently_possible_ad_hoc_event_instances()
         print("AFTER:")
         print("-" * 20)
         pprint.pprint(candidates)

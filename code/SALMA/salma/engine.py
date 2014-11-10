@@ -64,7 +64,7 @@ class FluentValue(object):
 
 class Engine(object):
     """
-    Abstract
+    An interface for engine that connect the core simulation engine to the logics evalauation mechanism.
     """
 
     def getCurrentState(self):
@@ -242,23 +242,40 @@ class Engine(object):
         '''
         raise NotImplementedError()
 
-    def getExogenousActionCandidates(self):
-        '''
+    def get_currently_possible_ad_hoc_event_instances(self):
+        """
+        Checks the poss-axioms of all exogenous actions and returns a list of all instcnes that are possible in the
+        current situation.
+
         Returns a list of form [action_name : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
-        '''
+        :rtype
+        """
+        raise NotImplementedError()
+
+    def get_next_possible_ad_hoc_event_instances(self, time_limit):
+        """
+        Searches for the next time step where a poss-axiom of an exogenous action becomes true. Returns that time
+        together with all possible exogenous action instances at that situation.
+
+        :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
+        step that is known to be inspected.
+        :return: a tuple: (time, [(action_name_1, [ [x_1_1_1, ..., x_1_n_1], ..., [x_1_1_m, ..., x_1_n_m] ]), ...,
+                                (action_name_N, [ [x_N_1_1, ..., x_N_n_1], ..., [x_N_1_m, ..., x_N_n_m] ]))
+        :rtype: (int, list[(str, list)])
+        """
         raise NotImplementedError()
 
     def getActionClock(self, actionName, params):
-        '''
+        """
         Returns the last recorded time when the given action was galled with the given parameters.
-        
+
         If the given action-parameter combination hasn't occurred before, this method returns -1.
-        
+
         :param actionName: str
-        :param params: list  
-        
+        :param params: list
+
         :rtype: int
-        '''
+        """
         raise NotImplementedError()
 
     def getFluentChangeTime(self, fluentName, params):
@@ -986,15 +1003,19 @@ class EclipseCLPEngine(Engine):
     def getProperties(self):
         return self.__properties.copy()
 
-    def getExogenousActionCandidates(self):
+    def get_currently_possible_ad_hoc_event_instances(self):
         """
+        Checks the poss-axioms of all exogenous actions and returns a list of all instcnes that are possible in the
+        current situation.
+
         Returns a list of form [action_name : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
+        :rtype
         """
         candidates = pyclp.Var()
-        self.__callGoal('get_all_exogenous_action_instances', candidates)
+        self.__callGoal('get_all_ad_hoc_event_instances', pyclp.Atom("s0"), candidates)
         result = dict()
         for actionDef in candidates.value():
-            actionName = str(actionDef[0])
+            action_name = str(actionDef[0])
             candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
             instances = []
             for c in candidates:
@@ -1007,9 +1028,43 @@ class EclipseCLPEngine(Engine):
 
                 instances.append(instance)
 
-            result[actionName] = instances
+            result[action_name] = instances
 
         return result
+
+    def get_next_possible_ad_hoc_event_instances(self, time_limit):
+        """
+        Searches for the next time step where a poss-axiom of an exogenous action becomes true. Returns that time
+        together with all possible exogenous action instances at that situation.
+
+        :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
+        step that is known to be inspected.
+        :return: a tuple: (time, [(action_name_1, [ [x_1_1_1, ..., x_1_n_1], ..., [x_1_1_m, ..., x_1_n_m] ]), ...,
+                                (action_name_N, [ [x_N_1_1, ..., x_N_n_1], ..., [x_N_1_m, ..., x_N_n_m] ]))
+        :rtype: (int, list[(str, list)])
+        """
+        next_time = pyclp.Var()
+        event_candidates = pyclp.Var()
+        self.__callGoal('get_next_possible_ad_hoc_events', time_limit, next_time, event_candidates)
+
+        result = dict()
+        for actionDef in event_candidates.value():
+            action_name = str(actionDef[0])
+            event_candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
+            instances = []
+            for c in event_candidates:
+                instance = []
+                for arg in c:
+                    if isinstance(arg, pyclp.Atom):
+                        instance.append(str(arg))
+                    else:
+                        instance.append(arg)
+
+                instances.append(instance)
+
+            result[action_name] = instances
+
+        return next_time, result
 
     def getActionClock(self, actionName, params):
         pterms = createParamTerms(*params)

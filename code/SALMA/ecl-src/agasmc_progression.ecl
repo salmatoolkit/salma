@@ -18,6 +18,11 @@
 :- dynamic stochastic_action/3.
 % exogenous_action(name, qualifying-params, augmenting-params)
 :- dynamic exogenous_action/3.
+:- dynamic ad_hoc_event/1.
+:- dynamic schedulable_event/1.
+:- dynamic caused_event/1.
+
+
 :- dynamic last_initialized/0.
 % clock for primitive and exogenous actions
 % action_clock(name, params, clock_value)
@@ -369,7 +374,8 @@ init_progression :-
 	retractall(action_clock(_,_,_)),
 	retractall(action_count(_,_,_)),
 	construct_ssas,
-	close_successor_state_axioms.
+	close_successor_state_axioms,
+	init_event_scheduling.
 
 	
 

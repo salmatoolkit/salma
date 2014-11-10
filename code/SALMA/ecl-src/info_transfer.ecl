@@ -568,17 +568,19 @@ poss(requestTransfer(M), S) :-
 	not awaitingTransfer(M, S),
 	not transferring(M, S).
 
-poss(transferStarts(M, _), S) :-
+schedulable(transferStarts(M, _), S) :-
 	awaitingTransfer(M, S).
 
-poss(transferEnds(M, _), S) :-
+
+	
+schedulable(transferEnds(M, _), S) :-
 	transferring(M, S),
 	% a multicast source-half message may not end directly
 	get_message_type(M, MsgType),
 	MsgType \= multicastSrc,
 	MsgType \= remoteSensorSrc.
 
-poss(transferFails(M), S) :-
+schedulable(transferFails(M), S) :-
 	awaitingTransfer(M, S), !
 	;
 	transferring(M,S),
