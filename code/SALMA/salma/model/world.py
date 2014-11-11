@@ -64,6 +64,7 @@ class World(Entity, WorldDeclaration):
         Entity.__init__(self, World.ENTITY_ID, World.SORT_NAME)
 
         # fluentName -> core.Fluent
+        # : :type : dict[str, Fluent]
         self.__fluents = dict()
 
         # : :type: dict[str, (str, str, list)]
@@ -71,9 +72,13 @@ class World(Entity, WorldDeclaration):
 
         # : :type: dict[str, Constant]
         self.__constants = dict()
+
         # action_name -> core.Action
+        #: :type : dict[str, Action]
         self.__actions = dict()
 
+        # name -> exogenous action
+        #: :type : dict[str, ExogenousAction]
         self.__exogenousActions = dict()
 
         self.__virtualSorts = set(["sort", "message"])
@@ -740,6 +745,7 @@ class World(Entity, WorldDeclaration):
         :rtype: PropertyCollection
         """
         return self.__property_collection
+
     # ---
 
     @staticmethod
@@ -834,14 +840,21 @@ class World(Entity, WorldDeclaration):
         else:
             return str(action_term)
 
-    def __translate_event_instances(self, raw_event_instances):
+    def __translate_event_instances(self, raw_event_instances, schedule):
         """
+        Translates event tuples retrieved from the logics engine to tuples that refer to ExogenousAction entries.
 
         :param list[(int, str, list)] raw_event_instances: the event instances gathered by the engine
-        :return: a list of tuples (time, event, params)
-        :rtype: list[(int, ExogenousAction, list)]
-        """
+        :param list[(int, (ExogenousAction, list))] schedule: the event schedule heap in which the translated event
+                instances will be pushed.
 
+        """
+        for rev in raw_event_instances:
+            try:
+                ea = self.__exogenousActions[rev[1]]
+                heapq.heappush(schedule, (rev[0], (ea, rev[2])))
+            except KeyError:
+                raise SALMAException("Unregistered exogenous action: {}".format(rev[1]))
 
     def get_next_process_time(self):
         pass
@@ -859,7 +872,6 @@ class World(Entity, WorldDeclaration):
             moduleLogger.debug("T = %d", current_time)
         performed_actions = []
         failed_actions = []
-
 
         self.update_event_schedule(limit=current_time)
         while True:
