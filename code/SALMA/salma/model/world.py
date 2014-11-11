@@ -14,6 +14,8 @@ from salma.model.actions import StochasticAction, DeterministicAction, Exogenous
 from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
+from salma.model.eventschedule import EventSchedule
+from salma.model.propertycollection import PropertyCollection
 from salma.model.world_declaration import WorldDeclaration
 from salma.statistics import HypothesisTest
 from .core import Entity, Fluent
@@ -34,8 +36,6 @@ class World(Entity, WorldDeclaration):
     initial situation by sampling values for all fluent and constant instances. Additionally, the fluent and constant values
     can also be manipulated with
     """
-
-    INVARIANT, ACHIEVE, ACHIEVE_AND_SUSTAIN = range(3)
 
     __logic_engine = None
 
@@ -85,11 +85,7 @@ class World(Entity, WorldDeclaration):
         self.__agents = dict()
 
         # ------------------- event schedule ---------------------------
-        #: :type: list[(int, Action|ExogenousAction, list)]
-        self.__event_schedule = []
-        #: :type: list[(int, Action|ExogenousAction, list)]
-        self.__possible_event_schedule = []
-
+        self.__event_schedule = EventSchedule(World.__logic_engine)
 
         # ------------------- information transfer ---------------------
         # : :type: dict[str, Connector]
@@ -105,16 +101,7 @@ class World(Entity, WorldDeclaration):
         # : :type: dict[str, object]
         self.__additional_expression_context_globals = dict()
 
-        # dict with registered properties: name -> (formula, property_type)
-        # : :type: dict[str, (str, int)]
-        self.__invariants = dict()
-        # : :type: dict[str, (str, int)]
-        self.__achieve_goals = dict()
-        # : :type: dict[str, (str, int)]
-        self.__achieve_and_sustain_goals = dict();
-
-        # : :type: set[str]
-        self.__already_achieved_goals = set()
+        self.__property_collection = PropertyCollection(World.__logic_engine)
 
         if World.logic_engine() is None:
             raise SALMAException("Engine not set when creating world.")
@@ -274,7 +261,6 @@ class World(Entity, WorldDeclaration):
             return self.getFluentValue(fluent_name, params)
 
         return __f
-
 
     def __make_constant_access_function(self, constant_name):
         def __f(*params):
@@ -746,6 +732,16 @@ class World(Entity, WorldDeclaration):
         """
         return (s for s in self.__connectors.values() if isinstance(s, RemoteSensor))
 
+    # --- PROPERTIES
+    @property
+    def property_collection(self):
+        """
+        Handles all properties registered for this world.
+        :rtype: PropertyCollection
+        """
+        return self.__property_collection
+    # ---
+
     @staticmethod
     def instance():
         """
@@ -838,92 +834,16 @@ class World(Entity, WorldDeclaration):
         else:
             return str(action_term)
 
-    def get_exogenous_action_instances(self):
+    def __translate_event_instances(self, raw_event_instances):
         """
-        Creates a list of all exogenous action instances (see ExogenusAction.generate_instance) for
-        all possible candidates. The list of possible candidates is calculated by calling
-        Engine.getExogenousActionCandidates() first. Then ExogenousAction.shouldHappen() is used to
-        select instances that should occur.
-        :rtype: list
+
+        :param list[(int, str, list)] raw_event_instances: the event instances gathered by the engine
+        :return: a list of tuples (time, event, params)
+        :rtype: list[(int, ExogenousAction, list)]
         """
-        candidates = World.logic_engine().get_currently_possible_ad_hoc_event_instances()
-        ea_instances = []
-        for candidate in candidates.items():
-            action_name = candidate[0]
-            combinations = candidate[1]
-            # just ignore if the ex action is not registered
-            if action_name in self.__exogenousActions:
-                ea = self.__exogenousActions[action_name]
-                for params in combinations:
-                    if ea.should_happen(self.__evaluationContext, params):
-                        instance = ea.generate_instance(self.__evaluationContext, params)
-                        ea_instances.append(instance)
-        return ea_instances
 
-    def update_event_schedule(self, limit=None):
-        current_time = self.getTime()
-        if limit is None:
-            limit = current_time
-        poss_events = World.logic_engine().get_next_possible_ad_hoc_event_instances(limit)
-
-pass
 
     def get_next_process_time(self):
-        pass
-
-    def __progress_interleaved(self, action_instances):
-        """
-        Progresses the given action / event instances in random order. For each instance of stochastic actions,
-        an outcome is generated at the time it is due to be progressed.
-
-        : param action_instances: :
-            action instances = tuples (action, arguments, EvaluationContext) where the last EvaluationContext argument
-            is only used for stochastic actions
-        :type action_instances: list[(Action|ExogenousAction, list, EvaluationContext)]
-        :return: list of failed actions / events
-        :rtype: list[str, list]
-        """
-        #TODO: consider caused / triggered events
-        if len(action_instances) == 0:
-            return []
-        failed = []
-        random.shuffle(action_instances)
-        # progress deterministic action as batch but generate outcome for stochastic actions ad hoc
-        act_seq = []
-        performed_actions = []
-        for ai in action_instances:
-            act = ai[0]
-
-            if isinstance(act, DeterministicAction):
-                action_name = act.name
-                args = ai[1]
-                act_seq.append((action_name, args))
-            elif isinstance(act, ExogenousAction):
-                # note: for exogenous actions, the evaluation context is ignored
-                action_name = act.action_name
-                args = ai[1]
-                act_seq.append((action_name, args))
-            elif isinstance(act, StochasticAction):
-                if len(act_seq) > 0:
-                    fa = World.logic_engine().progress(act_seq)
-                    performed_actions.extend(act_seq)
-                    failed.extend(fa)
-                    act_seq.clear()
-                action_name, args = act.generateOutcome(ai[2], ai[1])
-                fa = World.logic_engine().progress([(action_name, args)])
-                failed.extend(fa)
-                performed_actions.append((action_name, args))
-            else:
-                raise SALMAException("Unsupported action instance: {}".format(type(act)))
-        if len(act_seq) > 0:
-            fa = World.logic_engine().progress(act_seq)
-            failed.extend(fa)
-            performed_actions.extend(act_seq)
-        if moduleLogger.isEnabledFor(logging.DEBUG):
-            moduleLogger.debug("  Progressed: %s, failed: ", performed_actions, failed)
-        return performed_actions, failed
-
-    def __schedule_possible_actions(self):
         pass
 
     def step(self, evaluate_properties=True):
@@ -939,6 +859,8 @@ pass
             moduleLogger.debug("T = %d", current_time)
         performed_actions = []
         failed_actions = []
+
+
         self.update_event_schedule(limit=current_time)
         while True:
             due_events = []
@@ -1020,89 +942,6 @@ pass
 
         return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions, [],
                 failed_invariants, failed_sustain_goals, failure_stack)
-
-    @staticmethod
-    def __check_property_success(pname, toplevel_results, scheduled_results):
-        if toplevel_results[pname] == OK:
-            return True
-        if pname in scheduled_results:
-            for t, v in scheduled_results[pname]:
-                if v == OK:
-                    return True
-
-    @staticmethod
-    def __check_property_failure(pname, toplevel_results, scheduled_results):
-        if toplevel_results[pname] == NOT_OK:
-            return True
-        if pname in scheduled_results:
-            for t, v in scheduled_results[pname]:
-                if v == NOT_OK:
-                    return True
-
-    def __arbitrate_verdict(self, toplevel_results, scheduled_results, scheduled_keys):
-        """
-        Calculates an overall decision whether the current experiment should be counted as
-        a success or not. A run is a success if all achieve goals are true. A
-        :param dict[str, int] toplevel_results: the toplevel results
-        :param dict[str, list[(int,int)]] scheduled_results: scheduled results
-        :param dict[str, list[int]] scheduled_keys: scheduled keys
-        :returns: Returns a tuple: verdict, list of decision reasons
-        :rtype: (int, set, set)
-        """
-        failed_invariants = set()
-        pending_properties = set()
-        failed_sustain_goals = set()
-        verdict = NONDET
-
-        for pname in self.__invariants.keys():
-            if pname not in toplevel_results:
-                raise SALMAException("Invariant {} was not contained in the evaluation "
-                                     "step's top-level results ({})!".format(pname, toplevel_results))
-
-            if World.__check_property_failure(pname, toplevel_results, scheduled_results):
-                verdict = NOT_OK
-                failed_invariants.add(pname)
-
-        for pname in self.__achieve_goals.keys():
-            if pname not in toplevel_results:
-                raise SALMAException("Achieve goal {} was not contained in the evaluation "
-                                     "step's top-level results ({})!".format(pname, toplevel_results))
-
-            if World.__check_property_success(pname, toplevel_results, scheduled_results):
-                self.__already_achieved_goals.add(pname)
-
-        for pname in self.__achieve_and_sustain_goals.keys():
-            if pname not in toplevel_results:
-                raise SALMAException("Achieve-and-sustain goal {} was not contained in the evaluation "
-                                     "step's top-level results ({})!".format(pname, toplevel_results))
-
-            if World.__check_property_success(pname, toplevel_results, scheduled_results):
-                self.__already_achieved_goals.add(pname)
-            elif (World.__check_property_failure(pname, toplevel_results, scheduled_results)
-                  and pname in self.__already_achieved_goals):
-                verdict = NOT_OK
-                failed_sustain_goals.add(pname)
-
-        for pname in self.properties.keys():
-            if pname in scheduled_keys:
-                pending_properties.add(pname)
-
-        # if there's no achieve goal, we actually just run until some time limit (see runExperiment)
-        if (len(self.__achieve_goals) + len(self.__achieve_and_sustain_goals) > 0):
-            all_achieved = True
-        else:
-            all_achieved = False
-        # check whether all achieve goals have been achieved
-        for pname in (self.__achieve_goals.keys() | self.__achieve_and_sustain_goals.keys()):
-            if not pname in self.__already_achieved_goals:
-                all_achieved = False
-                break
-
-        if (verdict == NONDET and all_achieved is True
-            and len(pending_properties) == 0):
-            verdict = OK
-
-        return verdict, failed_invariants, failed_sustain_goals
 
     def runExperiment(self, check_verdict=True, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
         """
@@ -1203,9 +1042,7 @@ pass
                  "failed_sustain_goals": failed_sustain_goals,
                  "achieved_goals": self.__already_achieved_goals,
                  "failure_stack": failure_stack,
-                 "scheduled_keys": scheduled_keys
-                }
-        )
+                 "scheduled_keys": scheduled_keys})
 
     def runUntilFinished(self, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
         """
@@ -1322,68 +1159,6 @@ pass
         for ea in exoactions:
             action_descriptions.append(ea.describe())
         return "\n".join(action_descriptions)
-
-    def registerProperty(self, propertyName, formula, property_type):
-        """
-        Registers the given formula under the given name.
-        :param str propertyName: the name of the property usd for referencing it later.
-        :param str formula: the formula.
-        :param int property_type: one of World.INVARIANT, World.ACHIEVE, or World.ACHIEVE_AND_SUSTAIN
-        """
-        if property_type not in (World.INVARIANT, World.ACHIEVE, World.ACHIEVE_AND_SUSTAIN):
-            raise SALMAException("Unknown property type: {}".format(property_type))
-        if (propertyName in self.__invariants or propertyName in self.__achieve_goals
-            or propertyName in self.__achieve_and_sustain_goals):
-            raise SALMAException("Property {} already registered.".format(propertyName))
-        World.logic_engine().registerProperty(propertyName, formula)
-        if property_type == World.INVARIANT:
-            self.__invariants[propertyName] = (formula, property_type)
-        elif property_type == World.ACHIEVE:
-            self.__achieve_goals[propertyName] = (formula, property_type)
-        else:
-            self.__achieve_and_sustain_goals[propertyName] = (formula, property_type)
-
-    def unregister_property(self, property_name):
-        """
-        Un-registers a property.
-        :param str property_name: the property's name
-        """
-        if property_name in self.__invariants:
-            del self.__invariants[property_name]
-        if property_name in self.__achieve_goals:
-            del self.__achieve_goals[property_name]
-        if property_name in self.__achieve_and_sustain_goals:
-            del self.__achieve_and_sustain_goals[property_name]
-
-    @property
-    def properties(self):
-        """
-        A new dict containing all properties that are registered currently. The dict has the
-          structure name -> (formula, property_type)
-        :rtype: dict[str, (str, int)]
-        """
-        all_props = dict(self.__invariants)
-        all_props.update(self.__achieve_goals)
-        all_props.update(self.__achieve_and_sustain_goals)
-        return all_props
-
-    @property
-    def invariants(self):
-        return self.__invariants
-
-    @property
-    def achieve_goals(self):
-        return self.__achieve_goals
-
-    @property
-    def achieve_and_sustain_goals(self):
-        return self.__achieve_and_sustain_goals
-
-    def all_goals(self):
-        goals = dict()
-        goals.update(self.__achieve_goals)
-        goals.update(self.__achieve_and_sustain_goals)
-        return goals
 
     def getActionClock(self, actionName, params):
         """
