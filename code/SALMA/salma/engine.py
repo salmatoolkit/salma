@@ -1,8 +1,8 @@
-'''
+"""
 Created on 21.05.2013
 
 @author: kroiss
-'''
+"""
 
 import logging
 import numbers
@@ -19,17 +19,17 @@ moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
 
 class FluentValue(object):
-    '''
+    """
     Stores the string representation of a fluent value together with its associated parameters.
     Note that no type is stored here.
-    '''
+    """
 
     def __init__(self, fluentName, fluentParamValues, value):
-        '''
+        """
         fluentName: fluent name
         fluentParamValues: list of params
         value: fluent value in string form
-        '''
+        """
         self.__fluentName = fluentName
         self.__fluentParamValues = fluentParamValues
         self.__value = value
@@ -78,135 +78,135 @@ class Engine(object):
         raise NotImplementedError()
 
     def getFluentValue(self, fluentName, *fluentParams):
-        '''
+        """
         returns: the FluentValue object
-        '''
+        """
         raise NotImplementedError()
 
     def setFluentValue(self, fluentName, fluentParams, value):
         raise NotImplementedError()
 
     def cleanup(self):
-        '''
+        """
         Resets the values of all fluents.
-        '''
+        """
         raise NotImplementedError()
 
     def progress(self, actions):
-        '''
+        """
         Performs a progression of all fluents with the given actions.
-        '''
+        """
         raise NotImplementedError()
 
     def evaluateCondition(self, conditionGoalName, *conditionGoalParams):
-        '''
+        """
         Evaluates the given goal and returns true if the evaluation succeeds.
 
         conditionGoalName: name of the condition goal. The goal has to be defined in the domain module.
         conditionGoalParams: the parameters that are used for evaluating the condition goal.
         returns: true if evaluation succeeded
-        '''
+        """
         raise NotImplementedError()
 
     def evaluateFunctionGoal(self, situation, goalName, *goalParams):
-        '''
+        """
         Evaluates the given goal with the given parameters and an implicit last parameter for the result variable.
         Only the first result is returned.
-        
-        If a situation is given, it is appended after the result variable at the last position. 
-        '''
+
+        If a situation is given, it is appended after the result variable at the last position.
+        """
         raise NotImplementedError()
 
     def evaluateRelationalGoal(self, situation, goalName, *goalParams):
-        '''
+        """
         Evaluates the given goal with the given parameters and an implicit last parameter for the result variable.
         A list of all found results is returned.
-        
-        If a situation is given, it is appended after the result variable at the last position. 
-        '''
+
+        If a situation is given, it is appended after the result variable at the last position.
+        """
         raise NotImplementedError()
 
     def selectAll(self, predicateName, *params, **kwargs):
-        '''
-        returns a list of tuples with all possible value combinations for the given variables that make the execution of the given predicate 
+        """
+        returns a list of tuples with all possible value combinations for the given variables that make the execution of the given predicate
         succeed
-        
+
         :param predicateName str:
-        :param params list: list of either concrete values or (name, type) tuples  
+        :param params list: list of either concrete values or (name, type) tuples
         :rtype list: list of dicts
-        '''
+        """
         raise NotImplementedError()
 
     def selectFirst(self, predicateName, *params, **kwargs):
-        '''
-        returns a tuple with the first possible value combination that make the execution of the given predicate 
+        """
+        returns a tuple with the first possible value combination that make the execution of the given predicate
         succeed
-        
-        :param params list: list of either concrete values or (name, type) tuples  
-        :param predicateName str: 
-        :rtype dict: 
-        '''
+
+        :param params list: list of either concrete values or (name, type) tuples
+        :param predicateName str:
+        :rtype dict:
+        """
         raise NotImplementedError()
 
     def createPlan(self, procedureName, *params, **kwargs):
-        '''
+        """
         Creates a plan for the given procedure.
-        
+
         returns a tuple: (plan = list of ground ActionExecutions, dict with params)
-        '''
+        """
         raise NotImplementedError()
 
     def reset(self, removeFormulas=True, deleteConstants=True):
         raise NotImplementedError()
 
     def defineDomain(self, sortName, objectIds):
-        '''
+        """
         Defines the domain of the given sort to be the given list of objectIds
-        
+
         :param sortName: str
-        :param objectIds: list  
-        '''
+        :param objectIds: list
+        """
         raise NotImplementedError()
 
     def initSortHierarchy(self):
-        '''
+        """
         Resolves all declared sort - subsort relationships and initializes supersorts
         accordingly.
-        
-        '''
+
+        """
         raise NotImplementedError()
 
     def setConstantValue(self, constantName, constantParams, value):
-        '''
+        """
         sets the given constant value for the given params
-        
+
         The value is cached and all subsequent calls to getConstantValue() will return
         the cached value.
-        
+
         :param constantName: str
         :param constantParams: list
-        :param value: object    
-        '''
+        :param value: object
+        """
         raise NotImplementedError()
 
     def getConstantValue(self, constantName, constantParams):
-        '''
+        """
         Returns the cached value for the given constant with the given parameters. If no
         value is set, it returns None.
-      
+
         :param constantName: str
         :param constantParams: list
-        
-        '''
+
+        """
         raise NotImplementedError()
 
     def isConstantDefined(self, constantName, constantParams):
-        '''
+        """
         Returns true iff a value is defined for the given constant with the given parameters.
-        
+
         :param constantName: str
         :param constantParams: list
-        '''
+        """
         raise NotImplementedError()
 
     def evaluationStep(self, interval_end=None):
@@ -228,27 +228,17 @@ class Engine(object):
         raise NotImplementedError()
 
     def registerProperty(self, propertyName, formula):
-        '''
-        Registers the given formula under the given name. 
-        '''
+        """
+        Registers the given formula under the given name.
+        """
         raise NotImplementedError()
 
     def printToplevelGoals(self):
         raise NotImplementedError()
 
     def getProperties(self):
-        '''
-        Returns a dict with name : formula
-        '''
-        raise NotImplementedError()
-
-    def get_currently_possible_ad_hoc_event_instances(self):
         """
-        Checks the poss-axioms of all exogenous actions and returns a list of all instcnes that are possible in the
-        current situation.
-
-        Returns a list of form [action_name : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
-        :rtype
+        Returns a dict with name : formula
         """
         raise NotImplementedError()
 
@@ -259,9 +249,22 @@ class Engine(object):
 
         :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
         step that is known to be inspected.
-        :return: a tuple: (time, [(action_name_1, [ [x_1_1_1, ..., x_1_n_1], ..., [x_1_1_m, ..., x_1_n_m] ]), ...,
-                                (action_name_N, [ [x_N_1_1, ..., x_N_n_1], ..., [x_N_1_m, ..., x_N_n_m] ]))
-        :rtype: (int, list[(str, list)])
+        :return: a list of tuples (time, action_name, arguments)
+        :rtype: list[(int, str, list)]
+        """
+        raise NotImplementedError()
+
+    def get_next_schedulable_event_instances(self, time_limit, current_schedule):
+        """
+        Searches for the next time step where a schedulability axiom of an exogenous action becomes true. Returns that
+        time together with all schedulable exogenous action instances at that situation.
+
+        :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
+                    step that is known to be inspected.
+        :param list[(int, str, list)] current_schedule: the currently scheduled event instances as tuples of form
+                                                            (time, action_name, params)
+        :return: a list of tuples (time, action_name, arguments)
+        :rtype: list[(int, str, list)]
         """
         raise NotImplementedError()
 
@@ -279,25 +282,25 @@ class Engine(object):
         raise NotImplementedError()
 
     def getFluentChangeTime(self, fluentName, params):
-        '''
+        """
         Returns the last recorded time when the given fluent with the given parameters.
-        
-        If the given fluent-parameter combination has not been initialized yet, 
+
+        If the given fluent-parameter combination has not been initialized yet,
         this method returns -1.
-        
+
         :param fluentName: str
         :param params: list
-        '''
+        """
         raise NotImplementedError()
 
     def queryPersistentProperty(self, propertyName):
-        '''
+        """
         Returns a tuple with the current status of the given property together with the last
         change time.
-        
+
         :param propertyName: str
         :rtype: tuple
-        '''
+        """
         raise NotImplementedError()
 
     def load_declarations(self):
@@ -372,19 +375,19 @@ def createParamTerms(*params, **kwargs):
     return paramTerms
 
 
-def createTerm(functor, *params, **kwargs):
-    paramTerms = createParamTerms(*params, **kwargs)
+def create_term(functor, *params, **kwargs):
+    param_terms = createParamTerms(*params, **kwargs)
 
-    if len(paramTerms) == 0:
+    if len(param_terms) == 0:
         return pyclp.Atom(functor)
     else:
-        return pyclp.Compound(functor, *paramTerms)  # must unpack because otherwise the term would contain brackets
+        return pyclp.Compound(functor, *param_terms)  # must unpack because otherwise the term would contain brackets
 
 
 class EclipseCLPEngine(Engine):
-    '''
-    classdocs
-    '''
+    """
+    The Engine implementation for ECLiPSe.
+    """
     # TODO: make this somehow more module relative
     PROGRESSION_MODULE = os.path.abspath(
         os.path.join(salma.__path__[0], "../ecl-src/agasmc.ecl"))
@@ -399,7 +402,6 @@ class EclipseCLPEngine(Engine):
         self.__proceduresPath = None if procedureDefPath is None else os.path.abspath(procedureDefPath)
         self.__properties = dict()
         self.__constants = dict()
-
 
         # dict: (fluentName, tuple(fluentParams)) -> engine.FluentValue
         self.__currentState = None
@@ -588,9 +590,9 @@ class EclipseCLPEngine(Engine):
             self.__currentState[(fluentName, tuple(fluentParams))] = fv
 
     def getCurrentState(self):
-        '''
+        """
         Returns a list of engine.FluentValue instances that contain the current state.
-        '''
+        """
         if self.__currentState is None:
             self.__updateCurrentState()
 
@@ -613,7 +615,6 @@ class EclipseCLPEngine(Engine):
             return self.__currentState[key]
 
     def setFluentValue(self, fluentName, fluentParams, value):
-
         pterms = createParamTerms(*fluentParams)
         vterm = createParamTerms(value)[0]
         self.__callGoal("set_current",
@@ -632,12 +633,12 @@ class EclipseCLPEngine(Engine):
         self.__currentState = None  # invalidate cache
         actionTerms = []
         for action in actions:
-            actionTerm = createTerm(action[0], *action[1])
+            actionTerm = create_term(action[0], *action[1])
             actionTerms.append(actionTerm)
 
         failedActions = pyclp.Var()
         goal, _, _ = self.__callGoal("progress_sequential", pyclp.PList(actionTerms), failedActions)
-        self.__updateCurrentState()
+        # self.__updateCurrentState()
         return EclipseCLPEngine.__translateFailedActions(failedActions.value())
 
     @staticmethod
@@ -854,7 +855,6 @@ class EclipseCLPEngine(Engine):
         self.__callGoal("get_current", refinedParams, v)
         return self.__convert_value_from_engine_result(v)
 
-
     def initSortHierarchy(self):
         domVar = pyclp.Var()
         self.__callGoal('init_sort_hierarchy', domVar,
@@ -1003,35 +1003,6 @@ class EclipseCLPEngine(Engine):
     def getProperties(self):
         return self.__properties.copy()
 
-    def get_currently_possible_ad_hoc_event_instances(self):
-        """
-        Checks the poss-axioms of all exogenous actions and returns a list of all instcnes that are possible in the
-        current situation.
-
-        Returns a list of form [action_name : [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...], actionName2 : ... ]
-        :rtype
-        """
-        candidates = pyclp.Var()
-        self.__callGoal('get_all_ad_hoc_event_instances', pyclp.Atom("s0"), candidates)
-        result = dict()
-        for actionDef in candidates.value():
-            action_name = str(actionDef[0])
-            candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
-            instances = []
-            for c in candidates:
-                instance = []
-                for arg in c:
-                    if isinstance(arg, pyclp.Atom):
-                        instance.append(str(arg))
-                    else:
-                        instance.append(arg)
-
-                instances.append(instance)
-
-            result[action_name] = instances
-
-        return result
-
     def get_next_possible_ad_hoc_event_instances(self, time_limit):
         """
         Searches for the next time step where a poss-axiom of an exogenous action becomes true. Returns that time
@@ -1039,32 +1010,62 @@ class EclipseCLPEngine(Engine):
 
         :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
         step that is known to be inspected.
-        :return: a tuple: (time, [(action_name_1, [ [x_1_1_1, ..., x_1_n_1], ..., [x_1_1_m, ..., x_1_n_m] ]), ...,
-                                (action_name_N, [ [x_N_1_1, ..., x_N_n_1], ..., [x_N_1_m, ..., x_N_n_m] ]))
-        :rtype: (int, list[(str, list)])
+        :return: a list of tuples (time, action_name, arguments)
+        :rtype: list[(int, str, list)]
         """
         next_time = pyclp.Var()
         event_candidates = pyclp.Var()
         self.__callGoal('get_next_possible_ad_hoc_events', time_limit, next_time, event_candidates)
 
-        result = dict()
+        result = []
         for actionDef in event_candidates.value():
             action_name = str(actionDef[0])
             event_candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
-            instances = []
             for c in event_candidates:
-                instance = []
+                instance_params = []
                 for arg in c:
                     if isinstance(arg, pyclp.Atom):
-                        instance.append(str(arg))
+                        instance_params.append(str(arg))
                     else:
-                        instance.append(arg)
+                        instance_params.append(arg)
+                result.append((next_time.value(), action_name, instance_params))
+        return result
 
-                instances.append(instance)
+    def get_next_schedulable_event_instances(self, time_limit, current_schedule):
+        """
+        Searches for the next time step where a schedulability axiom of an exogenous action becomes true. Returns that
+        time together with all schedulable exogenous action instances at that situation.
 
-            result[action_name] = instances
+        :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
+                    step that is known to be inspected.
+        :param list[(int, str, list)] current_schedule: the currently scheduled event instances as tuples of form
+                                                            (time, action_name, params)
+        :return: a list of tuples (time, action_name, arguments)
+        :rtype: list[(int, str, list)]
+        """
+        translated_schedule = []
+        for ev in current_schedule:
+            evterm = create_term("ev", ev[0], ev[1], ev[2])
+            translated_schedule.append(evterm)
 
-        return next_time, result
+        next_time = pyclp.Var()
+        event_candidates = pyclp.Var()
+
+        self.__callGoal('get_next_schedulable_events', time_limit, translated_schedule, next_time, event_candidates)
+
+        result = []
+        for actionDef in event_candidates.value():
+            action_name = str(actionDef[0])
+            event_candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
+            for c in event_candidates:
+                instance_params = []
+                for arg in c:
+                    if isinstance(arg, pyclp.Atom):
+                        instance_params.append(str(arg))
+                    else:
+                        instance_params.append(arg)
+                result.append((next_time.value(), action_name, instance_params))
+        return result
 
     def getActionClock(self, actionName, params):
         pterms = createParamTerms(*params)
@@ -1073,7 +1074,6 @@ class EclipseCLPEngine(Engine):
                         pyclp.Atom(actionName),
                         pyclp.PList(pterms),
                         t)
-
         return self.__convert_value_from_engine_result(t.value())
 
     def getFluentChangeTime(self, fluentName, params):
@@ -1178,6 +1178,6 @@ class EclipseCLPEngine(Engine):
         return self.__convert_value_from_engine_result(msgid.value())
 
 
-__all__ = ["Engine", "EclipseCLPEngine", "FluentValue", "createParamTerms", "createTerm"]
+__all__ = ["Engine", "EclipseCLPEngine", "FluentValue", "createParamTerms", "create_term"]
 
 

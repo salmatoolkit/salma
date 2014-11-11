@@ -85,7 +85,9 @@ class World(Entity, WorldDeclaration):
         self.__agents = dict()
 
         # ------------------- event schedule ---------------------------
+        #: :type: list[(int, Action|ExogenousAction, list)]
         self.__event_schedule = []
+        #: :type: list[(int, Action|ExogenousAction, list)]
         self.__possible_event_schedule = []
 
 
@@ -859,7 +861,12 @@ class World(Entity, WorldDeclaration):
         return ea_instances
 
     def update_event_schedule(self, limit=None):
-        pass
+        current_time = self.getTime()
+        if limit is None:
+            limit = current_time
+        poss_events = World.logic_engine().get_next_possible_ad_hoc_event_instances(limit)
+
+pass
 
     def get_next_process_time(self):
         pass
@@ -869,12 +876,14 @@ class World(Entity, WorldDeclaration):
         Progresses the given action / event instances in random order. For each instance of stochastic actions,
         an outcome is generated at the time it is due to be progressed.
 
-        :param list[(Action|ExogenousAction, list, EvaluationContext)] action_instances: action instances = tuples (action, arguments, EvaluationContext)
+        : param action_instances: :
+            action instances = tuples (action, arguments, EvaluationContext) where the last EvaluationContext argument
+            is only used for stochastic actions
+        :type action_instances: list[(Action|ExogenousAction, list, EvaluationContext)]
         :return: list of failed actions / events
         :rtype: list[str, list]
         """
         #TODO: consider caused / triggered events
-
         if len(action_instances) == 0:
             return []
         failed = []
@@ -1000,7 +1009,7 @@ class World(Entity, WorldDeclaration):
                                                                                         scheduled_keys)
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug(("  toplevel_results: {}\n"
-                                    "  scheduled_results:{}\n"
+                                    "  scheduled_results: {}\n"
                                     "  scheduled_keys: {}").format(toplevel_results, scheduled_results, scheduled_keys))
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
