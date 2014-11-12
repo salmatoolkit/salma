@@ -619,8 +619,13 @@ class ExogenousAction(object):
 
     def generate_instance(self, evaluation_context, entity_combination):
         """
+        Generates a concrete event instance by sampling from the stochastic parameter distributions.
+        The result is a raw tuple that can be used in progression.
+
         :type evaluation_context: EvaluationContext
         :type entity_combination: list
+
+        :rtype: (str, list)
         """
         args = list(entity_combination)
         # : :type distribution: Distribution

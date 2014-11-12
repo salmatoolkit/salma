@@ -74,14 +74,10 @@ class World(Entity, WorldDeclaration):
         self.__constants = dict()
 
         # action_name -> core.Action
-        #: :type : dict[str, Action]
+        # : :type : dict[str, Action]
         self.__actions = dict()
 
-        # name -> exogenous action
-        #: :type : dict[str, ExogenousAction]
-        self.__exogenousActions = dict()
-
-        self.__virtualSorts = set(["sort", "message"])
+        self.__virtualSorts = {"sort", "message"}
 
         # store all entities in a sort -> entity dict 
         self.__domainMap = dict()
@@ -90,7 +86,7 @@ class World(Entity, WorldDeclaration):
         self.__agents = dict()
 
         # ------------------- event schedule ---------------------------
-        self.__event_schedule = EventSchedule(World.__logic_engine)
+        self.__event_schedule = EventSchedule(World.logic_engine())
 
         # ------------------- information transfer ---------------------
         # : :type: dict[str, Connector]
@@ -106,7 +102,7 @@ class World(Entity, WorldDeclaration):
         # : :type: dict[str, object]
         self.__additional_expression_context_globals = dict()
 
-        self.__property_collection = PropertyCollection(World.__logic_engine)
+        self.__property_collection = PropertyCollection(World.logic_engine())
 
         if World.logic_engine() is None:
             raise SALMAException("Engine not set when creating world.")
@@ -250,15 +246,7 @@ class World(Entity, WorldDeclaration):
             if len(problems) > 0:
                 problematic_stochastic_actions.append((action, problems))
 
-        for exo_action in self.__exogenousActions.values():
-            assert isinstance(exo_action, ExogenousAction)
-            if exo_action.config is None:
-                problematic_exogenous_actions.append((exo_action, ["uninitialized"]))
-            else:
-                problems = exo_action.config.check()
-                if len(problems) > 0:
-                    problematic_exogenous_actions.append((exo_action, problems))
-
+        problematic_exogenous_actions = self.__event_schedule.check_exogenous_action_initialization()
         return problematic_stochastic_actions, problematic_exogenous_actions
 
     def __make_fluent_access_function(self, fluent_name):
@@ -341,9 +329,9 @@ class World(Entity, WorldDeclaration):
         self.__constants = dict()
         # action_name -> core.Action
         self.__actions = dict()
-        self.__exogenousActions = dict()
         self.__connectors = dict()
 
+        self.__event_schedule.clear()
         declarations = World.logic_engine().load_declarations()
         for f in declarations['fluents']:
             self.addFluent(Fluent(f[0], f[2], f[1]))
@@ -359,7 +347,7 @@ class World(Entity, WorldDeclaration):
                                                    declarations["immediate_actions"])
 
         for ea in declarations['exogenous_actions']:
-            self.addExogenousAction(ExogenousAction(ea[0], ea[1], ea[2]))
+            self.__event_schedule.add_exogenous_action(ExogenousAction(ea[0], ea[1], ea[2]))
 
         # info transfer
         for c in declarations["channels"]:
@@ -477,7 +465,7 @@ class World(Entity, WorldDeclaration):
         if entity.sortName in self.__domainMap:
             self.__domainMap[entity.sortName].add(entity)
         else:
-            self.__domainMap[entity.sortName] = set([entity])
+            self.__domainMap[entity.sortName] = {entity}
 
     def addAgent(self, agent):
         """
@@ -568,24 +556,6 @@ class World(Entity, WorldDeclaration):
         """
         return self.__actions.values()
 
-    def addExogenousAction(self, exogenousAction):
-        """
-        Registers the given exogenous action. Normally this method is called automatically by load_declarations().
-        :type exogenousAction: ExogenousAction
-        """
-        self.__exogenousActions[exogenousAction.action_name] = exogenousAction
-
-    def removeExogenousAction(self, exogenousAction):
-        """
-        Removes the given exogenous action.
-        :type exogenousAction: ExogenousAction
-        """
-        try:
-            del self.__exogenousActions[exogenousAction.action_name]
-        except KeyError:
-            raise (
-                SALMAException("Trying to erase unregistered exogenous action {}.".format(exogenousAction.action_name)))
-
     def get_exogenous_action(self, action_name):
         """
         Returns the exogenous action with the given name.
@@ -594,7 +564,7 @@ class World(Entity, WorldDeclaration):
         :rtype: ExogenousAction
         """
         try:
-            return self.__exogenousActions[action_name]
+            return self.__event_schedule.exogenous_actions[action_name]
         except KeyError:
             raise (SALMAException("Unregistered exogenous action {}.".format(action_name)))
 
@@ -603,7 +573,7 @@ class World(Entity, WorldDeclaration):
         Returns a list view on all exogenous actions.
         :rtype: Iterable[ExogenousAction]
         """
-        return self.__exogenousActions.values()
+        return self.__event_schedule.exogenous_actions.values()
 
     def getSorts(self):
         """
@@ -840,22 +810,6 @@ class World(Entity, WorldDeclaration):
         else:
             return str(action_term)
 
-    def __translate_event_instances(self, raw_event_instances, schedule):
-        """
-        Translates event tuples retrieved from the logics engine to tuples that refer to ExogenousAction entries.
-
-        :param list[(int, str, list)] raw_event_instances: the event instances gathered by the engine
-        :param list[(int, (ExogenousAction, list))] schedule: the event schedule heap in which the translated event
-                instances will be pushed.
-
-        """
-        for rev in raw_event_instances:
-            try:
-                ea = self.__exogenousActions[rev[1]]
-                heapq.heappush(schedule, (rev[0], (ea, rev[2])))
-            except KeyError:
-                raise SALMAException("Unregistered exogenous action: {}".format(rev[1]))
-
     def get_next_process_time(self):
         pass
 
@@ -955,124 +909,6 @@ class World(Entity, WorldDeclaration):
         return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions, [],
                 failed_invariants, failed_sustain_goals, failure_stack)
 
-    def runExperiment(self, check_verdict=True, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
-        """
-        Runs the experiment that has been set up until a) a conclusive verdict can be determined,
-        b) the world has finished, c) the given step or time maximum is reached, or d) at least one of
-        the given step listener functions returns False.
-
-        If check_verdict is False then the registered properties are not evaluated and the verdict remains NONDET.
-
-        :param bool check_verdict: whether properties are evaluated. default=True
-        :param int maxSteps: maximum number of steps
-        :param float maxRealTime: maximum real time
-        :param int maxWorldTime: maximum world time
-        :param list stepListeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
-        :rtype: (int, dict[str, object])
-        """
-        step_num = 0
-        verdict = NONDET
-        self.__already_achieved_goals = set()
-        failedRegularActions = []
-        c1 = c2 = time.clock()
-        finish_reason = None
-        failed_invariants = set()
-        failed_sustain_goals = set()
-        # : :type: dict[str, list[int]]
-        scheduled_keys = dict()
-        time_out = False
-
-        while (not self.is_finished()) and (not check_verdict or verdict == NONDET):
-            # self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
-            (verdict, _, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
-             failed_invariants, failed_sustain_goals, failure_stack) = self.step(evaluate_properties=check_verdict)
-            c2 = time.clock()
-            step_num += 1
-            deltaT = c2 - c1
-            should_continue = True
-            break_reason = None
-            for sl in stepListeners:
-                continue_from_listener, break_reason_from_listener = sl(self,
-                                                                        verdict=verdict,
-                                                                        step=step_num, deltaT=deltaT,
-                                                                        actions=actions,
-                                                                        failedActions=failedRegularActions,
-                                                                        toplevel_results=toplevel_results,
-                                                                        scheduled_results=scheduled_results,
-                                                                        pending_properties=scheduled_keys)
-                should_continue &= continue_from_listener
-                if break_reason is None and not continue_from_listener:
-                    break_reason = break_reason_from_listener
-            # note that reason of step listener gets precedence over other reasons
-            if not should_continue:
-                finish_reason = break_reason
-                verdict = CANCEL
-                break
-            if failedRegularActions is not None and len(failedRegularActions) > 0:
-                finish_reason = "failed_actions"
-                verdict = CANCEL
-                break
-            if maxSteps != None and step_num >= maxSteps:
-                finish_reason = "max_steps"
-                time_out = True
-                break
-            if maxRealTime != None and datetime.timedelta(seconds=deltaT) >= maxRealTime:
-                finish_reason = "max_real_time"
-                time_out = True
-                break
-            if maxWorldTime != None:
-                t = self.getFluentValue('time', [])
-                if t >= maxWorldTime:
-                    finish_reason = "max_world_time"
-                    time_out = True
-                    break
-        if finish_reason is None and verdict != NONDET:
-            finish_reason = "verdict_found"
-        if self.is_finished():
-            finish_reason = "world_finished"
-        if verdict == NONDET:
-            if check_verdict is False:
-                verdict = OK if self.is_finished() else NOT_OK
-            # if no achieve goal was given then having finished or "surviving" until the time limit means success!
-            # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
-            else:
-                if ((self.is_finished() or time_out is True) and
-                            len(self.__achieve_goals) == 0 and
-                            len(self.__achieve_and_sustain_goals) == 0 and
-                            len(scheduled_keys) == 0):
-                    verdict = OK
-
-        duration = datetime.timedelta(seconds=c2 - c1)
-        worldTime = self.getFluentValue('time', [])
-        return (verdict,
-                {'steps': step_num,
-                 'time': duration,
-                 'worldTime': worldTime,
-                 'failedActions': failedRegularActions,
-                 "finish_reason": finish_reason,
-                 "failed_invariants": failed_invariants,
-                 "failed_sustain_goals": failed_sustain_goals,
-                 "achieved_goals": self.__already_achieved_goals,
-                 "failure_stack": failure_stack,
-                 "scheduled_keys": scheduled_keys})
-
-    def runUntilFinished(self, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
-        """
-        Repeatedly runs World.step() until either the world's finished flag becomes true or
-        either the step or time limit is reached. The properties are not evaluated.
-
-        :param int maxSteps: maximum number of steps
-        :param float maxRealTime: maximum real time
-        :param int maxWorldTime: maximum world time
-        :param list stepListeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
-        :rtype: (int, dict[str, object])
-        """
-        verdict, results = self.runExperiment(check_verdict=False, maxSteps=maxSteps, maxRealTime=maxRealTime,
-                                              maxWorldTime=maxWorldTime, stepListeners=stepListeners)
-        if verdict != CANCEL:
-            verdict = OK if self.is_finished() else NOT_OK
-        return verdict, results
-
     def __reset_domainmap(self):
         self.__domainMap = dict()
         for entity in self.__entities.values():
@@ -1081,77 +917,17 @@ class World(Entity, WorldDeclaration):
             if entity.sortName in self.__domainMap:
                 self.__domainMap[entity.sortName].add(entity)
             else:
-                self.__domainMap[entity.sortName] = set([entity])
+                self.__domainMap[entity.sortName] = {entity}
 
     def reset(self):
         # re-init domains
         self.__reset_domainmap()
         self.initialize(sample_fluent_values=False, removeFormulas=False)
 
-        self.__already_achieved_goals = set()
+        self.__property_collection.reset()
         # : :type agent: Agent
         for agent in self.getAgents():
             agent.restart()
-
-    def run_repetitions(self, number_of_repetitions=100, max_retrials=3, hypothesis_test=None, **kwargs):
-        """
-        Runs repetitions of the configured experiment. If an hypothesis test object is given then the acceptance
-        of this hypothesis test is
-        :param int number_of_repetitions: fixed number of repetitions if no hypothesis test is given
-        :param int max_retrials: maximum number of retrials
-        :param HypothesisTest hypothesis_test: the (sequential) hypothesis test to conduct
-        :return:
-        """
-        # save state
-        current_state = [fv for fv in World.logic_engine().getCurrentState() if fv.fluentName != "domain"]
-        results = []  # list of True/False
-        trial_infos = []
-        retrial = 0
-        conclusive_trial_count = 0
-        trial_number = 1
-        should_continue = True
-        accepted_hypothesis = None
-        successes, failures = 0, 0
-        while should_continue:
-            self.reset()
-            World.logic_engine().restoreState(current_state)
-
-            verdict, res = self.runExperiment(**kwargs)
-            trial_infos.append(res)
-            if verdict == NONDET or verdict == CANCEL:
-                if verdict == CANCEL:
-                    moduleLogger.warn("Trail #{} was canceled! Reason: {}".format(trial_number, res["finish_reason"]))
-                if verdict == NONDET:
-                    moduleLogger.warn("Received non-conclusive result for trial #{}!".format(trial_number))
-                if retrial < max_retrials:
-                    retrial += 1
-                    moduleLogger.warn("Starting retrial #".format(retrial))
-                else:
-                    moduleLogger.warn("Maximum number of retrials reached ({}) --> giving up!".format(retrial))
-                    break
-            else:
-                retrial = 0
-                results.append(verdict == OK)
-                if verdict == OK:
-                    successes += 1
-                else:
-                    failures += 1
-                conclusive_trial_count += 1
-                # moduleLogger.info("Trial #{} --> {}".format(trial_number, verdict))
-                self.log_info(
-                    "Trial #{} --> {}, steps = {}, time = {}".format(trial_number, verdict, res["steps"], res["time"]))
-                # print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
-            trial_number += 1
-
-            if hypothesis_test is not None:
-                accepted_hypothesis = hypothesis_test.check_hypothesis_accepted(conclusive_trial_count, failures)
-                should_continue = accepted_hypothesis is None
-            else:
-                should_continue = conclusive_trial_count < number_of_repetitions
-
-        self.reset()
-        World.logic_engine().restoreState(current_state)
-        return accepted_hypothesis, results, trial_infos
 
     def printState(self):
         if not self.__initialized: self.initialize()

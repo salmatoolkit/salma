@@ -1,8 +1,9 @@
-import random
 from salma.engine import Engine
 from salma.model.actions import *
 import logging
-
+import heapq
+from salma.model.actions import ExogenousAction
+from salma.model.evaluationcontext import EvaluationContext
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
@@ -16,11 +17,16 @@ class EventSchedule:
         :param Engine logics_engine: the logics engine to use
         """
         self.__logics_engine = logics_engine
-        #: :type: list[(int, ExogenousAction, list)]
+
+        # name -> exogenous action
+        #: :type : dict[str, ExogenousAction]
+        self.__exogenous_actions = dict()
+
+        #: :type: list[(int, (ExogenousAction, list))]
         self.__event_schedule = []
-        #: :type: list[(int, ExogenousAction, list)]
+        #: :type: list[(int, (ExogenousAction, list))]
         self.__possible_event_schedule = []
-        #: :type: list[(int, ExogenousAction, list)]
+        #: :type: list[(int, (ExogenousAction, list))]
         self.__schedulable_event_schedule = []
 
     # def get_exogenous_action_instances(self):
@@ -45,29 +51,69 @@ class EventSchedule:
     #                     ea_instances.append(instance)
     #     return ea_instances
 
-    def update_event_schedule(self, limit=None):
-        current_time = self.getTime()
-        if limit is None:
-            limit = current_time
-        poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(limit)
+    def clear(self):
+        self.__exogenous_actions.clear()
+        self.reset()
+
+    def reset(self):
+        self.__event_schedule.clear()
+        self.__possible_event_schedule.clear()
+        self.__schedulable_event_schedule.clear()
+
+    @property
+    def exogenous_actions(self):
+        """
+        A dictionary containing all registered exogenous actions indexed by their name.
+        :rtype: dict[str, ExogenousAction]
+        """
+        return self.__exogenous_actions
+
+    def add_exogenous_action(self, exogenous_action):
+        """
+        Registers the given exogenous action. Normally this method is called automatically by World.load_declarations().
+        :type exogenous_action: ExogenousAction
+        """
+        self.__exogenous_actions[exogenous_action.action_name] = exogenous_action
+
+    def update_event_schedule(self, current_time, evaluation_context, time_limit=None):
+        """
+        Scans for all possible and schedulable events up to the given limit.
+        :param int current_time: the world's current time
+        :param int|None time_limit: the time limit at which the search for possible and schedulable events will stop
+        :param EvaluationContext evaluation_context: the evaluation context that will be used to evaluate distributions
+        """
+        if time_limit is None:
+            time_limit = current_time
+        poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(time_limit)
         if len(poss_events) > 0:
             if (len(self.__possible_event_schedule) == 0 or
                     self.__possible_event_schedule[0][0] > poss_events[0][0]):
-                self.__possible_event_schedule = poss_events
+                self.__possible_event_schedule.clear()
+                self.__translate_event_instances(poss_events, self.__possible_event_schedule)
+
             elif self.__possible_event_schedule[0][0] == poss_events[0][0]:
-                self.__possible_event_schedule.extend(poss_events)
+                self.__translate_event_instances(poss_events, self.__possible_event_schedule)
+
             # else: newly found possible events are later than the currently known --> do nothing
 
         # check if we can add any possible event
+        for pe in self.__possible_event_schedule:
+            if pe[0] == current_time:
+                event = pe[1][0]
+                params = pe[1][1]
+                if event.should_happen(evaluation_context, params):
+                    heapq.heappush(self.__event_schedule, (current_time, (event, params)))
 
-        pass
+        #todo: schedulable events
 
-    def progress_interleaved(self, action_instances):
+    def progress_interleaved(self, evaluation_context, action_instances):
         """
         Progresses the given action / event instances in random order. For each instance of stochastic actions,
         an outcome is generated at the time it is due to be progressed.
 
-        : param action_instances: :
+        :param EvaluationContext evaluationcontext: the evaluation context that will be used
+            for sampling in distributions.
+        :param action_instances:
             action instances = tuples (action, arguments, EvaluationContext) where the last EvaluationContext argument
             is only used for stochastic actions
         :type action_instances: list[(Action|ExogenousAction, list, EvaluationContext)]
@@ -91,8 +137,7 @@ class EventSchedule:
                 act_seq.append((action_name, args))
             elif isinstance(act, ExogenousAction):
                 # note: for exogenous actions, the evaluation context is ignored
-                action_name = act.action_name
-                args = ai[1]
+                event_instance = act.generate_instance(evaluation_context, )
                 act_seq.append((action_name, args))
             elif isinstance(act, StochasticAction):
                 if len(act_seq) > 0:
@@ -117,3 +162,34 @@ class EventSchedule:
     def __schedule_possible_actions(self):
         pass
 
+    def __translate_event_instances(self, raw_event_instances, schedule):
+        """
+        Translates event tuples retrieved from the logics engine to tuples that refer to ExogenousAction entries.
+
+        :param list[(int, str, list)] raw_event_instances: the event instances gathered by the engine
+        :param list[(int, (ExogenousAction, list))] schedule: the event schedule heap in which the translated event
+                instances will be pushed.
+        """
+        for rev in raw_event_instances:
+            try:
+                ea = self.__exogenous_actions[rev[1]]
+                heapq.heappush(schedule, (rev[0], (ea, rev[2])))
+            except KeyError:
+                raise SALMAException("Unregistered exogenous action: {}".format(rev[1]))
+
+    def check_exogenous_action_initialization(self):
+        """
+        Checks whether all registered exogenous actions are properly configured.
+        :return: a list of tuples of form (exo_action, problems)
+        :rtype: list[(ExogenousActions, list)]
+        """
+        problematic_exogenous_actions = []
+        for exo_action in self.__exogenous_actions.values():
+            assert isinstance(exo_action, ExogenousAction)
+            if exo_action.config is None:
+                problematic_exogenous_actions.append((exo_action, ["uninitialized"]))
+            else:
+                problems = exo_action.config.check()
+                if len(problems) > 0:
+                    problematic_exogenous_actions.append((exo_action, problems))
+        return  problematic_exogenous_actions

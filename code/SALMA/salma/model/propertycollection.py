@@ -167,3 +167,6 @@ class PropertyCollection:
         goals.update(self.__achieve_goals)
         goals.update(self.__achieve_and_sustain_goals)
         return goals
+
+    def reset(self):
+        self.__already_achieved_goals.clear()
