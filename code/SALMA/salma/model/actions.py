@@ -34,9 +34,9 @@ class RandomActionOutcome(object):
         :type outcome_action: DeterministicAction
         :type param_distribution_specs: list of (str, object)
         """
-        #: :type : DeterministicAction
+        # : :type : DeterministicAction
         self.__outcome_action = outcome_action
-        #: :type : StochasticAction
+        # : :type : StochasticAction
         self.__stochastic_action = None
 
         #: :type : list of Distribution
@@ -179,7 +179,7 @@ class RandomActionOutcome(object):
         """
         if self.action_name not in action_dict:
             return [("random_action_outcome.unregistered_action", self.action_name)]
-            #:type action: Action
+            # :type action: Action
         action = action_dict[self.action_name]
         if len(self.param_distributions) != len(action.parameters):
             return [("random_action_outcome.wrong_param_count",
@@ -273,7 +273,7 @@ class StochasticAction(Action):
         """
         Action.__init__(self, name, parameters, immediate)
         self.__selection_strategy = selection_strategy
-        #: :type: dict of (str, RandomActionOutcome)
+        # : :type: dict of (str, RandomActionOutcome)
         self.__outcomes = dict()
 
         for outcome in outcomes:
@@ -366,13 +366,13 @@ class StochasticAction(Action):
 
     def describe(self):
         outcome_descriptions = [o.describe() for o in self.outcomes]
-        pstrs = ["{}:{}".format(p[0],p[1]) for p in self.parameters]
+        pstrs = ["{}:{}".format(p[0], p[1]) for p in self.parameters]
         s = """
 StochasticAction: {name}({params})
    Outcomes: {outcomes}
    Selection Strategy: {sel_strat}
 """
-        return s.format(name=self.name, params= ", ".join(pstrs), outcomes=", ".join(outcome_descriptions),
+        return s.format(name=self.name, params=", ".join(pstrs), outcomes=", ".join(outcome_descriptions),
                         sel_strat=self.selection_strategy.describe())
 
 
@@ -423,10 +423,10 @@ class Stepwise(OutcomeSelectionStrategy):
         :param list[(str, float)] probabilities: a list of (action_name, probability)
         """
         super().__init__()
-        #: :type: dict of (str, float)
+        # : :type: dict of (str, float)
         self.__probabilities = dict()
         # alternative 1: one list of tuples
-        if len(args) == 1 and isinstance(args[0],list):
+        if len(args) == 1 and isinstance(args[0], list):
             for p in args[0]:
                 self.__probabilities[p[0]] = p[1]
         else:
@@ -487,7 +487,7 @@ class Stepwise(OutcomeSelectionStrategy):
     def describe(self):
         probs = []
         for action, prob in self.probabilities.items():
-            probs.append("{}:{:.4}".format(action,prob))
+            probs.append("{}:{:.4}".format(action, prob))
         return "Stepwise({})".format(", ".join(probs))
 
 
@@ -507,13 +507,13 @@ class ExogenousAction(object):
         """
         self.__action_name = action_name
         self.__entity_params = entity_params
-        #: :type : dict of (str, int)
+        # : :type : dict of (str, int)
         self.__entity_param_indices = dict()
         for i, p in enumerate(entity_params):
             self.__entity_param_indices[p[0]] = i
 
         self.__stochastic_params = stochastic_params
-        #: :type : dict of (str, int)
+        # : :type : dict of (str, int)
         self.__stochastic_param_indices = dict()
         for i, p in enumerate(stochastic_params):
             self.__stochastic_param_indices[p[0]] = i
@@ -598,7 +598,6 @@ class ExogenousAction(object):
         i = self.get_stochastic_parameter_index(parameter_name)
         return self.__stochastic_params[i][1]
 
-
     @property
     def config(self):
         """
@@ -615,7 +614,34 @@ class ExogenousAction(object):
         self.__configuration = config
 
     def should_happen(self, evaluation_context, param_values):
-        return self.config.occurrence_distribution.generateSample(evaluation_context, param_values)
+        """
+        Uses the defined occurrence distribution to decide whether the event instance owoth the given parameters
+        should be executed at the current time step.
+
+        :param EvaluationContext evaluation_context: the evaluation context that is used by the
+            occurrence distribution.
+        :param list param_values: the parameters that are used for sampling from the occurrence distribution.
+        :return: True if the event instance should be executed at the current time step.
+        :rtype: bool
+        """
+        res = self.config.occurrence_distribution.generateSample(evaluation_context, param_values)
+        assert isinstance(res, bool)
+        return res
+
+    def get_next_occurrence_time(self, evaluation_context, param_values):
+        """
+        Uses the defined occurrence distribution to determine the next time step when the
+        event instance owoth the given parameters should be executed.
+
+        :param EvaluationContext evaluation_context: the evaluation context that is used by the
+            occurrence distribution.
+        :param list param_values: the parameters that are used for sampling from the occurrence distribution.
+        :return: the time step for the scheduled execution of the given event instance
+        :rtype: int
+        """
+        res = self.config.occurrence_distribution.generateSample(evaluation_context, param_values)
+        assert isinstance(res, int)
+        return res
 
     def generate_instance(self, evaluation_context, entity_combination):
         """
@@ -648,7 +674,7 @@ class ExogenousAction(object):
              "  Parameter Distributions: {p_distribs}\n")
         p_distrib_descs = []
         for p in self.stochastic_params:
-            p_distrib_descs.append("{}:={}".format(p[0],self.config.get_param_distribution(p[0]).describe()))
+            p_distrib_descs.append("{}:={}".format(p[0], self.config.get_param_distribution(p[0]).describe()))
 
         return s.format(name=self.action_name, entity_params=self.entity_params,
                         stochastic_params=self.stochastic_params,
@@ -696,19 +722,24 @@ class ExogenousActionConfiguration:
         problems = []
         if self.__exogenous_action.config is not self:
             raise SALMAException(
-                "Inconsistent exogenous action configuration: config of exogenous action {} points to different ExogenousActionConfig.",
+                "Inconsistent exogenous action configuration: config of exogenous action {} points to different "
+                "ExogenousActionConfig.",
                 self.__exogenous_action.action_name
             )
 
         if self.__occurrence_distribution is None:
             problems.append(
-                "No occurrence probability distribution specified for exogenous action %s ." % self.__exogenous_action.action_name)
-        if isinstance(self.occurrence_distribution, Distribution):
-            if self.occurrence_distribution.sort != "boolean":
-                problems.append(
-                    "Wrong type for occurrence distribution of exogenous action {}: was {} but must be boolean.".format(
-                        self.exogenous_action.action_name, self.occurrence_distribution.sort
-                    ))
+                "No occurrence probability distribution specified for exogenous action %s ." %
+                self.__exogenous_action.action_name)
+        else:
+            assert isinstance(self.__occurrence_distribution, Distribution)
+            # TODO: check for type according to event type (ad hoc | scheduled)
+            # if self.occurrence_distribution.sort != "boolean":
+            # problems.append(
+            #         "Wrong type for occurrence distribution of
+            # exogenous action {}: was {} but must be boolean.".format(
+            #             self.exogenous_action.action_name, self.occurrence_distribution.sort
+            #         ))
 
         if len(self.__stochastic_param_distributions) != len(self.exogenous_action.stochastic_params):
             return [
@@ -721,7 +752,8 @@ class ExogenousActionConfiguration:
         for i in range(len(self.__stochastic_param_distributions)):
             if self.__stochastic_param_distributions[i].sort != self.exogenous_action.stochastic_params[i][1]:
                 wrong_types.append(
-                    "Wrong type for stochastic parameter no. {} of exogenous action {}: expected {} but was {}.".format(
+                    "Wrong type for stochastic parameter no. {} of exogenous action {}: "
+                    "expected {} but was {}.".format(
                         i, self.exogenous_action.action_name,
                         self.exogenous_action.stochastic_params[i][1],
                         self.__stochastic_param_distributions[i].sort

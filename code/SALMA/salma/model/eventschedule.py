@@ -4,12 +4,12 @@ import logging
 import heapq
 from salma.model.actions import ExogenousAction
 from salma.model.evaluationcontext import EvaluationContext
+
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
 
 class EventSchedule:
-
     def __init__(self, logics_engine):
         """
         Creates an instance of the event schedule.
@@ -19,20 +19,25 @@ class EventSchedule:
         self.__logics_engine = logics_engine
 
         # name -> exogenous action
-        #: :type : dict[str, ExogenousAction]
+        # : :type : dict[str, ExogenousAction]
         self.__exogenous_actions = dict()
 
-        #: :type: list[(int, (ExogenousAction, list))]
+        # the event schedule contains entries of the form (time, (event, qualifying params)).
+        # The final instance including stochastic params is generated in the main loop in the
+        # step just before execution of the event. This means that the distribution fo the stochastic parameters
+        # refer to tha scheduled time.
+        #
+        # : :type: list[(int, (ExogenousAction, list))]
         self.__event_schedule = []
-        #: :type: list[(int, (ExogenousAction, list))]
+        # : :type: list[(int, (ExogenousAction, list))]
         self.__possible_event_schedule = []
         #: :type: list[(int, (ExogenousAction, list))]
         self.__schedulable_event_schedule = []
 
     # def get_exogenous_action_instances(self):
-    #     """
-    #     Creates a list of all exogenous action instances (see ExogenusAction.generate_instance) for
-    #     all possible candidates. The list of possible candidates is calculated by calling
+    # """
+    # Creates a list of all exogenous action instances (see ExogenusAction.generate_instance) for
+    # all possible candidates. The list of possible candidates is calculated by calling
     #     Engine.getExogenousActionCandidates() first. Then ExogenousAction.shouldHappen() is used to
     #     select instances that should occur.
     #     :rtype: list
@@ -75,27 +80,11 @@ class EventSchedule:
         """
         self.__exogenous_actions[exogenous_action.action_name] = exogenous_action
 
-    def update_event_schedule(self, current_time, evaluation_context, time_limit=None):
+    def __process_schedulable_and_possible(self, current_time, evaluation_context):
         """
-        Scans for all possible and schedulable events up to the given limit.
-        :param int current_time: the world's current time
-        :param int|None time_limit: the time limit at which the search for possible and schedulable events will stop
-        :param EvaluationContext evaluation_context: the evaluation context that will be used to evaluate distributions
+        :param int current_time: the current time step
+        :param EvaluationContext evaluation_context: the evaluation context used for the occurrence distributions.
         """
-        if time_limit is None:
-            time_limit = current_time
-        poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(time_limit)
-        if len(poss_events) > 0:
-            if (len(self.__possible_event_schedule) == 0 or
-                    self.__possible_event_schedule[0][0] > poss_events[0][0]):
-                self.__possible_event_schedule.clear()
-                self.__translate_event_instances(poss_events, self.__possible_event_schedule)
-
-            elif self.__possible_event_schedule[0][0] == poss_events[0][0]:
-                self.__translate_event_instances(poss_events, self.__possible_event_schedule)
-
-            # else: newly found possible events are later than the currently known --> do nothing
-
         # check if we can add any possible event
         for pe in self.__possible_event_schedule:
             if pe[0] == current_time:
@@ -104,7 +93,42 @@ class EventSchedule:
                 if event.should_happen(evaluation_context, params):
                     heapq.heappush(self.__event_schedule, (current_time, (event, params)))
 
-        #todo: schedulable events
+        for se in self.__schedulable_event_schedule:
+            if se[0] == current_time:
+                event = se[1][0]
+                params = se[1][1]
+                schedule_time = event.get_next_occurrence_time(evaluation_context, params)
+                assert schedule_time >= current_time
+                heapq.heappush(self.__event_schedule, (schedule_time, (event, params)))
+
+    def update_event_schedule(self, current_time, evaluation_context, scan, scan_start, scan_time_limit):
+        """
+        Scans for all possible and schedulable events up to the given limit.
+        :param int current_time: the world's current time
+        :param EvaluationContext evaluation_context: the evaluation context that will be used to evaluate distributions
+        :param bool scan: whether to scan for new schedulable / ad hoc events
+        :param int scan_start: when to start scanning
+        :param int scan_time_limit: the time limit at which the search for possible and schedulable events will stop
+        """
+        if scan_start is None:
+            scan_start = current_time
+        if scan_time_limit is None:
+            scan_time_limit = current_time
+
+        # schedule all event instances that are known to be possible / schedulable at this step
+        self.__process_schedulable_and_possible(current_time, evaluation_context)
+        self.__possible_event_schedule.clear()
+        self.__schedulable_event_schedule.clear()
+
+        poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(scan_start, scan_time_limit)
+        self.__translate_event_instances_from_raw(poss_events, self.__possible_event_schedule)
+
+        # check whether new event instances can be scheduled
+        csched = self.__translate_event_instances_to_raw(self.__event_schedule)
+        schedulable_events = self.__logics_engine.get_next_schedulable_event_instances(scan_time_limit, csched)
+        self.__translate_event_instances_from_raw(schedulable_events, self.__schedulable_event_schedule)
+
+
 
     def progress_interleaved(self, evaluation_context, action_instances):
         """
@@ -136,8 +160,10 @@ class EventSchedule:
                 args = ai[1]
                 act_seq.append((action_name, args))
             elif isinstance(act, ExogenousAction):
-                # note: for exogenous actions, the evaluation context is ignored
-                event_instance = act.generate_instance(evaluation_context, )
+                # Note: for exogenous actions, the evaluation context is used that is
+                # given as a parameter. This is usually the world's global context.
+                #
+                action_name, args = act.generate_instance(evaluation_context, ai[1])
                 act_seq.append((action_name, args))
             elif isinstance(act, StochasticAction):
                 if len(act_seq) > 0:
@@ -159,10 +185,7 @@ class EventSchedule:
             moduleLogger.debug("  Progressed: %s, failed: ", performed_actions, failed)
         return performed_actions, failed
 
-    def __schedule_possible_actions(self):
-        pass
-
-    def __translate_event_instances(self, raw_event_instances, schedule):
+    def __translate_event_instances_from_raw(self, raw_event_instances, schedule):
         """
         Translates event tuples retrieved from the logics engine to tuples that refer to ExogenousAction entries.
 
@@ -176,6 +199,16 @@ class EventSchedule:
                 heapq.heappush(schedule, (rev[0], (ea, rev[2])))
             except KeyError:
                 raise SALMAException("Unregistered exogenous action: {}".format(rev[1]))
+
+    def __translate_event_instances_to_raw(self, schedule):
+        """
+        Translates a generator for conversion of the current event schedule to a list of event tuples of form
+        (time, action_name param_values).
+
+        :param list[(int, (ExogenousAction, list))] schedule: the event schedule.
+        :rtype: list[(int, str, list)]
+        """
+        return ((ev[0], ev[1][0].action_name, ev[1][1]) for ev in schedule)
 
     def check_exogenous_action_initialization(self):
         """
@@ -192,4 +225,18 @@ class EventSchedule:
                 problems = exo_action.config.check()
                 if len(problems) > 0:
                     problematic_exogenous_actions.append((exo_action, problems))
-        return  problematic_exogenous_actions
+        return problematic_exogenous_actions
+
+    def get_due_events(self, current_time):
+        """
+        Returns all events that are due at the current time (given as a parameter).
+
+        :param int current_time: the current time step
+        :return: a list of tuples of form (event, params)
+        :rtype: list[(ExogenousAction, list)]
+        """
+        due_events = []
+        while len(self.__event_schedule) > 0 and self.__event_schedule[0][0] <= current_time:
+            entry = heapq.heappop(self.__event_schedule)
+            due_events.append(entry[1])
+        return due_events

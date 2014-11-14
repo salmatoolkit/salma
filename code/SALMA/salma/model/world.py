@@ -813,10 +813,13 @@ class World(Entity, WorldDeclaration):
     def get_next_process_time(self):
         pass
 
-    def step(self, evaluate_properties=True):
+    def step(self, time_limit, evaluate_properties=True):
         """
-        Performs one discrete time step for all agents and runs the progression.
+        Performs one discrete time step for all agents and optionally performs the
+        evaluation of all registered properties.
 
+        :param int time_limit: the upper time limit until which the search for event occurrences is scanned
+        :param bool evaluate_properties: if True, perform property evaluation
         :returns: (verdict, self.__finished, toplevel_results, scheduled_results, all_actions, [],
                 failed_invariants, failed_sustain_goals, failure_stack)
         :rtype: (int, bool, dict[str, int], dict, list, list, set[str], set[str], list)
@@ -827,14 +830,9 @@ class World(Entity, WorldDeclaration):
         performed_actions = []
         failed_actions = []
 
-        self.update_event_schedule(limit=current_time)
+        self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext, scan_time_limit=current_time)
+        due_events = self.__event_schedule.get_due_events(current_time)
         while True:
-            due_events = []
-
-            # TODO:
-            while len(self.__event_schedule) > 0 and self.__event_schedule[0][0] <= current_time:
-                due_events.append(heapq.heappop(self.__event_schedule)[1])
-
             pre_events = []
             interleaved_events = []
             # randomly split actions in some that are performed before process flow and some
@@ -845,7 +843,7 @@ class World(Entity, WorldDeclaration):
                 else:
                     interleaved_events.append(ev)
 
-            pa, fa = self.__progress_interleaved(pre_events)
+            pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, pre_events)
             performed_actions.extend(pa)
             failed_actions.extend(fa)
 
@@ -867,13 +865,17 @@ class World(Entity, WorldDeclaration):
                     actions.append(act)
 
             actions.extend(interleaved_events)
-            pa, fa = self.__progress_interleaved(actions)
+            pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, actions)
             performed_actions.extend(pa)
             failed_actions.extend(fa)
 
-            self.update_event_schedule(limit=None)  # TODO: add timeout?
-
-            if len(actions) == 0 and len(self.__event_schedule) > 0 and self.__event_schedule[0][0] > current_time:
+            self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext, time_limit)
+            due_events = self.__event_schedule.get_due_events(current_time)
+            # break if
+            # a) nothing could have changed in this iteration of the loop, i.e. no actions or events have been executed
+            # and
+            # b) no events have been scheduled for the current step
+            if len(actions) == 0 and len(due_events) == 0:
                 break
 
         t1 = self.get_next_process_time()
