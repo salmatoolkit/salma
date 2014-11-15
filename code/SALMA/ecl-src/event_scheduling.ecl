@@ -32,16 +32,19 @@ get_all_ad_hoc_event_instances(Situation, Candidates) :-
 		)
 	).
 
-% pre: TimeLimit > current time
-get_next_possible_ad_hoc_events(TimeLimit, Time, Events) :-
+% pre: CurrentTime <= Start <= TimeLimit
+get_next_possible_ad_hoc_events(Start, TimeLimit, Time, Events) :-
+	(TimeLimit < Start -> throw(time_limit_before_start) ; true),
 	current_time(CurrentTime),
-	get_all_ad_hoc_event_instances(s0, CurrentEvents),
-	(length(CurrentEvents) > 0 ->
-		Time = CurrentTime,
-		Events = CurrentEvents
+	StartDelta is Start - CurrentTime,
+	StartDelta2 is StartDelta + 1,
+	get_all_ad_hoc_event_instances(do2(tick(StartDelta), s0), StartEvents),
+	(length(StartEvents) > 0 ->
+		Time = Start,
+		Events = StartEvents
 		;
 		Limit is TimeLimit - CurrentTime + 1,
-		(fromto(1, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
+		(fromto(StartDelta2, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
 			fromto(_, _, EvOut, Events), param(Limit) do 
 			Sit = do2(tick(CurrentDelta), s0),
 			get_all_ad_hoc_event_instances(Sit, Candidates),
@@ -134,16 +137,20 @@ get_all_schedulable_event_instances(Situation, CurrentSchedule, Candidates) :-
 	
 
 % pre: TimeLimit > current time
-get_next_schedulable_events(TimeLimit, CurrentSchedule, Time, Events) :-
+get_next_schedulable_events(Start, TimeLimit, CurrentSchedule, Time, Events) :-
+	(TimeLimit < Start -> throw(time_limit_before_start) ; true),
 	current_time(CurrentTime),
+	StartDelta is Start - CurrentTime,
+	StartDelta2 is StartDelta + 1,
 	make_schedule_hash(CurrentSchedule, CurrentScheduleHash),
-	get_all_schedulable_event_instances_internal(s0, CurrentScheduleHash, CurrentEvents),
+	get_all_schedulable_event_instances_internal(do2(tick(StartDelta), s0), 
+		CurrentScheduleHash, CurrentEvents),
 	(length(CurrentEvents) > 0 ->
-		Time = CurrentTime,
+		Time = Start,
 		Events = CurrentEvents
 		;
 		Limit is TimeLimit - CurrentTime + 1,
-		(fromto(1, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
+		(fromto(StartDelta2, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
 			fromto(_, _, EvOut, Events), param(Limit, CurrentScheduleHash) do 
 			Sit = do2(tick(CurrentDelta), s0),
 			get_all_schedulable_event_instances_internal(Sit, CurrentScheduleHash, Candidates),

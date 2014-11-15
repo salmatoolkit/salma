@@ -242,7 +242,7 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def get_next_possible_ad_hoc_event_instances(self, time_limit):
+    def get_next_possible_ad_hoc_event_instances(self, start, time_limit):
         """
         Searches for the next time step where a poss-axiom of an exogenous action becomes true. Returns that time
         together with all possible exogenous action instances at that situation.
@@ -254,7 +254,7 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def get_next_schedulable_event_instances(self, time_limit, current_schedule):
+    def get_next_schedulable_event_instances(self, start, time_limit, current_schedule):
         """
         Searches for the next time step where a schedulability axiom of an exogenous action becomes true. Returns that
         time together with all schedulable exogenous action instances at that situation.
@@ -1003,7 +1003,7 @@ class EclipseCLPEngine(Engine):
     def getProperties(self):
         return self.__properties.copy()
 
-    def get_next_possible_ad_hoc_event_instances(self, time_limit):
+    def get_next_possible_ad_hoc_event_instances(self, start, time_limit):
         """
         Searches for the next time step where a poss-axiom of an exogenous action becomes true. Returns that time
         together with all possible exogenous action instances at that situation.
@@ -1015,7 +1015,7 @@ class EclipseCLPEngine(Engine):
         """
         next_time = pyclp.Var()
         event_candidates = pyclp.Var()
-        self.__callGoal('get_next_possible_ad_hoc_events', time_limit, next_time, event_candidates)
+        self.__callGoal('get_next_possible_ad_hoc_events', start, time_limit, next_time, event_candidates)
 
         result = []
         for actionDef in event_candidates.value():
@@ -1031,7 +1031,7 @@ class EclipseCLPEngine(Engine):
                 result.append((next_time.value(), action_name, instance_params))
         return result
 
-    def get_next_schedulable_event_instances(self, time_limit, current_schedule):
+    def get_next_schedulable_event_instances(self, start, time_limit, current_schedule):
         """
         Searches for the next time step where a schedulability axiom of an exogenous action becomes true. Returns that
         time together with all schedulable exogenous action instances at that situation.
@@ -1051,7 +1051,8 @@ class EclipseCLPEngine(Engine):
         next_time = pyclp.Var()
         event_candidates = pyclp.Var()
 
-        self.__callGoal('get_next_schedulable_events', time_limit, translated_schedule, next_time, event_candidates)
+        self.__callGoal('get_next_schedulable_events', start,
+                        time_limit, translated_schedule, next_time, event_candidates)
 
         result = []
         for actionDef in event_candidates.value():

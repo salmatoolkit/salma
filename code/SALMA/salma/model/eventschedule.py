@@ -120,6 +120,7 @@ class EventSchedule:
         self.__possible_event_schedule.clear()
         self.__schedulable_event_schedule.clear()
 
+        # check whether new event instances are possible
         poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(scan_start, scan_time_limit)
         self.__translate_event_instances_from_raw(poss_events, self.__possible_event_schedule)
 
