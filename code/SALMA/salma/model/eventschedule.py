@@ -31,30 +31,12 @@ class EventSchedule:
         self.__event_schedule = []
         # : :type: list[(int, (ExogenousAction, list))]
         self.__possible_event_schedule = []
-        #: :type: list[(int, (ExogenousAction, list))]
+        # : :type: list[(int, (ExogenousAction, list))]
         self.__schedulable_event_schedule = []
-
-    # def get_exogenous_action_instances(self):
-    # """
-    # Creates a list of all exogenous action instances (see ExogenusAction.generate_instance) for
-    # all possible candidates. The list of possible candidates is calculated by calling
-    #     Engine.getExogenousActionCandidates() first. Then ExogenousAction.shouldHappen() is used to
-    #     select instances that should occur.
-    #     :rtype: list
-    #     """
-    #     #candidates = World.logic_engine().get_currently_possible_ad_hoc_event_instances()
-    #     ea_instances = []
-    #     for candidate in candidates.items():
-    #         action_name = candidate[0]
-    #         combinations = candidate[1]
-    #         # just ignore if the ex action is not registered
-    #         if action_name in self.__exogenousActions:
-    #             ea = self.__exogenousActions[action_name]
-    #             for params in combinations:
-    #                 if ea.should_happen(self.__evaluationContext, params):
-    #                     instance = ea.generate_instance(self.__evaluationContext, params)
-    #                     ea_instances.append(instance)
-    #     return ea_instances
+        #: :type: set[(int, (ExogenousAction, list))]
+        self.__already_processed_events = set()
+        #: :type: int
+        self.__last_processed_timestep = -1
 
     def clear(self):
         self.__exogenous_actions.clear()
@@ -64,6 +46,8 @@ class EventSchedule:
         self.__event_schedule.clear()
         self.__possible_event_schedule.clear()
         self.__schedulable_event_schedule.clear()
+        self.__already_processed_events.clear()
+        self.__last_processed_timestep = -1
 
     @property
     def exogenous_actions(self):
@@ -90,8 +74,10 @@ class EventSchedule:
             if pe[0] == current_time:
                 event = pe[1][0]
                 params = pe[1][1]
+                new_ev = (current_time, (event, params))
                 if event.should_happen(evaluation_context, params):
-                    heapq.heappush(self.__event_schedule, (current_time, (event, params)))
+                    heapq.heappush(self.__event_schedule, new_ev)
+                self.__already_processed_events.add(new_ev)
 
         for se in self.__schedulable_event_schedule:
             if se[0] == current_time:
@@ -99,9 +85,11 @@ class EventSchedule:
                 params = se[1][1]
                 schedule_time = event.get_next_occurrence_time(evaluation_context, params)
                 assert schedule_time >= current_time
-                heapq.heappush(self.__event_schedule, (schedule_time, (event, params)))
+                new_ev = (schedule_time, (event, params))
+                heapq.heappush(self.__event_schedule, new_ev)
+                self.__already_processed_events.add(new_ev)
 
-    def update_event_schedule(self, current_time, evaluation_context, scan, scan_start, scan_time_limit):
+    def update_event_schedule(self, current_time, evaluation_context, scan, scan_start=None, scan_time_limit=None):
         """
         Scans for all possible and schedulable events up to the given limit.
         :param int current_time: the world's current time
@@ -114,22 +102,26 @@ class EventSchedule:
             scan_start = current_time
         if scan_time_limit is None:
             scan_time_limit = current_time
+        if current_time > self.__last_processed_timestep:
+            self.__already_processed_events.clear()
+            self.__last_processed_timestep = current_time
 
         # schedule all event instances that are known to be possible / schedulable at this step
         self.__process_schedulable_and_possible(current_time, evaluation_context)
-        self.__possible_event_schedule.clear()
-        self.__schedulable_event_schedule.clear()
+        if scan:
+            self.__possible_event_schedule.clear()
+            self.__schedulable_event_schedule.clear()
+            csched = self.__translate_event_instances_to_raw(self.__already_processed_events)
 
-        # check whether new event instances are possible
-        poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(scan_start, scan_time_limit)
-        self.__translate_event_instances_from_raw(poss_events, self.__possible_event_schedule)
+            # check whether new event instances are possible
+            poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(scan_start, scan_time_limit,
+                                                                                        csched)
+            self.__translate_event_instances_from_raw(poss_events, self.__possible_event_schedule)
 
-        # check whether new event instances can be scheduled
-        csched = self.__translate_event_instances_to_raw(self.__event_schedule)
-        schedulable_events = self.__logics_engine.get_next_schedulable_event_instances(scan_time_limit, csched)
-        self.__translate_event_instances_from_raw(schedulable_events, self.__schedulable_event_schedule)
+            # check whether new event instances can be scheduled
 
-
+            schedulable_events = self.__logics_engine.get_next_schedulable_event_instances(scan_time_limit, csched)
+            self.__translate_event_instances_from_raw(schedulable_events, self.__schedulable_event_schedule)
 
     def progress_interleaved(self, evaluation_context, action_instances):
         """
@@ -145,7 +137,7 @@ class EventSchedule:
         :return: list of failed actions / events
         :rtype: list[str, list]
         """
-        #TODO: consider caused / triggered events
+        # TODO: consider caused / triggered events
         if len(action_instances) == 0:
             return []
         failed = []
@@ -240,4 +232,5 @@ class EventSchedule:
         while len(self.__event_schedule) > 0 and self.__event_schedule[0][0] <= current_time:
             entry = heapq.heappop(self.__event_schedule)
             due_events.append(entry[1])
+            self.__already_processed_events.append(entry)
         return due_events

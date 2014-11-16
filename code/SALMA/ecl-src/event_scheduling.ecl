@@ -12,19 +12,23 @@ select_action_instance(ActionName, PossibleInstanceArgs, ActionTerm) :-
 	),
 	ActionTerm =.. [ActionName | TestArgs].
 
-possible_action_instance(ActionName, Situation, PossibleInstanceArgs) :-
+possible_action_instance(ActionName, Situation, HandledHash, PossibleInstanceArgs) :-
 	select_action_instance(ActionName, PossibleInstanceArgs, ActionTerm),
+	% TODO: for ad hoc: also look at time! 
+	not hash_contains(HandledHash, (ActionName, PossibleInstanceArgs)),
 	poss(ActionTerm, Situation).
 	
-get_possible_exogenous_action_instances(ActionName, Situation, Candidates) :-
-	findall(InstanceArgs, possible_action_instance(ActionName, Situation, InstanceArgs), Candidates).
+get_possible_exogenous_action_instances(ActionName, Situation, HandledHash, Candidates) :-
+	findall(InstanceArgs, possible_action_instance(ActionName, Situation, 
+							HandledHash, InstanceArgs), Candidates).
 		
 
-get_all_ad_hoc_event_instances(Situation, Candidates) :-
+get_all_ad_hoc_event_instances(Situation, HandledHash, Candidates) :-
 	findall(ActionName, ad_hoc_event(ActionName), ActionNames),
 	% filter out 
-	(foreach(A, ActionNames), fromto([], CIn, COut, Candidates), param(Situation) do
-		get_possible_exogenous_action_instances(A, Situation, CandidatesForAction),
+	(foreach(A, ActionNames), fromto([], CIn, COut, Candidates), param(Situation, HandledHash) do
+		get_possible_exogenous_action_instances(A, Situation, HandledHash, 
+			CandidatesForAction),
 		(length(CandidatesForAction) > 0 ->
 			append(CIn, [A : CandidatesForAction], COut)
 			;
@@ -33,21 +37,22 @@ get_all_ad_hoc_event_instances(Situation, Candidates) :-
 	).
 
 % pre: CurrentTime <= Start <= TimeLimit
-get_next_possible_ad_hoc_events(Start, TimeLimit, Time, Events) :-
+get_next_possible_ad_hoc_events(Start, TimeLimit, HandledEvents, Time, Events) :-
 	(TimeLimit < Start -> throw(time_limit_before_start) ; true),
 	current_time(CurrentTime),
 	StartDelta is Start - CurrentTime,
 	StartDelta2 is StartDelta + 1,
-	get_all_ad_hoc_event_instances(do2(tick(StartDelta), s0), StartEvents),
+	make_schedule_hash(HandledEvents, HandledEventsHash),
+	get_all_ad_hoc_event_instances(do2(tick(StartDelta), s0), HandledEventsHash, StartEvents),
 	(length(StartEvents) > 0 ->
 		Time = Start,
 		Events = StartEvents
 		;
 		Limit is TimeLimit - CurrentTime + 1,
 		(fromto(StartDelta2, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
-			fromto(_, _, EvOut, Events), param(Limit) do 
+			fromto(_, _, EvOut, Events), param(Limit, HandledEventsHash) do 
 			Sit = do2(tick(CurrentDelta), s0),
-			get_all_ad_hoc_event_instances(Sit, Candidates),
+			get_all_ad_hoc_event_instances(Sit, HandledEventsHash, Candidates),
 			(length(Candidates) > 0 ->
 				EvOut = Candidates,
 				NextDelta = Limit,

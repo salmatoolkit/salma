@@ -830,7 +830,9 @@ class World(Entity, WorldDeclaration):
         performed_actions = []
         failed_actions = []
 
-        self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext, scan_time_limit=current_time)
+
+        self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext,
+                                                    scan=False)
         due_events = self.__event_schedule.get_due_events(current_time)
         while True:
             pre_events = []
@@ -869,7 +871,8 @@ class World(Entity, WorldDeclaration):
             performed_actions.extend(pa)
             failed_actions.extend(fa)
 
-            self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext, time_limit)
+            self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext,
+
             due_events = self.__event_schedule.get_due_events(current_time)
             # break if
             # a) nothing could have changed in this iteration of the loop, i.e. no actions or events have been executed

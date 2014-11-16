@@ -41,7 +41,7 @@ test_schedulable_3 :-
 	init,
 	setPosition(rob1, 1000, 90),
 	setVelocity(rob1, 1, 1),
-	get_next_schedulable_events(100, [], T, C),
+	get_next_schedulable_events(0,100, [], T, C),
 	print([T,C]).
 
 test_schedulable_4 :-
