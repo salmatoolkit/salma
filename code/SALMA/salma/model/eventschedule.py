@@ -4,6 +4,7 @@ import logging
 import heapq
 from salma.model.actions import ExogenousAction
 from salma.model.evaluationcontext import EvaluationContext
+from salma.mathutils import min_robust
 
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -19,7 +20,7 @@ class EventSchedule:
         self.__logics_engine = logics_engine
 
         # name -> exogenous action
-        # : :type : dict[str, ExogenousAction]
+        #: :type : dict[str, ExogenousAction]
         self.__exogenous_actions = dict()
 
         # the event schedule contains entries of the form (time, (event, qualifying params)).
@@ -27,11 +28,11 @@ class EventSchedule:
         # step just before execution of the event. This means that the distribution fo the stochastic parameters
         # refer to tha scheduled time.
         #
-        # : :type: list[(int, (ExogenousAction, list))]
+        #: :type: list[(int, (ExogenousAction, list))]
         self.__event_schedule = []
-        # : :type: list[(int, (ExogenousAction, list))]
+        #: :type: list[(int, (ExogenousAction, list))]
         self.__possible_event_schedule = []
-        # : :type: list[(int, (ExogenousAction, list))]
+        #: :type: list[(int, (ExogenousAction, list))]
         self.__schedulable_event_schedule = []
         #: :type: set[(int, (ExogenousAction, list))]
         self.__already_processed_events = set()
@@ -84,10 +85,13 @@ class EventSchedule:
                 event = se[1][0]
                 params = se[1][1]
                 schedule_time = event.get_next_occurrence_time(evaluation_context, params)
-                assert schedule_time >= current_time
-                new_ev = (schedule_time, (event, params))
-                heapq.heappush(self.__event_schedule, new_ev)
-                self.__already_processed_events.add(new_ev)
+                if schedule_time is not None:
+                    assert schedule_time >= current_time
+                    new_ev = (schedule_time, (event, params))
+                    heapq.heappush(self.__event_schedule, new_ev)
+                # mark the fact that we sampled the occurrence distribution regardless of
+                # whether or not it's been scheduled
+                self.__already_processed_events.add((current_time, (event, params)))
 
     def update_event_schedule(self, current_time, evaluation_context, scan, scan_start=None, scan_time_limit=None):
         """
@@ -111,16 +115,17 @@ class EventSchedule:
         if scan:
             self.__possible_event_schedule.clear()
             self.__schedulable_event_schedule.clear()
-            csched = self.__translate_event_instances_to_raw(self.__already_processed_events)
+            processed = self.__translate_event_instances_to_raw(self.__already_processed_events)
+            sched = self.__translate_event_instances_from_raw(self.__event_schedule)
 
             # check whether new event instances are possible
             poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(scan_start, scan_time_limit,
-                                                                                        csched)
+                                                                                        processed)
             self.__translate_event_instances_from_raw(poss_events, self.__possible_event_schedule)
 
             # check whether new event instances can be scheduled
-
-            schedulable_events = self.__logics_engine.get_next_schedulable_event_instances(scan_time_limit, csched)
+            schedulable_events = self.__logics_engine.get_next_schedulable_event_instances(
+                scan_start, scan_time_limit, sched, processed)
             self.__translate_event_instances_from_raw(schedulable_events, self.__schedulable_event_schedule)
 
     def progress_interleaved(self, evaluation_context, action_instances):
@@ -234,3 +239,27 @@ class EventSchedule:
             due_events.append(entry[1])
             self.__already_processed_events.append(entry)
         return due_events
+
+    def get_next_time_checkpoint(self):
+        """
+        Returns the next time step that must be visited in the simulation because at that time
+        a) an event is already scheduled, b) an ad-hoc becomes possible, or
+          c) an event becomes schedulable.
+
+        :rtype: int
+        """
+        t1 = self.__event_schedule[0][0] if len(self.__event_schedule) > 0 else None
+        t2 = self.__possible_event_schedule[0][0] if len(self.__possible_event_schedule) > 0 else None
+        t3 = self.__schedulable_event_schedule[0][0] if len(self.__schedulable_event_schedule) > 0 else None
+        return min_robust([t1, t2, t3])
+
+    def get_next_scheduled_event(self):
+        """
+        Returns the next scheduled event instance as a tuple of the form (time, (event, params)) or
+        None if no event is currently scheduled.
+        :rtype: (int, (ExogenousAction, list))
+        """
+        if len(self.__event_schedule) > 0:
+            return self.__event_schedule[0]
+        else:
+            return None

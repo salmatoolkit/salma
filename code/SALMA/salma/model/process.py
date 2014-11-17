@@ -170,9 +170,6 @@ class Process(object):
         else:
             return False
 
-
-
-
     # TEMPLATE METHODS
 
     def should_start(self):
@@ -200,6 +197,29 @@ class Process(object):
         Called at finish.
         """
         pass
+
+    def get_next_known_start_time(self, current_time):
+        """
+        Returns the next known start time of the process that is later than the current time.
+        :type current_time: int
+        :rtype: int
+        """
+        raise NotImplementedError()
+
+    def get_next_known_activation_time(self, current_time):
+        """
+        Returns the next known time when the process will be (re-)activated that is later than
+        the current time.
+        :type current_time: int
+        :rtype: int
+        """
+        if self.state == Process.SLEEPING:
+            if self.suspended_until is not None and self.suspended_until > current_time:
+                return self.suspended_until
+            else:
+                return None
+        else:
+            return self.get_next_known_start_time(current_time)
 
     def start(self):
         """
@@ -282,7 +302,7 @@ class Process(object):
         if self.__current_control_node is not None:
             # status == BLOCKED
             if isinstance(self.__current_control_node, Act):
-                #TODO: add support for activity perform / wait after act
+                # TODO: add support for activity perform / wait after act
                 self.__state = Process.EXECUTING_ACTION
                 action = self.__current_control_node
 
@@ -296,7 +316,7 @@ class Process(object):
                 self.__state = Process.WAITING
                 if isinstance(self.__current_control_node, Wait):
                     self.__blocking_condition = self.__current_control_node.get_condition()
-                #TODO: handle sleep
+                    # TODO: handle sleep
 
         if self.__current_control_node is None:
             self.__execution_count += 1
@@ -331,6 +351,13 @@ class OneShotProcess(Process):
 
     def should_terminate(self):
         return self.execution_count > 0
+
+    def get_next_known_start_time(self, current_time):
+        min_time = self.introduction_time or 0
+        if min_time > current_time:
+            return min_time
+        else:
+            return None
 
 
 class PeriodicProcess(Process):
@@ -374,7 +401,7 @@ class PeriodicProcess(Process):
     def should_start(self):
         # start if IDLE and the last start time was before the start of this time slot
         if self.period is None:
-            #TODO: include process name
+            # TODO: include process name
             raise SALMAException("Unspecified period for periodic process.")
 
         min_time = self.introduction_time or 0
@@ -388,6 +415,12 @@ class PeriodicProcess(Process):
 
     def should_terminate(self):
         return False
+
+    def get_next_known_start_time(self, current_time):
+        min_time = self.introduction_time or 0
+        if min_time > current_time:
+            return min_time
+        return min_time + self.time_slot[0] * self.__period
 
 
 class TriggeredProcess(Process):
@@ -429,6 +462,12 @@ class TriggeredProcess(Process):
     def should_terminate(self):
         return False
 
+    def get_next_known_start_time(self, current_time):
+        min_time = self.introduction_time or 0
+        if min_time > current_time:
+            return min_time
+        else:
+            return None
 
 
 

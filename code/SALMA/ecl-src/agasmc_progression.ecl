@@ -427,10 +427,17 @@ situation([A | Tl], S1, S2) :-
 situation([A | Tl], S2) :- situation([A | Tl], s0, S2).
 
 unfold_var_time_steps(S1, S2) :-
-	S1 = do2(tick(Delta), SOld),
-	Delta > 1, !,
-	Delta2 is Delta - 1,
-	unfold_var_time_steps(do2(tick(Delta2), do2(tick(1), SOld)), S2)
+	S1 = do2(tick(Delta), SOld), !,
+	(
+		Delta =< 0,
+		S2 = SOld, !
+		;
+		Delta = 1,
+		S2 = S1, !
+		; %	Delta > 1
+		Delta2 is Delta - 1,
+		unfold_var_time_steps(do2(tick(Delta2), do2(tick(1), SOld)), S2)
+	)
 	;
 	S2 = S1.
 	

@@ -242,19 +242,22 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def get_next_possible_ad_hoc_event_instances(self, start, time_limit):
+    def get_next_possible_ad_hoc_event_instances(self, start, time_limit, handled_events):
         """
         Searches for the next time step where a poss-axiom of an exogenous action becomes true. Returns that time
         together with all possible exogenous action instances at that situation.
 
+        :param int start: the time of the step when scanning should be started .
         :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
         step that is known to be inspected.
+        :param list[(int, str, list)] handled_events: the event instances that have already been handled in this time
+            step
         :return: a list of tuples (time, action_name, arguments)
         :rtype: list[(int, str, list)]
         """
         raise NotImplementedError()
 
-    def get_next_schedulable_event_instances(self, start, time_limit, current_schedule):
+    def get_next_schedulable_event_instances(self, start, time_limit, current_schedule, handled_events):
         """
         Searches for the next time step where a schedulability axiom of an exogenous action becomes true. Returns that
         time together with all schedulable exogenous action instances at that situation.
@@ -263,6 +266,8 @@ class Engine(object):
                     step that is known to be inspected.
         :param list[(int, str, list)] current_schedule: the currently scheduled event instances as tuples of form
                                                             (time, action_name, params)
+        :param list[(int, str, list)] handled_events: the event instances that have already been handled in this time
+            step
         :return: a list of tuples (time, action_name, arguments)
         :rtype: list[(int, str, list)]
         """
@@ -1003,19 +1008,29 @@ class EclipseCLPEngine(Engine):
     def getProperties(self):
         return self.__properties.copy()
 
-    def get_next_possible_ad_hoc_event_instances(self, start, time_limit):
+    def get_next_possible_ad_hoc_event_instances(self, start, time_limit, handled_events):
         """
         Searches for the next time step where a poss-axiom of an exogenous action becomes true. Returns that time
         together with all possible exogenous action instances at that situation.
 
+        :param int start: the time of the step when scanning should be started .
         :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
         step that is known to be inspected.
+        :param list[(int, str, list)] handled_events: the event instances that have already been handled in this time
+            step
         :return: a list of tuples (time, action_name, arguments)
         :rtype: list[(int, str, list)]
         """
+
+        translated_handled_events = []
+        for ev in handled_events:
+            evterm = create_term("ev", ev[0], ev[1], ev[2])
+            translated_handled_events.append(evterm)
+
         next_time = pyclp.Var()
         event_candidates = pyclp.Var()
-        self.__callGoal('get_next_possible_ad_hoc_events', start, time_limit, next_time, event_candidates)
+        self.__callGoal('get_next_possible_ad_hoc_events', start, time_limit,
+                        translated_handled_events, next_time, event_candidates)
 
         result = []
         for actionDef in event_candidates.value():
@@ -1031,7 +1046,7 @@ class EclipseCLPEngine(Engine):
                 result.append((next_time.value(), action_name, instance_params))
         return result
 
-    def get_next_schedulable_event_instances(self, start, time_limit, current_schedule):
+    def get_next_schedulable_event_instances(self, start, time_limit, current_schedule, handled_events):
         """
         Searches for the next time step where a schedulability axiom of an exogenous action becomes true. Returns that
         time together with all schedulable exogenous action instances at that situation.
@@ -1040,6 +1055,8 @@ class EclipseCLPEngine(Engine):
                     step that is known to be inspected.
         :param list[(int, str, list)] current_schedule: the currently scheduled event instances as tuples of form
                                                             (time, action_name, params)
+        :param list[(int, str, list)] handled_events: the event instances that have already been handled in this time
+            step
         :return: a list of tuples (time, action_name, arguments)
         :rtype: list[(int, str, list)]
         """
@@ -1048,11 +1065,16 @@ class EclipseCLPEngine(Engine):
             evterm = create_term("ev", ev[0], ev[1], ev[2])
             translated_schedule.append(evterm)
 
+        translated_handled_events = []
+        for ev in handled_events:
+            evterm = create_term("ev", ev[0], ev[1], ev[2])
+            translated_handled_events.append(evterm)
+
         next_time = pyclp.Var()
         event_candidates = pyclp.Var()
 
         self.__callGoal('get_next_schedulable_events', start,
-                        time_limit, translated_schedule, next_time, event_candidates)
+                        time_limit, translated_schedule, translated_handled_events, next_time, event_candidates)
 
         result = []
         for actionDef in event_candidates.value():

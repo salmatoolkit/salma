@@ -61,10 +61,3 @@ class SequentialProbabilityRatioTest(HypothesisTest):
             return 1
         else:
             return None
-         
-    
-    
-    
-        
-    
-        

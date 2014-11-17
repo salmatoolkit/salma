@@ -1,9 +1,6 @@
-import heapq
 import itertools
 import logging
 import random
-import datetime
-import time
 
 import pyclp
 
@@ -17,12 +14,12 @@ from ..engine import Engine
 from salma.model.eventschedule import EventSchedule
 from salma.model.propertycollection import PropertyCollection
 from salma.model.world_declaration import WorldDeclaration
-from salma.statistics import HypothesisTest
 from .core import Entity, Fluent
 from .agent import Agent
 from .procedure import Variable, Act
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
 from collections.abc import Iterable
+from salma.mathutils import min_robust
 
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -79,17 +76,21 @@ class World(Entity, WorldDeclaration):
 
         self.__virtualSorts = {"sort", "message"}
 
-        # store all entities in a sort -> entity dict 
+        # store all entities in a sort -> entity dict
+        # : :type: dict[str, set[Entity]]
         self.__domainMap = dict()
         # agents is a dict that stores
+        #: :type: dict[str, Entity]
         self.__entities = dict()
+        #: :type: dict[str, Agent]
         self.__agents = dict()
 
         # ------------------- event schedule ---------------------------
+        #: :type: EventSchedule
         self.__event_schedule = EventSchedule(World.logic_engine())
 
         # ------------------- information transfer ---------------------
-        # : :type: dict[str, Connector]
+        #: :type: dict[str, Connector]
         self.__connectors = dict()
 
         # ------------------- information transfer end ---------------------
@@ -99,7 +100,7 @@ class World(Entity, WorldDeclaration):
         self.__finished = False
         self.__initialized = False
 
-        # : :type: dict[str, object]
+        #: :type: dict[str, object]
         self.__additional_expression_context_globals = dict()
 
         self.__property_collection = PropertyCollection(World.logic_engine())
@@ -810,8 +811,37 @@ class World(Entity, WorldDeclaration):
         else:
             return str(action_term)
 
-    def get_next_process_time(self):
-        pass
+    def __get_next_process_time(self):
+        """
+        Returns the next known time at which a process will be activated.
+        :rtype: int
+        """
+        current_time = self.getTime()
+        min_time = None
+        for agent in self.__agents.values():
+            for proc in agent.processes:
+                ptime = proc.get_next_known_activation_time(current_time)
+                min_time = min_robust([min_time, ptime])
+        return min_time
+
+    def get_next_stop_time(self, time_limit, consider_scanning_points):
+        """
+        Determines the next point in time at which the simulation must stop.
+
+        :param int time_limit: the upper bound for the returned time that is used when
+         either no point in time could be determined or the determined point is later than time_limit.
+        :param bool consider_scanning_points: whether or not scanning points should be considered, i.e. points
+            where events will become possible / schedulable.
+        :rtype: int
+        """
+        t1 = self.__get_next_process_time()
+        t2 = None
+        if consider_scanning_points:
+            t2 = self.__event_schedule.get_next_time_checkpoint()
+        else:
+            ev = self.__event_schedule.get_next_scheduled_event()
+            t2 = ev[0] if ev is not None else None
+        return min_robust([t1, t2, time_limit])
 
     def step(self, time_limit, evaluate_properties=True):
         """
@@ -829,16 +859,16 @@ class World(Entity, WorldDeclaration):
             moduleLogger.debug("T = %d", current_time)
         performed_actions = []
         failed_actions = []
-
-
+        # update the actual event schedule using only the possibility and schedulability information at hand
         self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext,
                                                     scan=False)
-        due_events = self.__event_schedule.get_due_events(current_time)
+        next_stop_time = None
         while True:
+            due_events = self.__event_schedule.get_due_events(current_time)
             pre_events = []
             interleaved_events = []
-            # randomly split actions in some that are performed before process flow and some
-            # that are interleaved with actions
+            # randomly split actions into one part that are performed before process flow and another
+            # that is interleaved with actions
             for ev in due_events:
                 if random.random() < 0.5:
                     pre_events.append(ev)
@@ -870,36 +900,29 @@ class World(Entity, WorldDeclaration):
             pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, actions)
             performed_actions.extend(pa)
             failed_actions.extend(fa)
-
+            # for scanning for possible / schedulable events, don't stop at previously calculated
+            # scanning point because this point might have become invalid during the last progression
+            next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=False)
             self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext,
+                                                        scan=True, scan_start=current_time,
+                                                        scan_time_limit=next_stop_time)
 
-            due_events = self.__event_schedule.get_due_events(current_time)
-            # break if
-            # a) nothing could have changed in this iteration of the loop, i.e. no actions or events have been executed
-            # and
-            # b) no events have been scheduled for the current step
-            if len(actions) == 0 and len(due_events) == 0:
-                break
-
-        t1 = self.get_next_process_time()
-        t2 = self.__event_schedule[0][0] if len(self.__event_schedule) > 0 else None
-        next_time = None
-        if t1 is None:
-            next_time = t2
-        elif t2 is None:
-            next_time = t1
-        else:
-            next_time = min(t1, t2)
-        if next_time is None:
-            next_time = current_time + 1
-
+            # continue until no actions or events were performed during the iteration and
+            # the no event is scheduled / possible / schedulable at the current point
+            if len(due_events) == 0 and len(actions) == 0:
+                # update the next stop time using all available information
+                next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=True)
+                if next_stop_time > current_time:
+                    break
+        # now we now that next_stop_time is set up correctly
         verdict = NONDET
         if evaluate_properties:
             toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
-                interval_end=next_time - 1)  # TODO: check if bound is right
-            verdict, failed_invariants, failed_sustain_goals = self.__arbitrate_verdict(toplevel_results,
-                                                                                        scheduled_results,
-                                                                                        scheduled_keys)
+                interval_end=next_stop_time - 1)  # TODO: check if bound is right
+            verdict, failed_invariants, failed_sustain_goals = self.__property_collection.arbitrate_verdict(
+                toplevel_results,
+                scheduled_results,
+                scheduled_keys)
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug(("  toplevel_results: {}\n"
                                     "  scheduled_results: {}\n"
@@ -909,7 +932,7 @@ class World(Entity, WorldDeclaration):
             failure_stack = []
             failed_invariants, failed_sustain_goals = set(), set()
 
-        World.logic_engine().progress([('tick', [next_time - current_time])])
+        World.logic_engine().progress([('tick', [next_stop_time - current_time])])
 
         return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions, [],
                 failed_invariants, failed_sustain_goals, failure_stack)

@@ -12,22 +12,30 @@ select_action_instance(ActionName, PossibleInstanceArgs, ActionTerm) :-
 	),
 	ActionTerm =.. [ActionName | TestArgs].
 
-possible_action_instance(ActionName, Situation, HandledHash, PossibleInstanceArgs) :-
+possible_action_instance(ActionName, Situation, Time, 
+	HandledHash, PossibleInstanceArgs) :-
 	select_action_instance(ActionName, PossibleInstanceArgs, ActionTerm),
-	% TODO: for ad hoc: also look at time! 
-	not hash_contains(HandledHash, (ActionName, PossibleInstanceArgs)),
+	(
+		hash_get(HandledHash, (ActionName, PossibleInstanceArgs), Times), 
+		!,
+		not member(Time, Times)
+		;
+		true
+	),		
 	poss(ActionTerm, Situation).
 	
-get_possible_exogenous_action_instances(ActionName, Situation, HandledHash, Candidates) :-
-	findall(InstanceArgs, possible_action_instance(ActionName, Situation, 
+get_possible_exogenous_action_instances(ActionName, Situation, Time, HandledHash, Candidates) :-
+	findall(InstanceArgs, possible_action_instance(ActionName, Situation, Time,
 							HandledHash, InstanceArgs), Candidates).
 		
 
 get_all_ad_hoc_event_instances(Situation, HandledHash, Candidates) :-
+	time(Time, Situation),
 	findall(ActionName, ad_hoc_event(ActionName), ActionNames),
 	% filter out 
-	(foreach(A, ActionNames), fromto([], CIn, COut, Candidates), param(Situation, HandledHash) do
-		get_possible_exogenous_action_instances(A, Situation, HandledHash, 
+	(foreach(A, ActionNames), fromto([], CIn, COut, Candidates), 
+		param(Situation, Time, HandledHash) do
+		get_possible_exogenous_action_instances(A, Situation, Time, HandledHash, 
 			CandidatesForAction),
 		(length(CandidatesForAction) > 0 ->
 			append(CIn, [A : CandidatesForAction], COut)
@@ -106,22 +114,35 @@ get_all_caused_exogenous_action_instances(Actions, CausedEvents) :-
 % -------------------
 
 
-schedulable_action_instance(ActionName, Situation, CurrentScheduleHash, PossibleInstanceArgs) :-
+schedulable_action_instance(ActionName, Situation, Time, CurrentScheduleHash, HandledHash,
+	PossibleInstanceArgs) :-
 	select_action_instance(ActionName, PossibleInstanceArgs, ActionTerm),
 	not hash_contains(CurrentScheduleHash, (ActionName, PossibleInstanceArgs)),
+	% skip this instance if it has already been handled in this same step (situation)
+	(
+		hash_get(HandledHash, (ActionName, PossibleInstanceArgs), Times), 
+		!,
+		not member(Time, Times)
+		;
+		true
+	),		
 	schedulable(ActionTerm, Situation).
 	
-get_schedulable_exogenous_action_instances(ActionName, Situation, CurrentScheduleHash, Candidates) :-
+get_schedulable_exogenous_action_instances(ActionName, Situation, Time, CurrentScheduleHash, 
+	HandledHash, Candidates) :-
 	findall(InstanceArgs, 
-		schedulable_action_instance(ActionName, Situation, CurrentScheduleHash,	InstanceArgs), 
+		schedulable_action_instance(ActionName, Situation, Time, CurrentScheduleHash,	
+			HandledHash, InstanceArgs), 
 		Candidates).
 		
-get_all_schedulable_event_instances_internal(Situation, CurrentScheduleHash, Candidates) :-
+get_all_schedulable_event_instances_internal(Situation, CurrentScheduleHash, 
+	HandledHash, Candidates) :-
+	time(Time, Situation),
 	findall(ActionName, schedulable_event(ActionName), ActionNames),
 	(foreach(A, ActionNames), fromto([], CIn, COut, Candidates), 
-		param(Situation, CurrentScheduleHash) do
-		get_schedulable_exogenous_action_instances(A, Situation, CurrentScheduleHash, 
-			CandidatesForAction),
+		param(Situation, Time, CurrentScheduleHash, HandledHash) do
+		get_schedulable_exogenous_action_instances(A, Situation, Time, CurrentScheduleHash, 
+			HandledHash, CandidatesForAction),
 		(length(CandidatesForAction) > 0 ->
 			append(CIn, [A : CandidatesForAction], COut)
 			;
@@ -133,32 +154,45 @@ make_schedule_hash(Schedule, ScheduleHash) :-
 	hash_create(ScheduleHash),
 	(foreach(Entry, Schedule), param(ScheduleHash) do
 		Entry = ev(Time, EventName, EventParams),
-		hash_add(ScheduleHash, (EventName, EventParams), Time)
+		Key = (EventName, EventParams),
+		(
+			hash_get(ScheduleHash, Key, Times),
+			append(Times, [Time], Times2)
+			;
+			Times2 = [Time]
+		),
+		hash_set(ScheduleHash, Key, Times2)
 	).
 
-get_all_schedulable_event_instances(Situation, CurrentSchedule, Candidates) :-
+get_all_schedulable_event_instances(Situation, CurrentSchedule, HandledInStep, Candidates) :-
 	make_schedule_hash(CurrentSchedule, CurrentScheduleHash),
-	get_all_schedulable_event_instances_internal(Situation, CurrentScheduleHash, Candidates).
+	make_schedule_hash(HandledInStep, HandledHash),
+	get_all_schedulable_event_instances_internal(Situation, CurrentScheduleHash, 
+		HandledHash, Candidates).
 	
 
 % pre: TimeLimit > current time
-get_next_schedulable_events(Start, TimeLimit, CurrentSchedule, Time, Events) :-
+get_next_schedulable_events(Start, TimeLimit, CurrentSchedule, HandledInStep, 
+	Time, Events) :-
 	(TimeLimit < Start -> throw(time_limit_before_start) ; true),
 	current_time(CurrentTime),
 	StartDelta is Start - CurrentTime,
 	StartDelta2 is StartDelta + 1,
 	make_schedule_hash(CurrentSchedule, CurrentScheduleHash),
+	make_schedule_hash(HandledInStep, HandledHash),
+	
 	get_all_schedulable_event_instances_internal(do2(tick(StartDelta), s0), 
-		CurrentScheduleHash, CurrentEvents),
+		CurrentScheduleHash, HandledHash, CurrentEvents),
 	(length(CurrentEvents) > 0 ->
 		Time = Start,
 		Events = CurrentEvents
 		;
 		Limit is TimeLimit - CurrentTime + 1,
 		(fromto(StartDelta2, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
-			fromto(_, _, EvOut, Events), param(Limit, CurrentScheduleHash) do 
+			fromto(_, _, EvOut, Events), param(Limit, CurrentScheduleHash, HandledHash) do 
 			Sit = do2(tick(CurrentDelta), s0),
-			get_all_schedulable_event_instances_internal(Sit, CurrentScheduleHash, Candidates),
+			get_all_schedulable_event_instances_internal(Sit, CurrentScheduleHash, 
+				HandledHash, Candidates),
 			(length(Candidates) > 0 ->
 				EvOut = Candidates,
 				NextDelta = Limit,

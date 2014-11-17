@@ -25,30 +25,75 @@ init :-
 	set_current(wheels_wet, [rob2], true),
 	set_current(time, [], 0).
 	
+test_ad_hoc_1 :-
+	init,
+	get_next_possible_ad_hoc_events(0, 100, [], Time, Events),
+	Time = 0,
+	Events = [slip : [[rob2]]].
+
+test_ad_hoc_2 :-
+	init,
+	Handled = [ev(0, slip, [rob2])],
+	get_next_possible_ad_hoc_events(0, 100, Handled, Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = 1,
+	Events = [slip : [[rob2]]].
+
+test_ad_hoc_3 :-
+	init,
+	Handled = [ev(0, slip, [rob2]), ev(1, slip, [rob2])],
+	get_next_possible_ad_hoc_events(0, 100, Handled, Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = 2,
+	Events = [slip : [[rob2]]].	
+
+test_ad_hoc_4 :-
+	init,
+	set_current(wheels_wet, [rob2], false),
+	get_next_possible_ad_hoc_events(0, 100, [], Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = 20, Events = [collide : [[rob1, rob2]]].
+	
+	
 test_schedulable_1 :-
 	init,
 	setPosition(rob1, 1000, 90),
-	get_all_schedulable_event_instances(s0, [], C),
-	C = [].
+	setVelocity(rob1, 1, 1),
+	
+	get_next_schedulable_events(0, 100, [], [], 
+		Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = 11, Events =  [lightning_strike : [[rob1]]].
 
 test_schedulable_2 :-
 	init,
-	setPosition(rob1, 1000, 110),
-	get_all_schedulable_event_instances(s0, [], C),
-	C = [lightning_strike : [[rob1]]].
+	setPosition(rob1, 1000, 90),
+	setVelocity(rob1, 1, 1),
+	
+	get_next_schedulable_events(0, 8, [], [], 
+		Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = -1, Events =  [].
 
 test_schedulable_3 :-
 	init,
-	setPosition(rob1, 1000, 90),
+	setPosition(rob1, 1000, 101),
 	setVelocity(rob1, 1, 1),
-	get_next_schedulable_events(0,100, [], T, C),
-	print([T,C]).
+	Handled = [ev(0, lightning_strike, [rob1])],
+	get_next_schedulable_events(0, 100, [], Handled, 
+		Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = 1, Events =  [lightning_strike : [[rob1]]].	
 
 test_schedulable_4 :-
 	init,
-	setPosition(rob1, 1000, 110),
-	get_all_schedulable_event_instances(s0, [ev(2, collide, [rob1, rob2]), ev(5, lightning_strike, [rob2])], C),
-	print(C).
+	setPosition(rob1, 1000, 101),
+	setVelocity(rob1, 1, 1),
+	Schedule = [ev(10, lightning_strike, [rob1])],
+	get_next_schedulable_events(0, 100, Schedule, [], 
+		Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = -1, Events =  [].	
 	
 test_all :-
 	test_schedulable_1,
