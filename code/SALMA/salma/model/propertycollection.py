@@ -101,7 +101,7 @@ class PropertyCollection:
                 break
 
         if (verdict == NONDET and all_achieved is True
-                and len(pending_properties) == 0):
+            and len(pending_properties) == 0):
             verdict = OK
 
         return verdict, failed_invariants, failed_sustain_goals
@@ -113,10 +113,10 @@ class PropertyCollection:
         :param str formula: the formula.
         :param int property_type: one of World.INVARIANT, World.ACHIEVE, or World.ACHIEVE_AND_SUSTAIN
         """
-        if property_type not in (INVARIANT, ACHIEVE,ACHIEVE_AND_SUSTAIN):
+        if property_type not in (INVARIANT, ACHIEVE, ACHIEVE_AND_SUSTAIN):
             raise SALMAException("Unknown property type: {}".format(property_type))
         if (propertyName in self.__invariants or propertyName in self.__achieve_goals
-                or propertyName in self.__achieve_and_sustain_goals):
+            or propertyName in self.__achieve_and_sustain_goals):
             raise SALMAException("Property {} already registered.".format(propertyName))
         self.__logics_engine.registerProperty(propertyName, formula)
         if property_type == INVARIANT:

@@ -103,8 +103,6 @@ class World(Entity, WorldDeclaration):
         #: :type: dict[str, object]
         self.__additional_expression_context_globals = dict()
 
-        self.__property_collection = PropertyCollection(World.logic_engine())
-
         if World.logic_engine() is None:
             raise SALMAException("Engine not set when creating world.")
         World.logic_engine().reset()
@@ -708,17 +706,6 @@ class World(Entity, WorldDeclaration):
         """
         return (s for s in self.__connectors.values() if isinstance(s, RemoteSensor))
 
-    # --- PROPERTIES
-    @property
-    def property_collection(self):
-        """
-        Handles all properties registered for this world.
-        :rtype: PropertyCollection
-        """
-        return self.__property_collection
-
-    # ---
-
     @staticmethod
     def instance():
         """
@@ -850,9 +837,9 @@ class World(Entity, WorldDeclaration):
 
         :param int time_limit: the upper time limit until which the search for event occurrences is scanned
         :param bool evaluate_properties: if True, perform property evaluation
-        :returns: (verdict, self.__finished, toplevel_results, scheduled_results, all_actions, [],
+        :returns: (self.__finished, toplevel_results, scheduled_results, all_actions, [],
                 failed_invariants, failed_sustain_goals, failure_stack)
-        :rtype: (int, bool, dict[str, int], dict, list, list, set[str], set[str], list)
+        :rtype: ( bool, dict[str, int], dict, list, list, set[str], set[str], list)
         """
         current_time = self.getTime()
         if moduleLogger.isEnabledFor(logging.DEBUG):
@@ -914,15 +901,12 @@ class World(Entity, WorldDeclaration):
                 next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=True)
                 if next_stop_time > current_time:
                     break
-        # now we now that next_stop_time is set up correctly
+        # now we know that next_stop_time is set up correctly
         verdict = NONDET
         if evaluate_properties:
             toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
                 interval_end=next_stop_time - 1)  # TODO: check if bound is right
-            verdict, failed_invariants, failed_sustain_goals = self.__property_collection.arbitrate_verdict(
-                toplevel_results,
-                scheduled_results,
-                scheduled_keys)
+
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug(("  toplevel_results: {}\n"
                                     "  scheduled_results: {}\n"

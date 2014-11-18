@@ -1,3 +1,16 @@
+import logging
+from salma.constants import *
+from salma.model.propertycollection import PropertyCollection
+from salma.model.world import World
+from salma.mathutils import min_robust
+import time
+import datetime
+
+MODULE_LOGGER_NAME = 'salma.model'
+moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
+
+DEFAULT_MAX_TIME_DELTA_PER_STEP = 100000
+
 
 class Experiment(object):
     """
@@ -5,13 +18,33 @@ class Experiment(object):
     probability distributions, and properties to evaluate.
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, world):
+        """
+        Creates an experiment instance based on the given world.
+
+        :param World world: the world this experiment uses
+        """
+        # : :type: World
+        self.__world = world
+        self.__already_achieved_goals = {}
+        self.__property_collection = PropertyCollection(World.logic_engine())
+
+    # --- PROPERTIES
+    @property
+    def property_collection(self):
+        """
+        Handles all properties registered for this world.
+        :rtype: PropertyCollection
+        """
+        return self.__property_collection
+
+    # ---
 
     def initialize(self):
         pass
 
-    def runExperiment(self, check_verdict=True, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
+    def run_experiment(self, check_verdict=True, max_steps=None, max_real_time=None, max_world_time=None,
+                       max_time_delta_per_step=None, step_listeners=[]):
         """
         Runs the experiment that has been set up until a) a conclusive verdict can be determined,
         b) the world has finished, c) the given step or time maximum is reached, or d) at least one of
@@ -20,16 +53,18 @@ class Experiment(object):
         If check_verdict is False then the registered properties are not evaluated and the verdict remains NONDET.
 
         :param bool check_verdict: whether properties are evaluated. default=True
-        :param int maxSteps: maximum number of steps
-        :param float maxRealTime: maximum real time
-        :param int maxWorldTime: maximum world time
-        :param list stepListeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
+        :param int max_steps: maximum number of steps
+        :param float max_real_time: maximum real time
+        :param int max_world_time: maximum world time
+        :param int max_time_delta_per_step: the maximum time interval that a step is allowed to span
+        :param list step_listeners: step listener functions with siugnature (step_num, delta_t, actions, toplevel_results)
+        :return: (verdict, result-map)
         :rtype: (int, dict[str, object])
         """
         step_num = 0
-        verdict = NONDET
-        self.__already_achieved_goals = set()
-        failedRegularActions = []
+        verdict = NONDET if check_verdict else None
+        self.__already_achieved_goals.clear()
+        failed_regular_actions = []
         c1 = c2 = time.clock()
         finish_reason = None
         failed_invariants = set()
@@ -38,22 +73,34 @@ class Experiment(object):
         # : :type: dict[str, list[int]]
         scheduled_keys = dict()
         time_out = False
+        max_delta = max_time_delta_per_step
 
-        while (not self.is_finished()) and (not check_verdict or verdict == NONDET):
-            # self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
-            (verdict, _, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
-             failed_invariants, failed_sustain_goals, failure_stack) = self.step(evaluate_properties=check_verdict)
+        # only use default maximum time delta if no other bound was specified
+        if max_time_delta_per_step is None and max_world_time is None:
+            max_delta = DEFAULT_MAX_TIME_DELTA_PER_STEP
+
+        while (not self.__world.is_finished()) and (not check_verdict or verdict == NONDET):
+            current_time = self.__world.getTime()
+            time_limit = min_robust([max_world_time, current_time + max_delta])
+            (_, toplevel_results, scheduled_results, scheduled_keys, actions, failed_regular_actions,
+             failed_invariants, failed_sustain_goals, failure_stack) = self.__world.step(time_limit,
+                                                                                         evaluate_properties=check_verdict)
+            if check_verdict:
+                verdict, failed_invariants, failed_sustain_goals = self.property_collection.arbitrate_verdict(
+                    toplevel_results,
+                    scheduled_results,
+                    scheduled_keys)
             c2 = time.clock()
             step_num += 1
-            deltaT = c2 - c1
+            delta_t = c2 - c1
             should_continue = True
             break_reason = None
-            for sl in stepListeners:
-                continue_from_listener, break_reason_from_listener = sl(self,
+            for sl in step_listeners:
+                continue_from_listener, break_reason_from_listener = sl(self.__world,
                                                                         verdict=verdict,
-                                                                        step=step_num, deltaT=deltaT,
+                                                                        step=step_num, deltaT=delta_t,
                                                                         actions=actions,
-                                                                        failedActions=failedRegularActions,
+                                                                        failedActions=failed_regular_actions,
                                                                         toplevel_results=toplevel_results,
                                                                         scheduled_results=scheduled_results,
                                                                         pending_properties=scheduled_keys)
@@ -65,47 +112,46 @@ class Experiment(object):
                 finish_reason = break_reason
                 verdict = CANCEL
                 break
-            if failedRegularActions is not None and len(failedRegularActions) > 0:
+            if failed_regular_actions is not None and len(failed_regular_actions) > 0:
                 finish_reason = "failed_actions"
                 verdict = CANCEL
                 break
-            if maxSteps != None and step_num >= maxSteps:
+            if max_steps is not None and step_num >= max_steps:
                 finish_reason = "max_steps"
                 time_out = True
                 break
-            if maxRealTime != None and datetime.timedelta(seconds=deltaT) >= maxRealTime:
+            if max_real_time is not None and datetime.timedelta(seconds=delta_t) >= max_real_time:
                 finish_reason = "max_real_time"
                 time_out = True
                 break
-            if maxWorldTime != None:
-                t = self.getFluentValue('time', [])
-                if t >= maxWorldTime:
+            if max_world_time is not None:
+                if current_time >= max_world_time:
                     finish_reason = "max_world_time"
                     time_out = True
                     break
         if finish_reason is None and verdict != NONDET:
             finish_reason = "verdict_found"
-        if self.is_finished():
+        if self.__world.is_finished():
             finish_reason = "world_finished"
         if verdict == NONDET:
             if check_verdict is False:
-                verdict = OK if self.is_finished() else NOT_OK
+                verdict = OK if self.__world.is_finished() else NOT_OK
             # if no achieve goal was given then having finished or "surviving" until the time limit means success!
             # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
             else:
-                if ((self.is_finished() or time_out is True) and
-                            len(self.__achieve_goals) == 0 and
-                            len(self.__achieve_and_sustain_goals) == 0 and
+                if ((self.__world.is_finished() or time_out is True) and
+                            len(self.property_collection.achieve_goals) == 0 and
+                            len(self.property_collection.achieve_and_sustain_goals) == 0 and
                             len(scheduled_keys) == 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
-        worldTime = self.getFluentValue('time', [])
+        world_time = self.__world.getTime()
         return (verdict,
                 {'steps': step_num,
                  'time': duration,
-                 'worldTime': worldTime,
-                 'failedActions': failedRegularActions,
+                 'worldTime': world_time,
+                 'failedActions': failed_regular_actions,
                  "finish_reason": finish_reason,
                  "failed_invariants": failed_invariants,
                  "failed_sustain_goals": failed_sustain_goals,
@@ -113,7 +159,7 @@ class Experiment(object):
                  "failure_stack": failure_stack,
                  "scheduled_keys": scheduled_keys})
 
-    def runUntilFinished(self, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
+    def run_until_finished(self, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
         """
         Repeatedly runs World.step() until either the world's finished flag becomes true or
         either the step or time limit is reached. The properties are not evaluated.
@@ -124,10 +170,10 @@ class Experiment(object):
         :param list stepListeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
         :rtype: (int, dict[str, object])
         """
-        verdict, results = self.runExperiment(check_verdict=False, maxSteps=maxSteps, maxRealTime=maxRealTime,
-                                              maxWorldTime=maxWorldTime, stepListeners=stepListeners)
+        verdict, results = self.run_experiment(check_verdict=False, max_steps=maxSteps, max_real_time=maxRealTime,
+                                               max_world_time=maxWorldTime, step_listeners=stepListeners)
         if verdict != CANCEL:
-            verdict = OK if self.is_finished() else NOT_OK
+            verdict = OK if self.__world.is_finished() else NOT_OK
         return verdict, results
 
     def run_repetitions(self, number_of_repetitions=100, max_retrials=3, hypothesis_test=None, **kwargs):
@@ -153,7 +199,7 @@ class Experiment(object):
             self.reset()
             World.logic_engine().restoreState(current_state)
 
-            verdict, res = self.runExperiment(**kwargs)
+            verdict, res = self.run_experiment(**kwargs)
             trial_infos.append(res)
             if verdict == NONDET or verdict == CANCEL:
                 if verdict == CANCEL:
