@@ -14,8 +14,7 @@ class Agent(Entity):
     An agent is an active entity that executes one or several processes.
     """
 
-    def __init__(self, entity_id, sort_name, processes=[], procedure_registry=None,
-                 world_declaration=None):
+    def __init__(self, entity_id, sort_name, processes=None, procedure_registry=None, world_declaration=None):
         """
         Creates an agent with the given id, sort and control procedure. Additionally,
         a procedure registry can be specified to allow procedure calls within the agent's control
@@ -26,8 +25,9 @@ class Agent(Entity):
         :type processes: object
         :type procedure_registry: ProcedureRegistry
         :type world_declaration: WorldDeclaration
-        :type automatic_info_transfer: bool
         """
+        if not processes:
+            processes = []
         Entity.__init__(self, entity_id, sort_name)
         self.__evaluation_context = None
         # : :type : set[process.Process]

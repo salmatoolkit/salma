@@ -1,4 +1,3 @@
-import sys
 from salma.SALMAException import SALMAException
 from salma.model.distributions import Distribution, UniformDistribution
 from .evaluationcontext import EvaluationContext

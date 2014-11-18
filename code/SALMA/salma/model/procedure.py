@@ -778,6 +778,7 @@ class Receive(ControlNode):
 
 class WaitForSensor(ControlNode):
     def __init__(self, sensor, agent, params, start_time):
+        super().__init__()
         self.__sensor = sensor
         self.__agent = agent
         self.__params = params
@@ -860,6 +861,7 @@ class UpdateRemoteSensor(ControlNode):
         :param str remote_sensor_name: the name of the remote sensor
         :param list params: the parameters used for local sensing
         """
+        super().__init__()
         self.__remote_sensor_name = remote_sensor_name
 
     def executeStep(self, evaluation_context: EvaluationContext, procedure_registry):

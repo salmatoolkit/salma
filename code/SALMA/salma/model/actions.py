@@ -684,7 +684,7 @@ class ExogenousAction(object):
 
 
 class ExogenousActionConfiguration:
-    def __init__(self, exogenous_action, occurrence_distribution=None, stochastic_param_distribution_specs=[]):
+    def __init__(self, exogenous_action, occurrence_distribution=None, stochastic_param_distribution_specs=None):
         """
         Holds the configuration for an exogenous action.
 
@@ -698,6 +698,8 @@ class ExogenousActionConfiguration:
         :type occurrence_distribution: Distribution
         :type stochastic_param_distribution_specs: list of (str, Distribution)
         """
+        if not stochastic_param_distribution_specs:
+            stochastic_param_distribution_specs = []
         self.__exogenous_action = exogenous_action
         self.__occurrence_distribution = (occurrence_distribution if occurrence_distribution is not None
                                           else BernoulliDistribution(0.0))

@@ -74,7 +74,11 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def restoreState(self, fluentValues):
+    def restoreState(self, fluent_values):
+        """
+        Uses the given list of fluent values to update the world state.
+        :param list[FluentValue] fluent_values: the fluent values that define the state
+        """
         raise NotImplementedError()
 
     def getFluentValue(self, fluentName, *fluentParams):
@@ -603,9 +607,13 @@ class EclipseCLPEngine(Engine):
 
         return self.__currentState.values()
 
-    def restoreState(self, fluentValues):
+    def restoreState(self, fluent_values):
+        """
+        Uses the given list of fluent values to update the world state.
+        :param list[FluentValue] fluent_values: the fluent values that define the state
+        """
         self.__currentState = None
-        for fv in fluentValues:
+        for fv in fluent_values:
             self.setFluentValue(fv.fluentName, fv.fluentParamValues, fv.value)
 
     def getFluentValue(self, fluentName, *fluentParams):

@@ -148,7 +148,7 @@ class MapGenerator(object):
 
             m = typetest.match(data["label"])
             if m is None:
-                raise(SALMAException("Wrong label format for node {}!".format(nid)))
+                raise(SALMAException("Wrong label format for node {}!".format(node)))
 
             loctype = m.group(1)
             if loctype in ["c"]:

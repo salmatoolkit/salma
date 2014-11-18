@@ -80,13 +80,13 @@ class World(Entity, WorldDeclaration):
         # : :type: dict[str, set[Entity]]
         self.__domainMap = dict()
         # agents is a dict that stores
-        #: :type: dict[str, Entity]
+        # : :type: dict[str, Entity]
         self.__entities = dict()
-        #: :type: dict[str, Agent]
+        # : :type: dict[str, Agent]
         self.__agents = dict()
 
         # ------------------- event schedule ---------------------------
-        #: :type: EventSchedule
+        # : :type: EventSchedule
         self.__event_schedule = EventSchedule(World.logic_engine())
 
         # ------------------- information transfer ---------------------
@@ -837,9 +837,8 @@ class World(Entity, WorldDeclaration):
 
         :param int time_limit: the upper time limit until which the search for event occurrences is scanned
         :param bool evaluate_properties: if True, perform property evaluation
-        :returns: (self.__finished, toplevel_results, scheduled_results, all_actions, [],
-                failed_invariants, failed_sustain_goals, failure_stack)
-        :rtype: ( bool, dict[str, int], dict, list, list, set[str], set[str], list)
+        :returns: (self.__finished, toplevel_results, scheduled_results, all_actions, failed_actions, failure_stack)
+        :rtype: ( bool, dict[str, int], dict, list, list, list)
         """
         current_time = self.getTime()
         if moduleLogger.isEnabledFor(logging.DEBUG):
@@ -914,12 +913,11 @@ class World(Entity, WorldDeclaration):
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
-            failed_invariants, failed_sustain_goals = set(), set()
 
         World.logic_engine().progress([('tick', [next_stop_time - current_time])])
 
-        return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions, [],
-                failed_invariants, failed_sustain_goals, failure_stack)
+        return (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
+                failed_actions, failure_stack)
 
     def __reset_domainmap(self):
         self.__domainMap = dict()
@@ -936,10 +934,16 @@ class World(Entity, WorldDeclaration):
         self.__reset_domainmap()
         self.initialize(sample_fluent_values=False, removeFormulas=False)
 
-        self.__property_collection.reset()
         # : :type agent: Agent
         for agent in self.getAgents():
             agent.restart()
+
+    def restore_state(self, fluent_values):
+        """
+        Uses the given list of fluent values to update the world state.
+        :param list[FluentValue] fluent_values: the fluent values that define the state
+        """
+        World.logic_engine().restoreState(fluent_values)
 
     def printState(self):
         if not self.__initialized: self.initialize()

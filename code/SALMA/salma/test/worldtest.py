@@ -578,7 +578,7 @@ class WorldTest(BaseWorldTest):
             self.assertEqual(entry['i'], grabMap[entry['r'].id])
             handledAgents.add(entry['r'].id)
 
-        self.assertSetEqual(handledAgents, set(['rob1', 'rob2']))
+        self.assertSetEqual(handledAgents, {'rob1', 'rob2'})
 
         print(res2)
 

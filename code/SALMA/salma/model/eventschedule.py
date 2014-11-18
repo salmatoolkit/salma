@@ -133,7 +133,7 @@ class EventSchedule:
         Progresses the given action / event instances in random order. For each instance of stochastic actions,
         an outcome is generated at the time it is due to be progressed.
 
-        :param EvaluationContext evaluationcontext: the evaluation context that will be used
+        :param EvaluationContext evaluation_context: the evaluation context that will be used
             for sampling in distributions.
         :param action_instances:
             action instances = tuples (action, arguments, EvaluationContext) where the last EvaluationContext argument
@@ -237,7 +237,6 @@ class EventSchedule:
         while len(self.__event_schedule) > 0 and self.__event_schedule[0][0] <= current_time:
             entry = heapq.heappop(self.__event_schedule)
             due_events.append(entry[1])
-            self.__already_processed_events.append(entry)
         return due_events
 
     def get_next_time_checkpoint(self):
