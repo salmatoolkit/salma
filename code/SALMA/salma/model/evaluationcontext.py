@@ -18,9 +18,9 @@ class EvaluationContext(object):
         CONSTANT, ITERATOR = range(8)
 
     def __init__(self, parent):
-        '''
-        :param parent: EvaluationContext
-        '''
+        """
+        :param EvaluationContext|None parent: the parent context
+        """
         self.__sequenceIndexes = dict()
         self.__resultListIndexes = dict()
         self.__resultLists = dict()

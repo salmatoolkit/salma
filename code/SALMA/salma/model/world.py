@@ -12,7 +12,6 @@ from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
 from salma.model.eventschedule import EventSchedule
-from salma.model.propertycollection import PropertyCollection
 from salma.model.world_declaration import WorldDeclaration
 from .core import Entity, Fluent
 from .agent import Agent
@@ -448,7 +447,7 @@ class World(Entity, WorldDeclaration):
         :type entityId: str
         :rtype: Entity
         """
-        if not entityId in self.__entities:
+        if entityId not in self.__entities:
             return None
         else:
             return self.__entities[entityId]
@@ -837,8 +836,9 @@ class World(Entity, WorldDeclaration):
 
         :param int time_limit: the upper time limit until which the search for event occurrences is scanned
         :param bool evaluate_properties: if True, perform property evaluation
-        :returns: (self.__finished, toplevel_results, scheduled_results, all_actions, failed_actions, failure_stack)
-        :rtype: ( bool, dict[str, int], dict, list, list, list)
+        :returns: (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
+                failed_actions, failure_stack)
+        :rtype: (bool, dict[str, int], dict, list, list, list, list)
         """
         current_time = self.getTime()
         if moduleLogger.isEnabledFor(logging.DEBUG):
@@ -943,7 +943,7 @@ class World(Entity, WorldDeclaration):
         Uses the given list of fluent values to update the world state.
         :param list[FluentValue] fluent_values: the fluent values that define the state
         """
-        World.logic_engine().restoreState(fluent_values)
+        World.logic_engine().restore_state(fluent_values)
 
     def printState(self):
         if not self.__initialized: self.initialize()
@@ -989,14 +989,14 @@ class World(Entity, WorldDeclaration):
         """
         return self.logic_engine().getFluentChangeTime(fluentName, params)
 
-    def queryPersistentProperty(self, propertyName):
-        '''
+    def queryPersistentProperty(self, property_name):
+        """
         Returns a tuple with the current status of the given property together with the last
         change time.
-        
-        :param propertyName: str
-        '''
-        return self.logic_engine().queryPersistentProperty(propertyName)
+
+        :param str property_name: the name of the property
+        """
+        return self.logic_engine().queryPersistentProperty(property_name)
 
 
 # --------------------------------------------------------------------------------------
@@ -1009,7 +1009,7 @@ class LocalEvaluationContext(EvaluationContext):
     def __init__(self, contextEntity, parent):
         """
         :type contextEntity: Entity
-        :type parent: EvaluationContext
+        :type parent: EvaluationContext|None
         """
         EvaluationContext.__init__(self, parent)
         self.__contextEntity = contextEntity
@@ -1054,7 +1054,7 @@ class LocalEvaluationContext(EvaluationContext):
         elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
             result = World.logic_engine().evaluateCondition(source, *resolvedParams, situation='s0')
         elif sourceType == EvaluationContext.CONSTANT:
-            result = bool(World.getConstantValue(source, resolvedParams))
+            result = bool(World.logic_engine().getConstantValue(source, resolvedParams))
         elif sourceType in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
                             EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
             result = self.evaluate_python(sourceType, source, *resolvedParams)
@@ -1177,7 +1177,6 @@ class LocalEvaluationContext(EvaluationContext):
         :param int source_type: the type of the predicate
         :param str source: the name of the predicate
         """
-
         resolved_params = self.resolve(*params)  # the free variables tuples are ignored by resolve()
 
         free_vars = self.__select_free_variables(params)
@@ -1306,3 +1305,11 @@ class LocalEvaluationContext(EvaluationContext):
         """
         return World.instance().get_connector(name)
 
+    def queryPersistentProperty(self, property_name):
+        World.logic_engine().queryPersistentProperty(property_name)
+
+    def getActionClock(self, action_name, *params):
+        World.logic_engine().getActionClock(action_name, params)
+
+    def getFluentChangeTime(self, fluent_name, *params):
+        World.logic_engine().getFluentChangeTime(fluent_name, params)

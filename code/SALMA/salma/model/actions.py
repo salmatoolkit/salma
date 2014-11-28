@@ -258,18 +258,18 @@ class OutcomeSelectionStrategy:
 
 
 class StochasticAction(Action):
+    #TODO remove immediate action stuff
     def __init__(self, name, parameters, outcomes, selection_strategy=None, immediate=False):
         """
         Represents a stochastic action. Action instances are created when the declaration is read and
         added to the world's action registry. The outcome and parameter distribution can then be set with the
         associated configuration.
 
-        :param outcomes: list of RandomActionOutcome objects
-        :type name: str
-        :type parameters: list of str
-        :type outcomes: list of RandomActionOutcome
-        :type selection_strategy: OutcomeSelectionStrategy
-        :type immediate: bool
+        :param str name: the name of the stochastic action
+        :param list[(str, str)] parameters: the stochastic action's parameters
+        :param list[RandomActionOutcome] outcomes: list of RandomActionOutcome objects
+        :param OutcomeSelectionStrategy selection_strategy: the outcome selection strategy
+        :param bool immediate: whether or not this action is an immediate action (TODO: obsolete)
         """
         Action.__init__(self, name, parameters, immediate)
         self.__selection_strategy = selection_strategy
@@ -391,7 +391,7 @@ class Deterministic(OutcomeSelectionStrategy):
     def check(self, action_dict):
         problems = super().check(action_dict)
         if len(self.action.outcomes) != 1:
-            problems.append("outcome_selection_strategy.deterministic.more_than_one_outcome")
+            problems.append(("outcome_selection_strategy.deterministic.more_than_one_outcome", None))
         return problems
 
     def describe(self):
@@ -475,7 +475,7 @@ class Stepwise(OutcomeSelectionStrategy):
         """
         problems = super().check(action_dict)
         for outcome in self.action.outcomes:
-            if not outcome.action_name in self.__probabilities:
+            if outcome.action_name not in self.__probabilities:
                 problems.append(("outcome_selection_strategy.stepwise.no_prob_for_outcome", outcome.action_name))
 
         s = sum(self.__probabilities.values())

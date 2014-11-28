@@ -116,7 +116,7 @@ class EventSchedule:
             self.__possible_event_schedule.clear()
             self.__schedulable_event_schedule.clear()
             processed = self.__translate_event_instances_to_raw(self.__already_processed_events)
-            sched = self.__translate_event_instances_from_raw(self.__event_schedule)
+            sched = self.__translate_event_instances_to_raw(self.__event_schedule)
 
             # check whether new event instances are possible
             poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(scan_start, scan_time_limit,
@@ -203,7 +203,7 @@ class EventSchedule:
         Translates a generator for conversion of the current event schedule to a list of event tuples of form
         (time, action_name param_values).
 
-        :param list[(int, (ExogenousAction, list))] schedule: the event schedule.
+        :param set[(int, (ExogenousAction, list))]|list[(int, (ExogenousAction, list))] schedule: the event schedule.
         :rtype: list[(int, str, list)]
         """
         return ((ev[0], ev[1][0].action_name, ev[1][1]) for ev in schedule)

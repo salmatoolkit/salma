@@ -1,6 +1,7 @@
 from salma.SALMAException import SALMAException
 from salma.constants import *
 from salma.engine import Engine
+from itertools import chain
 
 
 class PropertyCollection:
@@ -95,13 +96,13 @@ class PropertyCollection:
         else:
             all_achieved = False
         # check whether all achieve goals have been achieved
-        for pname in (self.__achieve_goals.keys() | self.__achieve_and_sustain_goals.keys()):
-            if not pname in self.__already_achieved_goals:
+        for pname in chain(self.__achieve_goals.keys(), self.__achieve_and_sustain_goals.keys()):
+            if pname not in self.__already_achieved_goals:
                 all_achieved = False
                 break
 
         if (verdict == NONDET and all_achieved is True
-            and len(pending_properties) == 0):
+                and len(pending_properties) == 0):
             verdict = OK
 
         return verdict, failed_invariants, failed_sustain_goals

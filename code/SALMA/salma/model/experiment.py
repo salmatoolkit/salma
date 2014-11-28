@@ -83,10 +83,12 @@ class Experiment(object):
 
         while (not self.__world.is_finished()) and (not check_verdict or verdict == NONDET):
             current_time = self.__world.getTime()
+            #: :type: int
             time_limit = min_robust([max_world_time, current_time + max_delta])
             (_, toplevel_results, scheduled_results, scheduled_keys, actions, failed_regular_actions,
-             failed_invariants, failed_sustain_goals, failure_stack) = self.__world.step(time_limit,
-                                                                                         evaluate_properties=check_verdict)
+             failure_stack) = self.__world.step(
+                time_limit, evaluate_properties=check_verdict)
+
             if check_verdict:
                 verdict, failed_invariants, failed_sustain_goals = self.property_collection.arbitrate_verdict(
                     toplevel_results,
@@ -201,7 +203,7 @@ class Experiment(object):
         successes, failures = 0, 0
         while should_continue:
             self.__world.reset()
-            self.__world.restoreState(current_state)
+            self.__world.restore_state(current_state)
 
             verdict, res = self.run_experiment(**kwargs)
             trial_infos.append(res)
@@ -235,5 +237,5 @@ class Experiment(object):
                 should_continue = conclusive_trial_count < number_of_repetitions
 
         self.__world.reset()
-        self.__world.restoreState(current_state)
+        self.__world.restore_state(current_state)
         return accepted_hypothesis, results, trial_infos

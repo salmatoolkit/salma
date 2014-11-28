@@ -1,7 +1,7 @@
 from salma.SALMAException import SALMAException
 from salma.model.core import Entity
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.infotransfer import ReceivedMessage, Channel, RemoteSensor
+from salma.model.infotransfer import ReceivedMessage, Channel
 from salma.constants import *
 
 
@@ -79,7 +79,6 @@ class ControlNode(Element):
     def __init__(self):
         Element.__init__(self)
         self.__parent = None
-
 
     def getParent(self): return self.__parent
 
@@ -187,12 +186,11 @@ class ProcedureRegistry(object):
         return procedure
 
     def registerProcedure(self, procedure):
-        '''
+        """
         Registers a procedure.
-        
-        :param procedureName: str
-        :param procedureName: Procedure
-        '''
+
+        :param Procedure procedure: the procedure to register
+        """
         self.__registry[procedure.name] = procedure
 
 
@@ -566,57 +564,53 @@ class ArbitraryAction(ControlNode):
 
 
 class ProcedureCall(ControlNode):
-    def __init__(self, procedureName, procedureParameters):
-        '''
+    def __init__(self, procedure_name, procedure_parameters):
+        """
         actionParameters can be terms, need metamodel for that. Terms have to be evaluated first to ground them.
         For now, variables should be enough...
-        
-        The agent will be inserted as an implicit 1st parameter. 
-        '''
-        ControlNode.__init__(self)
-        self.__procedureName = procedureName
-        self.__procedureParameters = procedureParameters
 
+        The agent will be inserted as an implicit 1st parameter.
+        """
+        ControlNode.__init__(self)
+        self.__procedure_name = procedure_name
+        self.__procedure_parameters = procedure_parameters
 
     @property
-    def procedureName(self):
-        return self.__actionName
+    def procedure_name(self):
+        return self.__procedure_name
 
     @property
     def parameters(self):
-        return tuple(self.__actionParameters)
+        return tuple(self.__procedure_parameters)
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        groundParams = evaluationContext.resolve(*self.__procedureParameters)
-        childContext = evaluationContext.createChildContext()
+    def executeStep(self, evaluation_context, procedure_registry):
+        ground_params = evaluation_context.resolve(*self.__procedure_parameters)
+        child_context = evaluation_context.createChildContext()
 
-        childContext.setProcedureCall(self)
-        procedure = procedureRegistry.getProcedure(self.__procedureName)
+        child_context.setProcedureCall(self)
+        procedure = procedure_registry.getProcedure(self.__procedure_name)
 
-        if len(groundParams) != len(procedure.parameters):
+        if len(ground_params) != len(procedure.parameters):
             raise SALMAException(
                 "Wrong number of parameters in call to procedure {}! Expected {} but was {}.".format(
-                    self.__procedureName,
+                    self.__procedure_name,
                     len(procedure.parameters),
-                    len(groundParams)
+                    len(ground_params)
                 )
             )
 
         for i, p in enumerate(procedure.parameters):
-            varName = p[0]
+            var_name = p[0]
             # TODO: type checking!
-            childContext.assignVariable(varName, groundParams[i])
-
-
-
+            child_context.assignVariable(var_name, ground_params[i])
 
         # - return self as action
-        return (ControlNode.CONTINUE, procedure.body, childContext)
+        return ControlNode.CONTINUE, procedure.body, child_context
 
     def __str__(self, *args, **kwargs):
-        return "Act({},{})".format(self.__actionName, self.__actionParameters)
+        return "Act({},{})".format(self.__procedure_name, self.__procedure_parameters)
 
-    def reset(self, evaluationContext):
+    def reset(self, evaluation_context):
         pass
 
 
@@ -811,6 +805,7 @@ class Sense(ControlNode):
     """
 
     def __init__(self, sensor, params, variable=None):
+        super().__init__()
         self.__sensor = sensor
         self.__params = params
         self.__variable = variable
@@ -859,7 +854,6 @@ class UpdateRemoteSensor(ControlNode):
     def __init__(self, remote_sensor_name):
         """
         :param str remote_sensor_name: the name of the remote sensor
-        :param list params: the parameters used for local sensing
         """
         super().__init__()
         self.__remote_sensor_name = remote_sensor_name
