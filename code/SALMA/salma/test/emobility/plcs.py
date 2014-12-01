@@ -3,7 +3,6 @@ from salma.model.process import PeriodicProcess, TriggeredProcess
 
 
 def create_plcs_processes(world, world_map, mt):
-
     process_reservation_requests = Procedure("main", [],
                                              [
                                                  Receive("reservation", "plcs", "reservation_requests"),
@@ -34,5 +33,5 @@ def create_plcs_processes(world, world_map, mt):
                                              ])
     for plcs in world.getAgents("plcs"):
         p = TriggeredProcess(process_reservation_requests, EvaluationContext.TRANSIENT_FLUENT,
-                              "message_available", [Entity.SELF, "reservation", "plcs"])
+                             "message_available", [Entity.SELF, "reservation", "plcs"])
         plcs.add_process(p)

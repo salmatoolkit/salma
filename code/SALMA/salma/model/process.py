@@ -243,7 +243,6 @@ class Process(object):
         """
         self.__current_control_node = None
         self.__current_evaluation_context = self.agent.evaluation_context
-        self.__pending_action = None
         self._on_finish()
         self.__state = Process.IDLE
         if self.should_terminate():
@@ -253,7 +252,6 @@ class Process(object):
         self.__state = Process.IDLE
         self.__current_control_node = self.procedure.body
         self.__current_evaluation_context = None
-        self.__pending_action = None
         self.__last_start_time = None
         self.__last_end_time = None
         self.__terminated = False

@@ -1,4 +1,4 @@
-from salma import SALMAException
+from salma.SALMAException import SALMAException
 
 
 class Connector(object):
@@ -118,7 +118,7 @@ class ReceivedMessage(object):
 
         format: msg(Sender, SrcRole, Dest, DestRole, Time, Content2)
         """
-        (_, self.__sender, self.__src_role, self.__dest, self.__dest_role,
+        (self.__sender, self.__src_role, self.__dest, self.__dest_role,
          self.__time, self.__content) = message_term
 
     @property

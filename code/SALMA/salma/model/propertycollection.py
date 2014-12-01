@@ -1,6 +1,7 @@
 from salma.SALMAException import SALMAException
 from salma.constants import *
 from salma.engine import Engine
+from itertools import chain
 
 
 class PropertyCollection:
@@ -13,14 +14,14 @@ class PropertyCollection:
         self.__logics_engine = logics_engine
 
         # dict with registered properties: name -> (formula, property_type)
-        # : :type: dict[str, (str, int)]
+        #: :type: dict[str, (str, int)]
         self.__invariants = dict()
-        # : :type: dict[str, (str, int)]
+        #: :type: dict[str, (str, int)]
         self.__achieve_goals = dict()
-        # : :type: dict[str, (str, int)]
+        #: :type: dict[str, (str, int)]
         self.__achieve_and_sustain_goals = dict()
 
-        # : :type: set[str]
+        #: :type: set[str]
         self.__already_achieved_goals = set()
 
     @staticmethod
@@ -95,36 +96,36 @@ class PropertyCollection:
         else:
             all_achieved = False
         # check whether all achieve goals have been achieved
-        for pname in (self.__achieve_goals.keys() | self.__achieve_and_sustain_goals.keys()):
-            if not pname in self.__already_achieved_goals:
+        for pname in chain(self.__achieve_goals.keys(), self.__achieve_and_sustain_goals.keys()):
+            if pname not in self.__already_achieved_goals:
                 all_achieved = False
                 break
 
         if (verdict == NONDET and all_achieved is True
-            and len(pending_properties) == 0):
+                and len(pending_properties) == 0):
             verdict = OK
 
         return verdict, failed_invariants, failed_sustain_goals
 
-    def register_property(self, propertyName, formula, property_type):
+    def register_property(self, property_name, formula, property_type):
         """
         Registers the given formula under the given name.
-        :param str propertyName: the name of the property usd for referencing it later.
+        :param str property_name: the name of the property usd for referencing it later.
         :param str formula: the formula.
         :param int property_type: one of World.INVARIANT, World.ACHIEVE, or World.ACHIEVE_AND_SUSTAIN
         """
         if property_type not in (INVARIANT, ACHIEVE, ACHIEVE_AND_SUSTAIN):
             raise SALMAException("Unknown property type: {}".format(property_type))
-        if (propertyName in self.__invariants or propertyName in self.__achieve_goals
-            or propertyName in self.__achieve_and_sustain_goals):
-            raise SALMAException("Property {} already registered.".format(propertyName))
-        self.__logics_engine.registerProperty(propertyName, formula)
+        if (property_name in self.__invariants or property_name in self.__achieve_goals
+            or property_name in self.__achieve_and_sustain_goals):
+            raise SALMAException("Property {} already registered.".format(property_name))
+        self.__logics_engine.registerProperty(property_name, formula)
         if property_type == INVARIANT:
-            self.__invariants[propertyName] = (formula, property_type)
+            self.__invariants[property_name] = (formula, property_type)
         elif property_type == ACHIEVE:
-            self.__achieve_goals[propertyName] = (formula, property_type)
+            self.__achieve_goals[property_name] = (formula, property_type)
         else:
-            self.__achieve_and_sustain_goals[propertyName] = (formula, property_type)
+            self.__achieve_and_sustain_goals[property_name] = (formula, property_type)
 
     def unregister_property(self, property_name):
         """
@@ -152,17 +153,37 @@ class PropertyCollection:
 
     @property
     def invariants(self):
+        """
+        :rtype: dict[str, (str, int)]
+        """
         return self.__invariants
 
     @property
     def achieve_goals(self):
+        """
+        :rtype: dict[str, (str, int)]
+        """
         return self.__achieve_goals
 
     @property
     def achieve_and_sustain_goals(self):
+        """
+        :rtype: dict[str, (str, int)]
+        """
         return self.__achieve_and_sustain_goals
 
+    @property
+    def already_achieved_goals(self):
+        """
+        :rtype: set[str]
+        """
+        return self.__already_achieved_goals
+
+    @property
     def all_goals(self):
+        """
+        :rtype: dict[str, (str, int)]
+        """
         goals = dict()
         goals.update(self.__achieve_goals)
         goals.update(self.__achieve_and_sustain_goals)

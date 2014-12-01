@@ -74,7 +74,11 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def restoreState(self, fluentValues):
+    def restore_state(self, fluent_values):
+        """
+        Uses the given list of fluent values to update the world state.
+        :param list[FluentValue] fluent_values: the fluent values that define the state
+        """
         raise NotImplementedError()
 
     def getFluentValue(self, fluentName, *fluentParams):
@@ -98,7 +102,7 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def evaluateCondition(self, conditionGoalName, *conditionGoalParams):
+    def evaluateCondition(self, conditionGoalName, *conditionGoalParams, **kwargs):
         """
         Evaluates the given goal and returns true if the evaluation succeeds.
 
@@ -108,16 +112,20 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def evaluateFunctionGoal(self, situation, goalName, *goalParams):
+    def evaluateFunctionGoal(self, goalName, *goalParams, **kwargs):
         """
         Evaluates the given goal with the given parameters and an implicit last parameter for the result variable.
         Only the first result is returned.
 
-        If a situation is given, it is appended after the result variable at the last position.
+        If a situation is given as named argument "situation", it is appended after the result variable at the last
+        position.
+
+        :param str goalName: the name of the Prolog goal to evaluate
+        :param goalParams: the arguments for evaluating the given goal.
         """
         raise NotImplementedError()
 
-    def evaluateRelationalGoal(self, situation, goalName, *goalParams):
+    def evaluateRelationalGoal(self, goalName, *goalParams):
         """
         Evaluates the given goal with the given parameters and an implicit last parameter for the result variable.
         A list of all found results is returned.
@@ -603,9 +611,13 @@ class EclipseCLPEngine(Engine):
 
         return self.__currentState.values()
 
-    def restoreState(self, fluentValues):
+    def restore_state(self, fluent_values):
+        """
+        Uses the given list of fluent values to update the world state.
+        :param list[FluentValue] fluent_values: the fluent values that define the state
+        """
         self.__currentState = None
-        for fv in fluentValues:
+        for fv in fluent_values:
             self.setFluentValue(fv.fluentName, fv.fluentParamValues, fv.value)
 
     def getFluentValue(self, fluentName, *fluentParams):
@@ -693,11 +705,9 @@ class EclipseCLPEngine(Engine):
         self.__callGoal('evaluate_function', pyclp.Atom(goalName), pyclp.PList(paramTerms))
         return self.__convert_value_from_engine_result(rvar.value())
 
-
     def evaluateRelationalGoal(self, situation, goalName, *goalParams):
         # TODO: implement
         pass
-
 
     def __prepareIndexedFreeParams(self, *params, **kwargs):
         params2 = []

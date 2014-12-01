@@ -12,7 +12,6 @@ from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
 from salma.model.eventschedule import EventSchedule
-from salma.model.propertycollection import PropertyCollection
 from salma.model.world_declaration import WorldDeclaration
 from .core import Entity, Fluent
 from .agent import Agent
@@ -80,13 +79,13 @@ class World(Entity, WorldDeclaration):
         # : :type: dict[str, set[Entity]]
         self.__domainMap = dict()
         # agents is a dict that stores
-        #: :type: dict[str, Entity]
+        # : :type: dict[str, Entity]
         self.__entities = dict()
-        #: :type: dict[str, Agent]
+        # : :type: dict[str, Agent]
         self.__agents = dict()
 
         # ------------------- event schedule ---------------------------
-        #: :type: EventSchedule
+        # : :type: EventSchedule
         self.__event_schedule = EventSchedule(World.logic_engine())
 
         # ------------------- information transfer ---------------------
@@ -303,8 +302,8 @@ class World(Entity, WorldDeclaration):
     def __load_stochastic_action_declarations(self, declarations, immediate_action_names):
         """
         Loads the stochastic declarations and creates StochasticAction objects accordingly.
-        :type declarations: list of (str, list of object, list of str)
-        :type immediate_action_names: list of str
+        :param list[(str, list[(str, str)], list[str])] declarations: the declarations as (name, params, outcome_names) tuples
+        :param list[str] immediate_action_names: list of action names
         """
         for sa in declarations:
             immediate = sa[0] in immediate_action_names
@@ -313,6 +312,7 @@ class World(Entity, WorldDeclaration):
             outcomes = []
             for o_name in outcome_names:
                 outcome_action = self.getAction(o_name)
+                assert isinstance(outcome_action, DeterministicAction)
                 outcomes.append(RandomActionOutcome(outcome_action))
             strategy = Deterministic() if len(outcomes) == 1 else Uniform()
             action = StochasticAction(sa[0], params, outcomes, strategy, immediate)
@@ -448,7 +448,7 @@ class World(Entity, WorldDeclaration):
         :type entityId: str
         :rtype: Entity
         """
-        if not entityId in self.__entities:
+        if entityId not in self.__entities:
             return None
         else:
             return self.__entities[entityId]
@@ -720,7 +720,7 @@ class World(Entity, WorldDeclaration):
         """
         Returns the current value of the fluent instance that is given by the fluent name and the parameter list.
         :type fluent_name: str
-        :type fluent_params: list
+        :type fluent_params: list|tuple
         :rtype: object
         """
         # we don't check if the fluent has been registered for performance reasons
@@ -741,7 +741,7 @@ class World(Entity, WorldDeclaration):
         """
         Returns the current value of the given constant instance.
         :type constantName: str
-        :type constantParams: list
+        :type constantParams: list|tuple
         :rtype: object
         """
         return World.logic_engine().getConstantValue(constantName, constantParams)
@@ -750,7 +750,7 @@ class World(Entity, WorldDeclaration):
         """
         Sets the current value for the given fluent instance.
         :type fluentName: str
-        :type fluentParams: list
+        :type fluentParams: list|tuple
         :type value: object
         """
         World.logic_engine().setFluentValue(fluentName, fluentParams, value)
@@ -759,7 +759,7 @@ class World(Entity, WorldDeclaration):
         """
         Sets the current value for the given constant instance.
         :type constantName: str
-        :type constantParams: list
+        :type constantParams: list|tuple
         :type value: object
         """
         World.logic_engine().setConstantValue(constantName, constantParams, value)
@@ -837,9 +837,9 @@ class World(Entity, WorldDeclaration):
 
         :param int time_limit: the upper time limit until which the search for event occurrences is scanned
         :param bool evaluate_properties: if True, perform property evaluation
-        :returns: (self.__finished, toplevel_results, scheduled_results, all_actions, [],
-                failed_invariants, failed_sustain_goals, failure_stack)
-        :rtype: ( bool, dict[str, int], dict, list, list, set[str], set[str], list)
+        :returns: (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
+                failed_actions, failure_stack)
+        :rtype: (bool, dict[str, int], dict, dict[str, list[int]], list, list, list)
         """
         current_time = self.getTime()
         if moduleLogger.isEnabledFor(logging.DEBUG):
@@ -914,12 +914,11 @@ class World(Entity, WorldDeclaration):
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
-            failed_invariants, failed_sustain_goals = set(), set()
 
         World.logic_engine().progress([('tick', [next_stop_time - current_time])])
 
-        return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions, [],
-                failed_invariants, failed_sustain_goals, failure_stack)
+        return (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
+                failed_actions, failure_stack)
 
     def __reset_domainmap(self):
         self.__domainMap = dict()
@@ -936,10 +935,16 @@ class World(Entity, WorldDeclaration):
         self.__reset_domainmap()
         self.initialize(sample_fluent_values=False, removeFormulas=False)
 
-        self.__property_collection.reset()
         # : :type agent: Agent
         for agent in self.getAgents():
             agent.restart()
+
+    def restore_state(self, fluent_values):
+        """
+        Uses the given list of fluent values to update the world state.
+        :param list[FluentValue] fluent_values: the fluent values that define the state
+        """
+        World.logic_engine().restore_state(fluent_values)
 
     def printState(self):
         if not self.__initialized: self.initialize()
@@ -985,14 +990,14 @@ class World(Entity, WorldDeclaration):
         """
         return self.logic_engine().getFluentChangeTime(fluentName, params)
 
-    def queryPersistentProperty(self, propertyName):
-        '''
+    def queryPersistentProperty(self, property_name):
+        """
         Returns a tuple with the current status of the given property together with the last
         change time.
-        
-        :param propertyName: str
-        '''
-        return self.logic_engine().queryPersistentProperty(propertyName)
+
+        :param str property_name: the name of the property
+        """
+        return self.logic_engine().queryPersistentProperty(property_name)
 
 
 # --------------------------------------------------------------------------------------
@@ -1005,7 +1010,7 @@ class LocalEvaluationContext(EvaluationContext):
     def __init__(self, contextEntity, parent):
         """
         :type contextEntity: Entity
-        :type parent: EvaluationContext
+        :type parent: EvaluationContext|None
         """
         EvaluationContext.__init__(self, parent)
         self.__contextEntity = contextEntity
@@ -1042,15 +1047,16 @@ class LocalEvaluationContext(EvaluationContext):
         resolvedParams = self.resolve(*params)
         result = None
         if sourceType == EvaluationContext.FLUENT:
+            assert isinstance(source, str)
             result = World.instance().getFluentValue(source, resolvedParams)
-            if result == None:
+            if result is None:
                 raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
         elif sourceType == EvaluationContext.ECLP_FUNCTION:
             result = World.logic_engine().evaluateCondition(source, *resolvedParams)
         elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
             result = World.logic_engine().evaluateCondition(source, *resolvedParams, situation='s0')
         elif sourceType == EvaluationContext.CONSTANT:
-            result = bool(World.getConstantValue(source, resolvedParams))
+            result = bool(World.logic_engine().getConstantValue(source, resolvedParams))
         elif sourceType in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
                             EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
             result = self.evaluate_python(sourceType, source, *resolvedParams)
@@ -1085,7 +1091,7 @@ class LocalEvaluationContext(EvaluationContext):
     def getFluentValue(self, fluentName, *params):
         resolvedParams = self.resolve(*params)
         fv = World.instance().getFluentValue(fluentName, resolvedParams)
-        if fv == None:
+        if fv is None:
             raise SALMAException("No value found for fluent: {0}({1}).".format(fluentName, resolvedParams))
         return fv
 
@@ -1154,7 +1160,7 @@ class LocalEvaluationContext(EvaluationContext):
 
     def __select_free_variables(self, params):
         """
-        :param list params: the parameters
+        :param list|tuple params: the parameters
         :rtype: list[(str,str)]
         """
         vars = []
@@ -1173,7 +1179,6 @@ class LocalEvaluationContext(EvaluationContext):
         :param int source_type: the type of the predicate
         :param str source: the name of the predicate
         """
-
         resolved_params = self.resolve(*params)  # the free variables tuples are ignored by resolve()
 
         free_vars = self.__select_free_variables(params)
@@ -1302,3 +1307,11 @@ class LocalEvaluationContext(EvaluationContext):
         """
         return World.instance().get_connector(name)
 
+    def queryPersistentProperty(self, property_name):
+        World.logic_engine().queryPersistentProperty(property_name)
+
+    def getActionClock(self, action_name, *params):
+        World.logic_engine().getActionClock(action_name, params)
+
+    def getFluentChangeTime(self, fluent_name, *params):
+        World.logic_engine().getFluentChangeTime(fluent_name, params)

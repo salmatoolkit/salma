@@ -47,7 +47,6 @@ class RandomActionOutcome(object):
             self.__param_distributions.append(UniformDistribution(p[1]))
 
         for i, param in enumerate(param_distribution_specs):
-            dist = None
             index = self.__outcome_action.get_parameter_index(param[0])
             if isinstance(param[1], Distribution):
                 dist = param[1]
@@ -258,18 +257,18 @@ class OutcomeSelectionStrategy:
 
 
 class StochasticAction(Action):
+    # TODO remove immediate action stuff
     def __init__(self, name, parameters, outcomes, selection_strategy=None, immediate=False):
         """
         Represents a stochastic action. Action instances are created when the declaration is read and
         added to the world's action registry. The outcome and parameter distribution can then be set with the
         associated configuration.
 
-        :param outcomes: list of RandomActionOutcome objects
-        :type name: str
-        :type parameters: list of str
-        :type outcomes: list of RandomActionOutcome
-        :type selection_strategy: OutcomeSelectionStrategy
-        :type immediate: bool
+        :param str name: the name of the stochastic action
+        :param list[(str, str)] parameters: the stochastic action's parameters
+        :param list[RandomActionOutcome] outcomes: list of RandomActionOutcome objects
+        :param OutcomeSelectionStrategy selection_strategy: the outcome selection strategy
+        :param bool immediate: whether or not this action is an immediate action (TODO: obsolete)
         """
         Action.__init__(self, name, parameters, immediate)
         self.__selection_strategy = selection_strategy
@@ -391,7 +390,7 @@ class Deterministic(OutcomeSelectionStrategy):
     def check(self, action_dict):
         problems = super().check(action_dict)
         if len(self.action.outcomes) != 1:
-            problems.append("outcome_selection_strategy.deterministic.more_than_one_outcome")
+            problems.append(("outcome_selection_strategy.deterministic.more_than_one_outcome", None))
         return problems
 
     def describe(self):
@@ -475,7 +474,7 @@ class Stepwise(OutcomeSelectionStrategy):
         """
         problems = super().check(action_dict)
         for outcome in self.action.outcomes:
-            if not outcome.action_name in self.__probabilities:
+            if outcome.action_name not in self.__probabilities:
                 problems.append(("outcome_selection_strategy.stepwise.no_prob_for_outcome", outcome.action_name))
 
         s = sum(self.__probabilities.values())
@@ -684,7 +683,7 @@ class ExogenousAction(object):
 
 
 class ExogenousActionConfiguration:
-    def __init__(self, exogenous_action, occurrence_distribution=None, stochastic_param_distribution_specs=[]):
+    def __init__(self, exogenous_action, occurrence_distribution=None, stochastic_param_distribution_specs=None):
         """
         Holds the configuration for an exogenous action.
 
@@ -698,6 +697,8 @@ class ExogenousActionConfiguration:
         :type occurrence_distribution: Distribution
         :type stochastic_param_distribution_specs: list of (str, Distribution)
         """
+        if not stochastic_param_distribution_specs:
+            stochastic_param_distribution_specs = []
         self.__exogenous_action = exogenous_action
         self.__occurrence_distribution = (occurrence_distribution if occurrence_distribution is not None
                                           else BernoulliDistribution(0.0))
@@ -723,9 +724,7 @@ class ExogenousActionConfiguration:
         if self.__exogenous_action.config is not self:
             raise SALMAException(
                 "Inconsistent exogenous action configuration: config of exogenous action {} points to different "
-                "ExogenousActionConfig.",
-                self.__exogenous_action.action_name
-            )
+                "ExogenousActionConfig.".format(self.__exogenous_action.action_name))
 
         if self.__occurrence_distribution is None:
             problems.append(
@@ -736,7 +735,7 @@ class ExogenousActionConfiguration:
             # TODO: check for type according to event type (ad hoc | scheduled)
             # if self.occurrence_distribution.sort != "boolean":
             # problems.append(
-            #         "Wrong type for occurrence distribution of
+            # "Wrong type for occurrence distribution of
             # exogenous action {}: was {} but must be boolean.".format(
             #             self.exogenous_action.action_name, self.occurrence_distribution.sort
             #         ))
