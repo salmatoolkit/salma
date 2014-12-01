@@ -163,7 +163,7 @@ class EvaluationContext(object):
         
     def incCurrentSequenceIndex(self, sequence):
         if sequence in self.__sequenceIndexes:
-            self.__sequenceIndexes[sequence] = self.__sequenceIndexes[sequence] + 1
+            self.__sequenceIndexes[sequence] += 1
         else:
             raise(SALMAException("Trying to increment uninitialized sequence index."))
 
@@ -173,7 +173,7 @@ class EvaluationContext(object):
     
     def incCurrentResultListIndex(self, iteration):
         if iteration in self.__resultListIndexes:
-            self.__resultListIndexes[iteration] = self.__resultListIndexes[iteration] + 1
+            self.__resultListIndexes[iteration] += 1
         else:
             raise(SALMAException("Trying to increment uninitialized result list index."))
     

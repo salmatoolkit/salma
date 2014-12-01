@@ -172,13 +172,12 @@ class ProcedureRegistry(object):
         self.__registry = registry or dict()
 
     def getProcedure(self, procedureName):
-        '''
+        """
         Returns the procedure with the givent name.
-        
+
         :param procedureName: str
         :rtype: Procedure
-        '''
-        procedure = None
+        """
         try:
             procedure = self.__registry[procedureName]
         except KeyError:

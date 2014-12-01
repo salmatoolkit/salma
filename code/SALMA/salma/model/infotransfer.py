@@ -1,4 +1,4 @@
-from salma import SALMAException
+from salma.SALMAException import SALMAException
 
 
 class Connector(object):

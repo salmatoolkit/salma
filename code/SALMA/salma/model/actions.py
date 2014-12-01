@@ -47,7 +47,6 @@ class RandomActionOutcome(object):
             self.__param_distributions.append(UniformDistribution(p[1]))
 
         for i, param in enumerate(param_distribution_specs):
-            dist = None
             index = self.__outcome_action.get_parameter_index(param[0])
             if isinstance(param[1], Distribution):
                 dist = param[1]
@@ -258,7 +257,7 @@ class OutcomeSelectionStrategy:
 
 
 class StochasticAction(Action):
-    #TODO remove immediate action stuff
+    # TODO remove immediate action stuff
     def __init__(self, name, parameters, outcomes, selection_strategy=None, immediate=False):
         """
         Represents a stochastic action. Action instances are created when the declaration is read and
@@ -725,9 +724,7 @@ class ExogenousActionConfiguration:
         if self.__exogenous_action.config is not self:
             raise SALMAException(
                 "Inconsistent exogenous action configuration: config of exogenous action {} points to different "
-                "ExogenousActionConfig.",
-                self.__exogenous_action.action_name
-            )
+                "ExogenousActionConfig.".format(self.__exogenous_action.action_name))
 
         if self.__occurrence_distribution is None:
             problems.append(
@@ -738,7 +735,7 @@ class ExogenousActionConfiguration:
             # TODO: check for type according to event type (ad hoc | scheduled)
             # if self.occurrence_distribution.sort != "boolean":
             # problems.append(
-            #         "Wrong type for occurrence distribution of
+            # "Wrong type for occurrence distribution of
             # exogenous action {}: was {} but must be boolean.".format(
             #             self.exogenous_action.action_name, self.occurrence_distribution.sort
             #         ))

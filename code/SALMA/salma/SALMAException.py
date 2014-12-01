@@ -1,6 +1,6 @@
 
 
-class SALMAException(BaseException):
+class SALMAException(Exception):
 
     def __init__(self, msg):
         """
@@ -15,7 +15,7 @@ class SALMAException(BaseException):
         return self.__message
 
     def __str__(self):
-        return "SalmaException: {}".format(self.__message)
+        return "SALMAException: {}".format(self.__message)
 
 
 

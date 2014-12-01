@@ -112,16 +112,20 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def evaluateFunctionGoal(self, situation, goalName, *goalParams, **kwargs):
+    def evaluateFunctionGoal(self, goalName, *goalParams, **kwargs):
         """
         Evaluates the given goal with the given parameters and an implicit last parameter for the result variable.
         Only the first result is returned.
 
-        If a situation is given, it is appended after the result variable at the last position.
+        If a situation is given as named argument "situation", it is appended after the result variable at the last
+        position.
+
+        :param str goalName: the name of the Prolog goal to evaluate
+        :param goalParams: the arguments for evaluating the given goal.
         """
         raise NotImplementedError()
 
-    def evaluateRelationalGoal(self, situation, goalName, *goalParams):
+    def evaluateRelationalGoal(self, goalName, *goalParams):
         """
         Evaluates the given goal with the given parameters and an implicit last parameter for the result variable.
         A list of all found results is returned.
