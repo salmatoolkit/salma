@@ -58,7 +58,7 @@ get_next_possible_ad_hoc_events(Start, TimeLimit, HandledEvents, Time, Events) :
 		;
 		Limit is TimeLimit - CurrentTime + 1,
 		(fromto(StartDelta2, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
-			fromto(_, _, EvOut, Events), param(Limit, HandledEventsHash) do 
+			fromto([], _, EvOut, Events), param(Limit, HandledEventsHash) do 
 			Sit = do2(tick(CurrentDelta), s0),
 			get_all_ad_hoc_event_instances(Sit, HandledEventsHash, Candidates),
 			(length(Candidates) > 0 ->
@@ -189,7 +189,7 @@ get_next_schedulable_events(Start, TimeLimit, CurrentSchedule, HandledInStep,
 		;
 		Limit is TimeLimit - CurrentTime + 1,
 		(fromto(StartDelta2, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
-			fromto(_, _, EvOut, Events), param(Limit, CurrentScheduleHash, HandledHash) do 
+			fromto([], _, EvOut, Events), param(Limit, CurrentScheduleHash, HandledHash) do 
 			Sit = do2(tick(CurrentDelta), s0),
 			get_all_schedulable_event_instances_internal(Sit, CurrentScheduleHash, 
 				HandledHash, Candidates),

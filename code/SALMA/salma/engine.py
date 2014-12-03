@@ -1047,8 +1047,8 @@ class EclipseCLPEngine(Engine):
         result = []
         for actionDef in event_candidates.value():
             action_name = str(actionDef[0])
-            event_candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
-            for c in event_candidates:
+            instance_candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
+            for c in instance_candidates:
                 instance_params = []
                 for arg in c:
                     if isinstance(arg, pyclp.Atom):
@@ -1091,8 +1091,8 @@ class EclipseCLPEngine(Engine):
         result = []
         for actionDef in event_candidates.value():
             action_name = str(actionDef[0])
-            event_candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
-            for c in event_candidates:
+            instance_candidates = actionDef[1]  # [ [x1_1, x2_1, ...], [x1_2, x2_2, ...], ...]
+            for c in instance_candidates:
                 instance_params = []
                 for arg in c:
                     if isinstance(arg, pyclp.Atom):

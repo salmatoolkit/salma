@@ -23,6 +23,9 @@ init :-
 	set_current(active, [rob2], true),
 	set_current(wheels_wet, [rob1], false),
 	set_current(wheels_wet, [rob2], true),
+	setConstant(safety_distance, [10]),
+	setConstant(world_width, [500]),
+	setConstant(world_height, [500]),
 	set_current(time, [], 0).
 	
 test_ad_hoc_1 :-
