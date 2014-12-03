@@ -31,7 +31,7 @@ class Distribution(object):
         Generates a sample from this distribution.
 
         :param EvaluationContext evaluationContext: The current evaluation context.
-        :param list paramValues: the parameter values
+        :param list|tuple paramValues: the parameter values
         """
         raise NotImplementedError()
 

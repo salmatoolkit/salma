@@ -28,14 +28,14 @@ class EventSchedule:
         # step just before execution of the event. This means that the distribution fo the stochastic parameters
         # refer to tha scheduled time.
         #
-        #: :type: list[(int, (ExogenousAction, list))]
+        #: :type: list[(int, (ExogenousAction, tuple))]
         self.__event_schedule = []
-        #: :type: list[(int, (ExogenousAction, list))]
+        #: :type: list[(int, (ExogenousAction, tuple))]
         self.__possible_event_schedule = []
-        #: :type: list[(int, (ExogenousAction, list))]
+        #: :type: list[(int, (ExogenousAction, tuple))]
         self.__schedulable_event_schedule = []
-        #: :type: list[(int, (ExogenousAction, list))]
-        self.__already_processed_events = []
+        #: :type: set[(int, (ExogenousAction, tuple))]
+        self.__already_processed_events = set()
         #: :type: int
         self.__last_processed_timestep = -1
 
@@ -78,7 +78,7 @@ class EventSchedule:
                 new_ev = (current_time, (event, params))
                 if event.should_happen(evaluation_context, params):
                     heapq.heappush(self.__event_schedule, new_ev)
-                self.__already_processed_events.append(new_ev)
+                self.__already_processed_events.add(new_ev)
 
         for se in self.__schedulable_event_schedule:
             if se[0] == current_time:
@@ -91,7 +91,7 @@ class EventSchedule:
                     heapq.heappush(self.__event_schedule, new_ev)
                 # mark the fact that we sampled the occurrence distribution regardless of
                 # whether or not it's been scheduled
-                self.__already_processed_events.append((current_time, (event, params)))
+                self.__already_processed_events.add((current_time, (event, params)))
 
     def update_event_schedule(self, current_time, evaluation_context, scan, scan_start=None, scan_time_limit=None):
         """
@@ -187,8 +187,8 @@ class EventSchedule:
         """
         Translates event tuples retrieved from the logics engine to tuples that refer to ExogenousAction entries.
 
-        :param list[(int, str, list)] raw_event_instances: the event instances gathered by the engine
-        :param list[(int, (ExogenousAction, list))] schedule: the event schedule heap in which the translated event
+        :param list[(int, str, tuple)] raw_event_instances: the event instances gathered by the engine
+        :param list[(int, (ExogenousAction, tuple))] schedule: the event schedule heap in which the translated event
                 instances will be pushed.
         """
         for rev in raw_event_instances:
@@ -203,8 +203,8 @@ class EventSchedule:
         Translates a generator for conversion of the current event schedule to a list of event tuples of form
         (time, action_name param_values).
 
-        :param set[(int, (ExogenousAction, list))]|list[(int, (ExogenousAction, list))] schedule: the event schedule.
-        :rtype: list[(int, str, list)]
+        :param set[(int, (ExogenousAction, tuple))]|list[(int, (ExogenousAction, tuple))] schedule: the event schedule.
+        :rtype: list[(int, str, tuple)]
         """
         return ((ev[0], ev[1][0].action_name, ev[1][1]) for ev in schedule)
 
@@ -231,7 +231,7 @@ class EventSchedule:
 
         :param int current_time: the current time step
         :return: a list of tuples of form (event, params)
-        :rtype: list[(ExogenousAction, list)]
+        :rtype: list[(ExogenousAction, tuple)]
         """
         due_events = []
         while len(self.__event_schedule) > 0 and self.__event_schedule[0][0] <= current_time:

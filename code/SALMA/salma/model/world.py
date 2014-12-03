@@ -18,6 +18,7 @@ from .procedure import Variable, Act
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
 from collections.abc import Iterable
 from salma.mathutils import min_robust
+from salma.termutils import tuplify
 
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -781,11 +782,11 @@ class World(Entity, WorldDeclaration):
 
         :param EvaluationContext evaluation_context: the evaluation context used for parameter resolution
         :param Act action_execution: the action execution control node
-        :rtype: (Action, list, EvaluationContext)
+        :rtype: (Action, tuple, EvaluationContext)
         """
         try:
             action = self.__actions[action_execution.actionName]
-            ground_params = evaluation_context.resolve(*action_execution.actionParameters)
+            ground_params = tuplify(evaluation_context.resolve(*action_execution.actionParameters))
             return action, ground_params, evaluation_context
         except KeyError:
             raise (

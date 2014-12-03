@@ -6,15 +6,18 @@ Created on 21.05.2013
 
 import logging
 import numbers
+import os
 
 import pyclp
+
 from salma.SALMAException import SALMAException
 from .constants import *
 import salma
-import os
 import salma.termutils
+from salma.model.core import Term
+from salma.termutils import tuplify
 
-MODULE_LOGGER_NAME = 'agamemnon-smc.egine'
+MODULE_LOGGER_NAME = 'agamemnon-smc.engine'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
 
@@ -48,7 +51,6 @@ class FluentValue(object):
         return self.__value
 
     value = property(getValue)
-
 
     def __str__(self):
         s = self.__fluentName
@@ -258,10 +260,10 @@ class Engine(object):
         :param int start: the time of the step when scanning should be started .
         :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
         step that is known to be inspected.
-        :param list[(int, str, list)] handled_events: the event instances that have already been handled in this time
+        :param list[(int, str, tuple)] handled_events: the event instances that have already been handled in this time
             step
         :return: a list of tuples (time, action_name, arguments)
-        :rtype: list[(int, str, list)]
+        :rtype: list[(int, str, tuple)]
         """
         raise NotImplementedError()
 
@@ -272,12 +274,12 @@ class Engine(object):
 
         :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
                     step that is known to be inspected.
-        :param list[(int, str, list)] current_schedule: the currently scheduled event instances as tuples of form
+        :param list[(int, str, tuple)] current_schedule: the currently scheduled event instances as tuples of form
                                                             (time, action_name, params)
-        :param list[(int, str, list)] handled_events: the event instances that have already been handled in this time
+        :param list[(int, str, tuple)] handled_events: the event instances that have already been handled in this time
             step
         :return: a list of tuples (time, action_name, arguments)
-        :rtype: list[(int, str, list)]
+        :rtype: list[(int, str, tuple)]
         """
         raise NotImplementedError()
 
@@ -287,8 +289,8 @@ class Engine(object):
 
         If the given action-parameter combination hasn't occurred before, this method returns -1.
 
-        :param actionName: str
-        :param params: list
+        :type actionName: str
+        :type params: list|tuple
 
         :rtype: int
         """
@@ -359,7 +361,7 @@ def createParamTerms(*params, **kwargs):
     """
     paramTerms = []
     for p in params:
-        term = None
+        # term : object
         if p is None:
             term = pyclp.Atom('none')
         elif isinstance(p, bool):
@@ -371,9 +373,9 @@ def createParamTerms(*params, **kwargs):
                 term = p
         elif isinstance(p, pyclp.Var):
             term = p
-        elif isinstance(p, tuple) and len(p) > 0:
-            term = pyclp.Compound(str(p[0]), *createParamTerms(*p[1:]))
-        elif isinstance(p, list):
+        elif isinstance(p, Term):
+            term = pyclp.Compound(p.functor, *createParamTerms(*p.params))
+        elif isinstance(p, (tuple, list)):
             subterms = []
             for subterm in p:
                 subterms.append(createParamTerms(subterm)[0])
@@ -382,7 +384,7 @@ def createParamTerms(*params, **kwargs):
             term = pyclp.Atom(str(p))
         paramTerms.append(term)
     situation = kwargs['situation'] if 'situation' in kwargs else None
-    if situation != None:
+    if situation is not None:
         paramTerms.append(pyclp.Atom(situation))
 
     return paramTerms
@@ -1026,10 +1028,10 @@ class EclipseCLPEngine(Engine):
         :param int start: the time of the step when scanning should be started .
         :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
         step that is known to be inspected.
-        :param list[(int, str, list)] handled_events: the event instances that have already been handled in this time
+        :param list[(int, str, tuple)] handled_events: the event instances that have already been handled in this time
             step
         :return: a list of tuples (time, action_name, arguments)
-        :rtype: list[(int, str, list)]
+        :rtype: list[(int, str, tuple)]
         """
 
         translated_handled_events = []
@@ -1053,7 +1055,7 @@ class EclipseCLPEngine(Engine):
                         instance_params.append(str(arg))
                     else:
                         instance_params.append(arg)
-                result.append((next_time.value(), action_name, instance_params))
+                result.append((next_time.value(), action_name, tuplify(instance_params)))
         return result
 
     def get_next_schedulable_event_instances(self, start, time_limit, current_schedule, handled_events):
@@ -1063,12 +1065,12 @@ class EclipseCLPEngine(Engine):
 
         :param int time_limit: the time step until which the search should proceed. This is meant to be the next time
                     step that is known to be inspected.
-        :param list[(int, str, list)] current_schedule: the currently scheduled event instances as tuples of form
+        :param list[(int, str, tuple)] current_schedule: the currently scheduled event instances as tuples of form
                                                             (time, action_name, params)
-        :param list[(int, str, list)] handled_events: the event instances that have already been handled in this time
+        :param list[(int, str, tuple)] handled_events: the event instances that have already been handled in this time
             step
         :return: a list of tuples (time, action_name, arguments)
-        :rtype: list[(int, str, list)]
+        :rtype: list[(int, str, tuple)]
         """
         translated_schedule = []
         for ev in current_schedule:
@@ -1097,7 +1099,7 @@ class EclipseCLPEngine(Engine):
                         instance_params.append(str(arg))
                     else:
                         instance_params.append(arg)
-                result.append((next_time.value(), action_name, instance_params))
+                result.append((next_time.value(), action_name, tuplify(instance_params)))
         return result
 
     def getActionClock(self, actionName, params):

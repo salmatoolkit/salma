@@ -4,6 +4,7 @@ from salma.model.core import Action, Entity
 from salma.model.distributions import Distribution, ArgumentIdentityDistribution, UniformDistribution, \
     NormalDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
+from salma.termutils import tuplify
 
 
 class DeterministicAction(Action):
@@ -100,8 +101,8 @@ class RandomActionOutcome(object):
         """
         Generates a concrete outcome as a tuple with the form (action_name, params)
         :type evaluation_context: EvaluationContext
-        :type param_values: list of object
-        :rtype: (str, list of object)
+        :type param_values: list|set|tuple
+        :rtype: (str, tuple)
         """
         args = []
 
@@ -113,7 +114,7 @@ class RandomActionOutcome(object):
             else:
                 args.append(val)
 
-        return self.__outcome_action.name, args
+        return self.__outcome_action.name, tuplify(args)
 
     def set_param_distribution(self, param_name, distribution):
         """
@@ -338,8 +339,8 @@ class StochasticAction(Action):
         Returns a concrete sample as a (action, params) tuple.
 
         :type evaluation_context: EvaluationContext
-        :type param_values: list of object
-        :rtype: (str, list of object)
+        :type param_values: list|tuple|set
+        :rtype: (str, tuple)
         """
         outcome = self.selection_strategy.select_outcome(evaluation_context, param_values)
         return outcome.generate_sample(evaluation_context, param_values)
@@ -620,7 +621,7 @@ class ExogenousAction(object):
 
         :param EvaluationContext evaluation_context: the evaluation context that is used by the
             occurrence distribution.
-        :param list param_values: the parameters that are used for sampling from the occurrence distribution.
+        :param list|tuple param_values: the parameters that are used for sampling from the occurrence distribution.
         :return: True if the event instance should be executed at the current time step.
         :rtype: bool
         """
@@ -635,7 +636,7 @@ class ExogenousAction(object):
 
         :param EvaluationContext evaluation_context: the evaluation context that is used by the
             occurrence distribution.
-        :param list param_values: the parameters that are used for sampling from the occurrence distribution.
+        :param list|tuple param_values: the parameters that are used for sampling from the occurrence distribution.
         :return: the time step for the scheduled execution of the given event instance
         :rtype: int
         """
@@ -652,7 +653,7 @@ class ExogenousAction(object):
         :type evaluation_context: EvaluationContext
         :type entity_combination: list
 
-        :rtype: (str, list)
+        :rtype: (str, tuple)
         """
         args = list(entity_combination)
         # : :type distribution: Distribution
@@ -664,7 +665,7 @@ class ExogenousAction(object):
             lambda a: a.getId() if isinstance(a, Entity) else a,
             args)
         )
-        return self.__action_name, refined_args
+        return self.__action_name, tuplify(refined_args)
 
     def __str__(self):
         return "ExogenousAction({},{}, {})".format(self.action_name, self.entity_params, self.stochastic_params)
