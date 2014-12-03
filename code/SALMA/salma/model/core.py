@@ -14,13 +14,26 @@ class Entity(object):
         self.__id = entityId
         self.__sortName = sortName
 
-    def getId(self): return self.__id
+    # TODO: et rid of deprecated access to get* -functions -> use properties
+    def getId(self):
+        return self.__id
 
-    id = property(getId, "The entity's id.")
+    @property
+    def id(self) -> int:
+        """
+        The entity's id.
+        """
+        return self.__id
 
-    def getSortName(self): return self.__sortName
+    def getSortName(self):
+        return self.__sortName
 
-    sortName = property(getSortName)
+    @property
+    def sortName(self) -> str:
+        """
+        The entity's sort name.
+        """
+        return self.__sortName
 
     def __repr__(self):
         return ':'.join((str(self.__id), self.__sortName))
@@ -64,7 +77,7 @@ class Fluent(object):
         else:
             self.__valueRange = None
         if fluent_type not in ["list", "term", "tuple"]:
-            self.__distribution = (distribution if not distribution is None
+            self.__distribution = (distribution if distribution is not None
                                    else UniformDistribution(self.__fluentType, self.__valueRange))
         else:
             self.__distribution = None

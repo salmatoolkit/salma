@@ -1,7 +1,12 @@
-:- dynamic xpos/3, ypos/3, vx/3, vy/3, active/2, wheels_wet/2.
+:- dynamic world_width/0, world_height/0, safety_distance/0, 
+	xpos/3, ypos/3, vx/3, vy/3, active/2, wheels_wet/2.
 
 sorts([robot]).
 subsort(robot, agent).
+
+constant(world_width, [], integer).
+constant(world_height, [], integer).
+constant(safety_distance, [], integer).
 
 fluent(xpos, [r:robot], integer).
 fluent(ypos, [r:robot], integer).
@@ -9,6 +14,7 @@ fluent(vx, [r:robot], integer).
 fluent(vy, [r:robot], integer).
 fluent(active, [r:robot], boolean).
 fluent(wheels_wet, [r:robot], boolean).
+
 
 derived_fluent(dist, [r1:robot, r2:robot], float).
 derived_fluent(speed, [r:robot], float).
@@ -24,12 +30,38 @@ exogenous_action(breakdown, [r1:robot], []).
 exogenous_action(slip, [r:robot], []).
 exogenous_action(lightning_strike, [r:robot], []).
 
+exogenous_action(wall_alert, [r:robot], []).
+exogenous_action(crash_into_wall, [r:robot], [severity:integer]).
+
+
+
 poss(set_velocity(_, _, _), _) :- true.
 poss(jump(_, _, _), _) :- true.
 poss(activate(_), _) :- true.
 
 poss(collide(R1, R2, _), S) :- R1 @< R2, dist(R1,R2, Dist, S), Dist =< 10.
 
+poss(wall_alert(R), S) :- 
+	xpos(R, X, S), ypos(R, Y, S),
+	vx(R, Vx, S), vy(R, Vy, S),
+	(
+		% approaching left wall
+		X < safety_distance, 
+		Vx < 0, !
+		;
+		% approaching right wall
+		X > world_width - safety_distance,
+		Vx > 0, !
+		;
+		% approaching top wall
+		Y < safety_distance,
+		Vy < 0, !
+		;
+		% approaching bottom wall
+		Y > world_height - safety_distance,
+		Vy > 0, !
+	).
+	
 caused(breakdown(Rob), collide(R1, R2, Severity), Sit) :-
 	(Rob = R1, ! ; Rob = R2),
 	Severity > 0.5,

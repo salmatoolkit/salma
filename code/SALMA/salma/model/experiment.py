@@ -57,7 +57,8 @@ class Experiment(object):
         :param float max_real_time: maximum real time
         :param int max_world_time: maximum world time
         :param int max_time_delta_per_step: the maximum time interval that a step is allowed to span
-        :param list step_listeners: step listener functions with siugnature (step_num, delta_t, actions, toplevel_results)
+        :param list step_listeners: step listener functions with
+                signature (step_num, delta_t, actions, toplevel_results)
         :return: (verdict, result-map)
         :rtype: (int, dict[str, object])
         """
@@ -144,9 +145,9 @@ class Experiment(object):
             # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
             else:
                 if ((self.__world.is_finished() or time_out is True) and
-                            len(self.property_collection.achieve_goals) == 0 and
-                            len(self.property_collection.achieve_and_sustain_goals) == 0 and
-                            len(scheduled_keys) == 0):
+                        len(self.property_collection.achieve_goals) == 0 and
+                        len(self.property_collection.achieve_and_sustain_goals) == 0 and
+                        len(scheduled_keys) == 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
@@ -171,7 +172,8 @@ class Experiment(object):
         :param int max_steps: maximum number of steps
         :param float max_real_time: maximum real time
         :param int max_world_time: maximum world time
-        :param list step_listeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
+        :param list step_listeners: step listener functions with
+                signature (step_num, deltaT, actions, toplevel_results)
         :rtype: (int, dict[str, object])
         """
         if not step_listeners:

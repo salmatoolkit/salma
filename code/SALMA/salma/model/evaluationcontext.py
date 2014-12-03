@@ -24,20 +24,17 @@ class EvaluationContext(object):
         self.__sequenceIndexes = dict()
         self.__resultListIndexes = dict()
         self.__resultLists = dict()
-      
-        
         self.__parent = parent
         self.__procedureCall = None
         self.__agent = None
-    
-    
-    def setProcedureCall(self, procedureCall):
-        self.__procedureCall = procedureCall
+
+    def setProcedureCall(self, procedure_call):
+        self.__procedureCall = procedure_call
         
     def getProcedureCall(self):
-        '''
+        """
         :rtype ProcedureCall
-        '''
+        """
         return self.__procedureCall
     
     def setAgent(self, agent):
@@ -45,19 +42,18 @@ class EvaluationContext(object):
         
     def getAgent(self):
         return self.__agent
-        
-    
+
     def getParent(self):
-        '''
+        """
         :rtype EvaluationContext
-        ''' 
+        """
         return self.__parent
     
     def createChildContext(self):
-        '''
+        """
         Creates a new evaluation context with the current one set as the parent.
         :rtype EvaluationContext
-        '''
+        """
         raise NotImplementedError()
     
     def evaluateCondition(self, sourceType, source, *params):
@@ -75,23 +71,21 @@ class EvaluationContext(object):
     def evaluateFunction(self, sourceType, source, *params):
         # TODO: document
         raise NotImplementedError()
-        
-    
-    
+
     def getFluentValue(self, fluentName, *params):
-        '''
+        """
         Returns the current value of the given fluent with the given parameters.
-        
+
         :param fluentName: str
         :param params: list
-        '''
+        """
         raise NotImplementedError()
 
     def set_fluent_value(self, fluent_name, params, value):
         """
         Sets the current value of the given fluent instance.
         Note: this completely circumvents the progression mechanism and therefore falls out of the
-         concurrency scheme. Therefore this sould only be used for absolutely "isolated" fluents that only the current
+         concurrency scheme. Therefore this should only be used for absolutely "isolated" fluents that only the current
          process can access.
         TODO: add automatic check
         :param fluent_name:
@@ -114,31 +108,31 @@ class EvaluationContext(object):
         raise NotImplementedError()
 
     def assignVariable(self, variableName, value):
-        '''
+        """
         Assigns the given value to the given variable name.
-        
-        variableName: name of the variable that should be set. 
+
+        variableName: name of the variable that should be set.
         value: new value for variable
-          
-        '''
+
+        """
         raise NotImplementedError()
  
     def resolve(self, *terms):
-        '''
+        """
         Evaluates each term in terms and returns a list with the collected results.
-        '''        
+        """
         raise NotImplementedError()
     
     def getEntity(self, entityId):
-        '''
+        """
         returns the entity with the given id
-        '''
+        """
         raise NotImplementedError()
     
     def getSorts(self):
-        '''
+        """
         Returns a list of all registered sorts. with all entities for the given sort.
-        '''
+        """
         raise NotImplementedError()
         
     def getDomain(self, sortName):
@@ -150,9 +144,9 @@ class EvaluationContext(object):
         raise NotImplementedError()
     
     def getCurrentSequenceIndex(self, sequence):
-        '''
-        Returns the current child index for the given procedure in this evaluation context. 
-        '''
+        """
+        Returns the current child index for the given procedure in this evaluation context.
+        """
         if sequence in self.__sequenceIndexes:
             return self.__sequenceIndexes[sequence]
         else:
@@ -167,7 +161,6 @@ class EvaluationContext(object):
         else:
             raise(SALMAException("Trying to increment uninitialized sequence index."))
 
-    
     def setCurrentResultListIndex(self, iteration, index):
         self.__resultListIndexes[iteration] = index
     
@@ -176,8 +169,7 @@ class EvaluationContext(object):
             self.__resultListIndexes[iteration] += 1
         else:
             raise(SALMAException("Trying to increment uninitialized result list index."))
-    
-           
+
     def getCurrentResultListIndex(self, iteration):
         if iteration in self.__resultListIndexes:
             return self.__resultListIndexes[iteration]
@@ -194,59 +186,58 @@ class EvaluationContext(object):
             return None
 
     def selectAll(self, predicateType, predicateName, *params):
-        '''
-        Returns a list of dicts with {paramName => Entity} entries that fulfill the given predicate with 
-        the given parameters. 
-        
+        """
+        Returns a list of dicts with {paramName => Entity} entries that fulfill the given predicate with
+        the given parameters.
+
         The parameter list can include ground values, bound variables and (name, sort) tuples.
-        '''
+        """
         raise NotImplementedError()
     
     def selectFirst(self, predicateType, predicateName, *params):
-        '''
+        """
         Returns a dict with {paramName => Entity} entries that represents the first value combination
-        that fulfills the given predicate with the given parameters. 
-        
+        that fulfills the given predicate with the given parameters.
+
         The parameter list can include ground values, bound variables and (name, sort) tuples.
-        '''
+        """
         raise NotImplementedError()
    
     def createPlan(self, procedureName, *params):
         raise NotImplementedError()
  
- 
     def getActionClock(self, actionName, *params):
-        '''
+        """
         Returns the last recorded time when the given action was galled with the given parameters.
-        
+
         If the given action-parameter combination hasn't occurred before, this method returns -1.
-        
-        :param actionName: str
-        :param params: list  
-        
+
+        :param str actionName: action name
+        :param list params: parameters
+
         :rtype: int
-        '''
+        """
         raise NotImplementedError()
     
     def getFluentChangeTime(self, fluentName, *params):
-        '''
+        """
         Returns the last recorded time when the given fluent with the given parameters.
-        
-        If the given fluent-parameter combination has not been initialized yet, 
+
+        If the given fluent-parameter combination has not been initialized yet,
         this method returns -1.
-        
+
         :param fluentName: str
         :param params: list
-        '''
+        """
         raise NotImplementedError()
     
     def queryPersistentProperty(self, propertyName):
-        '''
+        """
         Returns a tuple with the current status of the given property together with the last
         change time.
-        
+
         :param propertyName: str
-        '''
+        """
         raise NotImplementedError()
 
     def get_connector(self, name: str) -> Connector:

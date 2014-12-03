@@ -34,8 +34,8 @@ class EventSchedule:
         self.__possible_event_schedule = []
         #: :type: list[(int, (ExogenousAction, list))]
         self.__schedulable_event_schedule = []
-        #: :type: set[(int, (ExogenousAction, list))]
-        self.__already_processed_events = set()
+        #: :type: list[(int, (ExogenousAction, list))]
+        self.__already_processed_events = []
         #: :type: int
         self.__last_processed_timestep = -1
 
@@ -78,7 +78,7 @@ class EventSchedule:
                 new_ev = (current_time, (event, params))
                 if event.should_happen(evaluation_context, params):
                     heapq.heappush(self.__event_schedule, new_ev)
-                self.__already_processed_events.add(new_ev)
+                self.__already_processed_events.append(new_ev)
 
         for se in self.__schedulable_event_schedule:
             if se[0] == current_time:
@@ -91,7 +91,7 @@ class EventSchedule:
                     heapq.heappush(self.__event_schedule, new_ev)
                 # mark the fact that we sampled the occurrence distribution regardless of
                 # whether or not it's been scheduled
-                self.__already_processed_events.add((current_time, (event, params)))
+                self.__already_processed_events.append((current_time, (event, params)))
 
     def update_event_schedule(self, current_time, evaluation_context, scan, scan_start=None, scan_time_limit=None):
         """
@@ -139,12 +139,12 @@ class EventSchedule:
             action instances = tuples (action, arguments, EvaluationContext) where the last EvaluationContext argument
             is only used for stochastic actions
         :type action_instances: list[(Action|ExogenousAction, list, EvaluationContext)]
-        :return: list of failed actions / events
-        :rtype: list[str, list]
+        :return: tuple containing a a list of performed and a list of failed actions / events
+        :rtype: (list[str, list], list[str, list])
         """
         # TODO: consider caused / triggered events
         if len(action_instances) == 0:
-            return []
+            return [], []
         failed = []
         random.shuffle(action_instances)
         # progress deterministic action as batch but generate outcome for stochastic actions ad hoc
@@ -180,7 +180,7 @@ class EventSchedule:
             failed.extend(fa)
             performed_actions.extend(act_seq)
         if moduleLogger.isEnabledFor(logging.DEBUG):
-            moduleLogger.debug("  Progressed: %s, failed: ", performed_actions, failed)
+            moduleLogger.debug("  Progressed: %s, failed: %s", performed_actions, failed)
         return performed_actions, failed
 
     def __translate_event_instances_from_raw(self, raw_event_instances, schedule):

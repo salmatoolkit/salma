@@ -22,7 +22,7 @@ class Channel(Connector):
         """
         super().__init__(name)
         if (isinstance(role1, (tuple, list)) and
-                    len(role1) == 2 and
+                len(role1) == 2 and
                 isinstance(role1[0], str) and
                 isinstance(role1[1], str)):
             self.__role1 = role1
@@ -31,7 +31,7 @@ class Channel(Connector):
                 "Wrong format for role 1 of channel {}: {} but expected (name, type)".format(self.name, role1))
 
         if (isinstance(role2, (tuple, list)) and
-                    len(role2) == 2 and
+                len(role2) == 2 and
                 isinstance(role2[0], str) and
                 isinstance(role2[1], str)):
             self.__role2 = role2

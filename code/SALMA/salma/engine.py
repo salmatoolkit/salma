@@ -467,7 +467,7 @@ class EclipseCLPEngine(Engine):
         :param params:
         :param kwargs:
         :returns: (goal, result, msg)
-         :rtype: (pyclp.Compound, int, str)
+        :rtype: (pyclp.Compound, int, str)
         """
         if len(params) == 0:
             goal = pyclp.Atom(goalName)
@@ -478,18 +478,18 @@ class EclipseCLPEngine(Engine):
 
         result, stream_num = pyclp.resume()
 
-        errorMsg = kwargs['errorMsg'] if 'errorMsg' in kwargs else "Error calling {}({}) (result: {}, msg: {})"
-
+        errorMsg = (kwargs['errorMsg'] if 'errorMsg' in kwargs
+                    else "Error calling {}({}) (result: {}, msg: {}, info: {})")
         lines = []
         outstream = None
         while result == pyclp.FLUSHIO:
-            if outstream == None:
+            if outstream is None:
                 outstream = pyclp.Stream(stream_num)
 
             line = outstream.readall()
             lines.append(line.decode())
             result, _ = pyclp.resume()
-        if outstream != None:
+        if outstream is not None:
             outstream.close()
         msg = "\n".join(lines)
         if result != pyclp.SUCCEED:
@@ -504,10 +504,10 @@ class EclipseCLPEngine(Engine):
                     readableParams.append("None")
 
             raise (SALMAException(
-                errorMsg.format(goalName, readableParams, result, msg)))
-        return (goal, result, msg)
+                errorMsg.format(goalName, readableParams, result, msg, stream_num)))
+        return goal, result, msg
 
-    def reset(self, removeFormulas=True, deleteConstants=True):
+    def reset(self, removeFormulas=True, deleteConstants=True, domain_init_function=None):
 
         self.__currentState = None
         self.__properties = dict()
@@ -522,8 +522,8 @@ class EclipseCLPEngine(Engine):
             self.__callGoal("init_agasmc", erorMsg="Can't initialize main module.")
         else:
             self.__callGoal("reset_agasmc", erorMsg="Can't reset main module.")
-
-        self.__callGoal("init_domaindesc", erorMsg="Can't initialize domain description.")
+        if domain_init_function is not None:
+            self.__callGoal(domain_init_function, erorMsg="Can't initialize domain description.")
 
     def __convert_value_from_engine_result(self, raw_value):
         """
@@ -623,9 +623,9 @@ class EclipseCLPEngine(Engine):
     def getFluentValue(self, fluentName, *fluentParams):
         key = (fluentName, fluentParams)
 
-        if (self.__currentState is None) or (not key in self.__currentState):
-            self.__updateCurrentState(key)
-
+        # if (self.__currentState is None) or (not key in self.__currentState):
+        #     self.__updateCurrentState(key)
+        self.__updateCurrentState(key)
         if not key in self.__currentState:
             return None
         else:

@@ -26,7 +26,7 @@ class RandomActionOutcome(object):
     list set as the ArgumentIdentityDistribution's argument position.
     """
 
-    def __init__(self, outcome_action, param_distribution_specs=[]):
+    def __init__(self, outcome_action, param_distribution_specs=None):
         """
         :param outcome_action: the deterministic action that will be executed for this outcome
         :param param_distribution_specs: list of (name, Distribution) or (name, sort) tuples
@@ -34,6 +34,8 @@ class RandomActionOutcome(object):
         :type outcome_action: DeterministicAction
         :type param_distribution_specs: list of (str, object)
         """
+        if not param_distribution_specs:
+            param_distribution_specs = []
         # : :type : DeterministicAction
         self.__outcome_action = outcome_action
         # : :type : StochasticAction
@@ -188,8 +190,7 @@ class RandomActionOutcome(object):
             if self.param_distributions[i].sort != action.parameters[i][1]:
                 problems.append(
                     ("random_action_outcome.wrong_param_type",
-                     self.action_name, i, action.parameters[i][1], self.param_distributions[i].sort
-                    )
+                     self.action_name, i, action.parameters[i][1], self.param_distributions[i].sort)
                 )
         return problems
 
@@ -517,7 +518,7 @@ class ExogenousAction(object):
         for i, p in enumerate(stochastic_params):
             self.__stochastic_param_indices[p[0]] = i
 
-        self.__configuration = configuration if not configuration is None else ExogenousActionConfiguration(self)
+        self.__configuration = configuration if configuration is not None else ExogenousActionConfiguration(self)
 
     @property
     def action_name(self):
@@ -614,7 +615,7 @@ class ExogenousAction(object):
 
     def should_happen(self, evaluation_context, param_values):
         """
-        Uses the defined occurrence distribution to decide whether the event instance owoth the given parameters
+        Uses the defined occurrence distribution to decide whether the event instance with the given parameters
         should be executed at the current time step.
 
         :param EvaluationContext evaluation_context: the evaluation context that is used by the
@@ -639,8 +640,9 @@ class ExogenousAction(object):
         :rtype: int
         """
         res = self.config.occurrence_distribution.generateSample(evaluation_context, param_values)
-        assert isinstance(res, int)
-        return res
+        assert isinstance(res, int) and not isinstance(res, bool)
+        t = evaluation_context.getFluentValue("time")
+        return t + res
 
     def generate_instance(self, evaluation_context, entity_combination):
         """
@@ -675,11 +677,15 @@ class ExogenousAction(object):
         for p in self.stochastic_params:
             p_distrib_descs.append("{}:={}".format(p[0], self.config.get_param_distribution(p[0]).describe()))
 
-        return s.format(name=self.action_name, entity_params=self.entity_params,
+        return s.format(name=self.action_name,
+                        entity_params=self.entity_params,
                         stochastic_params=self.stochastic_params,
                         occ_distrib=(
-                            self.config.occurrence_distribution.describe() if self.config.occurrence_distribution is not None else "None"),
-                        p_distribs=", ".join(p_distrib_descs))
+                            self.config.occurrence_distribution.describe()
+                            if self.config.occurrence_distribution is not None else "None"
+                        ),
+                        p_distribs=", ".join(p_distrib_descs)
+                        )
 
 
 class ExogenousActionConfiguration:
@@ -687,15 +693,12 @@ class ExogenousActionConfiguration:
         """
         Holds the configuration for an exogenous action.
 
-        :param exogenous_action: the exogenous action this configuration is meant for
-        :param occurrence_distribution: Distribution that receives a combination of entity values as parameters and decides whether the
-            exogeneous action should occur for this combination
-        :param stochastic_param_distribution_specs: a list of (name, distribution) tuples that specify the distributions
-         for the non-entity parameters that will be sampled after the exogenous action instance has been chosen to happen.
-
-        :type exogenous_action: ExogenousAction
-        :type occurrence_distribution: Distribution
-        :type stochastic_param_distribution_specs: list of (str, Distribution)
+        :param ExogenousAction exogenous_action: the exogenous action this configuration is meant for
+        :param Distribution occurrence_distribution: Distribution that receives a combination of entity values
+                as parameters and decides whether the exogenous action should occur for this combination
+        :param list[(str, Distribution)] stochastic_param_distribution_specs: a list of (name, distribution)
+                tuples that specify the distributions for the non-entity parameters that will be sampled after
+                the exogenous action instance has been chosen to happen.
         """
         if not stochastic_param_distribution_specs:
             stochastic_param_distribution_specs = []
@@ -737,8 +740,8 @@ class ExogenousActionConfiguration:
             # problems.append(
             # "Wrong type for occurrence distribution of
             # exogenous action {}: was {} but must be boolean.".format(
-            #             self.exogenous_action.action_name, self.occurrence_distribution.sort
-            #         ))
+            # self.exogenous_action.action_name, self.occurrence_distribution.sort
+            # ))
 
         if len(self.__stochastic_param_distributions) != len(self.exogenous_action.stochastic_params):
             return [

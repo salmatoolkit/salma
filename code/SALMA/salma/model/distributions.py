@@ -49,9 +49,9 @@ class UniformDistribution(Distribution):
 
     def generateSample(self, evaluationContext, paramValues):
         if self.sort == 'integer':
-            return random.randint(*(self.value_range))
+            return random.randint(*self.value_range)
         elif self.sort == 'float':
-            return random.uniform(*(self.value_range))
+            return random.uniform(*self.value_range)
         elif self.sort == 'boolean':
             return random.choice([True, False])
         else:
@@ -130,6 +130,30 @@ class NormalDistribution(Distribution):
 
     def describe(self):
         return "N({:.4},{:.4})".format(self.mu, self.sigma ** 2)
+
+
+class ExponentialDistribution(Distribution):
+
+    def __init__(self, sort, rate):
+        if sort not in ["float", "integer"]:
+            raise SALMAException(
+                "Trying to use exponential distribution for sort %s but only integer or float allowed." % sort)
+        super().__init__(sort, (float("-inf"), float("inf")))
+        self.__rate = rate
+
+    def generateSample(self, evaluation_context, param_values):
+        val = random.expovariate(self.__rate)
+        if self.sort == "integer":
+            return round(val)
+        else:
+            return val
+
+    @property
+    def rate(self):
+        return self.__rate
+
+    def describe(self):
+        return "Exp({:4})".format(self.rate)
 
 
 class ConstantDistribution(Distribution):

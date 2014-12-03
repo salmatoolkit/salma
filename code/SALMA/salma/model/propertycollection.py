@@ -117,7 +117,7 @@ class PropertyCollection:
         if property_type not in (INVARIANT, ACHIEVE, ACHIEVE_AND_SUSTAIN):
             raise SALMAException("Unknown property type: {}".format(property_type))
         if (property_name in self.__invariants or property_name in self.__achieve_goals
-            or property_name in self.__achieve_and_sustain_goals):
+                or property_name in self.__achieve_and_sustain_goals):
             raise SALMAException("Property {} already registered.".format(property_name))
         self.__logics_engine.registerProperty(property_name, formula)
         if property_type == INVARIANT:

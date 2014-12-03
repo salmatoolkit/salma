@@ -5,7 +5,6 @@ import random
 import pyclp
 
 from salma.SALMAException import SALMAException
-from salma.constants import *
 from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, \
     Deterministic, Uniform
 from salma.model.core import Constant, Action
@@ -27,10 +26,10 @@ moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 class World(Entity, WorldDeclaration):
     """
     Singleton class that acts as the *center of the simulation*. The domain model is loaded with load_declaration and
-    all actions can be configured using the appropriate configuration classes. The configuration can then be checked with
-    several check_* methods. After that, the domain models are set up with initialize, optionally also generating a randomized
-    initial situation by sampling values for all fluent and constant instances. Additionally, the fluent and constant values
-    can also be manipulated with
+    all actions can be configured using the appropriate configuration classes. The configuration can then be checked
+    with several check_* methods. After that, the domain models are set up with initialize, optionally also generating
+    a randomized initial situation by sampling values for all fluent and constant instances. Additionally, the fluent
+    and constant values can also be manipulated with setter and getter functions.
     """
 
     __logic_engine = None
@@ -219,7 +218,6 @@ class World(Entity, WorldDeclaration):
         for fluent in self.__fluents.values():
             """:type fluent: Fluent """
             for paramSelection in self.enumerate_fluent_instances(fluent):
-                instance = None
                 v = self.getFluentValue(fluent.name, paramSelection)
                 if v is None:
                     instance = (fluent.name, paramSelection)
@@ -236,7 +234,6 @@ class World(Entity, WorldDeclaration):
         :rtype: (list[(StochasticAction, list)], list[(ExogenousAction, list)])
         """
         problematic_stochastic_actions = []
-        problematic_exogenous_actions = []
 
         for action in filter(lambda a: isinstance(a, StochasticAction), self.__actions.values()):
             assert isinstance(action, StochasticAction)
@@ -263,8 +260,23 @@ class World(Entity, WorldDeclaration):
         def __f(*params):
             return self.__evaluationContext.evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, derived_fluent_name,
                                                              *params)
-
         return __f
+
+    def __create_general_functions(self, expression_context: dict):
+        # todo: include derived fluents in expression context?
+        def __fcc(fluentName, *params):
+            return self.getFluentChangeTime(fluentName, params)
+
+        def __ac(actionName, *params):
+            return self.getActionClock(actionName, params)
+
+        def __oc(actionName, *params):
+            return self.getActionClock(actionName, params) == self.getTime()
+
+        # todo: add action count
+        expression_context['fluentClock'] = __fcc
+        expression_context['actionClock'] = __ac
+        expression_context['occur'] = __oc
 
     def __create_expression_context(self):
         self.__expressionContext = dict()
@@ -277,20 +289,12 @@ class World(Entity, WorldDeclaration):
         for con in self.__constants.values():
             self.__expressionContext[con.name] = self.__make_constant_access_function(con.name)
 
-        # todo: include derived fluents in expression context?
-        def __fluentChangeClock(fluentName, *params):
-            return self.getFluentChangeTime(fluentName, params)
+        self.__create_general_functions(self.__expressionContext)
 
-        def __actionClock(actionName, *params):
-            return self.getActionClock(actionName, params)
-
-        # todo: add action count
-        self.__expressionContext['fluentClock'] = __fluentChangeClock
-        self.__expressionContext['actionClock'] = __actionClock
         # add a "variable" for each entity to allow access without quotation marks
-        for id in self.__entities.keys():
-            if not str(id) in self.__expressionContext:
-                self.__expressionContext[str(id)] = str(id)
+        for entity_id in self.__entities.keys():
+            if not str(entity_id) in self.__expressionContext:
+                self.__expressionContext[str(entity_id)] = str(entity_id)
 
     def sample_fluent_values(self):
         """
@@ -302,7 +306,8 @@ class World(Entity, WorldDeclaration):
     def __load_stochastic_action_declarations(self, declarations, immediate_action_names):
         """
         Loads the stochastic declarations and creates StochasticAction objects accordingly.
-        :param list[(str, list[(str, str)], list[str])] declarations: the declarations as (name, params, outcome_names) tuples
+        :param list[(str, list[(str, str)], list[str])] declarations: the declarations as
+                (name, params, outcome_names) tuples
         :param list[str] immediate_action_names: list of action names
         """
         for sa in declarations:
@@ -371,11 +376,11 @@ class World(Entity, WorldDeclaration):
         for sort, domain in domain_map_from_engine.items():
             self.__domainMap[sort] = set()
             for entityId in domain:
-                entity = None
+                # var entity : Entity
                 try:
                     entity = self.__entities[entityId]
                 except KeyError:
-                    # raise SALMAException("No Entity instance registered for {}:{}".format(entityId, sort))
+                    # add a new entity if required
                     entity = Entity(entityId, sort)
                     self.__entities[entityId] = entity
                 self.__domainMap[sort].add(entity)
@@ -384,8 +389,8 @@ class World(Entity, WorldDeclaration):
         """
         1. Sets up domains, i.e. defines the sets of entity objects for each sort.
 
-        2. Optionally sets ups the a new initial situation by creating samples for the fluent instance for each combination
-            of parameter values.
+        2. Optionally sets ups the a new initial situation by creating samples for the fluent instance for
+            each combination of parameter values.
         """
         World.logic_engine().reset(removeFormulas=removeFormulas, deleteConstants=deleteConstants)
         self.__evaluationContext = LocalEvaluationContext(self, None)
@@ -482,11 +487,11 @@ class World(Entity, WorldDeclaration):
         :type entity: Entity
         :raises: an SALMAException if the given entity was not found in the registry.
         """
-        if not entity.sortName in self.__domainMap:
+        if entity.sortName not in self.__domainMap:
             raise SALMAException("Trying to remove entity {} with unregistered sort {}".format(
                 entity.id, entity.sortName))
         eset = self.__domainMap[entity.sortName]
-        if (not entity in eset) or (not entity.id in self.__entities):
+        if (entity not in eset) or (entity.id not in self.__entities):
             raise SALMAException("Trying to remove unregistered entity {}.".format(entity.id))
         eset.remove(entity)
         self.__entities.pop(entity.id)
@@ -595,7 +600,8 @@ class World(Entity, WorldDeclaration):
     def addFluent(self, fluent):
         """
         Adds a core.Fluent object to the metamodel.
-        NOTE: this method should normally not be called directly but is automatically called in World.load_declarations().
+        NOTE: this method should normally not be called directly but is automatically called in
+            World.load_declarations().
         :type fluent: Fluent
         """
         self.__fluents[fluent.name] = fluent
@@ -606,7 +612,8 @@ class World(Entity, WorldDeclaration):
     def addConstant(self, con):
         """
         Adds a constant to the metamodel.
-        NOTE: this method should normally not be called directly but is automatically called in World.load_declarations().
+        NOTE: this method should normally not be called directly but is automatically
+            called in World.load_declarations().
         :type con: Constant
         """
         self.__constants[con.name] = con
@@ -822,7 +829,7 @@ class World(Entity, WorldDeclaration):
         :rtype: int
         """
         t1 = self.__get_next_process_time()
-        t2 = None
+        # var t2 : int
         if consider_scanning_points:
             t2 = self.__event_schedule.get_next_time_checkpoint()
         else:
@@ -902,7 +909,6 @@ class World(Entity, WorldDeclaration):
                 if next_stop_time > current_time:
                     break
         # now we know that next_stop_time is set up correctly
-        verdict = NONDET
         if evaluate_properties:
             toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
                 interval_end=next_stop_time - 1)  # TODO: check if bound is right
@@ -947,7 +953,8 @@ class World(Entity, WorldDeclaration):
         World.logic_engine().restore_state(fluent_values)
 
     def printState(self):
-        if not self.__initialized: self.initialize()
+        if not self.__initialized:
+            self.initialize()
         state = World.logic_engine().getCurrentState()
         for f in state:
             print(f)
@@ -1034,55 +1041,56 @@ class LocalEvaluationContext(EvaluationContext):
             result = source(*resolvedParams, **ctx)
         return result
 
-    def evaluateCondition(self, sourceType, source, *params):
+    def evaluateCondition(self, source_type, source, *params):
         """
         Evaluates the given condition.
 
-        :param int sourceType: FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION or PYTHON_FUNCTION
+        :param int source_type: FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION or PYTHON_FUNCTION
         :param object source: a python function, the name of a fluent, or a pothon expression
         :param list params: parameters
         :returns: true if evaluation succeeded
         :rtype: bool
         """
-        resolvedParams = self.resolve(*params)
-        result = None
-        if sourceType == EvaluationContext.FLUENT:
+        resolved_params = self.resolve(*params)
+        # var result : bool
+        if source_type == EvaluationContext.FLUENT:
             assert isinstance(source, str)
-            result = World.instance().getFluentValue(source, resolvedParams)
+            result = World.instance().getFluentValue(source, resolved_params)
             if result is None:
-                raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
-        elif sourceType == EvaluationContext.ECLP_FUNCTION:
-            result = World.logic_engine().evaluateCondition(source, *resolvedParams)
-        elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
-            result = World.logic_engine().evaluateCondition(source, *resolvedParams, situation='s0')
-        elif sourceType == EvaluationContext.CONSTANT:
-            result = bool(World.logic_engine().getConstantValue(source, resolvedParams))
-        elif sourceType in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
-                            EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
-            result = self.evaluate_python(sourceType, source, *resolvedParams)
+                raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolved_params))
+        elif source_type == EvaluationContext.ECLP_FUNCTION:
+            result = World.logic_engine().evaluateCondition(source, *resolved_params)
+        elif source_type == EvaluationContext.TRANSIENT_FLUENT:
+            result = World.logic_engine().evaluateCondition(source, *resolved_params, situation='s0')
+        elif source_type == EvaluationContext.CONSTANT:
+            result = bool(World.logic_engine().getConstantValue(source, resolved_params))
+        elif source_type in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
+                             EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
+            result = self.evaluate_python(source_type, source, *resolved_params)
         else:
-            raise SALMAException("Unsupported source type: {}".format(sourceType))
+            raise SALMAException("Unsupported source type: {}".format(source_type))
         return result
 
-    def evaluateFunction(self, sourceType, source, *params):
+    def evaluateFunction(self, source_type, source, *params):
         resolvedParams = self.resolve(*params)
-        result = None
-        if sourceType == EvaluationContext.FLUENT:
+        # var result : bool
+        if source_type == EvaluationContext.FLUENT:
             fv = World.instance().getFluentValue(source, resolvedParams)
             if fv is None:
                 raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
             result = fv
-        elif sourceType == EvaluationContext.ECLP_FUNCTION:
+        elif source_type == EvaluationContext.ECLP_FUNCTION:
             result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams)
-        elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
+        elif source_type == EvaluationContext.TRANSIENT_FLUENT:
             result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams, situation='s0')
-        elif sourceType == EvaluationContext.CONSTANT:
+        elif source_type == EvaluationContext.CONSTANT:
             result = World.instance.getConstantValue(source, resolvedParams)
-        elif sourceType in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
-                            EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
-            result = self.evaluate_python(sourceType, source, *resolvedParams)
+        elif source_type in {EvaluationContext.PYTHON_EXPRESSION,
+                             EvaluationContext.PYTHON_FUNCTION,
+                             EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
+            result = self.evaluate_python(source_type, source, *resolvedParams)
         else:
-            raise SALMAException("Unsupported source type: {}".format(sourceType))
+            raise SALMAException("Unsupported source type: {}".format(source_type))
 
         if isinstance(result, str):
             result = self.getEntity(result)
@@ -1095,8 +1103,12 @@ class LocalEvaluationContext(EvaluationContext):
             raise SALMAException("No value found for fluent: {0}({1}).".format(fluentName, resolvedParams))
         return fv
 
-    def set_fluent_value(self, fluent_name, params, value):
-        resolved_params = self.resolve(*params)
+    def set_fluent_value(self, fluent_name: str, params: list, value: object):
+        """
+        Sets the value of the given fluent instance.
+
+        NOTE: params has to be resolved first!
+        """
         World.logic_engine().setFluentValue(fluent_name, params, value)
 
     def create_message(self, connector, agent, msg_type, params):
@@ -1123,14 +1135,17 @@ class LocalEvaluationContext(EvaluationContext):
         Evaluates each term in terms and returns a list with the collected results.
 
         Entity instances are converted to their ids.
+
+        :param list terms: the unresolved terms.
+        :rtype: list
         """
-        groundTerms = []
+        ground_terms = []
         for term in terms:
-            gt = None
+            # var gt : object
             if term is Entity.SELF:
                 gt = self.__contextEntity.id
             elif isinstance(term, Variable):
-                if not term.name in self.__variableBindings:
+                if term.name not in self.__variableBindings:
                     raise SALMAException("Variable %s not bound." % term.name)
                 gt = self.__variableBindings[term.name]
             elif isinstance(term, (list, set)):
@@ -1148,26 +1163,26 @@ class LocalEvaluationContext(EvaluationContext):
             if isinstance(gt, Entity):
                 gt = gt.id
 
-            groundTerms.append(gt)
+            ground_terms.append(gt)
 
-        return groundTerms
+        return ground_terms
 
-    def getEntity(self, entityId):
+    def getEntity(self, entity_id):
         """
         returns the entity with the given id
         """
-        return World.instance().getEntityById(entityId)
+        return World.instance().getEntityById(entity_id)
 
     def __select_free_variables(self, params):
         """
         :param list|tuple params: the parameters
         :rtype: list[(str,str)]
         """
-        vars = []
+        free_vars = []
         for p in params:
             if isinstance(p, tuple) and len(p) == 2 and isinstance(p[0], str) and isinstance(p[1], str):
-                vars.append(p)
-        return vars
+                free_vars.append(p)
+        return free_vars
 
     def selectAll(self, source_type, source, *params):
         """
@@ -1186,8 +1201,7 @@ class LocalEvaluationContext(EvaluationContext):
             raise SALMAException("No iterator variable specified in selectAll.")
 
         sit = 's0' if source_type in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
-        result_list = []
-
+        # var result_list : list
         if source_type in {EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT,
                            EvaluationContext.ECLP_FUNCTION}:
             result_list = World.logic_engine().selectAll(source, *resolved_params, situation=sit)
@@ -1200,17 +1214,15 @@ class LocalEvaluationContext(EvaluationContext):
                 result_list = self.resolve(source)[0]
             else:
                 result_list = source
-            if not "__iter__" in result_list.__dir__():
+            if "__iter__" not in result_list.__dir__():
                 raise SALMAException("Trying to use non-iterator in Iterate statement: {} ".format(str(source)))
         else:
             raise SALMAException("Unsupported source type for Iterate statement: {}".format(source_type))
 
         refined_result = []
-
         # : :type result_entry: dict
-
         for result_entry in result_list:
-            assignment = None
+            # var assignment : dict
             refined_assignment = dict()
             if isinstance(result_entry, dict):
                 assignment = result_entry
@@ -1219,7 +1231,7 @@ class LocalEvaluationContext(EvaluationContext):
                     assignment = dict({free_vars[0][0]: result_entry})
                 else:
                     if (not isinstance(result_entry, (list, tuple)) or
-                                len(free_vars) != len(result_entry)):
+                            len(free_vars) != len(result_entry)):
                         raise SALMAException("Number of free variables in iterator doesn't match element structure.")
                     assignment = dict()
                     for fv, value in zip(free_vars, result_entry):
@@ -1269,7 +1281,7 @@ class LocalEvaluationContext(EvaluationContext):
         plan, values = World.logic_engine().createPlan(procedureName,
                                                        *resolvedParams)
         if values is None:
-            return (None, None)
+            return None, None
 
         refinedValues = dict()
 

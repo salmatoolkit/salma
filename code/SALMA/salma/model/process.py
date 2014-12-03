@@ -402,10 +402,7 @@ class PeriodicProcess(Process):
             # TODO: include process name
             raise SALMAException("Unspecified period for periodic process.")
 
-        min_time = self.introduction_time or 0
-        current_time = self.agent.evaluation_context.getFluentValue('time')
-        tslot = self.time_slot
-        if (self.state != Process.IDLE) or (tslot is None):
+        if (self.state != Process.IDLE) or (self.time_slot is None):
             return False
 
         return (self.last_start_time is None

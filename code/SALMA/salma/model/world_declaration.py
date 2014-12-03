@@ -2,13 +2,8 @@ from salma.model.infotransfer import *
 from salma.model.actions import Action, ExogenousAction, StochasticAction
 from salma.model.core import Fluent, Constant
 
+
 class WorldDeclaration:
-    def get_sensors(self):
-        """
-        Returns the registered (local/direct) sensors.
-        :rtype: Iterable[Sensor]
-        """
-        raise NotImplementedError()
 
     def getFluents(self):
         """

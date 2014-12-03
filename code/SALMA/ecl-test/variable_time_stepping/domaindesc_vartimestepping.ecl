@@ -11,14 +11,14 @@ fluent(vy, [r:robot], integer).
 fluent(active, [r:robot], boolean).
 fluent(reporting, [r:robot, c:controller], boolean).
 
+
 primitive_action(set_velocity,[r:robot, vx:integer, vy:integer]).
 primitive_action(activate, [c:controller, r:robot]).
 primitive_action(deactivate, [c:controller, r:robot]).
 primitive_action(requestReport, [c:controller, r:robot]).
 
 primitive_action(startReporting, [r:robot, c:controller]).
-exogenous_action(finishReporting, [r:robot, c:controller]).
-
+exogenous_action(finishReporting, [r:robot, c:controller], []).
 
 poss(set_velocity(_, _, _), _) :- true.
 poss(activate(C,R), S) :- not active(R, S).
