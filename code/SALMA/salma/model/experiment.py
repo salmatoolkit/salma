@@ -76,16 +76,18 @@ class Experiment(object):
         # : :type: dict[str, list[int]]
         scheduled_keys = dict()
         time_out = False
-        max_delta = max_time_delta_per_step
-
-        # only use default maximum time delta if no other bound was specified
-        if max_time_delta_per_step is None and max_world_time is None:
-            max_delta = DEFAULT_MAX_TIME_DELTA_PER_STEP
 
         while (not self.__world.is_finished()) and (not check_verdict or verdict == NONDET):
             current_time = self.__world.getTime()
-            #: :type: int
-            time_limit = min_robust([max_world_time, current_time + max_delta])
+            # only use default maximum time delta if no other bound was specified
+            if max_time_delta_per_step is not None:
+                time_limit = min_robust([max_world_time, current_time + max_time_delta_per_step])
+            else:
+                if max_world_time is not None:
+                    time_limit = max_world_time
+                else:
+                    time_limit = current_time + DEFAULT_MAX_TIME_DELTA_PER_STEP
+
             (_, toplevel_results, scheduled_results, scheduled_keys, actions, failed_regular_actions,
              failure_stack) = self.__world.step(
                 time_limit, evaluate_properties=check_verdict)
