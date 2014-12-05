@@ -667,7 +667,10 @@ class ExogenousAction(object):
         )
         return self.__action_name, tuplify(refined_args)
 
-    def __str__(self):
+    def __repr__(self):
+        return "ExogenousAction({},{}, {})".format(self.action_name, self.entity_params, self.stochastic_params)
+
+    def __str__(self, *args, **kwargs):
         return "ExogenousAction({},{}, {})".format(self.action_name, self.entity_params, self.stochastic_params)
 
     def describe(self):

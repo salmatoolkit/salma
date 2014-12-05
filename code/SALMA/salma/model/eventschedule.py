@@ -72,7 +72,9 @@ class EventSchedule:
         """
         # check if we can add any possible event
         for pe in self.__possible_event_schedule:
-            if pe[0] == current_time:
+            if (pe[0] == current_time
+                    and pe not in self.__already_processed_events
+                    and pe not in self.__event_schedule):
                 event = pe[1][0]
                 params = pe[1][1]
                 new_ev = (current_time, (event, params))
@@ -81,7 +83,9 @@ class EventSchedule:
                 self.__already_processed_events.add(new_ev)
 
         for se in self.__schedulable_event_schedule:
-            if se[0] == current_time:
+            if (se[0] == current_time
+                    and se not in self.__already_processed_events
+                    and se not in self.__event_schedule):
                 event = se[1][0]
                 params = se[1][1]
                 schedule_time = event.get_next_occurrence_time(evaluation_context, params)
