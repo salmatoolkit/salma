@@ -119,13 +119,17 @@ class PropertyCollection:
         if (property_name in self.__invariants or property_name in self.__achieve_goals
                 or property_name in self.__achieve_and_sustain_goals):
             raise SALMAException("Property {} already registered.".format(property_name))
-        self.__logics_engine.registerProperty(property_name, formula)
+
         if property_type == INVARIANT:
             self.__invariants[property_name] = (formula, property_type)
+            formula2 = "invariant({})".format(formula)
         elif property_type == ACHIEVE:
             self.__achieve_goals[property_name] = (formula, property_type)
+            formula2 = "goal({})".format(formula)
         else:
-            self.__achieve_and_sustain_goals[property_name] = (formula, property_type)
+            # self.__achieve_and_sustain_goals[property_name] = (formula, property_type)
+            raise SALMAException("Achieve-and-sustain goals are not supported at the moment.")
+        self.__logics_engine.registerProperty(property_name, formula2)
 
     def unregister_property(self, property_name):
         """

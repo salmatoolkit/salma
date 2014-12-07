@@ -1,5 +1,6 @@
 import logging
 from salma.SALMAException import SALMAException
+from salma.constants import INVARIANT, ACHIEVE
 from salma.engine import EclipseCLPEngine
 from salma.model import process
 from salma.model.agent import Agent
@@ -114,10 +115,15 @@ class EventSchedulingTest(unittest.TestCase):
         wall_alert.config.occurrence_distribution = BernoulliDistribution(1.0)
 
         e1 = Experiment(world)
-        e1.run_until_finished(max_world_time=500, step_listeners=[steplogger])
-        print(world.getTime())
+        # e1.run_until_finished(max_world_time=500, step_listeners=[steplogger])
+        e1.property_collection.register_property("f", "xpos(rob1) =\= 495", INVARIANT)
+        e1.property_collection.register_property("g", "xpos(rob1) =:= 240", ACHIEVE)
+        verdict, info = e1.run_experiment(max_world_time=500, step_listeners=[steplogger])
+
+        print("T = {}, verdict = {}\n\ninfo: {}".format(world.getTime(), verdict, info))
 
 
 if __name__ == '__main__':
     unittest.main()
+
 

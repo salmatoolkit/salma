@@ -17,7 +17,7 @@ from .agent import Agent
 from .procedure import Variable, Act
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
 from collections.abc import Iterable
-from salma.mathutils import min_robust
+from salma.mathutils import min_robust, max_robust
 from salma.termutils import tuplify
 
 MODULE_LOGGER_NAME = 'salma.model'
@@ -836,7 +836,7 @@ class World(Entity, WorldDeclaration):
         else:
             ev = self.__event_schedule.get_next_scheduled_event()
             t2 = ev[0] if ev is not None else None
-        return min_robust([t1, t2, time_limit])
+        return min_robust([t1, t2])
 
     def step(self, time_limit, evaluate_properties=True):
         """
@@ -900,29 +900,32 @@ class World(Entity, WorldDeclaration):
             next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=False)
             self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext,
                                                         scan=True, scan_start=current_time,
-                                                        scan_time_limit=next_stop_time)
+                                                        scan_time_limit=min_robust([next_stop_time, time_limit]))
 
             # continue until no actions or events were performed during the iteration and
             # the no event is scheduled / possible / schedulable at the current point
             if len(due_events) == 0 and len(actions) == 0:
                 # update the next stop time using all available information
                 next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=True)
-                if next_stop_time > current_time:
+                if next_stop_time is None or next_stop_time > current_time:
                     break
+        interval_end = min_robust([next_stop_time, time_limit])
         # now we know that next_stop_time is set up correctly
         if evaluate_properties:
             toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
-                interval_end=next_stop_time - 1)  # TODO: check if bound is right
+                interval_end=max_robust([interval_end - 1, current_time]))
 
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug(("  toplevel_results: {}\n"
                                     "  scheduled_results: {}\n"
-                                    "  scheduled_keys: {}").format(toplevel_results, scheduled_results, scheduled_keys))
+                                    "  scheduled_keys: {}").format(toplevel_results,
+                                                                   scheduled_results,
+                                                                   scheduled_keys))
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
 
-        World.logic_engine().progress([('tick', [next_stop_time - current_time])])
+        World.logic_engine().progress([('tick', [interval_end - current_time])])
 
         return (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
                 failed_actions, failure_stack)

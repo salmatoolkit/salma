@@ -17,6 +17,7 @@ def min_robust(values):
                 m = v
     return m
 
+
 def max_robust(values):
     """
     Returns the highest of the iterable values. The iterable may also contain None entries that are ignored.
@@ -32,14 +33,3 @@ def max_robust(values):
             if v is not None and v > m:
                 m = v
     return m
-
-
-def max_robust(a, b):
-    """
-    Returns the highest of a or b. Both a or b could be None, in which case the other value is returned.
-    :param object a: the first compared object
-    :param object b: the second compared object
-    :rtype: object
-    """
-    return max_robust([a, b])
-
