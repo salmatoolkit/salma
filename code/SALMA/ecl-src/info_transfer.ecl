@@ -589,6 +589,8 @@ schedulable(transferFails(M), S) :-
 	MsgType \= multicastSrc,
 	MsgType \= remoteSensorSrc.
 
+event_alternatives([transferStarts, transferEnds, transferFails]).
+
 poss(clean_queue(_, _, _), _) :- true.	
 
 poss(update_remote_sensor(_,_), _) :- true.

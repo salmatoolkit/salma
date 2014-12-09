@@ -116,7 +116,7 @@ class EventSchedulingTest(unittest.TestCase):
 
         e1 = Experiment(world)
         # e1.run_until_finished(max_world_time=500, step_listeners=[steplogger])
-        e1.property_collection.register_property("f", "xpos(rob1) =\= 477", INVARIANT)
+        e1.property_collection.register_property("f", "xpos(rob1) =\= 495", INVARIANT)
         e1.property_collection.register_property("g", "xpos(rob1) =:= 240", ACHIEVE)
         verdict, info = e1.run_experiment(max_world_time=500, step_listeners=[steplogger])
 

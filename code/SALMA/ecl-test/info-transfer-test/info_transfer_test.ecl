@@ -87,7 +87,7 @@ test_unicast_channel :-
 	printf("Result: %w\n",[R]),
 	print("\nAfter requestTransfer:\n--------------\n"),
 	print_all_messages,
-	progress([tick]),
+	progress([tick(1)]),
 	progress([transferStarts(Msg, 2)]),
 	print("\nAfter transferStarts:\n--------------\n"),
 	print_all_messages,
@@ -95,12 +95,12 @@ test_unicast_channel :-
 	print_channel(rob2rob),
 	channel_in_queue(con2rob, [], s0),
 	channel_in_queue(rob2rob, [], s0),
-	progress([tick]),
+	progress([tick(1)]),
 	progress([transferEnds(Msg, 2)]),
 	printf("\nAfter transferEnds(%d):\n--------------\n",[Msg]),
 	print_all_messages,
 	print_channel(rob2rob),
-	progress([tick]),
+	progress([tick(1)]),
 	assertEquals(length(domain(message)), 0, check_3),
 	channel_in_queue(rob2rob, [msg(rob1, r1, rob2, r2, 2, 46)], s0),
 	channel_in_queue(con2rob, [], s0).
@@ -208,7 +208,16 @@ test_remote_sensor :-
 	progress([update_remote_sensor(con2, batteryLevelR)]),
 	batteryLevelR(con1, rob2, 102, s0),
 	batteryLevelR(con2, rob2, 102, s0).
-		
+
+test_event_scheduling :-
+	init,
+	create_message(rob2rob, rob1, unicast, [r1, rob2, r2], Msg),
+	set_current(channel_out_content, [Msg], 42),
+	print("Before:\n--------------\n"),
+	print_all_messages,
+	progress([requestTransfer(Msg)]),
+	 get_next_schedulable_events(0, 100, [], [], Time, Events),
+	printf("Time: %d, Events: %w\n", [Time, Events]).
 	
 test_all :-
 	print("********************************************\n"),

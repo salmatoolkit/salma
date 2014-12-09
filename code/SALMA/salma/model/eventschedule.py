@@ -70,6 +70,7 @@ class EventSchedule:
         :param int current_time: the current time step
         :param EvaluationContext evaluation_context: the evaluation context used for the occurrence distributions.
         """
+        # TODO: handle event alternatives
         # check if we can add any possible event
         for pe in self.__possible_event_schedule:
             if (pe[0] == current_time

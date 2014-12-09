@@ -8,6 +8,7 @@
 :- dynamic poss/2.
 :- dynamic caused/3.
 :- dynamic schedulable/2. 
+:- dynamic event_alternatives/1.
 :- dynamic untracked_fluent/1.
 :- ['termutils'].
 :- ['sort_system'].

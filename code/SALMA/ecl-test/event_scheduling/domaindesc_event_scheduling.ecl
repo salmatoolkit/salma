@@ -29,6 +29,7 @@ exogenous_action(collide, [r1:robot, r2:robot], [severity:integer]).
 exogenous_action(breakdown, [r1:robot], []).
 exogenous_action(slip, [r:robot], []).
 exogenous_action(lightning_strike, [r:robot], []).
+exogenous_action(asteroid_hit, [r:robot], [size:float]).
 
 exogenous_action(wall_alert, [r:robot], []).
 exogenous_action(crash_into_wall, [r:robot], [severity:integer]).
@@ -75,7 +76,10 @@ schedulable(lightning_strike(Rob), S) :-
 	ypos(Rob, Y, S),
 	Y > 100.
 
-
+schedulable(asteroid_hit(Rob, _), S) :-
+	ypos(Rob, Y, S),
+	Y > 100.
+event_alternatives([lightning_strike, asteroid_hit]).
 
 effect(xpos(Robot), tick(Steps), OldX, X, S) :-
 	vx(Robot, Vx, S),

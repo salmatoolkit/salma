@@ -21,8 +21,19 @@ possible_action_instance(ActionName, Situation, Time,
 		not member(Time, Times)
 		;
 		true
-	),		
+	),
 	poss(ActionTerm, Situation).
+
+alternative_in_hash(ActionName, PossibleInstanceArgs, HandledHash) :-
+	hash_keys(HandledHash, Keys),
+	member(Key, Keys),
+	Key = (OtherActionName, OtherArgs),
+	ActionName \= OtherActionName,
+	event_alternatives(Alternatives),
+	member(ActionName, Alternatives),
+	member(OtherActionName, Alternatives),
+	OtherArgs = PossibleInstanceArgs, !.
+	
 	
 get_possible_exogenous_action_instances(ActionName, Situation, Time, HandledHash, Candidates) :-
 	findall(InstanceArgs, possible_action_instance(ActionName, Situation, Time,
@@ -126,6 +137,7 @@ schedulable_action_instance(ActionName, Situation, Time, CurrentScheduleHash, Ha
 		;
 		true
 	),		
+	not alternative_in_hash(ActionName, PossibleInstanceArgs, CurrentScheduleHash),
 	schedulable(ActionTerm, Situation).
 	
 get_schedulable_exogenous_action_instances(ActionName, Situation, Time, CurrentScheduleHash, 
@@ -211,18 +223,7 @@ get_next_schedulable_events(Start, TimeLimit, CurrentSchedule, HandledInStep,
 % -----------------
 % GENERAL FUNCTIONS
 % -----------------
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+		
 	
 make_variable_event_term(EventName, Term) :-
 	exogenous_action(EventName, EntityParams, StochasticParams),
