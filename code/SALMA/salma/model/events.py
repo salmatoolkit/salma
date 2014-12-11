@@ -261,7 +261,7 @@ class EventOptionSelectionStrategy:
 
     @choice.setter
     def choice(self, choice: ExogenousActionChoice):
-        self.__choice = ExogenousActionChoice
+        self.__choice = choice
 
     def make_choice(self, evaluation_context: EvaluationContext, param_values: list) -> ExogenousAction:
         raise NotImplementedError()
@@ -270,12 +270,13 @@ class EventOptionSelectionStrategy:
 class UniformEventOptionSelectionStrategy(EventOptionSelectionStrategy):
 
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
 
     def make_choice(self, evaluation_context: EvaluationContext, param_values: list) -> ExogenousAction:
         if self.choice is None:
             raise SALMAException("No choice set for OptionSelectionStrategy {}".format(str(self)))
-        random.choice(self.choice.options)
+        return random.choice(self.choice.options)
+
 
 
 
