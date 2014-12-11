@@ -5,8 +5,9 @@ import random
 import pyclp
 
 from salma.SALMAException import SALMAException
-from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, \
+from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome, \
     Deterministic, Uniform
+from salma.model.events import ExogenousAction
 from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
@@ -925,6 +926,7 @@ class World(Entity, WorldDeclaration):
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
 
+
         World.logic_engine().progress([('tick', [interval_end - current_time])])
 
         return (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
@@ -1088,7 +1090,7 @@ class LocalEvaluationContext(EvaluationContext):
         elif source_type == EvaluationContext.TRANSIENT_FLUENT:
             result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams, situation='s0')
         elif source_type == EvaluationContext.CONSTANT:
-            result = World.instance.getConstantValue(source, resolvedParams)
+            result = World.instance().getConstantValue(source, resolvedParams)
         elif source_type in {EvaluationContext.PYTHON_EXPRESSION,
                              EvaluationContext.PYTHON_FUNCTION,
                              EvaluationContext.EXTENDED_PYTHON_FUNCTION}:

@@ -125,6 +125,8 @@ exogenous_action(transferStarts, [m:message], [error:term]).
 exogenous_action(transferEnds, [m:message], [error:term]).
 exogenous_action(transferFails, [m:message], []).
 
+exogenous_action_choice(message_start, [m:message], [transferStarts, transferFails]).
+exogenous_action_choice(message_end, [m:message], [transferEnds, transferFails]).
 
 
 % convention: agent is sender for channels and receiver for (remote) sensors.
@@ -568,28 +570,16 @@ poss(requestTransfer(M), S) :-
 	not awaitingTransfer(M, S),
 	not transferring(M, S).
 
-schedulable(transferStarts(M, _), S) :-
+schedulable(message_start(M), S) :-
 	awaitingTransfer(M, S).
-
-
 	
-schedulable(transferEnds(M, _), S) :-
+schedulable(message_end(M), S) :-
 	transferring(M, S),
 	% a multicast source-half message may not end directly
 	get_message_type(M, MsgType),
 	MsgType \= multicastSrc,
 	MsgType \= remoteSensorSrc.
-
-schedulable(transferFails(M), S) :-
-	awaitingTransfer(M, S), !
-	;
-	transferring(M,S),
-	% a multicast source-half message may not end directly
-	get_message_type(M, MsgType),
-	MsgType \= multicastSrc,
-	MsgType \= remoteSensorSrc.
-
-event_alternatives([transferStarts, transferEnds, transferFails]).
+	
 
 poss(clean_queue(_, _, _), _) :- true.	
 

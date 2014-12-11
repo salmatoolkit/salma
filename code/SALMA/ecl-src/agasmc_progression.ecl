@@ -18,6 +18,7 @@
 :- dynamic stochastic_action/3.
 % exogenous_action(name, qualifying-params, augmenting-params)
 :- dynamic exogenous_action/3.
+:- dynamic exogenous_action_choice/3.
 :- dynamic ad_hoc_event/1.
 :- dynamic schedulable_event/1.
 :- dynamic caused_event/1.
@@ -465,9 +466,31 @@ retract_constant(ConstantName, Params) :-
 get_declared_primitive_actions(Actions) :-
 	findall(pa(AName,Params),primitive_action(AName,Params),Actions).
 get_declared_stochastic_actions(Actions) :-
-	findall(pa(AName,Params,Outcomes),stochastic_action(AName,Params,Outcomes),Actions).	
-get_declared_exogenous_actions(Actions) :-
-	findall(ea(AName,P1,P2),exogenous_action(AName,P1,P2),Actions).
+	findall(pa(AName,Params,Outcomes),stochastic_action(AName,Params,Outcomes),Actions).
+	
+get_declared_exogenous_actions(EventDeclarations) :-
+	findall(ea(Name,P1,P2),exogenous_action(Name,P1,P2),DeclaredEvents),
+	(foreach(Event, DeclaredEvents), foreach(EDecl, EventDeclarations) do
+		Event = ea(EventName, Params1, Params2),
+		(
+			schedulable_event(EventName), EType = schedulable, !
+			;
+			ad_hoc_event(EventName), EType = ad_hoc, !
+			;
+			caused_event(EventName), EType = caused, !
+			;
+			is_choice_option(EventName, _), !, EType = choice_option
+			;
+			throw(no_axiom_for_event(EventName))
+		),
+		EDecl = ea(EventName, Params1, Params2, EType)
+	).
+	
+get_declared_exogenous_action_choices(ChoiceDeclarations) :-
+	findall(eac(Name, Params, Options), 
+		exogenous_action_choice(Name, Params, Options), 
+		ChoiceDeclarations).
+		
 get_declared_immediate_actions(ImmediateActions) :-
 	findall(ia(AName), immediate_action(AName), ImmediateActions).
 

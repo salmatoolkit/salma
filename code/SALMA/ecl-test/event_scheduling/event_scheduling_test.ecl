@@ -58,19 +58,19 @@ test_ad_hoc_4 :-
 	Time = 20, Events = [collide : [[rob1, rob2]]].
 	
 	
-test_schedulable_1 :-
+test_schedulable_single_1 :-
 	init,
-	setPosition(rob1, 1000, 90),
+	setPosition(rob1, 1000, 40),
 	setVelocity(rob1, 1, 1),
 	
 	get_next_schedulable_events(0, 100, [], [], 
 		Time, Events),
 	printf("Time = %w, Events = %w\n", [Time, Events]),
-	Time = 11, Events =  [lightning_strike : [[rob1]]].
+	Time = 11, Events =   [welcome_message : [[rob1]]].
 
-test_schedulable_2 :-
+test_schedulable_single_2 :-
 	init,
-	setPosition(rob1, 1000, 90),
+	setPosition(rob1, 1000, 40),
 	setVelocity(rob1, 1, 1),
 	
 	get_next_schedulable_events(0, 8, [], [], 
@@ -78,19 +78,49 @@ test_schedulable_2 :-
 	printf("Time = %w, Events = %w\n", [Time, Events]),
 	Time = -1, Events =  [].
 
-test_schedulable_3 :-
+test_schedulable_single_3 :-
 	init,
-	setPosition(rob1, 1000, 101),
+	setPosition(rob1, 1000, 60),
 	setVelocity(rob1, 1, 1),
-	Handled = [ev(0, lightning_strike, [rob1])],
+	
+	get_next_schedulable_events(0, 8, [], [], 
+		Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = 0, Events = [welcome_message : [[rob1]]].
+
+test_schedulable_single_4 :-
+	init,
+	setPosition(rob1, 1000, 60),
+	setVelocity(rob1, 1, 1),
+	Handled = [ev(0, welcome_message, [rob1])],
 	get_next_schedulable_events(0, 100, [], Handled, 
 		Time, Events),
 	printf("Time = %w, Events = %w\n", [Time, Events]),
-	Time = 1, Events =  [lightning_strike : [[rob1]]].	
-
-test_schedulable_4 :-
+	Time = 1, Events = [welcome_message : [[rob1]]].
+	
+test_schedulable_single_5 :-
 	init,
-	setPosition(rob1, 1000, 101),
+	setPosition(rob1, 1000, 60),
+	setVelocity(rob1, 1, 1),
+	Schedule = [ev(31, welcome_message, [rob1])],
+	get_next_schedulable_events(0, 35, Schedule, [], 
+		Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = -1, Events = [].
+	
+test_schedulable_choice_1 :-
+	init,
+	setPosition(rob1, 500, 101),
+	setVelocity(rob1, 1, 1),
+	Handled = [ev(0, disaster, [rob1])],
+	get_next_schedulable_events(0, 100, [], Handled, 
+		Time, Events),
+	printf("Time = %w, Events = %w\n", [Time, Events]),
+	Time = 1, Events = [disaster : [[rob1]]].
+
+test_schedulable_choice_2 :-
+	init,
+	setPosition(rob1, 500, 101),
 	setVelocity(rob1, 1, 1),
 	Schedule = [ev(10, lightning_strike, [rob1])],
 	get_next_schedulable_events(0, 100, Schedule, [], 

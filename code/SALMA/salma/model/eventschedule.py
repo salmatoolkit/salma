@@ -2,7 +2,7 @@ from salma.engine import Engine
 from salma.model.actions import *
 import logging
 import heapq
-from salma.model.actions import ExogenousAction
+from salma.model.events import ExogenousAction
 from salma.model.evaluationcontext import EvaluationContext
 from salma.mathutils import min_robust
 
@@ -22,6 +22,9 @@ class EventSchedule:
         # name -> exogenous action
         #: :type : dict[str, ExogenousAction]
         self.__exogenous_actions = dict()
+
+        #: :type : dict[str, set(
+        self.__event_alternatives = dict()
 
         # the event schedule contains entries of the form (time, (event, qualifying params)).
         # The final instance including stochastic params is generated in the main loop in the

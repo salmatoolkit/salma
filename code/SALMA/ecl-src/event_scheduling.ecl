@@ -1,6 +1,11 @@
 
 select_action_instance(ActionName, PossibleInstanceArgs, ActionTerm) :-
-	exogenous_action(ActionName, EntityParams, StochasticParams),
+	(
+		exogenous_action(ActionName, EntityParams, StochasticParams), !
+		;
+		exogenous_action_choice(ActionName, EntityParams, _),
+		StochasticParams = []
+	),
 	(foreach(Param, EntityParams), foreach(Arg, PossibleInstanceArgs) do
 		Param = _ : DomainName,
 		domain(DomainName, Domain),
@@ -24,14 +29,12 @@ possible_action_instance(ActionName, Situation, Time,
 	),
 	poss(ActionTerm, Situation).
 
-alternative_in_hash(ActionName, PossibleInstanceArgs, HandledHash) :-
-	hash_keys(HandledHash, Keys),
+alternative_in_hash(ChoiceName, PossibleInstanceArgs, ScheduleHash) :-
+	exogenous_action_choice(ChoiceName, _, Options),
+	hash_keys(ScheduleHash, Keys),
 	member(Key, Keys),
 	Key = (OtherActionName, OtherArgs),
-	ActionName \= OtherActionName,
-	event_alternatives(Alternatives),
-	member(ActionName, Alternatives),
-	member(OtherActionName, Alternatives),
+	member(OtherActionName, Options),
 	OtherArgs = PossibleInstanceArgs, !.
 	
 	
@@ -223,14 +226,21 @@ get_next_schedulable_events(Start, TimeLimit, CurrentSchedule, HandledInStep,
 % -----------------
 % GENERAL FUNCTIONS
 % -----------------
-		
-	
+
 make_variable_event_term(EventName, Term) :-
-	exogenous_action(EventName, EntityParams, StochasticParams),
-	TotalParamLength is length(EntityParams) + length(StochasticParams),
+	(exogenous_action(EventName, EntityParams, StochasticParams), !,
+	TotalParamLength is length(EntityParams) + length(StochasticParams)
+	;
+	exogenous_action_choice(EventName, EntityParams, _), !,
+	TotalParamLength is length(EntityParams)
+	),	
 	length(NewArgs, TotalParamLength),
 	Term =.. [EventName | NewArgs].
 	
+is_choice_option(ActionName, Choice) :-
+	exogenous_action_choice(Choice, _, Options),
+	member(ActionName, Options).
+
 % Completes exogenous action information:
 % - marks exogenous actions with only a poss axiom as ad hoc
 % - For events that only have a schedulable axiom, a default poss axiom
@@ -241,10 +251,23 @@ init_event_scheduling :-
 	retractall(ad_hoc_event(_)),
 	retractall(schedulable_event(_)),
 	retractall(caused_event(_)),
-	findall(EventName, exogenous_action(EventName, _, _), EventNames),
+	findall(ExoActionName, exogenous_action(ExoActionName, _, _), ExoActionNames),
+	findall(EventChoiceName, exogenous_action_choice(EventChoiceName, _, _), EventChoiceNames),
+	append(ExoActionNames, EventChoiceNames, EventNames),
 	(foreach(EventName, EventNames) do
 		make_variable_event_term(EventName, EventTerm),
 		(
+			is_choice_option(EventName, _), !,
+			(
+				clause(schedulable(EventTerm, _), _),
+				throw(schedulability_axiom_for_choice_option(EventName))
+				;
+				clause(caused(EventTerm, _, _), _),
+				throw(cause_axiom_for_choice_option(EventName))
+				;
+				true
+			)
+			;
 			clause(poss(EventTerm, _), _), 
 			not clause(schedulable(EventTerm, _), _),
 			not clause(caused(EventTerm, _, _), _), !,
@@ -259,12 +282,12 @@ init_event_scheduling :-
 			), !			
 			;
 			clause(caused(EventTerm, _, _), _),
-			assert(caused_event(EventName)),
-			(not clause(poss(EventTerm, _), _) ->
-				assert(poss(EventTerm, _))
-				;
-				true
-			), !
+			assert(caused_event(EventName)), !					
+			;
+			true
+		),
+		(not clause(poss(EventTerm, _), _) ->
+			assert(poss(EventTerm, _))
 			;
 			true
 		)

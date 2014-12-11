@@ -216,8 +216,21 @@ test_event_scheduling :-
 	print("Before:\n--------------\n"),
 	print_all_messages,
 	progress([requestTransfer(Msg)]),
-	 get_next_schedulable_events(0, 100, [], [], Time, Events),
-	printf("Time: %d, Events: %w\n", [Time, Events]).
+	get_next_schedulable_events(0, 100, [], [], Time, Events),
+	printf("Time: %d, Events: %w\n", [Time, Events]),
+	Time =:= 0,
+	Events =  [transferStarts : [[Msg]], transferFails : [[Msg]]],
+	Schedule = [ev(15, transferStarts, [Msg])],
+	get_next_schedulable_events(0, 100, Schedule, [], Time2, Events2),
+	printf("Time2: %d, Events2: %w\n", [Time2, Events2]),
+	Time2 =:= -1,
+	Events2 = [],
+	progress([tick(15)]),
+	time(15, s0),
+	progress([transferStarts(Msg)]),
+	get_next_schedulable_events(15, 100, [], [], Time3, Events3),
+	printf("Time3: %d, Events3: %w\n", [Time3, Events3]).
+	
 	
 test_all :-
 	print("********************************************\n"),

@@ -8,7 +8,8 @@ from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions, process
 from salma.model.core import Entity, Fluent, Action, Constant
 from salma.model.actions import DeterministicAction, StochasticAction, \
-    RandomActionOutcome, ExogenousAction, Uniform, OutcomeSelectionStrategy
+    RandomActionOutcome, Uniform, OutcomeSelectionStrategy
+from salma.model.events import ExogenousAction
 from salma.model.agent import Agent
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution

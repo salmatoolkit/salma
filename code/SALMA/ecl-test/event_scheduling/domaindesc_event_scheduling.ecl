@@ -28,11 +28,17 @@ primitive_action(deactivate, [r:robot]).
 exogenous_action(collide, [r1:robot, r2:robot], [severity:integer]).
 exogenous_action(breakdown, [r1:robot], []).
 exogenous_action(slip, [r:robot], []).
+
 exogenous_action(lightning_strike, [r:robot], []).
 exogenous_action(asteroid_hit, [r:robot], [size:float]).
 
+exogenous_action_choice(disaster, [r:robot], [lightning_strike, asteroid_hit]).
+
+exogenous_action(welcome_message, [r:robot], [code:int]).
+
+
 exogenous_action(wall_alert, [r:robot], []).
-exogenous_action(crash_into_wall, [r:robot], [severity:integer]).
+%exogenous_action(crash_into_wall, [r:robot], [severity:integer]).
 
 
 
@@ -72,14 +78,19 @@ caused(breakdown(Rob), collide(R1, R2, Severity), Sit) :-
 	
 poss(slip(Rob), S) :- wheels_wet(Rob, S).
 
-schedulable(lightning_strike(Rob), S) :-
+	
+
+
+schedulable(disaster(Rob), S) :-
 	ypos(Rob, Y, S),
 	Y > 100.
 
-schedulable(asteroid_hit(Rob, _), S) :-
+schedulable(welcome_message(Rob, _), S) :-
 	ypos(Rob, Y, S),
-	Y > 100.
-event_alternatives([lightning_strike, asteroid_hit]).
+	Y > 50,
+	xpos(Rob, X, S),
+	X >= 1000.
+
 
 effect(xpos(Robot), tick(Steps), OldX, X, S) :-
 	vx(Robot, Vx, S),

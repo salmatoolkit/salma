@@ -626,7 +626,7 @@ class EclipseCLPEngine(Engine):
         key = (fluentName, fluentParams)
 
         # if (self.__currentState is None) or (not key in self.__currentState):
-        #     self.__updateCurrentState(key)
+        # self.__updateCurrentState(key)
         self.__updateCurrentState(key)
         if not key in self.__currentState:
             return None
@@ -1139,7 +1139,7 @@ class EclipseCLPEngine(Engine):
                 "Wrong status returned for persistent property {}: {}".format(
                     propertyName,
                     str(rawStatus.value())))
-        return (status, time)
+        return status, time
 
     def __load_declaration(self, load_function):
         """
@@ -1164,6 +1164,8 @@ class EclipseCLPEngine(Engine):
         primitive_actions = self.__load_declaration('get_declared_primitive_actions')
         stochastic_actions = self.__load_declaration('get_declared_stochastic_actions')
         exogenous_actions = self.__load_declaration('get_declared_exogenous_actions')
+        exogenous_action_choices = self.__load_declaration("get_declared_exogenous_action_choices")
+
         immediate_actions = list(map(lambda e: e[0],
                                      self.__load_declaration('get_declared_immediate_actions')))
 
@@ -1177,11 +1179,11 @@ class EclipseCLPEngine(Engine):
                 'primitive_actions': primitive_actions,
                 'stochastic_actions': stochastic_actions,
                 'exogenous_actions': exogenous_actions,
+                'exogenous_action_choices': exogenous_action_choices,
                 'immediate_actions': immediate_actions,
                 'channels': channels,
                 'sensors': sensors,
-                'remote_sensors': remote_sensors
-        }
+                'remote_sensors': remote_sensors}
 
     def evaluate_ad_hoc(self, formula):
         """

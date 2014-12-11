@@ -1,5 +1,6 @@
 from salma.model.infotransfer import *
-from salma.model.actions import Action, ExogenousAction, StochasticAction
+from salma.model.actions import Action, StochasticAction
+from salma.model.events import ExogenousAction
 from salma.model.core import Fluent, Constant
 
 
