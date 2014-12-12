@@ -1,10 +1,13 @@
-from salma.engine import Engine
-from salma.model.actions import *
 import logging
 import heapq
+
+from salma.engine import Engine
+from salma.model.actions import *
+from salma.model.events import ExogenousActionChoice
 from salma.model.events import ExogenousAction
 from salma.model.evaluationcontext import EvaluationContext
 from salma.mathutils import min_robust
+
 
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -22,9 +25,8 @@ class EventSchedule:
         # name -> exogenous action
         #: :type : dict[str, ExogenousAction]
         self.__exogenous_actions = dict()
-
-        #: :type : dict[str, set(
-        self.__event_alternatives = dict()
+        #: :type : dict[str, ExogenousActionChoice]
+        self.__exogenous_action_chooices = dict()
 
         # the event schedule contains entries of the form (time, (event, qualifying params)).
         # The final instance including stochastic params is generated in the main loop in the
@@ -33,11 +35,11 @@ class EventSchedule:
         #
         #: :type: list[(int, (ExogenousAction, tuple))]
         self.__event_schedule = []
-        #: :type: list[(int, (ExogenousAction, tuple))]
+        #: :type: list[(int, (ExogenousAction|ExogenousActionChoice, tuple))]
         self.__possible_event_schedule = []
-        #: :type: list[(int, (ExogenousAction, tuple))]
+        #: :type: list[(int, (ExogenousAction|ExogenousActionChoice, tuple))]
         self.__schedulable_event_schedule = []
-        #: :type: set[(int, (ExogenousAction, tuple))]
+        #: :type: set[(int, (ExogenousAction|ExogenousActionChoice, tuple))]
         self.__already_processed_events = set()
         #: :type: int
         self.__last_processed_timestep = -1
@@ -61,12 +63,41 @@ class EventSchedule:
         """
         return self.__exogenous_actions
 
+    @property
+    def exogenous_action_choices(self):
+        """
+        A dictionary containing all registered exogenous action choices indexed by their name.
+        :rtype: dict[str, ExogenousActionChoice]
+        """
+        return self.__exogenous_action_chooices
+
     def add_exogenous_action(self, exogenous_action):
         """
-        Registers the given exogenous action. Normally this method is called automatically by World.load_declarations().
+        Registers the given exogenous action. Normally this method is called automatically by
+        World.load_declarations().
         :type exogenous_action: ExogenousAction
         """
         self.__exogenous_actions[exogenous_action.action_name] = exogenous_action
+
+    def add_exogenous_action_choice(self, choice):
+        """
+        Registers the given exogenous action choice. Normally this method is called automatically by
+        World.load_declarations().
+        :type choice: ExogenousActionChoice
+        """
+        self.__exogenous_action_chooices[choice.choice_name] = choice
+
+    def __option_already_scheduled(self, time, exogenous_action_choice, params):
+        """
+        :param int time: time
+        :param ExogenousActionChoice exogenous_action_choice: choice
+        :param tuple params: params
+        """
+        for option in exogenous_action_choice.options:
+            option_instance = (time, (option, params))
+            if option_instance in self.__event_schedule:
+                return True
+        return False
 
     def __process_schedulable_and_possible(self, current_time, evaluation_context):
         """
@@ -76,30 +107,52 @@ class EventSchedule:
         # TODO: handle event alternatives
         # check if we can add any possible event
         for pe in self.__possible_event_schedule:
-            if (pe[0] == current_time
-                    and pe not in self.__already_processed_events
-                    and pe not in self.__event_schedule):
-                event = pe[1][0]
-                params = pe[1][1]
-                new_ev = (current_time, (event, params))
-                if event.should_happen(evaluation_context, params):
-                    heapq.heappush(self.__event_schedule, new_ev)
-                self.__already_processed_events.add(new_ev)
+            evtime = pe[0]
+            event = pe[1][0]
+            params = pe[1][1]
+
+            if (evtime == current_time
+                    and pe not in self.__already_processed_events):
+                if isinstance(event, ExogenousAction):
+                    if pe not in self.__event_schedule:
+                        new_ev = (current_time, (event, params))
+                        if event.should_happen(evaluation_context, params):
+                            heapq.heappush(self.__event_schedule, new_ev)
+                        self.__already_processed_events.add(new_ev)
+                else:
+                    assert isinstance(event, ExogenousActionChoice)
+                    if not self.__option_already_scheduled(current_time, event, params):
+                        if event.should_happen(evaluation_context, params):
+                            option = event.make_choice(evaluation_context, params)
+                            option_instance = (current_time, (option, params))
+                            heapq.heappush(self.__event_schedule, option_instance)
+                        self.__already_processed_events.add((current_time, (event, params)))
 
         for se in self.__schedulable_event_schedule:
             if (se[0] == current_time
-                    and se not in self.__already_processed_events
-                    and se not in self.__event_schedule):
-                event = se[1][0]
+                    and se not in self.__already_processed_events):
+                ev_src = se[1][0]
                 params = se[1][1]
-                schedule_time = event.get_next_occurrence_time(evaluation_context, params)
-                if schedule_time is not None:
-                    assert schedule_time >= current_time
-                    new_ev = (schedule_time, (event, params))
-                    heapq.heappush(self.__event_schedule, new_ev)
+                if isinstance(ev_src, ExogenousAction):
+                    event = ev_src
+                    already_scheduled = se in self.__event_schedule
+                else:
+                    assert isinstance(ev_src, ExogenousActionChoice)
+                    already_scheduled = self.__option_already_scheduled(current_time, ev_src, params)
+                    if (not already_scheduled) and ev_src.should_happen(evaluation_context, params):
+                        event = ev_src.make_choice(evaluation_context, params)
+                    else:
+                        event = None
+                if not already_scheduled:
+                    assert isinstance(event, ExogenousAction)
+                    schedule_time = event.get_next_occurrence_time(evaluation_context, params)
+                    if schedule_time is not None:
+                        assert schedule_time >= current_time
+                        new_ev = (schedule_time, (event, params))
+                        heapq.heappush(self.__event_schedule, new_ev)
                 # mark the fact that we sampled the occurrence distribution regardless of
                 # whether or not it's been scheduled
-                self.__already_processed_events.add((current_time, (event, params)))
+                self.__already_processed_events.add((current_time, (ev_src, params)))
 
     def update_event_schedule(self, current_time, evaluation_context, scan, scan_start=None, scan_time_limit=None):
         """
@@ -196,25 +249,38 @@ class EventSchedule:
         Translates event tuples retrieved from the logics engine to tuples that refer to ExogenousAction entries.
 
         :param list[(int, str, tuple)] raw_event_instances: the event instances gathered by the engine
-        :param list[(int, (ExogenousAction, tuple))] schedule: the event schedule heap in which the translated event
-                instances will be pushed.
+        :param list[(int, (ExogenousAction|ExogenousActionChoice, tuple))] schedule: the event schedule heap
+            in which the translated event instances will be pushed.
         """
         for rev in raw_event_instances:
-            try:
-                ea = self.__exogenous_actions[rev[1]]
-                heapq.heappush(schedule, (rev[0], (ea, rev[2])))
-            except KeyError:
-                raise SALMAException("Unregistered exogenous action: {}".format(rev[1]))
+            ev_name = rev[1]
+            if ev_name in self.__exogenous_actions:
+                ea = self.__exogenous_actions[ev_name]
+            elif ev_name in self.__exogenous_action_chooices:
+                ea = self.__exogenous_action_chooices[ev_name]
+            else:
+                raise SALMAException("Unregistered exogenous action (choice): {}".format(ev_name))
+            heapq.heappush(schedule, (rev[0], (ea, rev[2])))
 
     def __translate_event_instances_to_raw(self, schedule):
         """
         Translates a generator for conversion of the current event schedule to a list of event tuples of form
         (time, action_name param_values).
 
-        :param set[(int, (ExogenousAction, tuple))]|list[(int, (ExogenousAction, tuple))] schedule: the event schedule.
+        :param set[tuple]|list[tuple] schedule: the event schedule.
         :rtype: list[(int, str, tuple)]
         """
-        return ((ev[0], ev[1][0].action_name, ev[1][1]) for ev in schedule)
+        result = []
+        for entry in schedule:
+            time = entry[0]
+            event, params = entry[1]
+            if isinstance(event, ExogenousAction):
+                name = event.action_name
+            else:
+                assert isinstance(event, ExogenousActionChoice)
+                name = event.choice_name
+            result.append((time, name, params))
+        return result
 
     def check_exogenous_action_initialization(self):
         """

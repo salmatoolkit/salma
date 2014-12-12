@@ -7,7 +7,7 @@ import pyclp
 from salma.SALMAException import SALMAException
 from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome, \
     Deterministic, Uniform
-from salma.model.events import ExogenousAction
+from salma.model.events import ExogenousAction, ExogenousActionChoice
 from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
@@ -325,6 +325,27 @@ class World(Entity, WorldDeclaration):
             action = StochasticAction(sa[0], params, outcomes, strategy, immediate)
             self.addAction(action)
 
+    def __load_exogenous_action_choice(self, declarations):
+        """
+        Loads the exogenous action choice declarations.
+        :param list[(str, list[(str, str)], list[str])] declarations: the declarations as
+                (name, params, option_names) tuples.
+        """
+        for ec in declarations:
+            choice_name, params, option_names = ec
+            #: :type: list[ExogenousAction]
+            options = []
+            for oname in option_names:
+                try:
+                    option_event = self.__event_schedule.exogenous_actions[oname]
+                except KeyError:
+                    raise SALMAException("Option '{}' of choice '{}' points to "
+                                         "unregistered exogenous action".format(oname, choice_name))
+                options.append(option_event)
+
+            choice = ExogenousActionChoice(choice_name, params, options)
+            self.__event_schedule.add_exogenous_action_choice(choice)
+
     def load_declarations(self):
         """
         Loads the declarations from the domain specification and initializes fluents, constants, and actions.
@@ -354,6 +375,8 @@ class World(Entity, WorldDeclaration):
 
         for ea in declarations['exogenous_actions']:
             self.__event_schedule.add_exogenous_action(ExogenousAction(ea[0], ea[1], ea[2]))
+
+        self.__load_exogenous_action_choice(declarations['exogenous_action_choices'])
 
         # info transfer
         for c in declarations["channels"]:
@@ -899,9 +922,12 @@ class World(Entity, WorldDeclaration):
             # for scanning for possible / schedulable events, don't stop at previously calculated
             # scanning point because this point might have become invalid during the last progression
             next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=False)
+
+            stl = min_robust([next_stop_time, time_limit])
+            assert isinstance(stl, int)
             self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext,
                                                         scan=True, scan_start=current_time,
-                                                        scan_time_limit=min_robust([next_stop_time, time_limit]))
+                                                        scan_time_limit=stl)
 
             # continue until no actions or events were performed during the iteration and
             # the no event is scheduled / possible / schedulable at the current point
@@ -911,10 +937,13 @@ class World(Entity, WorldDeclaration):
                 if next_stop_time is None or next_stop_time > current_time:
                     break
         interval_end = min_robust([next_stop_time, time_limit])
+        assert isinstance(interval_end, int)
         # now we know that next_stop_time is set up correctly
         if evaluate_properties:
+            ie2 = max_robust([interval_end - 1, current_time])
+            assert isinstance(ie2, int)
             toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
-                interval_end=max_robust([interval_end - 1, current_time]))
+                interval_end=ie2)
 
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug(("  toplevel_results: {}\n"

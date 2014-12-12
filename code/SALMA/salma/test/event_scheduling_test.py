@@ -109,7 +109,10 @@ class EventSchedulingTest(unittest.TestCase):
               "problematic actions: {}".format(problematic_fluents, problematic_actions))
 
         lightning = world.get_exogenous_action("lightning_strike")
-        lightning.config.occurrence_distribution = ExponentialDistribution("integer", 0.01)
+        lightning.config.occurrence_distribution = ExponentialDistribution("integer", 0.1)
+
+        asteroid_hit = world.get_exogenous_action("asteroid_hit")
+        asteroid_hit.config.occurrence_distribution = ConstantDistribution("integer", 10)
 
         wall_alert = world.get_exogenous_action("wall_alert")
         wall_alert.config.occurrence_distribution = BernoulliDistribution(1.0)
@@ -118,6 +121,7 @@ class EventSchedulingTest(unittest.TestCase):
         # e1.run_until_finished(max_world_time=500, step_listeners=[steplogger])
         e1.property_collection.register_property("f", "xpos(rob1) =\= 495", INVARIANT)
         e1.property_collection.register_property("g", "xpos(rob1) =:= 240", ACHIEVE)
+        #e1.property_collection.register_property("h", "not(occur(asteroid_hit(rob1, ?)))", INVARIANT)
         verdict, info = e1.run_experiment(max_world_time=500, step_listeners=[steplogger])
 
         print("T = {}, verdict = {}\n\ninfo: {}".format(world.getTime(), verdict, info))

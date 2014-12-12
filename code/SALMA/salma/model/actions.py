@@ -210,7 +210,6 @@ class RandomActionOutcome(object):
 class OutcomeSelectionStrategy:
     def __init__(self):
         self.__action = None
-        pass
 
     @property
     def action(self):

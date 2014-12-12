@@ -3,7 +3,9 @@ from salma.model.core import Entity
 from salma.model.distributions import BernoulliDistribution, UniformDistribution, Distribution, NormalDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.termutils import tuplify
+import numbers
 import random
+
 
 class ExogenousAction(object):
     """
@@ -145,13 +147,14 @@ class ExogenousAction(object):
     def get_next_occurrence_time(self, evaluation_context, param_values):
         """
         Uses the defined occurrence distribution to determine the next time step when the
-        event instance owoth the given parameters should be executed.
+        event instance with the given parameters should be executed. This method may also return None
+        which means that the event is not scheduled at all at this point.
 
         :param EvaluationContext evaluation_context: the evaluation context that is used by the
             occurrence distribution.
         :param list|tuple param_values: the parameters that are used for sampling from the occurrence distribution.
         :return: the time step for the scheduled execution of the given event instance
-        :rtype: int
+        :rtype: int|None
         """
         res = self.config.occurrence_distribution.generateSample(evaluation_context, param_values)
         assert isinstance(res, int) and not isinstance(res, bool)
@@ -202,7 +205,36 @@ class ExogenousAction(object):
                             if self.config.occurrence_distribution is not None else "None"
                         ),
                         p_distribs=", ".join(p_distrib_descs)
-                        )
+        )
+
+
+class EventOptionSelectionStrategy:
+    def __init__(self):
+        self.__choice = None
+
+    @property
+    def choice(self):
+        """
+        The Choice that uses this selection strategy.
+        :rtype: ExogenousActionChoice
+        """
+        return self.__choice
+
+    @choice.setter
+    def choice(self, choice):
+        """
+        Sets the choice that uses this selection strategy.
+        :param ExogenousActionChoice choice: the choice that uses this selection strategy.
+        """
+        self.__choice = choice
+
+    def make_choice(self, evaluation_context, param_values):
+        """
+        Chooses one option of the associated ExogenousActionChoice.
+        :param EvaluationContext evaluation_context: the evaluation context that will be used to interpret the parameter values.
+        :param list param_values: the parameter values.
+        """
+        raise NotImplementedError()
 
 
 class ExogenousActionChoice(object):
@@ -210,76 +242,149 @@ class ExogenousActionChoice(object):
     Represents a choice of alternative event options of which only one will be scheduled.
     """
 
-    def __init__(self, choice_name, entity_params, options, selection_strategy=None):
+    def __init__(self, choice_name, entity_params, options, selection_strategy=None,
+                 occurrence_distribution=None):
         """
         Creates a choice. This is mainly done in world.load_declaration().
 
         :param str choice_name: the name of the choice.
         :param list[(str, str)] entity_params: the parameters that identify the possible event instance options.
         :param list[ExogenousAction] options: the event options.
-        :param EventOptionSelectionStrategy selection_strategy: the option selection strategy
+        :param EventOptionSelectionStrategy selection_strategy: the option selection strategy.
+            Default = uniform.
+        :param  Distribution occurrence_distribution: the probability distribution that is used to determine
+            whether any option of this choice should occur. Default = yes with 100% probability.
         """
         self.__choice_name = choice_name
         self.__entity_params = entity_params
         self.__options = options
         self.__selection_strategy = selection_strategy
         if self.__selection_strategy is None:
-            pass
+            self.selection_strategy = UniformEventOptionSelectionStrategy()
+
+        self.__occurrence_distribution = (occurrence_distribution if occurrence_distribution is not None
+                                          else BernoulliDistribution(1.0))
 
     @property
-    def choice_name(self) -> str:
+    def choice_name(self):
+        """
+        The choice's name.
+        :return str: the choice's name.
+        """
         return self.__choice_name
 
     @property
-    def entity_params(self) -> list[(str, str)]:
+    def entity_params(self):
+        """
+        The identifying entity parameters of this ExogenousActionChoice.
+        :rtype: list[(str, str)]
+        """
         return self.__entity_params
 
     @property
-    def options(self) -> list[ExogenousAction]:
+    def options(self):
+        """
+        The options of this ExogenousActionChoice.
+        :rtype: list[ExogenousAction]
+        """
         return self.__options
 
     @property
-    def selection_strategy(self) -> EventOptionSelectionStrategy:
+    def selection_strategy(self):
+        """
+        The option selection strategy.
+        :rtype: EventOptionSelectionStrategy
+        """
         return self.__selection_strategy
 
     @selection_strategy.setter
-    def selection_strategy(self, strategy: EventOptionSelectionStrategy):
+    def selection_strategy(self, strategy):
+        """
+        Sets the new EventOptionSelectionStrategy.
+        :param EventOptionSelectionStrategy strategy: the new strategy
+        """
         self.__selection_strategy = strategy
-
-    def make_choice(self, evaluation_context: EvaluationContext, param_values: list) -> ExogenousAction:
-        return self.selection_strategy.make_choice(evaluation_context, param_values)
-
-
-class EventOptionSelectionStrategy:
-
-    def __init__(self):
-        self.__choice = None
+        self.__selection_strategy.choice = self
 
     @property
-    def choice(self) -> ExogenousActionChoice:
-        return self.__choice
+    def occurrence_distribution(self):
+        """
+        The probability distribution that is used to determine
+            whether any option of this choice should occur
+        :rtype: Distribution
+        """
+        return self.__occurrence_distribution
 
-    @choice.setter
-    def choice(self, choice: ExogenousActionChoice):
-        self.__choice = choice
+    @occurrence_distribution.setter
+    def occurrence_distribution(self, distribution):
+        """
+        Sets the probability distribution that is used to determine
+            whether any option of this choice should occur
+        :type distribution: Distribution
+        """
+        self.__occurrence_distribution = distribution
 
-    def make_choice(self, evaluation_context: EvaluationContext, param_values: list) -> ExogenousAction:
-        raise NotImplementedError()
+    def make_choice(self, evaluation_context, param_values):
+        """
+        Selects one option.
+
+        :param EvaluationContext evaluation_context: the evaluation context that is used to interpret
+            the parameter values.
+        :param list|tuple param_values: the parameter values.
+        :rtype: ExogenousAction
+        """
+        return self.selection_strategy.make_choice(evaluation_context, param_values)
+
+    def should_happen(self, evaluation_context, param_values):
+        """
+        Uses the defined occurrence distribution to decide whether the event instance with the given parameters
+        should be executed at the current time step.
+
+        :param EvaluationContext evaluation_context: the evaluation context that is used by the
+            occurrence distribution.
+        :param list|tuple param_values: the parameters that are used for sampling from the occurrence distribution.
+        :return: True if the event instance should be executed at the current time step.
+        :rtype: bool
+        """
+        res = self.occurrence_distribution.generateSample(evaluation_context, param_values)
+        assert isinstance(res, bool)
+        return res
 
 
 class UniformEventOptionSelectionStrategy(EventOptionSelectionStrategy):
+    """
+    An EventOptionSelectionStrategy that uses the same probability for each option.
+    """
 
     def __init__(self):
         super().__init__()
 
-    def make_choice(self, evaluation_context: EvaluationContext, param_values: list) -> ExogenousAction:
+    def make_choice(self, evaluation_context, param_values):
         if self.choice is None:
             raise SALMAException("No choice set for OptionSelectionStrategy {}".format(str(self)))
         return random.choice(self.choice.options)
 
+    def __str__(self):
+        return "UniformEventOptionSelectionStrategy"
 
 
+class StepwiseEventOptionSelectionStrategy(EventOptionSelectionStrategy):
+    """
+    An event option selection strategy that assigns a fixed probability to each option.
+    """
 
+    def __init__(self, probabilities):
+        """
+        Creates an event option selection strategy with the given properties.
+        :param dict[str,  numbers.Real]: probabilities
+        :return:
+        """
+        super().__init__()
+        self.__probabilities = probabilities
+
+    @property
+    def probabilities(self):
+        return self.__probabilities
 
 
 
