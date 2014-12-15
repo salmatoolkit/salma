@@ -1,4 +1,5 @@
 import logging
+from salma.SALMAException import SALMAException
 from salma.constants import *
 from salma.model.propertycollection import PropertyCollection
 from salma.model.world import World
@@ -43,8 +44,33 @@ class Experiment(object):
     def initialize(self):
         pass
 
+    def assure_consistent_initilization(self):
+        problematic_fluents, problematic_constants = self.__world.check_fluent_initialization()
+        failed = False
+        if problematic_fluents is not None and len(problematic_fluents) > 0:
+            moduleLogger.error("Fluent initialization problems:\n{}".format(problematic_fluents))
+            failed = True
+        if problematic_constants is not None and len(problematic_constants) > 0:
+            moduleLogger.error("Constant initialization problems:\n{}".format(problematic_fluents))
+            failed = True
+        (problematic_stochastic_actions, problematic_exogenous_actions,
+         problematic_exogenous_action_choices) = self.__world.check_action_initialization()
+
+        if problematic_stochastic_actions is not None and len(problematic_stochastic_actions) > 0:
+            moduleLogger.error("Stochastic Action initialization problems:\n{}".format(problematic_stochastic_actions))
+            failed = True
+        if problematic_exogenous_actions is not None and len(problematic_exogenous_actions) > 0:
+            moduleLogger.error("Exogenous Action initialization problems:\n{}".format(problematic_exogenous_actions))
+            failed = True
+        if problematic_exogenous_action_choices is not None and len(problematic_exogenous_action_choices) > 0:
+            moduleLogger.error(
+                "Exogenous Action Choice initialization problems:\n{}".format(problematic_exogenous_action_choices))
+            failed = True
+        if failed:
+            raise SALMAException("Initialisation problems.")
+
     def run_experiment(self, check_verdict=True, max_steps=None, max_real_time=None, max_world_time=None,
-                       max_time_delta_per_step=None, step_listeners=None):
+                       max_time_delta_per_step=None, step_listeners=None, check_initialization=True):
         """
         Runs the experiment that has been set up until a) a conclusive verdict can be determined,
         b) the world has finished, c) the given step or time maximum is reached, or d) at least one of
@@ -62,6 +88,9 @@ class Experiment(object):
         :return: (verdict, result-map)
         :rtype: (int, dict[str, object])
         """
+        if check_initialization:
+            self.assure_consistent_initilization()
+
         if not step_listeners:
             step_listeners = []
         step_num = 0
@@ -147,9 +176,9 @@ class Experiment(object):
             # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
             else:
                 if ((self.__world.is_finished() or time_out is True) and
-                        len(self.property_collection.achieve_goals) == 0 and
-                        len(self.property_collection.achieve_and_sustain_goals) == 0 and
-                        len(scheduled_keys) == 0):
+                            len(self.property_collection.achieve_goals) == 0 and
+                            len(self.property_collection.achieve_and_sustain_goals) == 0 and
+                            len(scheduled_keys) == 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
@@ -166,7 +195,8 @@ class Experiment(object):
                  "failure_stack": failure_stack,
                  "scheduled_keys": scheduled_keys})
 
-    def run_until_finished(self, max_steps=None, max_real_time=None, max_world_time=None, step_listeners=None):
+    def run_until_finished(self, max_steps=None, max_real_time=None, max_world_time=None, step_listeners=None,
+                           check_initialization=True):
         """
         Repeatedly runs World.step() until either the world's finished flag becomes true or
         either the step or time limit is reached. The properties are not evaluated.
@@ -178,6 +208,8 @@ class Experiment(object):
                 signature (step_num, deltaT, actions, toplevel_results)
         :rtype: (int, dict[str, object])
         """
+        if check_initialization:
+            self.assure_consistent_initilization()
         if not step_listeners:
             step_listeners = []
         verdict, results = self.run_experiment(check_verdict=False, max_steps=max_steps, max_real_time=max_real_time,
@@ -186,7 +218,8 @@ class Experiment(object):
             verdict = OK if self.__world.is_finished() else NOT_OK
         return verdict, results
 
-    def run_repetitions(self, number_of_repetitions=100, max_retrials=3, hypothesis_test=None, **kwargs):
+    def run_repetitions(self, number_of_repetitions=100, max_retrials=3, hypothesis_test=None,
+                        check_initialization=True, **kwargs):
         """
         Runs repetitions of the configured experiment. If an hypothesis test object is given then the acceptance
         of this hypothesis test is
@@ -196,6 +229,8 @@ class Experiment(object):
         :return:
         """
         # save state
+        if check_initialization:
+            self.assure_consistent_initilization()
         current_state = [fv for fv in World.logic_engine().getCurrentState() if fv.fluentName != "domain"]
         results = []  # list of True/False
         trial_infos = []
@@ -209,7 +244,7 @@ class Experiment(object):
             self.__world.reset()
             self.__world.restore_state(current_state)
 
-            verdict, res = self.run_experiment(**kwargs)
+            verdict, res = self.run_experiment(check_initialization=False, **kwargs)
             trial_infos.append(res)
             if verdict == NONDET or verdict == CANCEL:
                 if verdict == CANCEL:

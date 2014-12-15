@@ -10,6 +10,7 @@ from salma.model.distributions import NormalDistribution, ExponentialDistributio
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.experiment import Experiment
 from salma.model.procedure import Sequence, Assign, SetFluent, Act
+from salma.model.selectionstrategy import Stepwise
 from salma.model.world import World
 import random
 
@@ -86,7 +87,7 @@ class EventSchedulingTest(unittest.TestCase):
         agent = Agent(robotId, "robot", [proc])
         return agent
 
-    def test_movement(self):
+    def setup_world(self):
         world = World.instance()
 
         world.setConstantValue("world_width", [], 500)
@@ -103,16 +104,17 @@ class EventSchedulingTest(unittest.TestCase):
         world.setFluentValue("active", [rob1.id], True)
         world.setFluentValue("wheels_wet", [rob1.id], False)
 
-        problematic_fluents = world.check_fluent_initialization()
-        problematic_actions = world.check_action_initialization()
-        print("problematic fluents: {}\n "
-              "problematic actions: {}".format(problematic_fluents, problematic_actions))
-
+    def test_movement(self):
+        self.setup_world()
+        world = World.instance()
         lightning = world.get_exogenous_action("lightning_strike")
         lightning.config.occurrence_distribution = ExponentialDistribution("integer", 0.1)
 
         asteroid_hit = world.get_exogenous_action("asteroid_hit")
         asteroid_hit.config.occurrence_distribution = ConstantDistribution("integer", 10)
+
+        disaster = world.get_exogenous_action_choice("disaster")
+        disaster.selection_strategy = Stepwise(lightning_strike=0.1, asteroid_hit=0.9)
 
         wall_alert = world.get_exogenous_action("wall_alert")
         wall_alert.config.occurrence_distribution = BernoulliDistribution(1.0)
@@ -121,10 +123,34 @@ class EventSchedulingTest(unittest.TestCase):
         # e1.run_until_finished(max_world_time=500, step_listeners=[steplogger])
         e1.property_collection.register_property("f", "xpos(rob1) =\= 495", INVARIANT)
         e1.property_collection.register_property("g", "xpos(rob1) =:= 240", ACHIEVE)
-        #e1.property_collection.register_property("h", "not(occur(asteroid_hit(rob1, ?)))", INVARIANT)
+        # e1.property_collection.register_property("h", "not(occur(asteroid_hit(rob1, ?)))", INVARIANT)
         verdict, info = e1.run_experiment(max_world_time=500, step_listeners=[steplogger])
 
         print("T = {}, verdict = {}\n\ninfo: {}".format(world.getTime(), verdict, info))
+
+    def test_flawed_stepwise_distrib(self):
+        self.setup_world()
+        world = World.instance()
+        lightning = world.get_exogenous_action("lightning_strike")
+        lightning.config.occurrence_distribution = ExponentialDistribution("integer", 0.1)
+
+        asteroid_hit = world.get_exogenous_action("asteroid_hit")
+        asteroid_hit.config.occurrence_distribution = ConstantDistribution("integer", 10)
+
+        disaster = world.get_exogenous_action_choice("disaster")
+        # use wrong probabilities that don't sum up to 1.0
+        disaster.selection_strategy = Stepwise(lightning_strike=0.1, asteroid_hit=0.7)
+
+        wall_alert = world.get_exogenous_action("wall_alert")
+        wall_alert.config.occurrence_distribution = BernoulliDistribution(1.0)
+
+        e1 = Experiment(world)
+        try:
+            e1.run_experiment(max_world_time=500, step_listeners=[steplogger])
+            self.fail("Expected exception!")
+        except SALMAException as ex:
+            print("As expected: {}".format(ex.message))
+
 
 
 if __name__ == '__main__':

@@ -2,10 +2,11 @@ import random
 from salma.SALMAException import SALMAException
 from salma.model.evaluationcontext import EvaluationContext
 
+
 class OutcomeSelectionStrategy:
     def __init__(self):
-        #: :type: dict[str, object]
-        self.__options = dict()
+        #: :type: ()->dict[str, object]
+        self.__option_provider = None
 
     @property
     def options(self):
@@ -13,11 +14,16 @@ class OutcomeSelectionStrategy:
         The options available to this selection strategy.
         :rtype: dict[str, object]
         """
-        return self.__options
+        if self.__option_provider is None:
+            raise SALMAException("No option provider defined.")
+        return self.__option_provider()
 
-    @options.setter
-    def options(self, value):
-        self.__options = value
+    def set_option_provider(self, option_provider):
+        """
+        Sets the option provider, a function that returns a dict of form (outcome_name -> outcome).
+        :param (()->dict[str, object])|None option_provider: the option provider function.
+        """
+        self.__option_provider = option_provider
 
     def select_outcome(self, evaluation_context, param_values):
         """
@@ -30,14 +36,14 @@ class OutcomeSelectionStrategy:
         """
         raise NotImplementedError()
 
-    def check(self, action_dict):
+    def check(self):
         """
         Checks if the configuration is consistent.
-        :return: None if consistent or a list of problem description
-
-        :type action_dict: dict of (str, Action)
-        :rtype: list of tuple
+        :return: Empty list if consistent or a list of problem description of form (problem_key, params)
+        :rtype: list[(str, tuple)]
         """
+        if self.__option_provider is None:
+            return [("no_option_provider_defined", ())]
         return []
 
     def describe(self):
@@ -76,22 +82,22 @@ class Stepwise(OutcomeSelectionStrategy):
         """
         return self.__probabilities
 
-    def set_probability(self, action_name, probability):
+    def set_probability(self, option_name, probability):
         """
         Sets the selection probability for the given action.
-        :type action_name: str
+        :type option_name: str
         :type probability: float
         """
-        self.__probabilities[action_name] = probability
+        self.__probabilities[option_name] = probability
 
-    def probability(self, action_name: str) -> float:
+    def probability(self, option_name: str) -> float:
         """
         Returns the selection probability for the given action.
         """
         try:
-            return self.__probabilities[action_name]
+            return self.__probabilities[option_name]
         except KeyError:
-            raise SALMAException("No probability specified for action {}.".format(action_name))
+            raise SALMAException("No probability specified for option {}.".format(option_name))
 
     def select_outcome(self, evaluation_context, param_values):
         r = random.uniform(0, 1)
@@ -103,20 +109,18 @@ class Stepwise(OutcomeSelectionStrategy):
         raise (
             SALMAException("No outcome could be selected, r = {}, probabilities = {}".format(r, self.__probabilities)))
 
-    def check(self, action_dict):
+    def check(self):
         """
-        :type action_dict: dict of (str, Action)
         :rtype: list of tuple
         """
-        problems = super().check(action_dict)
-        for outcome in self.action.outcomes:
-            if outcome.action_name not in self.__probabilities:
-                problems.append(("outcome_selection_strategy.stepwise.no_prob_for_outcome", outcome.action_name))
+        problems = super().check()
+        for option in self.options.keys():
+            if option not in self.probabilities:
+                problems.append(("outcome_selection_strategy.stepwise.no_prob_for_outcome", (option, )))
 
         s = sum(self.__probabilities.values())
         if s != 1.0:
-            problems.append(("outcome_selection_strategy.stepwise.wrong_prob_sum", s))
-
+            problems.append(("outcome_selection_strategy.stepwise.wrong_prob_sum", (s, )))
         return problems
 
     def describe(self):
@@ -135,7 +139,13 @@ class Uniform(OutcomeSelectionStrategy):
         super().__init__()
 
     def select_outcome(self, evaluation_context, param_values):
-        return random.choice(list(self.options.values()))
+        l = list(self.options.values())
+        if len(l) == 0:
+            raise SALMAException("No outcome specified!")
+        elif len(l) == 1:
+            return l[0]
+        else:
+            return random.choice(l)
 
     def describe(self):
         return "Uniform"
@@ -143,21 +153,33 @@ class Uniform(OutcomeSelectionStrategy):
 
 class Deterministic(OutcomeSelectionStrategy):
     """
-    Creates a trivial deterministic stochastic action outcome selector that is parametric in the sense that there
-    is only one outcome specification.
+    Creates a trivial deterministic action outcome selector that always chooses the same outcome.
     """
 
-    def __init__(self):
+    def __init__(self, selected_outcome):
+        """
+        :param str selected_outcome: the outcome that will be every time.
+        """
+        self.__selected_outcome = selected_outcome
         super().__init__()
 
-    def select_outcome(self, evaluation_context, param_values):
-        return list(self.options.values())[0]
+    @property
+    def selected_outcome(self):
+        return self.__selected_outcome
 
-    def check(self, action_dict):
-        problems = super().check(action_dict)
-        if len(self.options) != 1:
-            problems.append(("outcome_selection_strategy.deterministic.more_than_one_outcome", None))
+    def select_outcome(self, evaluation_context, param_values):
+        try:
+            outcome = self.options[self.selected_outcome]
+            return outcome
+        except KeyError:
+            raise SALMAException("Option {} not defined!".format(self.selected_outcome))
+
+    def check(self):
+        problems = super().check()
+        if self.selected_outcome not in self.options:
+            problems.append(("option_not_defined", (self.selected_outcome,)))
+
         return problems
 
     def describe(self):
-        return "Deterministic({})".format(self.action.outcomes[0].describe())
+        return "Deterministic({})".format(self.selected_outcome)

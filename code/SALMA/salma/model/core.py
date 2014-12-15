@@ -3,6 +3,7 @@ from salma.model.distributions import Distribution, UniformDistribution
 from .evaluationcontext import EvaluationContext
 from salma.termutils import tuplify
 
+
 class Entity(object):
     """
     Base class for all passive and active (agents) entities of the system. Stores an unique id and a sort name.

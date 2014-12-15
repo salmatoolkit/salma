@@ -4,6 +4,7 @@ from salma.model.distributions import Distribution, ArgumentIdentityDistribution
     NormalDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.termutils import tuplify
+from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 
 
 class DeterministicAction(Action):
@@ -216,41 +217,49 @@ class StochasticAction(Action):
         :param str name: the name of the stochastic action
         :param list[(str, str)] parameters: the stochastic action's parameters
         :param list[RandomActionOutcome] outcomes: list of RandomActionOutcome objects
-        :param salma.model.selectionstrategy.OutcomeSelectionStrategy selection_strategy: the outcome selection strategy
+        :param OutcomeSelectionStrategy|None selection_strategy: the outcome selection strategy
         :param bool immediate: whether or not this action is an immediate action (TODO: obsolete)
         """
         Action.__init__(self, name, parameters, immediate)
-        self.__selection_strategy = selection_strategy
-        # : :type: dict of (str, RandomActionOutcome)
-        self.__outcomes = dict()
 
+        # : :type: dict[str, RandomActionOutcome]
+        self.__outcomes = dict()
+        #: :type: list[RandomActionOutcome]
+        self.__outcome_list = []
         for outcome in outcomes:
             self.__outcomes[outcome.action_name] = outcome
             outcome.stochastic_action = self
-        self.__outcome_list = list(self.__outcomes.values())
+            self.__outcome_list.append(outcome)
+        #: :type: OutcomeSelectionStrategy
+        self.__selection_strategy = None
+        if selection_strategy is not None:
+            self.selection_strategy = selection_strategy
+        else:
+            self.selection_strategy = Uniform()
 
     @property
     def selection_strategy(self):
         """
         :return: the configuration object
-        :rtype: salma.model.selectionstrategy.OutcomeSelectionStrategy
+        :rtype: OutcomeSelectionStrategy
         """
         return self.__selection_strategy
 
     @selection_strategy.setter
     def selection_strategy(self, strategy):
         """
-        :type strategy: salma.model.selectionstrategy.OutcomeSelectionStrategy
+        :type strategy: OutcomeSelectionStrategy
         """
         if self.__selection_strategy is not None:
-            self.__selection_strategy.action = None
+            self.__selection_strategy.set_option_provider(None)
         self.__selection_strategy = strategy
-        self.__selection_strategy.action = self
+        if self.__selection_strategy is not None:
+            self.__selection_strategy.set_option_provider(lambda: self.__outcomes)
 
     @property
     def outcomes(self):
         """
-        :rtype: list of RandomActionOutcome
+        :rtype: list[RandomActionOutcome]
         """
         return self.__outcome_list
 
@@ -290,21 +299,22 @@ class StochasticAction(Action):
         :rtype: (str, tuple)
         """
         outcome = self.selection_strategy.select_outcome(evaluation_context, param_values)
+        assert isinstance(outcome, RandomActionOutcome)
         return outcome.generate_sample(evaluation_context, param_values)
 
     def check(self, action_dict):
         """
         Checks if the outcome selection configuration and the outcomes are configured properly.
         :return: a list of problems
-        :type action_dict: dict of (str, Action)
-        :rtype: list of tuple
+        :param dict[str, Action] action_dict: the world's action registry.
+        :rtype: list[(str, tuple)]
         """
         if self.__outcomes is None or len(self.__outcomes) == 0:
-            return ["stochastic_action.no_outcome"]
+            return [("stochastic_action.no_outcome", ())]
         if self.selection_strategy is None:
-            return ["stochastic_action.no_selection_strategy"]
+            return [("stochastic_action.no_selection_strategy", ())]
         problems = []
-        problems.extend(self.selection_strategy.check(action_dict))
+        problems.extend(self.selection_strategy.check())
         for o in self.__outcomes.values():
             problems.extend(o.check(action_dict))
         return problems

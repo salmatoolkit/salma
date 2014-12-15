@@ -7,7 +7,7 @@ from salma.model.events import ExogenousActionChoice
 from salma.model.events import ExogenousAction
 from salma.model.evaluationcontext import EvaluationContext
 from salma.mathutils import min_robust
-
+import random
 
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -286,18 +286,42 @@ class EventSchedule:
         """
         Checks whether all registered exogenous actions are properly configured.
         :return: a list of tuples of form (exo_action, problems)
-        :rtype: list[(ExogenousActions, list)]
+        :rtype: list[(ExogenousAction, list)]
         """
         problematic_exogenous_actions = []
         for exo_action in self.__exogenous_actions.values():
             assert isinstance(exo_action, ExogenousAction)
             if exo_action.config is None:
-                problematic_exogenous_actions.append((exo_action, ["uninitialized"]))
+                problematic_exogenous_actions.append((exo_action, [("uninitialized", ())]))
             else:
                 problems = exo_action.config.check()
                 if len(problems) > 0:
                     problematic_exogenous_actions.append((exo_action, problems))
         return problematic_exogenous_actions
+
+    def check_exogenous_action_choice_initialization(self):
+        """
+        Checks whether all registered exogenous actions are properly configured.
+        :return: a list of tuples of form (exo_action_choice, problems)
+        :rtype: list[(ExogenousActionChoice, list)]
+        """
+        problematic = []
+        for choice in self.__exogenous_action_chooices.values():
+            assert isinstance(choice, ExogenousActionChoice)
+            problems_for_choice = []
+            if choice.occurrence_distribution is None:
+                problems_for_choice.append(("no_occurrence_distribution_specified", ()))
+            else:
+                # only ad hoc is allowed for event choices
+                if choice.occurrence_distribution.sort != "boolean":
+                    problems_for_choice.append(("exogenous_action_choice_occurrence_not_boolean", ()))
+            if choice.selection_strategy is None:
+                problems_for_choice.append(("no_selection_strategy", ()))
+            else:
+                problems_for_choice.extend(choice.selection_strategy.check())
+            if len(problems_for_choice) > 0:
+                problematic.append((choice, problems_for_choice))
+        return problematic
 
     def get_due_events(self, current_time):
         """

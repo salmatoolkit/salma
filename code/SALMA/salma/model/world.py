@@ -1,13 +1,12 @@
 import itertools
 import logging
 import random
+from collections.abc import Iterable
 
 import pyclp
 
 from salma.SALMAException import SALMAException
-from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome, \
-    Deterministic
-from salma.model.selectionstrategy import Uniform, Deterministic
+from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome
 from salma.model.events import ExogenousAction, ExogenousActionChoice
 from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext
@@ -18,9 +17,9 @@ from .core import Entity, Fluent
 from .agent import Agent
 from .procedure import Variable, Act
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
-from collections.abc import Iterable
 from salma.mathutils import min_robust, max_robust
 from salma.termutils import tuplify
+
 
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -148,14 +147,18 @@ class World(Entity, WorldDeclaration):
         World.__instance = World()
         return World.__instance
 
+    @property
     def evaluation_context(self):
+        """
+        :rtype: EvaluationContext
+        """
         return self.__evaluationContext
 
     def enumerate_fluent_instances(self, fluent):
         """
         Creates an iterator for instances of the given fluent
         :type fluent: Fluent
-        :rtype: list of list of str
+        :rtype: list[list[str]]
         """
         candidates = []
         candidate_indexes = []
@@ -245,7 +248,8 @@ class World(Entity, WorldDeclaration):
                 problematic_stochastic_actions.append((action, problems))
 
         problematic_exogenous_actions = self.__event_schedule.check_exogenous_action_initialization()
-        return problematic_stochastic_actions, problematic_exogenous_actions
+        problematic_exogenous_action_choices = self.__event_schedule.check_exogenous_action_choice_initialization()
+        return problematic_stochastic_actions, problematic_exogenous_actions, problematic_exogenous_action_choices
 
     def __make_fluent_access_function(self, fluent_name):
         def __f(*params):
@@ -317,13 +321,13 @@ class World(Entity, WorldDeclaration):
             immediate = sa[0] in immediate_action_names
             params = sa[1]
             outcome_names = sa[2]
+            #: :type: list[RandomActionOutcome]
             outcomes = []
             for o_name in outcome_names:
                 outcome_action = self.getAction(o_name)
                 assert isinstance(outcome_action, DeterministicAction)
                 outcomes.append(RandomActionOutcome(outcome_action))
-            strategy = Deterministic() if len(outcomes) == 1 else Uniform()
-            action = StochasticAction(sa[0], params, outcomes, strategy, immediate)
+            action = StochasticAction(sa[0], params, outcomes, selection_strategy=None)
             self.addAction(action)
 
     def __load_exogenous_action_choice(self, declarations):
@@ -604,6 +608,24 @@ class World(Entity, WorldDeclaration):
         :rtype: Iterable[ExogenousAction]
         """
         return self.__event_schedule.exogenous_actions.values()
+
+    def get_exogenous_action_choice(self, choice_name):
+        """
+        Return the exogenous action choice with the given name.
+        :param str choice_name: name of the choice
+        :rtype: ExogenousActionChoice
+        """
+        try:
+            return self.__event_schedule.exogenous_action_choices[choice_name]
+        except KeyError:
+            raise (SALMAException("Unregistered exogenous action choice {}.".format(choice_name)))
+
+    def get_exogenous_action_choices(self):
+        """
+        Return a list view on all registered exogenous action choices.
+        :rtype: Iterable[ExogenousActionChoice]
+        """
+        return self.__event_schedule.exogenous_action_choices.values()
 
     def getSorts(self):
         """
@@ -956,9 +978,7 @@ class World(Entity, WorldDeclaration):
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
 
-
         World.logic_engine().progress([('tick', [interval_end - current_time])])
-
         return (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
                 failed_actions, failure_stack)
 
