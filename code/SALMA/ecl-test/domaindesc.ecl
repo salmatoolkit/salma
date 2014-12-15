@@ -1,4 +1,4 @@
-:- dynamic xpos/3, ypos/3, carrying/3, active/2, painted/2,
+:- dynamic xpos/3, ypos/3, vx/3, vy/3, carrying/3, active/2, painted/2, 
 	robot_radius/2, marking/3,
 	gravity/1, partner/3.
 
@@ -12,18 +12,69 @@ sorts([robot, item]).
 subsort(robot, agent).
 subsort(item, object).
 
+% MOTION
 
 primitive_action(move_right,[r:robot]).
 primitive_action(move_left, [r:robot]).
 primitive_action(move_down, [r:robot]).
 primitive_action(move_up, [r:robot]).
 
-exogenous_action(
+primitive_action(land_on, [r:robot, x:integer, y:integer]).
+stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
+
+fluent(xpos, [r:robot], integer).
+fluent(ypos, [r:robot], integer).
+
+derived_fluent(dist_from_origin, [r:robot], float).
+derived_fluent(moving, [r:robot], boolean).
+
+fluent(vx, [r:robot], integer).
+fluent(vy, [r:robot], integer).
+
+exogenous_action(finish_step, [r:robot], []).
+
+schedulable(finish_step(Rob), S) :-
+	moving(Rob, S).
+	
+
+effect(xpos(Robot), finish_step(Robot), OldX, X, S) :-
+	vx(Robot, Vx, S),
+	X is OldX + Vx.
+
+effect(xpos(Robot), land_on(Robot, X, _), _, X, _).
+
+
+effect(ypos(Robot), finish_step(Robot), OldY, Y, S) :-
+	vy(Robot, Vy, S),
+	Y is OldY + Vy.
+
+effect(ypos(Robot), land_on(Robot, _, Y), _, Y, _).
+	
+effect(vx(Robot), finish_step(Robot), _, 0, _).
+effect(vy(Robot), finish_step(Robot), _, 0, _).
+
+effect(vx(Robot), move_right(Robot), _, 1, _).
+effect(vx(Robot), move_left(Robot), _, -1, _).
+effect(vx(Robot), move_up(Robot), _, 0, _).
+effect(vx(Robot), move_down(Robot), _, 0, _).
+
+effect(vy(Robot), move_right(Robot), _, 0, _).
+effect(vy(Robot), move_left(Robot), _, 0, _).
+effect(vy(Robot), move_up(Robot), _, -1, _).
+effect(vy(Robot), move_down(Robot), _, 1, _).
+
+poss(move_right(_), _) :- true.
+poss(move_left(_), _) :-true.
+poss(move_down(_), _) :-true.
+poss(move_up(_), _):-true.
+
+
+% OTHER ACTIONS
 
 primitive_action(grab, [r:robot, i:item]).
 primitive_action(drop, [robot,item]).
 % land_on and crash are meant as outcome for stochastic action jump
-primitive_action(land_on, [r:robot, x:integer, y:integer]).
+
 
 
 primitive_action(crash, [r:robot]).
@@ -39,20 +90,16 @@ exogenous_action(accidental_drop, [r:robot, i:item], []).
 
 exogenous_action(collision, [r1:robot, r2:robot], [severity:integer]).
 
-stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
 
 
 % fluent declaration: fluent_name, [arg_domains], value_domain
 
-fluent(xpos, [r:robot], integer).
-fluent(ypos, [r:robot], integer).
-
-derived_fluent(dist_from_origin, [r:robot], float).
 
 fluent(carrying, [r:robot, i:item], boolean).
 fluent(active, [r:robot], boolean).
 % for now we just tread paint as a boolean attribute
 fluent(painted, [i:item], boolean).
+fluent(marking, [i:item], term).
 
 fluent(partner, [r:robot], robot).
 
@@ -62,10 +109,7 @@ constant(gravity, [], float).
 % poss
 
 
-poss(move_right(_), _) :- true.
-poss(move_left(_), _) :-true.
-poss(move_down(_), _) :-true.
-poss(move_up(_), _):-true.
+
 
 poss(grab(R,I), S) :- test_ad_hoc(
 						and(
@@ -75,7 +119,10 @@ poss(grab(R,I), S) :- test_ad_hoc(
 					).
 
 poss(drop(R,I), S) :- carrying(R,I,S).
-poss(accidental_drop(R,I), S) :- carrying(R,I,S).
+
+schedulable(accidental_drop(R,I), S) :- 
+	carrying(R,I,S).
+
 poss(collision(R1, R2, _), S) :- 
 	R1 \= R2, xpos(R1, X, S), xpos(R2, X, S), 
 	ypos(R1, Y, S), ypos(R2, Y, S).
@@ -91,66 +138,18 @@ poss(mark(_,_,_), _) :- true.
 
 % successor state axioms
 
+effect(carrying(Rob, Item), grab(Rob, Item), _, true, _).
+effect(carrying(Rob, Item), drop(Rob, Item), _, false, _).
+effect(carrying(Rob, Item), accidental_drop(Rob, Item), _, false, _).
 
-xpos(Rob, Pos, do2(A,S)) :- 
-    (A = land_on(Rob, X, _) ->
-		Pos is X
-		;			
-		xpos(Rob, POld, S),
-		(
-		 A = move_right(Rob), 
-		 Pos is POld + 1, !
-		;
-		 A = move_left(Rob),
-		 Pos is POld - 1, !
-		;
-		 Pos is POld, !
-		)
-	).
-	
-ypos(Rob, Pos, do2(A,S)) :- 
-	(A = land_on(Rob, _, Y) ->
-		Pos is Y
-		;
-		ypos(Rob, POld, S),
-		(
-		 A = move_down(Rob), 
-		 Pos is POld + 1, !
-		;
-		 A = move_up(Rob),
-		 Pos is POld - 1, !
-		;
-		 Pos is POld, !
-		)
-	).
-	
-carrying(Rob, Item, do2(A,S)) :-
-    A = grab(Rob, Item), ! 
-	;
-	A \= drop(Rob, Item), A \= accidental_drop(Rob, Item), 
-    carrying(Rob, Item, S).
-	
-	
+effect(active(Rob), crash(Rob), _, false, _).
+effect(active(Rob), collision(R1, R2, I), _, false, _) :-
+	member(Rob, [R1, R2]), I >= 50.
 
-active(Rob, do2(A,S)) :-
-	A \= crash(Rob),
-	% assume that collision iwth intensity of higher than 50 leads
-	% to destruction
-	not (A = collision(R1, R2, I), member(Rob, [R1, R2]), I >= 50),
-	active(Rob, S).
+effect(painted(Item), paint(_, Item), _, true, _).
+
+effect(marking(Item), mark(_, Item, Data), _, Data, _).	
 	
-	
-painted(Item, do2(A,S)) :-
-	A = paint(_, Item), !
-	;
-	painted(Item, S).
-	
-marking(Item, M, do2(A, S)) :-
-	A = mark(_, Item, M), !
-	;
-	marking(Item, M, S), !
-	;
-	M = 0.
 
 %restoreSitArg(xpos(Rob, Pos), S, xpos(Rob, Pos, S)).
 
@@ -167,7 +166,11 @@ dist_from_origin(Rob, Dist, S) :-
 	xpos(Rob, X, S),
 	ypos(Rob, Y, S),
 	Dist is sqrt(X*X + Y*Y).
-		
+
+moving(Rob, S) :-
+	vx(Rob, Vx, S), abs(Vx) > 0, !
+	;
+	vy(Rob, Vy, S), abs(Vy) > 0.
 		
 effect(partner(Rob), join(R1, R2), _, Partner, _) :-
 	Rob = R1, 
