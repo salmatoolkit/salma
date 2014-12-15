@@ -127,18 +127,10 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def evaluateRelationalGoal(self, goalName, *goalParams):
-        """
-        Evaluates the given goal with the given parameters and an implicit last parameter for the result variable.
-        A list of all found results is returned.
-
-        If a situation is given, it is appended after the result variable at the last position.
-        """
-        raise NotImplementedError()
-
     def selectAll(self, predicateName, *params, **kwargs):
         """
-        returns a list of tuples with all possible value combinations for the given variables that make the execution of the given predicate
+        returns a list of tuples with all possible value combinations for the given variables that make
+        the execution of the given predicate
         succeed
 
         :param predicateName str:
@@ -452,13 +444,13 @@ class EclipseCLPEngine(Engine):
         lines = []
         outstream = None
         while result == pyclp.FLUSHIO:
-            if outstream == None:
+            if outstream is None:
                 outstream = pyclp.Stream(stream_num)
 
             line = outstream.readall()
             lines.append(line.decode())
             result, _ = pyclp.resume()
-        if outstream != None:
+        if outstream is not None:
             outstream.close()
         return lines
 
@@ -498,10 +490,7 @@ class EclipseCLPEngine(Engine):
             readableParams = []
             for p in params:
                 if p is not None:
-                    try:
-                        readableParams.append(self.__convert_value_from_engine_result(p))
-                    except:
-                        moduleLogger.warn("Can't convert parameter in __callGoal.")
+                    readableParams.append(self.__convert_value_from_engine_result(p))
                 else:
                     readableParams.append("None")
 
@@ -628,7 +617,7 @@ class EclipseCLPEngine(Engine):
         # if (self.__currentState is None) or (not key in self.__currentState):
         # self.__updateCurrentState(key)
         self.__updateCurrentState(key)
-        if not key in self.__currentState:
+        if key not in self.__currentState:
             return None
         else:
             return self.__currentState[key]
@@ -685,13 +674,13 @@ class EclipseCLPEngine(Engine):
         lines = []
         outstream = None
         while result == pyclp.FLUSHIO:
-            if outstream == None:
+            if outstream is None:
                 outstream = pyclp.Stream(stream_num)
 
             line = outstream.readall()
             lines.append(line.decode())
             result, _ = pyclp.resume()
-        if outstream != None:
+        if outstream is not None:
             outstream.close()
 
         if result == pyclp.SUCCEED:
@@ -706,10 +695,6 @@ class EclipseCLPEngine(Engine):
         paramTerms = createParamTerms(*params, **kwargs)
         self.__callGoal('evaluate_function', pyclp.Atom(goalName), pyclp.PList(paramTerms))
         return self.__convert_value_from_engine_result(rvar.value())
-
-    def evaluateRelationalGoal(self, situation, goalName, *goalParams):
-        # TODO: implement
-        pass
 
     def __prepareIndexedFreeParams(self, *params, **kwargs):
         params2 = []
@@ -729,8 +714,7 @@ class EclipseCLPEngine(Engine):
                 params2.append(param)
 
         paramTerms = createParamTerms(*params2, **kwargs)
-        return (variables, indices, paramTerms)
-
+        return variables, indices, paramTerms
 
     def __prepareSelectEntities(self, predicateName, *params, **kwargs):
         variables, indices, paramTerms = self.__prepareIndexedFreeParams(
@@ -739,22 +723,20 @@ class EclipseCLPEngine(Engine):
 
         g = pyclp.Compound("select_entities",
                            pyclp.Atom(predicateName),
-                           pyclp.PList(paramTerms)
-        )
-        return (variables, indices, g)
-
+                           pyclp.PList(paramTerms))
+        return variables, indices, g
 
     def __readPyCLPOutputLines(self, result, stream_num):
         outstream = None
         lines = []
         while result == pyclp.FLUSHIO:
-            if outstream == None:
+            if outstream is None:
                 outstream = pyclp.Stream(stream_num)
 
             line = outstream.readall()
             lines.append(line.decode())
             result, _ = pyclp.resume()
-        if outstream != None:
+        if outstream is not None:
             outstream.close()
         return result, lines
 
@@ -832,7 +814,7 @@ class EclipseCLPEngine(Engine):
                 raise (SALMAException(
                     errorMsg.format(procedureName, "\n".join(lines))))
             else:
-                return (None, None)
+                return None, None
 
         pyclp.cut()  # throw away all but the first result
         valueCombination = dict()
@@ -849,7 +831,7 @@ class EclipseCLPEngine(Engine):
 
             translatedPlan.append(tuple([actionName] + actionParams))
 
-        return (translatedPlan, valueCombination)
+        return translatedPlan, valueCombination
 
     def defineDomain(self, sortName, objectIds):
         self.__currentState = None
@@ -938,8 +920,7 @@ class EclipseCLPEngine(Engine):
         return (EclipseCLPEngine.__translateToplevelEvaluationResults(toplevel_results.value()),
                 EclipseCLPEngine.__translateScheduledEvaluationResults(scheduled_results.value()),
                 EclipseCLPEngine.__translate_scheduled_properties(scheduled_keys.value()),
-                self.__convert_value_from_engine_result(failure_stack.value())
-        )
+                self.__convert_value_from_engine_result(failure_stack.value()))
 
     def format_failure_stack(self, failure_stack):
         """
@@ -955,7 +936,6 @@ class EclipseCLPEngine(Engine):
                 label=label, result=result, fname=formula_name, path=str(path), time=str(time), level=str(level),
                 fterm=fterm))
         return "\n".join(lines)
-
 
     @staticmethod
     def __translateToplevelEvaluationResults(result):

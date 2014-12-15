@@ -18,6 +18,8 @@ primitive_action(move_left, [r:robot]).
 primitive_action(move_down, [r:robot]).
 primitive_action(move_up, [r:robot]).
 
+exogenous_action(
+
 primitive_action(grab, [r:robot, i:item]).
 primitive_action(drop, [robot,item]).
 % land_on and crash are meant as outcome for stochastic action jump
