@@ -204,8 +204,7 @@ class ExogenousAction(object):
                             self.config.occurrence_distribution.describe()
                             if self.config.occurrence_distribution is not None else "None"
                         ),
-                        p_distribs=", ".join(p_distrib_descs)
-        )
+                        p_distribs=", ".join(p_distrib_descs))
 
 
 class EventOptionSelectionStrategy:
@@ -235,6 +234,19 @@ class EventOptionSelectionStrategy:
         :param list param_values: the parameter values.
         """
         raise NotImplementedError()
+
+    def check(self):
+        """
+        Checks the selection strategy's configuration.
+        :rtype: list[str]
+        """
+        problems = []
+        if self.choice is None:
+            problems.append("No choice specified for selection strategy.")
+            return problems
+        if self.choice.options is None or len(self.choice.options) == 0:
+            problems.append("No options specified for choice {}".format(self.choice.choice_name))
+        return problems
 
 
 class ExogenousActionChoice(object):
@@ -367,6 +379,9 @@ class UniformEventOptionSelectionStrategy(EventOptionSelectionStrategy):
     def __str__(self):
         return "UniformEventOptionSelectionStrategy"
 
+    def check(self):
+        return super().check()
+
 
 class StepwiseEventOptionSelectionStrategy(EventOptionSelectionStrategy):
     """
@@ -385,6 +400,8 @@ class StepwiseEventOptionSelectionStrategy(EventOptionSelectionStrategy):
     @property
     def probabilities(self):
         return self.__probabilities
+
+
 
 
 

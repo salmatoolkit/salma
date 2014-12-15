@@ -6,7 +6,8 @@ import pyclp
 
 from salma.SALMAException import SALMAException
 from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome, \
-    Deterministic, Uniform
+    Deterministic
+from salma.model.selectionstrategy import Uniform, Deterministic
 from salma.model.events import ExogenousAction, ExogenousActionChoice
 from salma.model.core import Constant, Action
 from salma.model.evaluationcontext import EvaluationContext

@@ -9,7 +9,8 @@ from salma.engine import EclipseCLPEngine
 from salma.model import procedure, distributions, process
 from salma.model.core import Entity, Fluent, Action, Constant
 from salma.model.actions import DeterministicAction, StochasticAction, \
-    RandomActionOutcome, Uniform, OutcomeSelectionStrategy
+    RandomActionOutcome, Uniform
+from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.events import ExogenousAction
 from salma.model.agent import Agent
 from salma.model.distributions import UniformDistribution, \
@@ -32,13 +33,13 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
     def __init__(self):
         super().__init__()
 
-    def select_outcome(self, evaluationContext, paramValues):
+    def select_outcome(self, evaluation_context, param_values):
         """
-        :type evaluationContext: EvaluationContext
-        :type paramValues: list
+        :type evaluation_context: EvaluationContext
+        :type param_values: list
         """
-        x = evaluationContext.getFluentValue('xpos', paramValues[0])
-        height = paramValues[1]
+        x = evaluation_context.getFluentValue('xpos', param_values[0])
+        height = param_values[1]
         if x > 100 or height > 50:
             return self.action.outcome("crash")
         else:
