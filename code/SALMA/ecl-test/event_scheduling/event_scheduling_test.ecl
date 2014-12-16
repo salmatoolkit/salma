@@ -128,6 +128,11 @@ test_schedulable_choice_2 :-
 	printf("Time = %w, Events = %w\n", [Time, Events]),
 	Time = -1, Events =  [].	
 	
+test_time_dependence_poss :-
+	init,
+	clause(poss(slip(_), _), T),
+	printf("clause: %w\n", [T]),
+	term_affected_by_action(T, tick(_)).
 
 test_all :-
 	test_schedulable_1,

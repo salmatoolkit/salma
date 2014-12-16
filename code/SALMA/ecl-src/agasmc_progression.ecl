@@ -46,16 +46,9 @@ immediate_action(nop).
 fluent(time,[], integer).
 untracked_fluent(time).
 
-time(T,do2(A,S)) :-
-		time(TOld, S),
-		(A = tick(Steps) -> 
-			T is TOld + Steps
-		;
-			T  is TOld
-		).
-		
-time(T, s0) :- get_current(time, [], T).		
-time(T, slast) :- get_last(time, [], T).	
+effect(time, tick(Steps), TOld, T, _) :-
+	T is TOld + Steps.
+	
 poss(tick(_), _) :- true.
 poss(nop, _) :- true.
 
@@ -387,6 +380,7 @@ init_progression :-
 term_affected_by_action(Term, Action) :-
 	% if Term is fluent: check effect directly
 	% if Term is derived fluent: check body of definition
+	
 	clause(effect(Term, Action, _, _, _), _), !
 	;
 	Term =.. [_ | Args],
