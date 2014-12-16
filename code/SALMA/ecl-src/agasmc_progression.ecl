@@ -382,9 +382,11 @@ init_progression :-
 
 
 
-% Checks recursively whether the given term is affected by the given
+% Checks recursively whether the given term could possibly affected by the given
 % action instance.
 term_affected_by_action(Term, Action) :-
+	% if Term is fluent: check effect directly
+	% if Term is derived fluent: check body of definition
 	clause(effect(Term, Action, _, _, _), _), !
 	;
 	Term =.. [_ | Args],
