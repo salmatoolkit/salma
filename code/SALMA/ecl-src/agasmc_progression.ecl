@@ -380,8 +380,12 @@ init_progression :-
 term_affected_by_action(Term, Action) :-
 	% if Term is fluent: check effect directly
 	% if Term is derived fluent: check body of definition
-	
-	clause(effect(Term, Action, _, _, _), _), !
+	Term =.. [Functor | Args],
+	(
+		fluent(Functor, Params, Type),
+		(Type = boolean ->
+		
+			clause(effect(Term, Action, _, _, _), _), !
 	;
 	Term =.. [_ | Args],
 	(
