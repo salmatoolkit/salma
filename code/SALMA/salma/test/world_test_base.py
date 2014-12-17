@@ -17,7 +17,7 @@ from salma.model.distributions import UniformDistribution, \
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
     Act, Procedure, While, Assign, ArbitraryAction, Variable, \
-    Iterate, Select, ProcedureRegistry, ProcedureCall, If, Plan
+    Iterate, Select, ProcedureRegistry, ProcedureCall, If, Plan, Wait
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 
@@ -55,7 +55,9 @@ class BaseWorldTest(unittest.TestCase):
         """
         seq = Sequence()
         seq.addChild(Act("move_right", [Entity.SELF]))
+        seq.addChild(Wait(EvaluationContext.PYTHON_EXPRESSION, "occur('finish_step', self)", []))
         seq.addChild(Act("move_down", [Entity.SELF]))
+        seq.addChild(Wait(EvaluationContext.PYTHON_EXPRESSION, "occur('finish_step', self)", []))
 
         proc = process.OneShotProcess(Procedure("main", [], seq))
         agent = Agent(robotId, "robot", [proc])

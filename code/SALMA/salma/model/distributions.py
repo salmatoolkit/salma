@@ -209,12 +209,16 @@ class DelayedOccurrenceDistribution(Distribution):
                 return False
 
 
+class OptionalDistribution(Distribution):
 
+    def __init__(self, probability, nested_distribution):
+        """
+        :param float probability: the probability
+        :param Distribution nested_distribution: the nested distribution
+        """
+        super().__init__(nested_distribution.sort, nested_distribution.value_range)
+        self.__probability = probability
+        self.__nested_distribution = nested_distribution
 
-
-
-
-
-
-
-
+    def generateSample(self, evaluationContext, paramValues):
+        pass
