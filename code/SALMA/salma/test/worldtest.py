@@ -26,7 +26,7 @@ from salma.test.world_test_base import BaseWorldTest
 
 def printValue(value):
     print("Val: ", value)
-    return (ControlNode.CONTINUE, None)
+    return ControlNode.CONTINUE, None
 
 
 class MySelectionStrategy(OutcomeSelectionStrategy):
@@ -41,9 +41,9 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
         x = evaluation_context.getFluentValue('xpos', param_values[0])
         height = param_values[1]
         if x > 100 or height > 50:
-            return self.action.outcome("crash")
+            return self.options["crash"]
         else:
-            return self.action.outcome("land_on")
+            return self.options["land_on"]
 
 
 class WorldTest(BaseWorldTest):
