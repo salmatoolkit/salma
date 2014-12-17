@@ -19,8 +19,8 @@
 % exogenous_action(name, qualifying-params, augmenting-params)
 :- dynamic exogenous_action/3.
 :- dynamic exogenous_action_choice/3.
-:- dynamic ad_hoc_event/1.
-:- dynamic schedulable_event/1.
+:- dynamic ad_hoc_event/2.
+:- dynamic schedulable_event/2.
 :- dynamic caused_event/1.
 
 
@@ -380,15 +380,35 @@ init_progression :-
 term_affected_by_action(Term, Action) :-
 	% if Term is fluent: check effect directly
 	% if Term is derived fluent: check body of definition
+	not var(Term),	
 	Term =.. [Functor | Args],
 	(
-		fluent(Functor, Params, Type),
+		fluent(Functor, _, Type), !,
 		(Type = boolean ->
-		
-			clause(effect(Term, Action, _, _, _), _), !
-	;
-	Term =.. [_ | Args],
-	(
+			L2 is length(Args) - 2
+			; % not boolean -> result argument present
+			L2 is length(Args) - 3
+		),
+		(L2 >= 0 ->
+			sublist(Args, 0, L2, Args2)
+			;
+			Args2 = []
+		),
+		Term2 =.. [Functor | Args2],
+		clause(effect(Term2, Action, _, _, _), _)
+		;
+		derived_fluent(Functor, _, _), !,
+		(clause(Term, DFluentBody) -> 
+			term_affected_by_action(DFluentBody, Action)
+			;
+			true
+		)
+		;
+		member(Functor, [evaluate_ad_hoc, test_ad_hoc]),
+		Args = [Formula | _],
+		compile_formula(Formula, Formula2, _),
+		term_affected_by_action(Formula2, Action), !
+		;		
 		member(Arg, Args),
 		term_affected_by_action(Arg, Action), !
 	).

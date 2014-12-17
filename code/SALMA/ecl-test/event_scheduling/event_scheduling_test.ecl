@@ -128,11 +128,27 @@ test_schedulable_choice_2 :-
 	printf("Time = %w, Events = %w\n", [Time, Events]),
 	Time = -1, Events =  [].	
 	
-test_time_dependence_poss :-
+test_time_dependence :-
 	init,
-	clause(poss(slip(_), _), T),
+	clause(poss(slip(_), _), T), 
 	printf("clause: %w\n", [T]),
-	term_affected_by_action(T, tick(_)).
+	not term_affected_by_action(T, tick(_)),
+	print("Ok1\n"),
+	clause(schedulable(disaster(_), _), T2), 
+	printf("clause2: %w\n", [T2]),
+	term_affected_by_action(T2, tick(_)),
+	print("Ok21\n"),
+	clause(poss(wall_alert(_), _), T3),
+	printf("clause3: %w\n", [T3]),
+	term_affected_by_action(T3, tick(_)),
+	clause(poss(collide(_, _, _), _), T4),
+	printf("clause4: %w\n", [T4]),
+	term_affected_by_action(T4, tick(_)),
+	T5 = test_ad_hoc(forall(r:robot, and(active(r), 4 * xpos(r) < 1000))), 
+	term_affected_by_action(T5, deactivate(_)),
+	term_affected_by_action(T5, tick(_)),
+	not term_affected_by_action(T5, set_velocity(_, _, _)).
+	
 
 test_all :-
 	test_schedulable_1,

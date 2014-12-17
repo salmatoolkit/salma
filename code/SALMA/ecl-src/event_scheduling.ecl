@@ -248,8 +248,8 @@ is_choice_option(ActionName, Choice) :-
 % - for events that only have ha caused clause, a default poss axiom
 %	is added that is always true.
 init_event_scheduling :-
-	retractall(ad_hoc_event(_)),
-	retractall(schedulable_event(_)),
+	retractall(ad_hoc_event(_,_)),
+	retractall(schedulable_event(_,_)),
 	retractall(caused_event(_)),
 	findall(ExoActionName, exogenous_action(ExoActionName, _, _), ExoActionNames),
 	findall(EventChoiceName, exogenous_action_choice(EventChoiceName, _, _), EventChoiceNames),
@@ -268,21 +268,32 @@ init_event_scheduling :-
 				true
 			)
 			;
-			clause(poss(EventTerm, _), _), 
+			clause(poss(EventTerm, _), PossBody), 
 			not clause(schedulable(EventTerm, _), _),
 			not clause(caused(EventTerm, _, _), _), !,
-			assert(ad_hoc_event(EventName)) 
+			(term_affected_by_action(PossBody, tick(_)) ->
+				TimeDependent = true
+				;
+				TimeDependent = false
+			),
+			assert(ad_hoc_event(EventName, TimeDependent)) 
 			;
 			clause(schedulable(EventTerm, S), SchedBody),
-			assert(schedulable_event(EventName)),
+			(term_affected_by_action(SchedBody, tick(_)) ->
+				TimeDependent = true
+				;
+				TimeDependent = false
+			),
+			assert(schedulable_event(EventName, TimeDependent)),
 			(not clause(poss(EventTerm, _), _) ->
 				assert((poss(EventTerm, S) :- SchedBody))
 				;
 				true
 			), !			
-			;
+			; 
 			clause(caused(EventTerm, _, _), _),
 			assert(caused_event(EventName)), !					
+			% note that an action-driven event cause can not be time-dependent
 			;
 			true
 		),

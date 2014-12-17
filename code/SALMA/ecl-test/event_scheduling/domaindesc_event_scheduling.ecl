@@ -1,5 +1,5 @@
 :- dynamic world_width/0, world_height/0, safety_distance/0, 
-	xpos/3, ypos/3, vx/3, vy/3, active/2, wheels_wet/2.
+	xpos/3, ypos/3, vx/3, vy/3, active/2, wheels_wet/2, dist/4, speed/3.
 
 sorts([robot]).
 subsort(robot, agent).

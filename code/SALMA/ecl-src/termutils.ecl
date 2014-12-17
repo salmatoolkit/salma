@@ -46,3 +46,28 @@ get_subterm(TermIn, [Pos | PTail], TermOut) :-
 	get_subterm(TermIn, [Pos], T),
 	get_subterm(T, PTail, TermOut), !.
 	
+sublist([Head | Tail], Start, End, Sublist) :-
+	(
+		Start < 0, throw(start_out_of_bounds)
+		;
+		End < Start, throw(end_before_start)
+		;
+		Start = 0,
+		
+		(End = 0 ->
+			Sublist = [Head]
+			;
+			E2 is End - 1,
+			sublist(Tail, 0, E2, Sub2),
+			append([Head], Sub2, Sublist)
+		), !
+		; % Start > 0
+		S2 is Start -1,
+		E2 is End -1,
+		sublist(Tail, S2, E2, Sublist)
+	).
+	%,printf("H: %w, T: %w, S: %d, E: %d -> %w\n",[Head, Tail, Start, End, Sublist])	.
+	
+sublist([], _, _, Sublist) :-
+	Sublist = [].
+	
