@@ -43,9 +43,8 @@ get_possible_exogenous_action_instances(ActionName, Situation, Time, HandledHash
 							HandledHash, InstanceArgs), Candidates).
 		
 
-get_all_ad_hoc_event_instances(Situation, HandledHash, Candidates) :-
+get_all_ad_hoc_event_instances(ActionNames, Situation, HandledHash, Candidates) :-
 	time(Time, Situation),
-	findall(ActionName, ad_hoc_event(ActionName), ActionNames),
 	% filter out 
 	(foreach(A, ActionNames), fromto([], CIn, COut, Candidates), 
 		param(Situation, Time, HandledHash) do
@@ -65,27 +64,36 @@ get_next_possible_ad_hoc_events(Start, TimeLimit, HandledEvents, Time, Events) :
 	StartDelta is Start - CurrentTime,
 	StartDelta2 is StartDelta + 1,
 	make_schedule_hash(HandledEvents, HandledEventsHash),
-	get_all_ad_hoc_event_instances(do2(tick(StartDelta), s0), HandledEventsHash, StartEvents),
-	(length(StartEvents) > 0 ->
+	findall(ActionName, ad_hoc_event(ActionName, true), TimeDependentActionNames),
+	findall(ActionName, ad_hoc_event(ActionName, false), TimeIndependentActionNames),
+	append(TimeDependentActionNames, TimeIndependentActionNames, AllActionNames),
+	get_all_ad_hoc_event_instances(AllActionNames, 
+		do2(tick(StartDelta), s0), HandledEventsHash, StartEvents),
+	(length(StartEvents) > 0,
 		Time = Start,
-		Events = StartEvents
+		Events = StartEvents, !
+		;
+	length(TimeIndependentActionNames, 0),
+		Time = -1,
+		Events = [], !
 		;
 		Limit is TimeLimit - CurrentTime + 1,
 		(fromto(StartDelta2, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
-			fromto([], _, EvOut, Events), param(Limit, HandledEventsHash) do 
-			Sit = do2(tick(CurrentDelta), s0),
-			get_all_ad_hoc_event_instances(Sit, HandledEventsHash, Candidates),
-			(length(Candidates) > 0 ->
-				EvOut = Candidates,
-				NextDelta = Limit,
-				time(TOut, Sit)
-				;
-				EvOut = [],
-				NextDelta is CurrentDelta + 1,
-				TOut = -1
-			)			
-				
-		)
+			fromto([], _, EvOut, Events), 
+			param(Limit, HandledEventsHash, TimeDependentActionNames) do 
+				Sit = do2(tick(CurrentDelta), s0),
+				get_all_ad_hoc_event_instances(
+					TimeDependentActionNames, Sit, HandledEventsHash, Candidates),
+				(length(Candidates) > 0 ->
+					EvOut = Candidates,
+					NextDelta = Limit,
+					time(TOut, Sit)
+					;
+					EvOut = [],
+					NextDelta is CurrentDelta + 1,
+					TOut = -1
+				)							
+		), !
 	).
 	
 
@@ -150,10 +158,9 @@ get_schedulable_exogenous_action_instances(ActionName, Situation, Time, CurrentS
 			HandledHash, InstanceArgs), 
 		Candidates).
 		
-get_all_schedulable_event_instances_internal(Situation, CurrentScheduleHash, 
+get_all_schedulable_event_instances_internal(ActionNames, Situation, CurrentScheduleHash, 
 	HandledHash, Candidates) :-
 	time(Time, Situation),
-	findall(ActionName, schedulable_event(ActionName), ActionNames),
 	(foreach(A, ActionNames), fromto([], CIn, COut, Candidates), 
 		param(Situation, Time, CurrentScheduleHash, HandledHash) do
 		get_schedulable_exogenous_action_instances(A, Situation, Time, CurrentScheduleHash, 
@@ -182,7 +189,8 @@ make_schedule_hash(Schedule, ScheduleHash) :-
 get_all_schedulable_event_instances(Situation, CurrentSchedule, HandledInStep, Candidates) :-
 	make_schedule_hash(CurrentSchedule, CurrentScheduleHash),
 	make_schedule_hash(HandledInStep, HandledHash),
-	get_all_schedulable_event_instances_internal(Situation, CurrentScheduleHash, 
+	findall(ActionName, schedulable_event(ActionName, _), ActionNames),
+	get_all_schedulable_event_instances_internal(ActionNames, Situation, CurrentScheduleHash, 
 		HandledHash, Candidates).
 	
 
@@ -195,30 +203,38 @@ get_next_schedulable_events(Start, TimeLimit, CurrentSchedule, HandledInStep,
 	StartDelta2 is StartDelta + 1,
 	make_schedule_hash(CurrentSchedule, CurrentScheduleHash),
 	make_schedule_hash(HandledInStep, HandledHash),
-	
-	get_all_schedulable_event_instances_internal(do2(tick(StartDelta), s0), 
+	findall(ActionName, schedulable_event(ActionName, true), TimeDependentActionNames),
+	findall(ActionName, schedulable_event(ActionName, false), TimeIndependentActionNames),
+	append(TimeDependentActionNames, TimeIndependentActionNames, AllActionNames),
+	get_all_schedulable_event_instances_internal(AllActionNames, 
+		do2(tick(StartDelta), s0), 
 		CurrentScheduleHash, HandledHash, CurrentEvents),
-	(length(CurrentEvents) > 0 ->
+	(length(CurrentEvents) > 0,
 		Time = Start,
-		Events = CurrentEvents
+		Events = CurrentEvents, !
 		;
+	length(TimeDependentActionNames, 0),
+		Time = -1,
+		Events = [], !
+		; 
 		Limit is TimeLimit - CurrentTime + 1,
 		(fromto(StartDelta2, CurrentDelta, NextDelta, Limit), fromto(-1, _, TOut, Time),
-			fromto([], _, EvOut, Events), param(Limit, CurrentScheduleHash, HandledHash) do 
-			Sit = do2(tick(CurrentDelta), s0),
-			get_all_schedulable_event_instances_internal(Sit, CurrentScheduleHash, 
-				HandledHash, Candidates),
-			(length(Candidates) > 0 ->
-				EvOut = Candidates,
-				NextDelta = Limit,
-				time(TOut, Sit)
-				;
-				EvOut = [],
-				NextDelta is CurrentDelta + 1,
-				TOut = -1
-			)			
-				
-		)
+			fromto([], _, EvOut, Events), 
+			param(Limit, CurrentScheduleHash, HandledHash, TimeDependentActionNames) do 
+				Sit = do2(tick(CurrentDelta), s0),
+				get_all_schedulable_event_instances_internal(
+				TimeDependentActionNames, Sit, CurrentScheduleHash, 
+					HandledHash, Candidates),
+				(length(Candidates) > 0 ->
+					EvOut = Candidates,
+					NextDelta = Limit,
+					time(TOut, Sit)
+					;
+					EvOut = [],
+					NextDelta is CurrentDelta + 1,
+					TOut = -1
+				)								
+		), !
 	).
 	
 
@@ -303,9 +319,3 @@ init_event_scheduling :-
 			true
 		)
 	).
-				
-				
-				
-		
-	
-

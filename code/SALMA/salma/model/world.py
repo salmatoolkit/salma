@@ -337,7 +337,7 @@ class World(Entity, WorldDeclaration):
                 (name, params, option_names) tuples.
         """
         for ec in declarations:
-            choice_name, params, option_names = ec
+            choice_name, params, option_names, _, _ = ec
             #: :type: list[ExogenousAction]
             options = []
             for oname in option_names:

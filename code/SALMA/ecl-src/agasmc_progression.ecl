@@ -488,28 +488,34 @@ get_declared_primitive_actions(Actions) :-
 get_declared_stochastic_actions(Actions) :-
 	findall(pa(AName,Params,Outcomes),stochastic_action(AName,Params,Outcomes),Actions).
 	
+get_event_type(EventName, EType, TimeDependent) :-
+	schedulable_event(EventName, TimeDependent), EType = schedulable, !
+	;
+	ad_hoc_event(EventName, TimeDependent), EType = ad_hoc, !
+	;
+	caused_event(EventName), EType = caused, !
+	;
+	is_choice_option(EventName, _), !, EType = choice_option, TimeDependent = false
+	;
+	throw(no_axiom_for_event(EventName)).
+	
 get_declared_exogenous_actions(EventDeclarations) :-
 	findall(ea(Name,P1,P2),exogenous_action(Name,P1,P2),DeclaredEvents),
 	(foreach(Event, DeclaredEvents), foreach(EDecl, EventDeclarations) do
 		Event = ea(EventName, Params1, Params2),
-		(
-			schedulable_event(EventName), EType = schedulable, !
-			;
-			ad_hoc_event(EventName), EType = ad_hoc, !
-			;
-			caused_event(EventName), EType = caused, !
-			;
-			is_choice_option(EventName, _), !, EType = choice_option
-			;
-			throw(no_axiom_for_event(EventName))
-		),
-		EDecl = ea(EventName, Params1, Params2, EType)
+		get_event_type(EventName, EType, TimeDependent),
+		EDecl = ea(EventName, Params1, Params2, EType, TimeDependent)
 	).
 	
 get_declared_exogenous_action_choices(ChoiceDeclarations) :-
 	findall(eac(Name, Params, Options), 
 		exogenous_action_choice(Name, Params, Options), 
-		ChoiceDeclarations).
+		DeclaredChoices),
+	(foreach(Choice, DeclaredChoices), foreach(CDecl, ChoiceDeclarations) do
+		Choice = eac(ChoiceName, Params, Options),
+		get_event_type(ChoiceName, EType, TimeDependent),
+		CDecl = eac(ChoiceName, Params, Options, EType, TimeDependent)
+	).
 		
 get_declared_immediate_actions(ImmediateActions) :-
 	findall(ia(AName), immediate_action(AName), ImmediateActions).
