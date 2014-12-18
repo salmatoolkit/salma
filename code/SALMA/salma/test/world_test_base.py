@@ -46,6 +46,7 @@ class BaseWorldTest(unittest.TestCase):
         World.create_new_world()
         world = World.instance()
         world.load_declarations()
+        world.setConstantValue("gravity", [], 9.81)
 
     def create_right_moving_mobot(self, robotId):
         """
@@ -58,7 +59,6 @@ class BaseWorldTest(unittest.TestCase):
         seq.addChild(Wait(EvaluationContext.PYTHON_EXPRESSION, "occur('finish_step', self)", []))
         seq.addChild(Act("move_down", [Entity.SELF]))
         seq.addChild(Wait(EvaluationContext.PYTHON_EXPRESSION, "occur('finish_step', self)", []))
-
         proc = process.OneShotProcess(Procedure("main", [], seq))
         agent = Agent(robotId, "robot", [proc])
         return agent
@@ -70,6 +70,26 @@ class BaseWorldTest(unittest.TestCase):
         for r in robots:
             for i in items:
                 world.setFluentValue('carrying', [r.id, i.id], False)
+
+    def initialize_robot(self, robot_id, x, y, vx, vy):
+        world = World.instance()
+        world.setFluentValue("xpos", [robot_id], x)
+        world.setFluentValue("ypos", [robot_id], y)
+        world.setFluentValue("vx", [robot_id], vx)
+        world.setFluentValue("vy", [robot_id], vy)
+        world.setConstantValue("robot_radius", [robot_id], 1)
+        world.setFluentValue("active", [robot_id], True)
+        world.setFluentValue("partner", [robot_id], None)
+        items = world.getDomain('item')
+        for i in items:
+            world.setFluentValue('carrying', [robot_id, i.id], False)
+
+    def initialize_items(self):
+        world = World.instance()
+        items = world.getDomain('item')
+        for i in items:
+            world.setFluentValue("painted", [i.id], False)
+            world.setFluentValue("marking", [i.id], None)
 
     def place_agents_in_column(self, x=10, startY=10, distance=20):
         world = World.instance()

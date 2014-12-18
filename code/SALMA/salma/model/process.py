@@ -270,7 +270,9 @@ class Process(object):
         if self.__current_control_node is None:
             return None
 
-        if not self.state == Process.RUNNING:
+        if self.__state == Process.EXECUTING_ACTION:
+            self.__state = Process.RUNNING
+        if not self.__state == Process.RUNNING:
             return None
 
         status = ControlNode.CONTINUE

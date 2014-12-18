@@ -16,7 +16,7 @@ init :-
 	setDomain(item, [item1, item2]),
 	init_sort_hierarchy(_),
 	setPosition(rob1, 0, 0),
-	setVelocity(rob1, 0, 0),
+	%setVelocity(rob1, 0, 0),
 	setPosition(rob2, 10, 10),
 	setVelocity(rob2, 0, 0),
 	domain(robot, Robots, s0),
