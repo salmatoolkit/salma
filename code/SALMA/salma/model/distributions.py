@@ -217,8 +217,22 @@ class OptionalDistribution(Distribution):
         :param Distribution nested_distribution: the nested distribution
         """
         super().__init__(nested_distribution.sort, nested_distribution.value_range)
+        #: :type: float
         self.__probability = probability
+        #: :type: Distribution
         self.__nested_distribution = nested_distribution
 
-    def generateSample(self, evaluationContext, paramValues):
-        pass
+    @property
+    def probability(self) -> float:
+        return self.__probability
+
+    @property
+    def nested_distribution(self) -> Distribution:
+        return self.__nested_distribution
+
+    def generateSample(self, evaluation_ontext, param_values):
+        r = random.uniform(0, 1)
+        if r <= self.__probability:
+            return self.__nested_distribution.generateSample(evaluation_ontext, param_values)
+        else:
+            return None
