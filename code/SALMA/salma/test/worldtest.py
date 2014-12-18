@@ -47,6 +47,12 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
 
 
 class WorldTest(BaseWorldTest):
+
+
+    def __configure_events_default(self):
+        world = World.instance()
+
+
     @withHeader()
     def testWorldStepExplicit(self):
         world = World.instance()
@@ -77,7 +83,7 @@ class WorldTest(BaseWorldTest):
         print("\n\n----\n\n")
         world.printState()
 
-        world.step()
+        world.step(100)
         self.assertEqual(11, world.getFluentValue('xpos', ['rob1']))
         self.assertEqual(11, world.getFluentValue('ypos', ['rob1']))
         self.assertEqual(2, world.getTime())
