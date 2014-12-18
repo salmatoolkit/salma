@@ -62,8 +62,7 @@ class WorldTest(BaseWorldTest):
         print("\n\n----\n\n")
         world.printState()
 
-        (verdict, finished, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
-         failed_invariants, failed_sustain_goals, _) = world.step(100)
+        verdict, finished, toplevel_results, *details = world.step(100)
 
         self.assertEqual(constants.NONDET, verdict)
         self.assertFalse(finished)
