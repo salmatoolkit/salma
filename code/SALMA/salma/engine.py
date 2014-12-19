@@ -89,6 +89,15 @@ class Engine(object):
         """
         raise NotImplementedError()
 
+    def get_derived_fluent_value(self, fluent_name, fluent_params):
+        """
+        Retrieves the value of the given derived fluent instance.
+        :param str fluent_name:
+        :param list|tuple fluent_params: params
+        :return: object
+        """
+        raise NotImplementedError()
+
     def setFluentValue(self, fluentName, fluentParams, value):
         raise NotImplementedError()
 
@@ -622,6 +631,17 @@ class EclipseCLPEngine(Engine):
         else:
             return self.__currentState[key]
 
+    def get_derived_fluent_value(self, fluent_name, fluent_params):
+        val = pyclp.Var()
+        pterms = createParamTerms(*fluent_params)
+        self.__callGoal("get_fluent_value",
+                        pyclp.Atom(fluent_name),
+                        pyclp.PList(pterms),
+                        val,
+                        pyclp.Atom("s0"))
+        val2 = self.__convert_value_from_engine_result(val.value())
+        return val2
+
     def setFluentValue(self, fluentName, fluentParams, value):
         pterms = createParamTerms(*fluentParams)
         vterm = createParamTerms(value)[0]
@@ -670,7 +690,6 @@ class EclipseCLPEngine(Engine):
         goal.post_goal()
 
         result, stream_num = pyclp.resume()
-
         lines = []
         outstream = None
         while result == pyclp.FLUSHIO:

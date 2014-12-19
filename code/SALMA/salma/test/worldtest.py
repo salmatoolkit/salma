@@ -123,7 +123,7 @@ class WorldTest(BaseWorldTest):
                   [Entity.SELF, 18],
                   [
                       Act("move_right", [Entity.SELF]),
-                      Wait(EvaluationContext.PYTHON_EXPRESSION, "occur('finish_step', self)", [])
+                      Wait(EvaluationContext.PYTHON_EXPRESSION, "not moving(self)", [])
                   ])
 
         agent = Agent("rob1", "robot", Procedure("main", [], w))
@@ -143,5 +143,7 @@ class WorldTest(BaseWorldTest):
 
         self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 18)
         self.assertEqual(verdict, constants.OK)
+        #self.assertEqual(world.getTime(), 40)
+        self.assertTrue(world.is_finished())
         print(info)
 

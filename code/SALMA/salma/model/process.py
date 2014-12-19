@@ -35,7 +35,6 @@ class Process(object):
             self.__procedure = Procedure("main", [], procedure)
         else:
             raise SALMAException("Unsupported type for process procedure.")
-
         self.__current_control_node = self.__procedure.body
         self.__current_evaluation_context = None
         self.__introduction_time = introduction_time

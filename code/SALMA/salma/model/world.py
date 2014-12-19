@@ -13,7 +13,7 @@ from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
 from salma.model.eventschedule import EventSchedule
 from salma.model.world_declaration import WorldDeclaration
-from .core import Entity, Fluent
+from .core import Entity, Fluent, DerivedFluent
 from .agent import Agent
 from .procedure import Variable, Act
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
@@ -61,10 +61,10 @@ class World(Entity, WorldDeclaration):
         Entity.__init__(self, World.ENTITY_ID, World.SORT_NAME)
 
         # fluentName -> core.Fluent
-        # : :type : dict[str, Fluent]
+        #: :type : dict[str, Fluent]
         self.__fluents = dict()
 
-        # : :type: dict[str, (str, str, list)]
+        #: :type: dict[str, DerivedFluent]
         self.__derived_fluents = dict()
 
         # : :type: dict[str, Constant]
@@ -252,19 +252,16 @@ class World(Entity, WorldDeclaration):
     def __make_fluent_access_function(self, fluent_name):
         def __f(*params):
             return self.getFluentValue(fluent_name, params)
-
         return __f
 
     def __make_constant_access_function(self, constant_name):
         def __f(*params):
             return self.getConstantValue(constant_name, params)
-
         return __f
 
     def __make_derived_fluent_access_function(self, derived_fluent_name):
         def __f(*params):
-            return self.__evaluationContext.evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, derived_fluent_name,
-                                                             *params)
+            return self.get_derived_fluent_value(derived_fluent_name, params)
         return __f
 
     def __create_general_functions(self, expression_context: dict):
@@ -286,11 +283,10 @@ class World(Entity, WorldDeclaration):
     def __create_expression_context(self):
         self.__expressionContext = dict()
         self.__expressionContext.update(self.__additional_expression_context_globals)
-        # : :type fluent: Fluent
         for fluent in self.__fluents.values():
             self.__expressionContext[fluent.name] = self.__make_fluent_access_function(fluent.name)
         for df in self.__derived_fluents.values():
-            self.__expressionContext[df[0]] = self.__make_derived_fluent_access_function(df[0])
+            self.__expressionContext[df.name] = self.__make_derived_fluent_access_function(df.name)
         for con in self.__constants.values():
             self.__expressionContext[con.name] = self.__make_constant_access_function(con.name)
 
@@ -653,7 +649,7 @@ class World(Entity, WorldDeclaration):
         self.__fluents[fluent.name] = fluent
 
     def add_derived_fluent(self, fluent_name, fluent_type, params):
-        self.__derived_fluents[fluent_name] = (fluent_name, fluent_type, params)
+        self.__derived_fluents[fluent_name] = DerivedFluent(fluent_name, fluent_type, params)
 
     def addConstant(self, con):
         """
@@ -683,7 +679,7 @@ class World(Entity, WorldDeclaration):
     def get_derived_fluents(self):
         """
         Returns the list of declared derived fluents as tuples of kind (fluent_name, fluent_type, params).
-        :rtype: Iterable[(str, str, list)]
+        :rtype: Iterable[DerivedFluent]
         """
         return self.__derived_fluents.values()
 
@@ -783,6 +779,15 @@ class World(Entity, WorldDeclaration):
             return None
         else:
             return fv.value
+
+    def get_derived_fluent_value(self, fluent_name, fluent_params):
+        """
+        Retrieves the current value of the given derived fluent instance.
+        :param str fluent_name: the name of the derived fluent.
+        :param list|tuple fluent_params: the parameters defining the derived fluent instance.
+        :rtype: object
+        """
+        return World.logic_engine().get_derived_fluent_value(fluent_name, fluent_params)
 
     def is_fluent__instance_defined(self, fluent_name, fluent_params):
         """
@@ -956,7 +961,6 @@ class World(Entity, WorldDeclaration):
                 if action_execution is not None:
                     act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
                     actions.append(act)
-
             actions.extend(interleaved_events)
             pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, actions)
             performed_actions.extend(pa)

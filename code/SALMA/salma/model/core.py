@@ -48,67 +48,23 @@ class Entity(object):
         return None
 
 
-class Fluent(object):
+class SituationDependentFunction(object):
     """
-    Represents a fluent.
+    Base class for fluents and derived fluents.
     """
-    DEFAULT_RANGE = (0, 2**31)
 
-    def __init__(self, name, fluent_type, params, value_range=DEFAULT_RANGE, distribution=None):
+    def __init__(self, name, fluent_type, params):
         """
-        :param fluent_type: the type of the value the fluent stores. This is boolean for relational fluents.
-        :param params:  a list of (name, type) tuples for all of the fluent's parameters
-
-        :type name: str
-        :type fluent_type: str
-        :type params: list of (str, str)
-        :type value_range: tuple
-        :type distribution: Distribution
+        :param str name: the name.
+        :param str fluent_type: the type of the value the fluent stores. This is boolean for relational fluents.
+        :param list[(str, str)] params:  a list of (name, type) tuples for all of the fluent's parameters
         """
-
         self.__name = name
         self.__fluentType = fluent_type
         self.__params = params
         self.__param_indices = dict()
         for i, p in enumerate(params):
             self.__param_indices[p[0]] = i
-
-        if fluent_type == "integer" or fluent_type == "float":
-            self.__valueRange = value_range
-        else:
-            self.__valueRange = None
-        if fluent_type not in ["list", "term", "tuple"]:
-            self.__distribution = (distribution if distribution is not None
-                                   else UniformDistribution(self.__fluentType, self.__valueRange))
-        else:
-            self.__distribution = None
-
-    @property
-    def distribution(self):
-        """
-        The distribution that is used to sample a value for a particular fluent instance.
-        :rtype: Distribution
-        """
-        return self.__distribution
-
-    @distribution.setter
-    def distribution(self, distribution):
-        """
-        :type distribution: Distribution
-        """
-        self.__distribution = distribution
-
-    def generateSample(self, evaluationContext, paramValues):
-        """
-        Generates a sample for the fluent instance that is specified by paramValues.
-        :type evaluationContext: EvaluationContext
-        :type paramValues: list
-        :rtype: object
-        """
-        if self.__distribution is not None:
-            return self.__distribution.generateSample(evaluationContext, paramValues)
-        else:
-            return None
 
     @property
     def parameters(self):
@@ -158,6 +114,63 @@ class Fluent(object):
         """
         return self.__fluentType
 
+
+class Fluent(SituationDependentFunction):
+    """
+    Represents a fluent.
+    """
+    DEFAULT_RANGE = (0, 2**31)
+
+    def __init__(self, name, fluent_type, params, value_range=DEFAULT_RANGE, distribution=None):
+        """
+        :param fluent_type: the type of the value the fluent stores. This is boolean for relational fluents.
+        :param params:  a list of (name, type) tuples for all of the fluent's parameters
+
+        :type name: str
+        :type fluent_type: str
+        :type params: list of (str, str)
+        :type value_range: tuple
+        :type distribution: Distribution
+        """
+        super().__init__(name, fluent_type, params)
+
+        if fluent_type == "integer" or fluent_type == "float":
+            self.__valueRange = value_range
+        else:
+            self.__valueRange = None
+        if fluent_type not in ["list", "term", "tuple"]:
+            self.__distribution = (distribution if distribution is not None
+                                   else UniformDistribution(self.fluentType, self.valueRange))
+        else:
+            self.__distribution = None
+
+    @property
+    def distribution(self):
+        """
+        The distribution that is used to sample a value for a particular fluent instance.
+        :rtype: Distribution
+        """
+        return self.__distribution
+
+    @distribution.setter
+    def distribution(self, distribution):
+        """
+        :type distribution: Distribution
+        """
+        self.__distribution = distribution
+
+    def generateSample(self, evaluation_context, param_values):
+        """
+        Generates a sample for the fluent instance that is specified by paramValues.
+        :type evaluation_context: EvaluationContext
+        :type param_values: list|tuple
+        :rtype: object
+        """
+        if self.__distribution is not None:
+            return self.__distribution.generateSample(evaluation_context, param_values)
+        else:
+            return None
+
     @property
     def valueRange(self):
         """
@@ -175,7 +188,7 @@ class Fluent(object):
         self.__valueRange = valueRange
 
     def __str__(self):
-        return "fluent: {}({}) -> {}".format(self.__name, self.parameters, self.__fluentType)
+        return "fluent: {}({}) -> {}".format(self.name, self.parameters, self.fluentType)
 
 
 class Constant(Fluent):
@@ -185,6 +198,12 @@ class Constant(Fluent):
 
     def __init__(self, name, fluent_type, params, value_range=Fluent.DEFAULT_RANGE, distribution=None):
         Fluent.__init__(self, name, fluent_type, params, value_range, distribution)
+
+
+class DerivedFluent(SituationDependentFunction):
+
+    def __init__(self, name, fluent_type, params):
+        super().__init__(name, fluent_type, params)
 
 
 class Action(object):

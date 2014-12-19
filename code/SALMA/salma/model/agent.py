@@ -244,7 +244,6 @@ class Agent(Entity):
                     p.start()
                 if p.is_scheduled():
                     running_processes.append(p)
-
         return running_processes
 
     def initialize_connector_processes(self, mode_remote_sensor_src=process.PERIODIC_PROCESS,
