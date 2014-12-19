@@ -216,16 +216,14 @@ class World(Entity, WorldDeclaration):
 
         for con in self.__constants.values():
             for paramSelection in self.enumerate_fluent_instances(con):
-                v = self.getConstantValue(con.name, paramSelection)
-                if v is None:
+                if not self.is_constant_defined(con.name, paramSelection):
                     instance = (con.name, paramSelection)
                     uninitialized_constant_instances.append(instance)
 
         for fluent in self.__fluents.values():
             """:type fluent: Fluent """
             for paramSelection in self.enumerate_fluent_instances(fluent):
-                v = self.getFluentValue(fluent.name, paramSelection)
-                if v is None:
+                if not self.is_fluent__instance_defined(fluent.name, paramSelection):
                     instance = (fluent.name, paramSelection)
                     uninitialized_fluent_instances.append(instance)
 
@@ -774,6 +772,7 @@ class World(Entity, WorldDeclaration):
     def getFluentValue(self, fluent_name, fluent_params):
         """
         Returns the current value of the fluent instance that is given by the fluent name and the parameter list.
+        If the fluent instance is undefined, this method returns None.
         :type fluent_name: str
         :type fluent_params: list|tuple
         :rtype: object
@@ -784,6 +783,16 @@ class World(Entity, WorldDeclaration):
             return None
         else:
             return fv.value
+
+    def is_fluent__instance_defined(self, fluent_name, fluent_params):
+        """
+        Returns True if the given fluent instance defined.
+        :param str fluent_name:
+        :param list|tuple fluent_params: the parameters defining the fluent instance
+        :rtype: bool
+        """
+        fv = World.logic_engine().getFluentValue(fluent_name, *fluent_params)
+        return fv is not None
 
     def getTime(self):
         """
@@ -799,7 +808,17 @@ class World(Entity, WorldDeclaration):
         :type constantParams: list|tuple
         :rtype: object
         """
-        return World.logic_engine().getConstantValue(constantName, constantParams)
+        return World.logic_engine().getConstantValue(constantName, constantParams)[1]
+
+    def is_constant_defined(self, constant_name, constant_params):
+        """
+        Returns True if the given constant is defined.
+        :param str constant_name:
+        :param list|tuple constant_params: the parameters
+        :rtype: bool
+        """
+        d, _ = World.logic_engine().getConstantValue(constant_name, constant_params)
+        return d
 
     def setFluentValue(self, fluentName, fluentParams, value):
         """
@@ -959,7 +978,7 @@ class World(Entity, WorldDeclaration):
                 next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=True)
                 if next_stop_time is None or next_stop_time > current_time:
                     break
-        interval_end = min_robust([next_stop_time, time_limit])
+        interval_end = current_time if self.is_finished() else min_robust([next_stop_time, time_limit])
         assert isinstance(interval_end, int)
         # now we know that next_stop_time is set up correctly
         if evaluate_properties:
@@ -967,7 +986,6 @@ class World(Entity, WorldDeclaration):
             assert isinstance(ie2, int)
             toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
                 interval_end=ie2)
-
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug(("  toplevel_results: {}\n"
                                     "  scheduled_results: {}\n"
@@ -977,7 +995,6 @@ class World(Entity, WorldDeclaration):
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
-
         World.logic_engine().progress([('tick', [interval_end - current_time])])
         return (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
                 failed_actions, failure_stack)

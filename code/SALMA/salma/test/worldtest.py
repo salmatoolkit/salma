@@ -1,31 +1,17 @@
-import logging
-import unittest
-import itertools
-import math
-from math import sqrt
 from salma import constants
-from salma.SALMAException import SALMAException
-from salma.engine import EclipseCLPEngine
-from salma.model import procedure, distributions, process
-from salma.model.core import Entity, Fluent, Action, Constant
-from salma.model.actions import DeterministicAction, StochasticAction, \
-    RandomActionOutcome, Uniform
-from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
-from salma.model.events import ExogenousAction
 from salma.model.agent import Agent
-from salma.model.distributions import UniformDistribution, \
-    ArgumentIdentityDistribution, BernoulliDistribution, Distribution, ConstantDistribution, OptionalDistribution, \
+from salma.model.core import Entity
+from salma.model.experiment import Experiment
+from salma.model.selectionstrategy import OutcomeSelectionStrategy
+from salma.model.distributions import BernoulliDistribution, ConstantDistribution, OptionalDistribution, \
     ExponentialDistribution
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, Sequence, \
-    Act, Procedure, While, Assign, ArbitraryAction, Variable, \
-    Iterate, Select, ProcedureRegistry, ProcedureCall, If, Plan
+from salma.model.procedure import ControlNode, While, Act, Wait, Procedure
 from salma.model.world import World
-from salma.test.testhelpers import withHeader
 from salma.test.world_test_base import BaseWorldTest
 
 
-def printValue(value):
+def print_value(value):
     print("Val: ", value)
     return ControlNode.CONTINUE, None
 
@@ -58,8 +44,7 @@ class WorldTest(BaseWorldTest):
         collision = world.get_exogenous_action("collision")
         collision.config.occurrence_distribution = BernoulliDistribution(1.0)
 
-    @withHeader()
-    def testWorldStepExplicit(self):
+    def test_world_step_explicit(self):
         world = World.instance()
         world.addAgent(self.create_right_moving_mobot('rob1'))
         world.initialize(False)
@@ -100,8 +85,63 @@ class WorldTest(BaseWorldTest):
         print("AFTER STEP 3:")
         print("\n\n----\n\n")
         world.printState()
-        self.assertEqual(world.getTime(), 100)
+        self.assertEqual(world.getTime(), 10)
         self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
         self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 11)
         self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
         self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
+
+    def test_world_run_until_end(self):
+        world = World.instance()
+        world.addAgent(self.create_right_moving_mobot('rob1'))
+        world.initialize(False)
+        self.__configure_events_default()
+        self.initialize_robot("rob1", 10, 10, 0, 0)
+
+        print("\n\n----\n\n")
+        print("INIT:")
+        print("\n\n----\n\n")
+        world.printState()
+        experiment = Experiment(world)
+        verdict, results =  experiment.run_until_finished()
+        print("\n\n----\n\n")
+        print("END:")
+        print("\n\n----\n\n")
+        world.printState()
+        print(results)
+        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
+        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 11)
+        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
+        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
+        self.assertTrue(world.is_finished())
+        self.assertEqual(world.getTime(), 10)
+
+    def test_run_right_until_max_X_pos(self):
+        world = World.instance()
+
+        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
+                  [Entity.SELF, 18],
+                  [
+                      Act("move_right", [Entity.SELF]),
+                      Wait(EvaluationContext.PYTHON_EXPRESSION, "occur('finish_step', self)", [])
+                  ])
+
+        agent = Agent("rob1", "robot", Procedure("main", [], w))
+        world.addAgent(agent)
+        world.initialize(False)
+        self.__configure_events_default()
+        self.initialize_robot("rob1", 10, 10, 0, 0)
+
+        world.printState()
+        experiment = Experiment(world)
+        verdict, info = experiment.run_until_finished()
+        print("Verdict: {}  after {} steps".format(verdict, info['steps']))
+
+        print("----")
+        world.printState()
+        print("----\n\n")
+
+        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 18)
+        self.assertEqual(verdict, constants.OK)
+        print(info)
+

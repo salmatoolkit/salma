@@ -193,12 +193,12 @@ class Engine(object):
 
     def getConstantValue(self, constantName, constantParams):
         """
-        Returns the cached value for the given constant with the given parameters. If no
-        value is set, it returns None.
+        Returns the cached value for the given constant with the given parameters together with a flag that
+        tells whether the value is defined, i.e. tuples of the form (defined, value).
 
         :param constantName: str
         :param constantParams: list
-
+        :rtype: (bool, object)
         """
         raise NotImplementedError()
 
@@ -614,9 +614,9 @@ class EclipseCLPEngine(Engine):
     def getFluentValue(self, fluentName, *fluentParams):
         key = (fluentName, fluentParams)
 
-        # if (self.__currentState is None) or (not key in self.__currentState):
-        # self.__updateCurrentState(key)
-        self.__updateCurrentState(key)
+        if (self.__currentState is None) or (key not in self.__currentState):
+            self.__updateCurrentState(key)
+        #self.__updateCurrentState(key)
         if key not in self.__currentState:
             return None
         else:
@@ -877,10 +877,16 @@ class EclipseCLPEngine(Engine):
         vterm = createParamTerms(value)[0]
         self.__callGoal("setConstant", pyclp.Atom(constantName),
                         pyclp.PList(pterms + [vterm]))
-
         self.__constants[(constantName, tuple(constantParams))] = value
 
     def __retrieve_constant_value(self, constant_name, constant_params):
+        """
+        Retrieves the value of the given constant from the engine. Returns
+        a tuple of form (defined, value).
+        :param str constant_name: the constant name
+        :param list|tuple constant_params: the constant params
+        :rtype: (bool, object)
+        """
         pterms = createParamTerms(*constant_params)
         val = pyclp.Var()
         pterms.append(val)
@@ -891,16 +897,17 @@ class EclipseCLPEngine(Engine):
         if result == pyclp.SUCCEED and val.value() is not None:
             value = self.__convert_value_from_engine_result(val.value())
             self.__constants[(constant_name, tuple(constant_params))] = value
-        return value
+            return True, value
+        else:
+            return False, None
 
     def getConstantValue(self, constantName, constantParams):
         v = None
         try:
-            v = self.__constants[(constantName, tuple(constantParams))]
+            d, v = True, self.__constants[(constantName, tuple(constantParams))]
         except KeyError:
-            v = self.__retrieve_constant_value(constantName, constantParams)
-
-        return v
+            d, v = self.__retrieve_constant_value(constantName, constantParams)
+        return d, v
 
     def isConstantDefined(self, constantName, constantParams):
         return (constantName, tuple(constantParams)) in self.__constants

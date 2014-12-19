@@ -214,7 +214,7 @@ class While(ControlNode):
         :param int condition_type: EvaluationContext.FLUENT, ...
         :param condition: the condition
         :param list condition_params: the parameters that are used for evaluating the condition goal.
-        :param ControlNode body: the loops body
+        :param ControlNode|list body: the loops body
         """
         ControlNode.__init__(self)
         self.__conditionType = condition_type
@@ -247,7 +247,18 @@ class While(ControlNode):
 
 
 class If(ControlNode):
+    """
+    A typical IF-ElSE control structure.
+    """
+
     def __init__(self, conditionType, condition, conditionGoalParams, thenBody, elseBody=None):
+        """
+        :param int conditionType: the condition type.
+        :param object condition: the condition.
+        :param tuple|list conditionGoalParams: the params for the condition.
+        :param ControlNode|list thenBody: the THEN block
+        :param ControlNode|list elseBody: the ELSE block
+        """
         ControlNode.__init__(self)
         self.__conditionType = conditionType
         self.__condition = condition
