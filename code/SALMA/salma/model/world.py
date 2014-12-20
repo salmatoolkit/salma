@@ -982,7 +982,13 @@ class World(Entity, WorldDeclaration):
                 next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=True)
                 if next_stop_time is None or next_stop_time > current_time:
                     break
-        interval_end = current_time if self.is_finished() else min_robust([next_stop_time, time_limit])
+        if self.is_finished():
+            interval_end = current_time
+        else:
+            if next_stop_time is None:
+                interval_end = min_robust([current_time + 1, time_limit])
+            else:
+                interval_end = min_robust([next_stop_time, time_limit])
         assert isinstance(interval_end, int)
         # now we know that next_stop_time is set up correctly
         if evaluate_properties:
