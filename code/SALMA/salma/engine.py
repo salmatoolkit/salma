@@ -606,9 +606,7 @@ class EclipseCLPEngine(Engine):
         """
         Returns a list of engine.FluentValue instances that contain the current state.
         """
-        if self.__currentState is None:
-            self.__updateCurrentState()
-
+        self.__updateCurrentState()
         return self.__currentState.values()
 
     def restore_state(self, fluent_values):

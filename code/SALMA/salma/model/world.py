@@ -780,6 +780,14 @@ class World(Entity, WorldDeclaration):
         else:
             return fv.value
 
+    def get_state_snapshot(self):
+        """
+        Returns a state snapshot that contains all fluent instances except the domains.
+        :rtype: list[FluentValue]
+        """
+        current_state = [fv for fv in World.logic_engine().getCurrentState() if fv.fluentName != "domain"]
+        return current_state
+
     def get_derived_fluent_value(self, fluent_name, fluent_params):
         """
         Retrieves the current value of the given derived fluent instance.

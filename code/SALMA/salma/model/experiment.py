@@ -1,6 +1,7 @@
 import logging
 from salma.SALMAException import SALMAException
 from salma.constants import *
+from salma.engine import EclipseCLPEngine
 from salma.model.propertycollection import PropertyCollection
 from salma.model.world import World
 from salma.mathutils import min_robust
@@ -19,14 +20,21 @@ class Experiment(object):
     probability distributions, and properties to evaluate.
     """
 
-    def __init__(self, world):
+    def __init__(self, world, procedure_defs=None):
         """
         Creates an experiment instance based on the given world.
 
-        :param World world: the world this experiment uses
+        :param World|str world: the world this experiment uses
+        :param str|tuple[str]|list[str] procedure_defs: a path or a couple of paths to Eclipse procedure definitions.
         """
         # : :type: World
-        self.__world = world
+        if isinstance(world, World):
+            self.__world = world
+            self.__world_declaration_path = None
+        elif isinstance(world, str):
+            self.__world = None
+            self.__world_declaration_path = world
+        self.__procedure_defs_path = procedure_defs
         #: :type: PropertyCollection
         self.__property_collection = PropertyCollection(World.logic_engine())
 
@@ -39,9 +47,49 @@ class Experiment(object):
         """
         return self.__property_collection
 
+    @property
+    def world(self):
+        """
+        Returns the world of this experiment.
+        :rtype: World
+        """
+        return self.__world
+
+    @property
+    def world_declaration_path(self):
+        """
+        :rtype: str
+        """
+        return self.__world_declaration_path
+
+    @property
+    def procedure_defs_path(self):
+        """
+        :rtype: str
+        """
+        return self.__procedure_defs_path
     # ---
 
     def initialize(self):
+        if self.world is None:
+            if self.world_declaration_path is None:
+                raise SALMAException("Neither world not world declaration path given for experiment.")
+            World.set_logic_engine(EclipseCLPEngine(self.world_declaration_path, self.procedure_defs_path))
+            World.create_new_world()
+            self.__world = World.instance()
+            self.world.load_declarations()
+        self.create_entities()
+        self.world.initialize(sample_fluent_values=False)
+        self.setup_distributions()
+        self.create_initial_situation()
+
+    def create_entities(self):
+        pass
+
+    def setup_distributions(self):
+        pass
+
+    def create_initial_situation(self):
         pass
 
     def assure_consistent_initilization(self):
@@ -51,7 +99,7 @@ class Experiment(object):
             moduleLogger.error("Fluent initialization problems:\n{}".format(problematic_fluents))
             failed = True
         if problematic_constants is not None and len(problematic_constants) > 0:
-            moduleLogger.error("Constant initialization problems:\n{}".format(problematic_fluents))
+            moduleLogger.error("Constant initialization problems:\n{}".format(problematic_constants))
             failed = True
         (problematic_stochastic_actions, problematic_exogenous_actions,
          problematic_exogenous_action_choices) = self.__world.check_action_initialization()
@@ -231,7 +279,6 @@ class Experiment(object):
         # save state
         if check_initialization:
             self.assure_consistent_initilization()
-        current_state = [fv for fv in World.logic_engine().getCurrentState() if fv.fluentName != "domain"]
         results = []  # list of True/False
         trial_infos = []
         retrial = 0
@@ -242,9 +289,9 @@ class Experiment(object):
         successes, failures = 0, 0
         while should_continue:
             self.__world.reset()
-            self.__world.restore_state(current_state)
+            self.create_initial_situation()
 
-            verdict, res = self.run_experiment(check_initialization=False, **kwargs)
+            verdict, res = self.run_experiment(check_initialization=check_initialization, **kwargs)
             trial_infos.append(res)
             if verdict == NONDET or verdict == CANCEL:
                 if verdict == CANCEL:

@@ -141,8 +141,8 @@ class WorldTest(BaseWorldTest):
         world.printState()
         print("----\n\n")
 
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 18)
+        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 100)
         self.assertEqual(verdict, constants.OK)
-        # self.assertTrue(40 <= world.getTime() <= 41)
+        self.assertEqual(451, world.getTime())
         self.assertTrue(world.is_finished())
         print(info)

@@ -73,7 +73,7 @@ get_next_possible_ad_hoc_events(Start, TimeLimit, HandledEvents, Time, Events) :
 		Time = Start,
 		Events = StartEvents, !
 		;
-	length(TimeIndependentActionNames, 0),
+	length(TimeDependentActionNames, 0),
 		Time = -1,
 		Events = [], !
 		;
