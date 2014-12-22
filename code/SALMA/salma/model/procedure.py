@@ -567,23 +567,26 @@ class SetFluent(ControlNode):
 
 class ArbitraryAction(ControlNode):
     """
-    An action thast executes a python function
+    An action that executes a python function.
     """
 
     def __init__(self, handler, *params):
         """
-        handler: function supporting the given signature that returns either CONTINUE or BLOCK
+        Installs the given Python function as action handler.
+
+        :param  handler: function supporting the given signature that returns a tuple of the form (stae, next_node) where
+        state is either ControlNode.CONTINUE or ControlNode.BLOCK and next_node is a control node or None.
         """
         ControlNode.__init__(self)
         self.__handler = handler
         self.__params = params
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        groundParams = evaluationContext.resolve(*self.__params)
-        state = self.__handler(*groundParams)
-        return state, None, evaluationContext
+    def executeStep(self, evaluation_context, procedure_registry):
+        ground_params = evaluation_context.resolve(*self.__params)
+        state, next_node = self.__handler(*ground_params)
+        return state, next_node, evaluation_context
 
-    def reset(self, evaluationContext):
+    def reset(self, evaluation_context):
         pass
 
 
