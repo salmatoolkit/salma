@@ -68,6 +68,7 @@ class Experiment(object):
         :rtype: str
         """
         return self.__procedure_defs_path
+
     # ---
 
     def initialize(self):
@@ -224,9 +225,9 @@ class Experiment(object):
             # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
             else:
                 if ((self.__world.is_finished() or time_out is True) and
-                            len(self.property_collection.achieve_goals) == 0 and
-                            len(self.property_collection.achieve_and_sustain_goals) == 0 and
-                            len(scheduled_keys) == 0):
+                        len(self.property_collection.achieve_goals) == 0 and
+                        len(self.property_collection.achieve_and_sustain_goals) == 0 and
+                        len(scheduled_keys) == 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
@@ -323,5 +324,4 @@ class Experiment(object):
                 should_continue = conclusive_trial_count < number_of_repetitions
 
         self.__world.reset()
-        self.__world.restore_state(current_state)
         return accepted_hypothesis, results, trial_infos

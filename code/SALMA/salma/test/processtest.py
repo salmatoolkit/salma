@@ -20,8 +20,8 @@ class ProcessTest(BaseWorldTest):
     def test_one_shot_process(self):
         world = World.instance()
         seq = Sequence()
-        seq.addChild(Act("move_right", [Entity.SELF]))
-        seq.addChild(Act("move_down", [Entity.SELF]))
+        seq.add_child(Act("move_right", [Entity.SELF]))
+        seq.add_child(Act("move_down", [Entity.SELF]))
 
         proc = process.OneShotProcess(Procedure("main", [], seq))
         agent = Agent("rob1", "robot", [proc])
@@ -56,14 +56,14 @@ class ProcessTest(BaseWorldTest):
     def test_two_one_shot_processes(self):
         world = World.instance()
         seq = Sequence()
-        seq.addChild(Act("move_right", [Entity.SELF]))
-        seq.addChild(Act("move_down", [Entity.SELF]))
+        seq.add_child(Act("move_right", [Entity.SELF]))
+        seq.add_child(Act("move_down", [Entity.SELF]))
 
         proc1 = process.OneShotProcess(Procedure("main", [], seq))
 
         seq2 = Sequence()
-        seq2.addChild(Act("move_left", [Entity.SELF]))
-        seq2.addChild(Act("move_up", [Entity.SELF]))
+        seq2.add_child(Act("move_left", [Entity.SELF]))
+        seq2.add_child(Act("move_up", [Entity.SELF]))
 
         proc2 = process.OneShotProcess(Procedure("main", [], seq2))
 
@@ -105,12 +105,12 @@ class ProcessTest(BaseWorldTest):
         :rtype: Agent, list of process.PeriodicProcess
         """
         seq = Sequence()
-        seq.addChild(Act("move_right", [Entity.SELF]))
+        seq.add_child(Act("move_right", [Entity.SELF]))
         control_procedure = Procedure("main", [], seq)
         proc1 = process.PeriodicProcess(control_procedure, 10)
 
         seq2 = Sequence()
-        seq2.addChild(Act("move_down", [Entity.SELF]))
+        seq2.add_child(Act("move_down", [Entity.SELF]))
         control_procedure2 = Procedure("main", [], seq2)
         proc2 = process.PeriodicProcess(control_procedure2, 5)
 

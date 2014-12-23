@@ -278,7 +278,8 @@ class Process(object):
         current_node = self.__current_control_node
         current_context = self.__current_evaluation_context
         while status == ControlNode.CONTINUE and current_node is not None:
-            status, next_node, next_context = current_node.executeStep(current_context, self.__agent.procedure_registry)
+            status, next_node, next_context = current_node.execute_step(current_context,
+                                                                        self.__agent.procedure_registry)
 
             # : :type next_context: EvaluationContext
             if next_node is None:
@@ -314,7 +315,10 @@ class Process(object):
             else:
                 self.__state = Process.WAITING
                 if isinstance(self.__current_control_node, Wait):
-                    self.__blocking_condition = self.__current_control_node.get_condition()
+                    cond = self.__current_control_node.condition
+                    cparams = self.__current_control_node.condition_params
+                    ctype = self.__current_evaluation_context.determine_source_type(cond, cparams)
+                    self.__blocking_condition = ctype, cond, cparams
                     # TODO: handle sleep
 
         if self.__current_control_node is None:

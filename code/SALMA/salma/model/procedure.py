@@ -5,6 +5,17 @@ from salma.model.infotransfer import ReceivedMessage, Channel
 from salma.constants import *
 
 
+def is_control_node_sequence(thelist):
+    if not isinstance(thelist, (list, tuple)):
+        return False
+    else:
+        for e in thelist:
+            if isinstance(e, ControlNode):
+                return True
+            else:
+                return is_control_node_sequence(e)
+
+
 class Element(object):
     """
     The base class for all elements of a process, i.e. procedures and control elements.
@@ -23,9 +34,6 @@ class Element(object):
             Element.__next_id += 1
         else:
             self.__id = element_id
-
-    def getId(self) -> int:
-        return self.__id
 
     @property
     def id(self) -> int:
@@ -59,25 +67,59 @@ class Procedure(Element):
     A procedure that is used either as the main control flow of a process or as a sub-procedure.
     """
 
-    def __init__(self, procedureName, parameters: list, body):
+    def __init__(self, *args):
         """
         Creates a procedure with the given name, parameters, and body.
+
+        :param str procedure_name:
         """
         Element.__init__(self)
-        self.__body = Sequence(body) if isinstance(body, list) else body
-        self.__name = procedureName
-        self.__parameters = parameters
+        if len(args) == 1:
+            self.__name = "main"
+            self.__parameters = []
+            body = args[0]
+        elif len(args) == 2:
+            self.__name = args[0]
+            self.__parameters = []
+            body = args[1]
+        elif len(args) == 3:
+            self.__name = args[0]
+            self.__parameters = args[1]
+            body = args[2]
+        else:
+            raise SALMAException("Wrong argument count in Procedure: expected 1, 2, or 3 arguments but "
+                                 "got {} instead.".format(args))
+        if isinstance(body, (list, tuple)):
+            self.__body = Sequence(body)
+        elif isinstance(body, ControlNode):
+            self.__body = body
+        else:
+            raise SALMAException("Wrong type for body in Procedure: expected list or ControlNode but "
+                                 "got {}".format(type(body)))
 
     @property
     def body(self):
+        """
+        The procedure's body.
+        :rtype: ControlNode
+        """
         return self.__body
 
     @property
     def name(self):
+        """
+        The procedure's name.
+        :rtype: str
+        """
         return self.__name
 
     @property
     def parameters(self):
+        """
+        The procedure's parameters, given as tuples of form (name, sort).
+
+        :rtype: list[(str, str)]
+        """
         return self.__parameters
 
     def restart(self, evaluation_context: EvaluationContext):
@@ -85,19 +127,32 @@ class Procedure(Element):
 
 
 class ControlNode(Element):
+    """
+    The base class for all procedure statements.
+    """
     def __init__(self):
+        """
+        Default constructor.
+        """
         Element.__init__(self)
         self.__parent = None
 
-    def getParent(self):
+    @property
+    def parent(self):
+        """
+        The parent of the control node, e.g. the enclosing Sequence.
+        :rtype: ControlNode
+        """
         return self.__parent
 
-    def setParent(self, parent):
+    @parent.setter
+    def parent(self, parent):
+        """
+        :param ControlNode parent: the parent of the control node, e.g. the enclosing Sequence.
+        """
         self.__parent = parent
 
-    parent = property(getParent, setParent)
-
-    def executeStep(self, evaluationContext, procedureRegistry):
+    def execute_step(self, evaluation_context, procedure_registry):
         """
         Evalutes the control node, e.g. the test condition.
 
@@ -105,7 +160,7 @@ class ControlNode(Element):
         """
         raise NotImplementedError()
 
-    def reset(self, evaluationContext):
+    def reset(self, evaluation_context):
         raise NotImplementedError()
 
     # constants
@@ -114,47 +169,61 @@ class ControlNode(Element):
 
 
 class Sequence(ControlNode):
+    """
+    A sequence of statements, i.e. ControlNodes.
+    """
 
     def __init__(self, new_children=None):
+        """
+        Creates a new sequence that contains the given children.
+
+        :param list[ControlNode]|tuple[ControlNode] new_children: the children that are added to the sequence.
+        """
+        super().__init__()
         if not new_children:
             new_children = []
-        ControlNode.__init__(self)
         self.__children = []
         for c in new_children:
-            self.addChild(c)
+            self.add_child(c)
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        if evaluationContext.getCurrentSequenceIndex(self) is None:
+    def execute_step(self, evaluation_context, procedure_registry):
+        if evaluation_context.getCurrentSequenceIndex(self) is None:
             if len(self.__children) == 0:
-                return ControlNode.CONTINUE, None, evaluationContext
+                return ControlNode.CONTINUE, None, evaluation_context
             else:
-                evaluationContext.setCurrentSequenceIndex(self, 0)
+                evaluation_context.setCurrentSequenceIndex(self, 0)
 
-        csi = evaluationContext.getCurrentSequenceIndex(self)
+        csi = evaluation_context.getCurrentSequenceIndex(self)
 
         # check if the sequence has finished
         if csi > len(self.__children) - 1:
-            evaluationContext.setCurrentSequenceIndex(self, 0)
-            return ControlNode.CONTINUE, None, evaluationContext
+            evaluation_context.setCurrentSequenceIndex(self, 0)
+            return ControlNode.CONTINUE, None, evaluation_context
 
-        state, nextNode, nextContext = self.__children[csi].executeStep(evaluationContext, procedureRegistry)
+        state, next_node, next_context = self.__children[csi].execute_step(evaluation_context, procedure_registry)
 
-        evaluationContext.incCurrentSequenceIndex(self)
+        evaluation_context.incCurrentSequenceIndex(self)
 
         # if the child returned no next node, the sequence should handle the next step
-        if nextNode is None:
-            nextNode = self
+        if next_node is None:
+            next_node = self
 
-        return state, nextNode, nextContext
+        return state, next_node, next_context
 
-    def getChildren(self):
+    @property
+    def children(self):
+        """
+        The children of the sequence.
+        :rtype: list[ControlNode]
+        """
         return self.__children
 
-    def addChild(self, child):
+    def add_child(self, child):
         """
-        Adds a child control node to the sequence. Alternatively, a list can be given to create a sequence.
+        Adds a child control node to the sequence. Alternatively, a list can be given to add
+        a nested sequence.
 
-        :param ControlNode|list child: the child to add
+        :param ControlNode|list[ControlNode] child: the child to add
         """
         if isinstance(child, list):
             seq = Sequence(child)
@@ -164,11 +233,11 @@ class Sequence(ControlNode):
             self.__children.append(child)
             child.parent = self
 
-    def reset(self, evaluationContext):
-        evaluationContext.setCurrentSequenceIndex(self, 0)
+    def reset(self, evaluation_context):
+        evaluation_context.setCurrentSequenceIndex(self, 0)
         # : :type node: ControlNode
         for node in self.__children:
-            node.reset(evaluationContext)
+            node.reset(evaluation_context)
 
 
 class ProcedureRegistry(object):
@@ -183,20 +252,20 @@ class ProcedureRegistry(object):
         """
         self.__registry = registry or dict()
 
-    def getProcedure(self, procedureName):
+    def get_procedure(self, procedure_name):
         """
         Returns the procedure with the givent name.
 
-        :param procedureName: str
+        :param procedure_name: str
         :rtype: Procedure
         """
         try:
-            procedure = self.__registry[procedureName]
+            procedure = self.__registry[procedure_name]
         except KeyError:
-            raise SALMAException("Unregistered procedure: {}".format(procedureName))
+            raise SALMAException("Unregistered procedure: {}".format(procedure_name))
         return procedure
 
-    def registerProcedure(self, procedure):
+    def register_procedure(self, procedure):
         """
         Registers a procedure.
 
@@ -206,44 +275,71 @@ class ProcedureRegistry(object):
 
 
 class While(ControlNode):
+    """
+    A typical while control structure that repeats the given body control node as long as the given condition
+    evaluates to True.
+    """
 
-    def __init__(self, condition_type, condition, condition_params, body):
+    def __init__(self, condition, *args):
         """
         Creates a new While node.
 
-        :param int condition_type: EvaluationContext.FLUENT, ...
-        :param condition: the condition
-        :param list condition_params: the parameters that are used for evaluating the condition goal.
-        :param ControlNode|list body: the loops body
+        :param object condition: the condition
+        :param args: 1.: (optional) the parameters that are used for evaluating the condition goal, 2.:
+        the loops body (ControlNode or list).
         """
         ControlNode.__init__(self)
-        self.__conditionType = condition_type
+
         self.__condition = condition
-        self.__conditionGoalParams = condition_params
-        self.__body = Sequence(body) if isinstance(body, list) else body
+        if len(args) == 1:
+            self.__condition_params = []
+            body = args[0]
+        elif len(args) == 2:
+            self.__condition_params = args[0]
+            body = args[1]
+        else:
+            raise SALMAException("Wrong number of arguments in While: expected 1 or 2 but "
+                                 "got {}".format(args))
+        self.__body = Sequence(body) if isinstance(body, (list, tuple)) else body
         self.__body.parent = self
 
-    def getCondition(self):
-        return self.__condition, self.__conditionGoalParams
-
-    def getBody(self):
+    @property
+    def condition(self):
         """
+        The condition of this while block.
+        :rtype: object
+        """
+        return self.__condition
+
+    @property
+    def condition_params(self):
+        """
+        The parameters of the condition.
+        :rtype: list[(str, str)]
+        """
+        return self.__condition_params
+
+    @property
+    def body(self):
+        """
+        The body of this while block.
         :rtype: ControlNode
         """
         return self.__body
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        result = evaluationContext.evaluateCondition(self.__conditionType,
-                                                     self.__condition,
-                                                     *self.__conditionGoalParams)
+    def execute_step(self, evaluation_context, procedure_registry):
+        condition_type = evaluation_context.determine_source_type(self.condition, self.condition_params)
+        result = evaluation_context.evaluateCondition(condition_type,
+                                                      self.condition,
+                                                      *self.condition_params)
 
         if result is True:
-            return ControlNode.CONTINUE, self.__body, evaluationContext
+            return ControlNode.CONTINUE, self.body, evaluation_context
         else:
-            return ControlNode.CONTINUE, None, evaluationContext
+            return ControlNode.CONTINUE, None, evaluation_context
 
-    def reset(self, evaluationContext):
-        self.__body.reset(evaluationContext)
+    def reset(self, evaluation_context):
+        self.body.reset(evaluation_context)
 
 
 class If(ControlNode):
@@ -251,53 +347,96 @@ class If(ControlNode):
     A typical IF-ElSE control structure.
     """
 
-    def __init__(self, conditionType, condition, conditionGoalParams, thenBody, elseBody=None):
+    def __init__(self, condition, *args):
         """
-        :param int conditionType: the condition type.
+        Creates an IF-ELSE statement.
+
         :param object condition: the condition.
-        :param tuple|list conditionGoalParams: the params for the condition.
-        :param ControlNode|list thenBody: the THEN block
-        :param ControlNode|list elseBody: the ELSE block
+        :param args: 1. (optional): params, 2.: IF-body, 3. (optional): ELSE-body.
         """
         ControlNode.__init__(self)
-        self.__conditionType = conditionType
         self.__condition = condition
-        self.__conditionGoalParams = conditionGoalParams
-        self.__thenBody = Sequence(thenBody) if isinstance(thenBody, list) else thenBody
-        self.__elseBody = Sequence(elseBody) if isinstance(elseBody, list) else elseBody
-        self.__thenBody.parent = self
-        if self.__elseBody is not None:
-            self.__elseBody.parent = self
+        if len(args) == 1:
+            self.__condition_params = []
+            t_body = args[0]
+            e_body = None
+        elif len(args) == 2:
+            if isinstance(args[0], ControlNode) or is_control_node_sequence(args[0]):
+                t_body = args[0]
+                e_body = args[1]
+                self.__condition_params = []
+            else:
+                self.__condition_params = args[0]
+                t_body = args[1]
+                e_body = None
+        elif len(args) == 3:
+            self.__condition_params = args[0]
+            t_body = args[1]
+            e_body = args[2]
+        else:
+            raise SALMAException("Wrong number of arguments in IF: expected 1, 2, or 3 but got"
+                                 "{}".format(args))
+        self.__then_body = Sequence(t_body) if isinstance(t_body, list) else t_body
+        self.__else_body = Sequence(e_body) if isinstance(e_body, list) else e_body
+        self.__then_body.parent = self
+        if self.__else_body is not None:
+            self.__else_body.parent = self
 
-    def getCondition(self):
-        return self.__condition, self.__conditionGoalParams
+    @property
+    def condition(self):
+        """
+        The condition.
+        :rtype: object
+        """
+        return self.__condition
 
-    def getThenBody(self):
-        return self.__thenBody
+    @property
+    def condition_params(self):
+        """
+        The parameters of the condition.
+        :rtype: list.
+        """
+        return self.__condition_params
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        index = evaluationContext.getCurrentSequenceIndex(self) or 0
+    @property
+    def then_body(self):
+        """
+        The control node that is executed if the condition evaluates to True.
+        :rtype: ControlNode
+        """
+        return self.__then_body
+
+    @property
+    def else_body(self):
+        """
+        The control node that is executed if the condition evaluates to False.
+        :rtype: ControlNode
+        """
+        return self.__else_body
+
+    def execute_step(self, evaluation_context, procedure_registry):
+        index = evaluation_context.getCurrentSequenceIndex(self) or 0
         # check if we're re-entering after the control bubbles up 
         # after execution of the then or else body
         if index > 0:
-            self.reset(evaluationContext)
-            return ControlNode.CONTINUE, None, evaluationContext
-
-        result = evaluationContext.evaluateCondition(self.__conditionType,
-                                                     self.__condition,
-                                                     *self.__conditionGoalParams)
-        evaluationContext.setCurrentSequenceIndex(self, 1)
+            self.reset(evaluation_context)
+            return ControlNode.CONTINUE, None, evaluation_context
+        condition_type = evaluation_context.determine_source_type(self.condition, self.condition_params)
+        result = evaluation_context.evaluateCondition(condition_type,
+                                                      self.condition,
+                                                      *self.condition_params)
+        evaluation_context.setCurrentSequenceIndex(self, 1)
 
         if result is True:
-            return ControlNode.CONTINUE, self.__thenBody, evaluationContext
+            return ControlNode.CONTINUE, self.then_body, evaluation_context
         else:
-            return ControlNode.CONTINUE, self.__elseBody, evaluationContext
+            return ControlNode.CONTINUE, self.else_body, evaluation_context
 
-    def reset(self, evaluationContext):
-        self.__thenBody.reset(evaluationContext)
-        if self.__elseBody is not None:
-            self.__elseBody.reset(evaluationContext)
-        evaluationContext.setCurrentSequenceIndex(self, 0)
+    def reset(self, evaluation_context):
+        self.then_body.reset(evaluation_context)
+        if self.else_body is not None:
+            self.else_body.reset(evaluation_context)
+        evaluation_context.setCurrentSequenceIndex(self, 0)
 
 
 class Iterate(ControlNode):
@@ -311,53 +450,76 @@ class Iterate(ControlNode):
     TODO: should we evaluate in each step?
     """
 
-    def __init__(self, source_type, source, params, body):
+    def __init__(self, source, params, body):
         ControlNode.__init__(self)
-        self.__source_type = source_type
         self.__source = source
         self.__params = params
-        self.__body = Sequence(body) if isinstance(body, list) else body
+        self.__body = Sequence(body) if isinstance(body, (list, tuple)) else body
         self.__body.parent = self
 
-    def executeStep(self, evaluation_context, procedure_registry):
+    @property
+    def source(self):
+        """
+        The content source of the iteration.
+        :rtype: object
+        """
+        return self.__source
+
+    @property
+    def params(self):
+        """
+        The i/out parameter list of the iteration.
+        :rtype: list
+        """
+        return self.__params
+
+    @property
+    def body(self):
+        """
+        The iteration body that is executed in each iteration with the out-parameters bound to the
+        values of the current row.
+        :rtype: ControlNode
+        """
+        return self.__body
+
+    def execute_step(self, evaluation_context, procedure_registry):
         """
         Executes a step of the iteration.
 
         :param EvaluationContext evaluation_context: the evaluation context
         :param ProcedureRegistry procedure_registry: the procedure registry
         """
-
-        resultList = evaluation_context.getCurrentResultList(self)
-        resultIndex = evaluation_context.getCurrentResultListIndex(self)
+        source_type = evaluation_context.determine_source_type(self.source, self.params)
+        result_list = evaluation_context.getCurrentResultList(self)
+        result_index = evaluation_context.getCurrentResultListIndex(self)
 
         # create result list only at the beginning of the iteration
-        if resultList is None:
-            resultList = evaluation_context.selectAll(
-                self.__source_type,
-                self.__source,
-                *self.__params)
-            resultIndex = 0
-            evaluation_context.setCurrentResultList(self, resultList)
-            evaluation_context.setCurrentResultListIndex(self, resultIndex)
+        if result_list is None:
+            result_list = evaluation_context.selectAll(
+                source_type,
+                self.source,
+                *self.params)
+            result_index = 0
+            evaluation_context.setCurrentResultList(self, result_list)
+            evaluation_context.setCurrentResultListIndex(self, result_index)
 
         # at the end of the iteration list, reset and pass control to parent
-        if resultIndex > len(resultList) - 1:
+        if result_index > len(result_list) - 1:
             self.reset(evaluation_context)
             return ControlNode.CONTINUE, None, evaluation_context
 
-        valueCombination = resultList[resultIndex]
+        value_combination = result_list[result_index]
         evaluation_context.incCurrentResultListIndex(self)
 
-        for varName, value in valueCombination.items():
+        for varName, value in value_combination.items():
             evaluation_context.assignVariable(varName, value)
 
-        return ControlNode.CONTINUE, self.__body, evaluation_context
+        return ControlNode.CONTINUE, self.body, evaluation_context
 
-    def reset(self, evaluationContext):
-        evaluationContext.setCurrentResultList(self, None)
-        evaluationContext.setCurrentResultListIndex(self, -1)
-
-        self.__body.reset(evaluationContext)
+    def reset(self, evaluation_context):
+        evaluation_context.setCurrentResultList(self, None)
+        evaluation_context.setCurrentResultListIndex(self, -1)
+        self.body.reset(evaluation_context)
 
 
 class Select(ControlNode):
@@ -366,50 +528,60 @@ class Select(ControlNode):
     variables with the given names in the current evaluation context.
     """
 
-    def __init__(self, predicateType, predicateName, params):
+    def __init__(self, predicate, params):
         ControlNode.__init__(self)
-        self.__predicateType = predicateType
-        self.__predicateName = predicateName
+        self.__predicate = predicate
         self.__params = params
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        result = evaluationContext.selectFirst(self.__predicateType, self.__predicateName, *self.__params)
-        for varName, value in result.items():
-            evaluationContext.assignVariable(varName, value)
+    @property
+    def predicate(self):
+        return self.__predicate
 
-        return ControlNode.CONTINUE, None, evaluationContext
+    @property
+    def params(self):
+        """
+        :rtype: list
+        """
+        return self.__params
 
-    def reset(self, evaluationContext):
+    def execute_step(self, evaluation_context, procedure_registry):
+        predicate_type = evaluation_context.determine_source_type(self.predicate, self.params)
+        result = evaluation_context.selectFirst(predicate_type, self.predicate, *self.params)
+        for var_name, value in result.items():
+            evaluation_context.assignVariable(var_name, value)
+        return ControlNode.CONTINUE, None, evaluation_context
+
+    def reset(self, evaluation_context):
         pass
 
 
 class Plan(ControlNode):
-    def __init__(self, procedureName, params, planName='plan'):
+    def __init__(self, procedure_name, params, plan_name='plan'):
         ControlNode.__init__(self)
-        self.__procedureName = procedureName
+        self.__procedureName = procedure_name
         self.__params = params
-        self.__planName = planName
+        self.__planName = plan_name
 
-    def reset(self, evaluationContext):
+    def reset(self, evaluation_context):
         pass
 
     @property
-    def procedureName(self):
+    def procedure_name(self):
         return self.__procedureName
 
     @property
     def parameters(self):
         return self.__params
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        plan, values = evaluationContext.createPlan(self.__procedureName,
-                                                    *self.__params)
+    def execute_step(self, evaluation_context, procedure_registry):
+        plan, values = evaluation_context.createPlan(self.procedure_name,
+                                                     *self.parameters)
 
         for varName, value in values.items():
-            evaluationContext.assignVariable(varName, value)
+            evaluation_context.assignVariable(varName, value)
 
-        evaluationContext.assignVariable('plan', plan)
-        return ControlNode.CONTINUE, None, evaluationContext
+        evaluation_context.assignVariable('plan', plan)
+        return ControlNode.CONTINUE, None, evaluation_context
 
 
 class Wait(ControlNode):
@@ -417,27 +589,30 @@ class Wait(ControlNode):
     Blocks the process until the given condition is fulfilled.
     """
 
-    def __init__(self, condition_type, condition, condition_goal_params):
+    def __init__(self, condition, condition_params=None):
         """
-        :param int condition_type: the condition type
         :param object condition: the condition
-        :param list condition_goal_params: parameters
+        :param list condition_params: parameters
         """
         ControlNode.__init__(self)
-        self.__condition_type = condition_type
         self.__condition = condition
-        self.__condition_goal_params = condition_goal_params
+        self.__condition_params = condition_params if condition_params is not None else []
 
-    def get_condition(self):
-        """
-        Returns the condition as a tuple (condition_type, condition, params)
-        :rtype: (int, object, list)
-        """
-        return self.__condition_type, self.__condition, self.__condition_goal_params
+    @property
+    def condition(self):
+        return self.__condition
 
-    def executeStep(self, evaluation_context, procedure_registry):
-        result = evaluation_context.evaluateCondition(self.__condition_type, self.__condition,
-                                                      *self.__condition_goal_params)
+    @property
+    def condition_params(self):
+        """
+        :rtype: list
+        """
+        return self.__condition_params
+
+    def execute_step(self, evaluation_context, procedure_registry):
+        condition_type = evaluation_context.determine_source_type(self.condition, self.condition_params)
+        result = evaluation_context.evaluateCondition(condition_type, self.condition,
+                                                      *self.condition_params)
         if result is True:
             return ControlNode.CONTINUE, None, evaluation_context
         else:
@@ -452,55 +627,71 @@ class Act(ControlNode):
     A control node that represents the execution of an action.
     """
 
-    def __init__(self, actionName, actionParameters):
+    def __init__(self, action_name, action_parameters):
         """
-        actionParameters can be terms, need metamodel for that. Terms have to be evaluated first to ground them.
+        action_parameters can be terms, need metamodel for that. Terms have to be evaluated first to ground them.
         For now, variables should be enough...
 
         The agent will be inserted as an implicit 1st parameter.
         """
         ControlNode.__init__(self)
-        self.__actionName = actionName
-        self.__actionParameters = actionParameters
+        self.__action_name = action_name
+        self.__action_parameters = action_parameters
 
-    def getActionName(self):
-        return self.__actionName
+    @property
+    def action_name(self):
+        return self.__action_name
 
-    actionName = property(getActionName)
+    @property
+    def action_parameters(self):
+        return tuple(self.__action_parameters)
 
-    def getActionParameters(self):
-        return tuple(self.__actionParameters)
-
-    actionParameters = property(getActionParameters)
-
-    def executeStep(self, evaluationContext, procedureRegistry):
+    def execute_step(self, evaluation_context, procedure_registry):
         # - return self as action
-        return ControlNode.BLOCK, self, evaluationContext
+        return ControlNode.BLOCK, self, evaluation_context
 
     def __str__(self, *args, **kwargs):
-        return "Act({},{})".format(self.__actionName, self.__actionParameters)
+        return "Act({},{})".format(self.action_name, self.action_parameters)
 
-    def reset(self, evaluationContext):
+    def reset(self, evaluation_context):
         pass
 
 
 class Assign(ControlNode):
-    # TODO: handle assignment to multiple variables at once
+    """
+    A statement that calculates a value and assigns it to the given variable.
+    """
+    def __init__(self, variables, source, params=None):
+        """
+        Creates an assign statement.
 
-    def __init__(self, variableName, sourceType, source, params):
-        ControlNode.__init__(self)
-        self.__variableName = variableName
-        self.__sourceType = sourceType
+        :param Variable|str|list|tuple variables: the variable(s).
+        :param object source: the source for the value calculation.
+        :param list|tuple params:
+        """
+        super().__init__()
+        newvars = []
+        if isinstance(variables, (list, tuple)):
+            newvars.extend(variables)
+        else:
+            newvars.append(variables)
+        #: :type: list[str]
+        self.__variable_names = []
+        for v in newvars:
+            if isinstance(v, Variable):
+                self.__variable_names.append(v.name)
+            else:
+                self.__variable_names.append(str(v))
+
         self.__source = source
-        self.__params = params
+        self.__params = params if params is not None else []
 
     @property
-    def variableName(self):
-        return self.__variableName
-
-    @property
-    def sourceType(self):
-        return self.__sourceType
+    def variable_names(self):
+        """
+        :rtype: list[str]
+        """
+        return self.__variable_names
 
     @property
     def params(self):
@@ -510,58 +701,19 @@ class Assign(ControlNode):
     def source(self):
         return self.__source
 
-    def executeStep(self, evaluationContext, procedureRegistry):
-        groundParams = evaluationContext.resolve(*self.__params)
-        val = evaluationContext.evaluateFunction(self.__sourceType, self.__source, *groundParams)
-        evaluationContext.assignVariable(self.__variableName, val)
-        return ControlNode.CONTINUE, None, evaluationContext
-
-    def reset(self, evaluationContext):
-        pass
-
-
-class SetFluent(ControlNode):
-    def __init__(self, fluent_name: str, fluent_params: list, source_type: int, source, params: list):
-        ControlNode.__init__(self)
-        self.__fluent_name = fluent_name
-        self.__fluent_params = fluent_params
-        self.__source_type = source_type
-        self.__source = source
-        self.__params = params
-
-    @property
-    def fluent_name(self):
-        return self.__fluent_name
-
-    @property
-    def fluent_params(self):
-        return self.__fluent_params
-
-    @property
-    def source_type(self):
-        return self.__source_type
-
-    @property
-    def params(self):
-        return self.__params
-
-    @property
-    def source(self):
-        return self.__source
-
-    def executeStep(self, evaluation_context, procedure_registry):
-        """
-        :type evaluation_context: salma.model.evaluationcontext.EvaluationContext
-        :param procedure_registry: ProcedureRegistry
-        :rtype: (int, salma.model.evaluationcontext.EvaluationContext)
-        """
-        ground_source_params = evaluation_context.resolve(*self.__params)
-        ground_fluent_params = evaluation_context.resolve(*self.__fluent_params)
-        val = evaluation_context.evaluateFunction(self.__source_type, self.__source, *ground_source_params)
-        evaluation_context.set_fluent_value(self.__fluent_name, ground_fluent_params, val)
+    def execute_step(self, evaluation_context, procedure_registry):
+        source_type = evaluation_context.determine_source_type(self.source, self.params)
+        ground_params = evaluation_context.resolve(*self.params)
+        val = evaluation_context.evaluateFunction(source_type, self.source, *ground_params)
+        if len(self.variable_names) == 1:
+            evaluation_context.assignVariable(self.variable_names[0], val)
+        else:
+            for i in range(len(self.variable_names)):
+                evaluation_context.assignVariable(self.variable_names[i], val[i])
+        #TODO: proper error handling
         return ControlNode.CONTINUE, None, evaluation_context
 
-    def reset(self, evaluationContext):
+    def reset(self, evaluation_context):
         pass
 
 
@@ -574,14 +726,15 @@ class ArbitraryAction(ControlNode):
         """
         Installs the given Python function as action handler.
 
-        :param  handler: function supporting the given signature that returns a tuple of the form (stae, next_node) where
-        state is either ControlNode.CONTINUE or ControlNode.BLOCK and next_node is a control node or None.
+        :param  handler: function supporting the given signature that returns a tuple of the form
+        (state, next_node) where state is either ControlNode.CONTINUE or ControlNode.BLOCK and
+        next_node is a ControlNode or None.
         """
         ControlNode.__init__(self)
         self.__handler = handler
         self.__params = params
 
-    def executeStep(self, evaluation_context, procedure_registry):
+    def execute_step(self, evaluation_context, procedure_registry):
         ground_params = evaluation_context.resolve(*self.__params)
         state, next_node = self.__handler(*ground_params)
         return state, next_node, evaluation_context
@@ -593,7 +746,7 @@ class ArbitraryAction(ControlNode):
 class ProcedureCall(ControlNode):
     def __init__(self, procedure_name, procedure_parameters):
         """
-        actionParameters can be terms, need metamodel for that. Terms have to be evaluated first to ground them.
+        action_parameters can be terms, need metamodel for that. Terms have to be evaluated first to ground them.
         For now, variables should be enough...
 
         The agent will be inserted as an implicit 1st parameter.
@@ -610,12 +763,12 @@ class ProcedureCall(ControlNode):
     def parameters(self):
         return tuple(self.__procedure_parameters)
 
-    def executeStep(self, evaluation_context, procedure_registry):
+    def execute_step(self, evaluation_context, procedure_registry):
         ground_params = evaluation_context.resolve(*self.__procedure_parameters)
         child_context = evaluation_context.createChildContext()
 
         child_context.setProcedureCall(self)
-        procedure = procedure_registry.getProcedure(self.__procedure_name)
+        procedure = procedure_registry.get_procedure(self.__procedure_name)
 
         if len(ground_params) != len(procedure.parameters):
             raise SALMAException(
@@ -654,10 +807,10 @@ class Send(ControlNode):
         self.__destination_role = destination_role
         self.__message = message
 
-    def executeStep(self, evaluation_context, procedureRegistry):
+    def execute_step(self, evaluation_context, procedure_registry):
         """
         :type evaluation_context: salma.model.evaluationcontext.EvaluationContext
-        :type procedureRegistry: ProcedureRegistry
+        :type procedure_registry: ProcedureRegistry
         :return:
         """
 
@@ -709,10 +862,10 @@ class Send(ControlNode):
 
             msgid = evaluation_context.create_message(channel, agent, msg_type, params)
             evaluation_context.set_fluent_value("channel_out_content", [msgid], message)
-            reqTransfer = Act("requestTransfer", [msgid])
-            reqTransfer.parent = self
+            req_transfer = Act("requestTransfer", [msgid])
+            req_transfer.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, reqTransfer, evaluation_context
+            return ControlNode.CONTINUE, req_transfer, evaluation_context
         else:
             evaluation_context.setCurrentSequenceIndex(self, 0)
             return ControlNode.CONTINUE, None, evaluation_context
@@ -740,7 +893,7 @@ class TransmitRemoteSensorReading(ControlNode):
         self.__remote_sensor_name = remote_sensor_name
         self.__sensor_params = sensor_params
 
-    def executeStep(self, evaluation_context: EvaluationContext, procedure_registry):
+    def execute_step(self, evaluation_context: EvaluationContext, procedure_registry):
         if evaluation_context.getCurrentSequenceIndex(self) is None:
             evaluation_context.setCurrentSequenceIndex(self, 0)
 
@@ -772,7 +925,7 @@ class Receive(ControlNode):
         self.__role = role
         self.__variable = variable
 
-    def executeStep(self, evaluation_context, procedureRegistry):
+    def execute_step(self, evaluation_context, procedure_registry):
         if evaluation_context.getCurrentSequenceIndex(self) is None:
             evaluation_context.setCurrentSequenceIndex(self, 0)
 
@@ -808,7 +961,7 @@ class WaitForSensor(ControlNode):
         self.__params = params
         self.__start_time = start_time
 
-    def executeStep(self, evaluation_context, procedureRegistry):
+    def execute_step(self, evaluation_context, procedure_registry):
         """
         :type evaluation_context: EvaluationContext
         """
@@ -823,7 +976,7 @@ class WaitForSensor(ControlNode):
         else:
             return ControlNode.CONTINUE, None, evaluation_context
 
-    def reset(self, evaluationContext):
+    def reset(self, evaluation_context):
         pass
 
 
@@ -840,7 +993,7 @@ class Sense(ControlNode):
         self.__params = params
         self.__variable = variable
 
-    def executeStep(self, evaluation_context, procedureRegistry):
+    def execute_step(self, evaluation_context, procedure_registry):
         """
         :type evaluation_context: EvaluationContext
         """
@@ -852,10 +1005,10 @@ class Sense(ControlNode):
         if csi == 0:
 
             msgid = evaluation_context.create_message(sensor, agent, MSG_TYPE_SENSOR, params)
-            reqTransfer = Act("requestTransfer", [msgid])
-            reqTransfer.parent = self
+            req_transfer = Act("requestTransfer", [msgid])
+            req_transfer.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, reqTransfer, evaluation_context
+            return ControlNode.CONTINUE, req_transfer, evaluation_context
         elif csi == 1 and self.__variable is not None:
             # wait until transfer ends
             ctime = evaluation_context.getFluentValue("time")
@@ -888,7 +1041,7 @@ class UpdateRemoteSensor(ControlNode):
         super().__init__()
         self.__remote_sensor_name = remote_sensor_name
 
-    def executeStep(self, evaluation_context: EvaluationContext, procedure_registry):
+    def execute_step(self, evaluation_context: EvaluationContext, procedure_registry):
         if evaluation_context.getCurrentSequenceIndex(self) is None:
             evaluation_context.setCurrentSequenceIndex(self, 0)
 

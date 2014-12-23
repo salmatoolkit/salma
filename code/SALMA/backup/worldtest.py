@@ -96,45 +96,6 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(world.getFluentValue("xpos", ["rob2"]), 120)
 
 
-
-    @withHeader()
-    def test_evaluate_python_function(self):
-        world = World.instance()
-
-        def myfunc1(x, y):
-            return x * y
-
-        def myfunc2(a, b, **ctx):
-            return a * b * ctx["x"] * ctx["xpos"]("rob1")
-
-        def myfunc3(a, b, x=None, xpos=None, ypos=None, **ctx):
-            return a * b * x * xpos("rob1") * ypos("rob1")
-
-        seq = Sequence([
-            Assign("x", EvaluationContext.PYTHON_FUNCTION,
-                   lambda i: i ** 2, [3]),
-            Assign("y", EvaluationContext.PYTHON_FUNCTION,
-                   myfunc1, [4, 6]),
-            Assign("z", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                   myfunc2, [-1, 2]),
-            Assign("z2", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                   myfunc3, [-1, 2])
-        ])
-
-        agent = Agent("rob1", "robot", Procedure("main", [], seq))
-        world.addAgent(agent)
-
-        world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 15)
-
-        world.runUntilFinished()
-
-        self.assertEqual(agent.evaluation_context.resolve(Variable("x"))[0], 9)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("y"))[0], 24)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], -1 * 2 * 9 * 10)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], -1 * 2 * 9 * 10 * 15)
-
     @withHeader()
     def testRandomizeFluents(self):
         world = World.instance()
@@ -559,7 +520,7 @@ class WorldTest(BaseWorldTest):
                                      ]
                                  ))
         registry = ProcedureRegistry()
-        registry.registerProcedure(transportToX)
+        registry.register_procedure(transportToX)
 
         controlProc = Procedure("main", [],
                                 Sequence([
@@ -600,7 +561,7 @@ class WorldTest(BaseWorldTest):
                                  )
         )
         registry = ProcedureRegistry()
-        registry.registerProcedure(transportToX)
+        registry.register_procedure(transportToX)
 
         controlProc = Procedure("main", [],
                                 Sequence([

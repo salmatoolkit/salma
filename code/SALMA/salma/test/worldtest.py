@@ -120,14 +120,14 @@ class WorldTest(BaseWorldTest):
     def test_run_right_until_max_X_pos(self):
         world = World.instance()
 
-        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
-                  [Entity.SELF, 100],
+        w = While("robotLeftFrom",
+                  [Entity.SELF, 100, "s0"],
                   [
                       Act("move_right", [Entity.SELF]),
-                      Wait(EvaluationContext.PYTHON_EXPRESSION, "not moving(self)", [])
+                      Wait("not moving(self)")
                   ])
 
-        agent = Agent("rob1", "robot", Procedure("main", [], w))
+        agent = Agent("rob1", "robot", Procedure(w))
         world.addAgent(agent)
         world.initialize(False)
         self.__configure_events_default()
@@ -153,20 +153,20 @@ class WorldTest(BaseWorldTest):
 
         # run from (x,y) to (y,y)
         seq = Sequence([
-            Assign("myY", EvaluationContext.FLUENT, "ypos", [Entity.SELF]),
+            Assign("myY", "ypos", [Entity.SELF]),
             ArbitraryAction(print_value, [Variable("myY")])
         ])
-        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
-                  [Entity.SELF, Variable("myY")],
-                  Sequence([
+        w = While("robotLeftFrom",
+                  [Entity.SELF, Variable("myY"), "s0"],
+                  [
                       Act("move_right", [Entity.SELF]),
-                      Wait(EvaluationContext.PYTHON_EXPRESSION, "not moving(self)", []),
-                      Assign("myX", EvaluationContext.FLUENT, "xpos", [Entity.SELF]),
+                      Wait("not moving(self)"),
+                      Assign("myX", "xpos", [Entity.SELF]),
                       ArbitraryAction(print_value, [Variable("myX")])
-                  ]))
-        seq.addChild(w)
+                  ])
+        seq.add_child(w)
 
-        agent = Agent("rob1", "robot", Procedure("main", [], seq))
+        agent = Agent("rob1", "robot", Procedure(seq))
         world.addAgent(agent)
 
         world.initialize(False)
@@ -183,43 +183,21 @@ class WorldTest(BaseWorldTest):
         world.add_additional_expression_context_global("math", math)
         # run from (x,y) to (y,y)
         seq = Sequence([
-            Assign("x",
-                   EvaluationContext.PYTHON_EXPRESSION,
-                   "6", []),
-            Assign("y",
-                   EvaluationContext.PYTHON_EXPRESSION,
-                   "x * 7 + params[0]",
-                   [3]),
-            Assign("z",
-                   EvaluationContext.PYTHON_EXPRESSION,
-                   "0", []),
-            Assign("z2",
-                   EvaluationContext.PYTHON_EXPRESSION,
-                   "xpos('rob1') + ypos('rob1')", []),
+            Assign("x", "6"),
+            Assign("y", "x * 7 + params[0]", [3]),
+            Assign("z", "0", []),
+            Assign("z2", "xpos('rob1') + ypos('rob1')"),
             # test symbols without quotation marks
-            Assign("z3",
-                   EvaluationContext.PYTHON_EXPRESSION,
-                   "xpos(rob1) + ypos(rob1)", []),
-            Assign("z4",
-                   EvaluationContext.PYTHON_EXPRESSION,
-                   "math.sqrt(xpos(rob1) - 1)", []),
-            Assign("z5",
-                   EvaluationContext.PYTHON_EXPRESSION,
-                   "gravity() * 10", []),
-            Assign("z6",
-                   EvaluationContext.PYTHON_EXPRESSION,
-                   "dist_from_origin(rob1)", []),
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                  "z < y - params[0]",
-                  [3],
-                  Sequence([
-                      Assign("z",
-                             EvaluationContext.PYTHON_EXPRESSION,
-                             "z + 1", [])
-                  ]))
+            Assign("z3", "xpos(rob1) + ypos(rob1)"),
+            Assign("z4", "math.sqrt(xpos(rob1) - 1)"),
+            Assign("z5", "gravity() * 10"),
+            Assign("z6", "dist_from_origin(rob1)"),
+            While("z < y - params[0]", [3],
+                  [
+                      Assign("z", "z + 1")])
         ])
 
-        agent = Agent("rob1", "robot", Procedure("main", [], seq))
+        agent = Agent("rob1", "robot", Procedure(seq))
         world.addAgent(agent)
 
         world.initialize(False)
@@ -242,3 +220,39 @@ class WorldTest(BaseWorldTest):
         self.assertAlmostEqual(98.1, v)
         v2 = agent.evaluation_context.resolve(Variable("z6"))[0]
         self.assertAlmostEqual(math.sqrt(10 * 10 + 15 * 15), v2)
+
+    def test_evaluate_python_function(self):
+        world = World.instance()
+
+        def myfunc1(a, b):
+            return a * b
+
+        def myfunc2(a, b, **ctx):
+            return a * b * ctx["x"] * ctx["xpos"]("rob1")
+
+        def myfunc3(a, b, x=None, xpos=None, ypos=None, **ctx):
+            return a * b * x * xpos("rob1") * ypos("rob1")
+
+        seq = Sequence([
+            Assign("x", lambda i: i ** 2, [3]),
+            Assign("y", myfunc1, [4, 6]),
+            Assign("z", myfunc2, [-1, 2]),
+            Assign("z2", myfunc3, [-1, 2])
+        ])
+
+        agent = Agent("rob1", "robot", Procedure(seq))
+        world.addAgent(agent)
+
+        world.initialize(False)
+        self.__configure_events_default()
+        self.initialize_robot("rob1", 10, 15, 0, 0)
+
+        world.printState()
+
+        experiment = Experiment(world)
+        experiment.run_until_finished()
+
+        self.assertEqual(agent.evaluation_context.resolve(Variable("x"))[0], 9)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("y"))[0], 24)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], -1 * 2 * 9 * 10)
+        self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], -1 * 2 * 9 * 10 * 15)

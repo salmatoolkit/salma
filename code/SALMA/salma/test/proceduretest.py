@@ -45,33 +45,33 @@ class Test(unittest.TestCase):
         ec = DummyEvaluationContext()
         
         seq = procedure.Sequence()
-        seq.addChild(procedure.ArbitraryAction(handler1))   
-        seq.addChild(procedure.ArbitraryAction(handler2))
-        seq.addChild(procedure.ArbitraryAction(handler1))
+        seq.add_child(procedure.ArbitraryAction(handler1))
+        seq.add_child(procedure.ArbitraryAction(handler2))
+        seq.add_child(procedure.ArbitraryAction(handler1))
         
         
         
         handler1Count = handler2Count = handler3Count = 0
        
-        (state, nextNode) = seq.executeStep(ec)
+        (state, nextNode) = seq.execute_step(ec)
         self.assertEqual(ControlNode.CONTINUE, state)
         self.assertEqual(seq, nextNode)
         self.assertEqual(1, handler1Count)
         self.assertEqual(0, handler2Count)
         
-        (state, nextNode) = seq.executeStep(ec)
+        (state, nextNode) = seq.execute_step(ec)
         self.assertEqual(ControlNode.CONTINUE, state)
         self.assertEqual(seq, nextNode)
         self.assertEqual(1, handler1Count)
         self.assertEqual(1, handler2Count)
         
-        (state, nextNode) = seq.executeStep(ec)
+        (state, nextNode) = seq.execute_step(ec)
         self.assertEqual(ControlNode.CONTINUE, state)
         self.assertEqual(seq, nextNode)
         self.assertEqual(2, handler1Count)
         self.assertEqual(1, handler2Count)
         
-        (state, nextNode) = seq.executeStep(ec)
+        (state, nextNode) = seq.execute_step(ec)
         self.assertEqual(ControlNode.CONTINUE, state)
         self.assertEqual(None, nextNode)
         self.assertEqual(2, handler1Count)
@@ -84,7 +84,7 @@ class Test(unittest.TestCase):
         ec = DummyEvaluationContext()
         action = procedure.ArbitraryAction(handler1)
         print("id: ",action.id)
-        (a,b) = action.executeStep(ec)
+        (a,b) = action.execute_step(ec)
         self.assertEqual(a, ControlNode.CONTINUE)
         self.assertEqual(b, None)
         self.assertEqual(1, handler1Count)

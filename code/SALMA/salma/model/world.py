@@ -1,9 +1,7 @@
 import itertools
 import logging
 import random
-from collections.abc import Iterable
-
-import pyclp
+from collections.abc import Iterable, Iterator
 
 from salma.SALMAException import SALMAException
 from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome
@@ -19,6 +17,7 @@ from .procedure import Variable, Act
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
 from salma.mathutils import min_robust, max_robust
 from salma.termutils import tuplify
+import inspect
 
 
 MODULE_LOGGER_NAME = 'salma.model'
@@ -103,6 +102,9 @@ class World(Entity, WorldDeclaration):
         #: :type: dict[str, object]
         self.__additional_expression_context_globals = dict()
 
+        #: :type: set[str]
+        self.__clp_functions = set()
+
         if World.logic_engine() is None:
             raise SALMAException("Engine not set when creating world.")
         World.logic_engine().reset()
@@ -123,6 +125,13 @@ class World(Entity, WorldDeclaration):
         """
         self.__virtualSorts = set(vsorts)
 
+    @property
+    def clp_functions(self):
+        """
+        :rtype: set[str]
+        """
+        return self.__clp_functions
+
     def getExpressionContext(self):
         return self.__expressionContext
 
@@ -137,6 +146,9 @@ class World(Entity, WorldDeclaration):
         :param object value: the value
         """
         self.__additional_expression_context_globals[name] = value
+
+    def register_clp_function(self, name):
+        self.__clp_functions.add(name)
 
     @staticmethod
     def create_new_world():
@@ -304,15 +316,13 @@ class World(Entity, WorldDeclaration):
         for fluent in itertools.filterfalse(lambda f: f.name == 'time', self.__fluents.values()):
             self.__initialize_fluent(fluent)
 
-    def __load_stochastic_action_declarations(self, declarations, immediate_action_names):
+    def __load_stochastic_action_declarations(self, declarations):
         """
         Loads the stochastic declarations and creates StochasticAction objects accordingly.
         :param list[(str, list[(str, str)], list[str])] declarations: the declarations as
                 (name, params, outcome_names) tuples
-        :param list[str] immediate_action_names: list of action names
         """
         for sa in declarations:
-            immediate = sa[0] in immediate_action_names
             params = sa[1]
             outcome_names = sa[2]
             #: :type: list[RandomActionOutcome]
@@ -327,8 +337,8 @@ class World(Entity, WorldDeclaration):
     def __load_exogenous_action_choice(self, declarations):
         """
         Loads the exogenous action choice declarations.
-        :param list[(str, list[(str, str)], list[str])] declarations: the declarations as
-                (name, params, option_names) tuples.
+        :param list[(str, list[(str, str)], list[str], str, bool)] declarations: the declarations as
+                (name, params, option_names, type, time-dependent) tuples.
         """
         for ec in declarations:
             choice_name, params, option_names, _, _ = ec
@@ -369,8 +379,7 @@ class World(Entity, WorldDeclaration):
             immediate = pa[0] in declarations['immediate_actions']
             self.addAction(DeterministicAction(pa[0], pa[1], immediate))
 
-        self.__load_stochastic_action_declarations(declarations["stochastic_actions"],
-                                                   declarations["immediate_actions"])
+        self.__load_stochastic_action_declarations(declarations["stochastic_actions"])
 
         for ea in declarations['exogenous_actions']:
             self.__event_schedule.add_exogenous_action(ExogenousAction(ea[0], ea[1], ea[2]))
@@ -683,6 +692,12 @@ class World(Entity, WorldDeclaration):
         """
         return self.__derived_fluents.values()
 
+    def get_derived_fluent(self, derived_fluent_name):
+        if derived_fluent_name in self.__derived_fluents:
+            return self.__derived_fluents[derived_fluent_name]
+        else:
+            return None
+
     def getConstants(self):
         """
         Returns a list of all registered constants.
@@ -864,26 +879,13 @@ class World(Entity, WorldDeclaration):
         :rtype: (Action, tuple, EvaluationContext)
         """
         try:
-            action = self.__actions[action_execution.actionName]
-            ground_params = tuplify(evaluation_context.resolve(*action_execution.actionParameters))
+            action = self.__actions[action_execution.action_name]
+            ground_params = tuplify(evaluation_context.resolve(*action_execution.action_parameters))
             return action, ground_params, evaluation_context
         except KeyError:
             raise (
                 SALMAException("Trying to execute unregistered action: {}".format(
-                    action_execution.actionName)))
-
-    @staticmethod
-    def __get_action_name_from_term(action_term):
-        """
-        Extracts the action name from the given term. This is either the functor if action_term is a Compound or
-        the string representation of action_term.
-        :param action_term: (pyclp.Atom, pyclp.Compound)
-        :rtype: str
-        """
-        if isinstance(action_term, pyclp.Compound):
-            return action_term.functor()
-        else:
-            return str(action_term)
+                    action_execution.action_name)))
 
     def __get_next_process_time(self):
         """
@@ -898,12 +900,10 @@ class World(Entity, WorldDeclaration):
                 min_time = min_robust([min_time, ptime])
         return min_time
 
-    def get_next_stop_time(self, time_limit, consider_scanning_points):
+    def get_next_stop_time(self, consider_scanning_points):
         """
         Determines the next point in time at which the simulation must stop.
 
-        :param int time_limit: the upper bound for the returned time that is used when
-         either no point in time could be determined or the determined point is later than time_limit.
         :param bool consider_scanning_points: whether or not scanning points should be considered, i.e. points
             where events will become possible / schedulable.
         :rtype: int
@@ -975,7 +975,7 @@ class World(Entity, WorldDeclaration):
             failed_actions.extend(fa)
             # for scanning for possible / schedulable events, don't stop at previously calculated
             # scanning point because this point might have become invalid during the last progression
-            next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=False)
+            next_stop_time = self.get_next_stop_time(consider_scanning_points=False)
 
             stl = min_robust([next_stop_time, time_limit])
             assert isinstance(stl, int)
@@ -987,7 +987,7 @@ class World(Entity, WorldDeclaration):
             # the no event is scheduled / possible / schedulable at the current point
             if len(due_events) == 0 and len(actions) == 0:
                 # update the next stop time using all available information
-                next_stop_time = self.get_next_stop_time(time_limit, consider_scanning_points=True)
+                next_stop_time = self.get_next_stop_time(consider_scanning_points=True)
                 if next_stop_time is None or next_stop_time > current_time:
                     break
         if self.is_finished():
@@ -1105,31 +1105,31 @@ class LocalEvaluationContext(EvaluationContext):
     An evaluation context that is coupled with an entity.
     """
 
-    def __init__(self, contextEntity, parent):
+    def __init__(self, context_entity, parent):
         """
-        :type contextEntity: Entity
+        :type context_entity: Entity
         :type parent: EvaluationContext|None
         """
         EvaluationContext.__init__(self, parent)
-        self.__contextEntity = contextEntity
-        self.__variableBindings = dict()  # variable name
-        self.__variableBindings[Entity.SELF] = self.__contextEntity
+        self.__context_entity = context_entity
+        self.__variable_bindings = dict()  # variable name
+        self.__variable_bindings[Entity.SELF] = self.__context_entity
 
-    def evaluate_python(self, source_type, source, *resolvedParams):
+    def evaluate_python(self, source_type, source, *resolved_params):
         result = None
         if source_type == EvaluationContext.PYTHON_EXPRESSION:
             ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.__variableBindings)
-            ctx['self'] = self.__contextEntity.id
-            ctx['params'] = resolvedParams
+            ctx.update(self.__variable_bindings)
+            ctx['self'] = self.__context_entity.id
+            ctx['params'] = resolved_params
             result = eval(source, ctx)
         elif source_type == EvaluationContext.PYTHON_FUNCTION:
-            result = source(*resolvedParams)
+            result = source(*resolved_params)
         elif source_type == EvaluationContext.EXTENDED_PYTHON_FUNCTION:  # is python function
             ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.__variableBindings)
-            ctx['agent'] = self.__contextEntity  # don't call it self here to avoid confusion in function
-            result = source(*resolvedParams, **ctx)
+            ctx.update(self.__variable_bindings)
+            ctx['agent'] = self.__context_entity  # don't call it self here to avoid confusion in function
+            result = source(*resolved_params, **ctx)
         return result
 
     def evaluateCondition(self, source_type, source, *params):
@@ -1219,7 +1219,7 @@ class LocalEvaluationContext(EvaluationContext):
         :param str variableName: name of variable that should be set.
         :param object value: the value to assign
         """
-        self.__variableBindings[variableName] = value
+        self.__variable_bindings[variableName] = value
 
     def resolve(self, *terms):
         """
@@ -1234,11 +1234,11 @@ class LocalEvaluationContext(EvaluationContext):
         for term in terms:
             # var gt : object
             if term is Entity.SELF:
-                gt = self.__contextEntity.id
+                gt = self.__context_entity.id
             elif isinstance(term, Variable):
-                if term.name not in self.__variableBindings:
+                if term.name not in self.__variable_bindings:
                     raise SALMAException("Variable %s not bound." % term.name)
-                gt = self.__variableBindings[term.name]
+                gt = self.__variable_bindings[term.name]
             elif isinstance(term, (list, set)):
                 gt = list()
                 for t in term:
@@ -1391,10 +1391,32 @@ class LocalEvaluationContext(EvaluationContext):
         return refinedPlan, refinedValues
 
     def createChildContext(self):
-        return LocalEvaluationContext(self.__contextEntity, self)
+        return LocalEvaluationContext(self.__context_entity, self)
 
     def getSorts(self):
         return World.instance().getSorts()
+
+    # noinspection PyUnusedLocal
+    def determine_source_type(self, source, params):
+        if isinstance(source, (Iterable, Iterator)) and not isinstance(source, str):
+            return EvaluationContext.ITERATOR
+        elif callable(source):
+            if inspect.isfunction(source) and inspect.getfullargspec(source).varkw is not None:
+                return EvaluationContext.EXTENDED_PYTHON_FUNCTION
+            else:
+                return EvaluationContext.PYTHON_FUNCTION
+        elif isinstance(source, str):
+            wd = World.instance()
+            if wd.getFluent(source) is not None:
+                return EvaluationContext.FLUENT
+            elif wd.getConstant(source) is not None:
+                return EvaluationContext.CONSTANT
+            elif wd.get_derived_fluent(source) is not None:
+                return EvaluationContext.TRANSIENT_FLUENT
+            elif source in wd.clp_functions:
+                return EvaluationContext.ECLP_FUNCTION
+            else:
+                return EvaluationContext.PYTHON_EXPRESSION
 
     def getDomain(self, sortName):
         """

@@ -5,16 +5,14 @@ from salma.engine import EclipseCLPEngine
 from salma.model import process
 from salma.model.agent import Agent
 from salma.model.core import Entity
-from salma.model.distributions import NormalDistribution, ExponentialDistribution, ConstantDistribution, \
+from salma.model.distributions import ExponentialDistribution, ConstantDistribution, \
     BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.experiment import Experiment
-from salma.model.procedure import Sequence, Assign, SetFluent, Act
+from salma.model.procedure import Sequence, Assign, Act, Variable
 from salma.model.selectionstrategy import Stepwise
 from salma.model.world import World
 import random
-
-__author__ = 'Christian'
 
 import unittest
 
@@ -28,6 +26,7 @@ def steplogger(world: World, **kwargs):
         world.getFluentValue("vx", ["rob1"]),
         world.getFluentValue("vy", ["rob1"])))
     return True, None
+
 
 class EventSchedulingTest(unittest.TestCase):
     @classmethod
@@ -77,9 +76,8 @@ class EventSchedulingTest(unittest.TestCase):
             return nvx, nvy
 
         seq = Sequence([
-            Assign("nv", EvaluationContext.EXTENDED_PYTHON_FUNCTION, change_direction, []),
-            SetFluent("vx", [Entity.SELF], EvaluationContext.PYTHON_EXPRESSION, "nv[0]", []),
-            SetFluent("vy", [Entity.SELF], EvaluationContext.PYTHON_EXPRESSION, "nv[1]", [])
+            Assign(("nvx", "nvy"), change_direction),
+            Act("set_velocity", [Entity.SELF, Variable("nvx"), Variable("nvy")])
         ])
 
         proc = process.TriggeredProcess(seq, EvaluationContext.PYTHON_EXPRESSION,

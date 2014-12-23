@@ -111,7 +111,7 @@ class EvaluationContext(object):
         """
         Assigns the given value to the given variable name.
 
-        variableName: name of the variable that should be set.
+        variable_name: name of the variable that should be set.
         value: new value for variable
 
         """
@@ -122,7 +122,16 @@ class EvaluationContext(object):
         Evaluates each term in terms and returns a list with the collected results.
         """
         raise NotImplementedError()
-    
+
+    def determine_source_type(self, source, params):
+        """
+        Returns the source type as defined in EvaluationContext.
+        :param object source: the source, either a Python function, a fluent name, or a Python expression.
+        :param list|tuple params: the parameters used for evaluation.
+        :rtype: int
+        """
+        raise NotImplementedError()
+
     def getEntity(self, entityId):
         """
         returns the entity with the given id

@@ -71,10 +71,10 @@ class WorldTest2(unittest.TestCase):
         """
         main_seq = Sequence()
         inner_seq = Sequence()
-        inner_seq.addChild(Act("move_right", [Entity.SELF]))
+        inner_seq.add_child(Act("move_right", [Entity.SELF]))
 
-        main_seq.addChild(Act("grab", [Entity.SELF, "item" + str(num)]))
-        main_seq.addChild(While(EvaluationContext.PYTHON_EXPRESSION,
+        main_seq.add_child(Act("grab", [Entity.SELF, "item" + str(num)]))
+        main_seq.add_child(While(EvaluationContext.PYTHON_EXPRESSION,
                                 "True",
                                 [Entity.SELF],
                                 inner_seq))

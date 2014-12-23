@@ -47,6 +47,7 @@ class BaseWorldTest(unittest.TestCase):
         world = World.instance()
         world.load_declarations()
         world.setConstantValue("gravity", [], 9.81)
+        world.register_clp_function("robotLeftFrom")
 
     def create_right_moving_mobot(self, robotId):
         """
@@ -55,11 +56,11 @@ class BaseWorldTest(unittest.TestCase):
         :rtype: Agent
         """
         seq = Sequence()
-        seq.addChild(Act("move_right", [Entity.SELF]))
-        seq.addChild(Wait(EvaluationContext.PYTHON_EXPRESSION, "occur('finish_step', self)", []))
-        seq.addChild(Act("move_down", [Entity.SELF]))
-        seq.addChild(Wait(EvaluationContext.PYTHON_EXPRESSION, "occur('finish_step', self)", []))
-        proc = process.OneShotProcess(Procedure("main", [], seq))
+        seq.add_child(Act("move_right", [Entity.SELF]))
+        seq.add_child(Wait("occur('finish_step', self)"))
+        seq.add_child(Act("move_down", [Entity.SELF]))
+        seq.add_child(Wait("occur('finish_step', self)"))
+        proc = process.OneShotProcess(Procedure(seq))
         agent = Agent(robotId, "robot", [proc])
         return agent
 
