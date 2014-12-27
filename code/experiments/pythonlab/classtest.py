@@ -17,15 +17,15 @@ class ClassTest(object):
         self.__num = value
         print("Set num to %d\n" % value)
 
+
 class Foo:
     def foo(self, msg):
         pass
 
+
 class A(Foo):
     def foo(self, msg):
         print("A-foo: " + msg)
-
-
 
 
 class B(Foo):
@@ -69,6 +69,7 @@ class C:
         :rtype (int, B)
         """
         return 42, B("chris")
+
 def foo(name, *params):
     print(len(params))
     print(params)
@@ -96,3 +97,5 @@ if __name__ == "__main__":
     print(C.statprop)
 
     print(c1.complex_prop()[1].name)
+
+    a = A()

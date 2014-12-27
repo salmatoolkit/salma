@@ -3,7 +3,7 @@ from salma import constants
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.experiment import Experiment
-from salma.model.selectionstrategy import OutcomeSelectionStrategy
+from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.distributions import BernoulliDistribution, ConstantDistribution, OptionalDistribution, \
     ExponentialDistribution
 from salma.model.evaluationcontext import EvaluationContext
@@ -256,3 +256,56 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(agent.evaluation_context.resolve(Variable("y"))[0], 24)
         self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], -1 * 2 * 9 * 10)
         self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], -1 * 2 * 9 * 10 * 15)
+
+
+    def record_outcomes(self, world, actions=None, **ctx):
+        for a in actions:
+            if a[0] == "crash":
+                self.__crash_count += 1
+            elif a[1] == "land_on":
+                self.land_on_count += 1
+
+        print("My Actions: {}".format(actions))
+        return True, None
+
+    def testUniformStochasticAction(self):
+        world = World.instance()
+
+        seq = Sequence([
+            Act("move_right", [Entity.SELF]),
+            Act("jump", [Entity.SELF, 42]),
+            Act("jump", [Entity.SELF, 42]),
+            Act("jump", [Entity.SELF, 42])
+        ])
+
+        agent = Agent("rob1", "robot", Procedure(seq))
+        world.addAgent(agent)
+        world.initialize(False)
+
+        self.__configure_events_default()
+        jump_action = world.get_stochastic_action("jump")
+        self.generate_outcomes(jump_action)
+        jump_action.selection_strategy = Uniform()
+
+        self.initialize_robot("rob1", 10, 20, 0, 0)
+
+        world.printState()
+        self.__crash_count = 0
+        self.__land_on_count = 0
+        experiment = Experiment(world)
+        experiment.run_until_finished(step_listeners=[self.record_outcomes])
+        world.printState()
+        print(self.__crash_count)
+
+    def generate_outcomes(self, jump_action):
+        """
+        :type jump_action: StochasticAction
+        """
+        land_on = jump_action.outcome("land_on")
+        land_on.map_param("r", "r")
+        land_on.uniform_param("x", (100, 500))
+        land_on.uniform_param("y", (0, 200))
+
+        crash = jump_action.outcome("crash")
+        crash.map_param("r", "r")
+
