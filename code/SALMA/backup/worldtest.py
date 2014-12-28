@@ -127,31 +127,6 @@ class WorldTest(BaseWorldTest):
         crash.map_param("r", "r")
 
 
-    @withHeader()
-    def testUniformStochasticAction(self):
-        world = World.instance()
-
-        jump_action = world.get_stochastic_action("jump")
-        self.generate_outcomes(jump_action)
-        jump_action.selection_strategy = Uniform()
-
-        seq = Sequence([
-            Act("move_right", [Entity.SELF]),
-            Act("jump", [Entity.SELF, 42]),
-            Act("jump", [Entity.SELF, 42]),
-            Act("jump", [Entity.SELF, 42])
-        ])
-
-        agent = Agent("rob1", "robot", Procedure("main", [], seq))
-        world.addAgent(agent)
-        world.initialize(False)
-
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 20)
-        world.setFluentValue("active", ["rob1"], True)
-
-        world.runUntilFinished()
-        world.printState()
 
     @withHeader()
     def testCustomStochasticAction(self):

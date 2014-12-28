@@ -257,13 +257,12 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], -1 * 2 * 9 * 10)
         self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], -1 * 2 * 9 * 10 * 15)
 
-
     def record_outcomes(self, world, actions=None, **ctx):
         for a in actions:
             if a[0] == "crash":
                 self.__crash_count += 1
-            elif a[1] == "land_on":
-                self.land_on_count += 1
+            elif a[0] == "land_on":
+                self.__land_on_count += 1
 
         print("My Actions: {}".format(actions))
         return True, None
@@ -273,9 +272,11 @@ class WorldTest(BaseWorldTest):
 
         seq = Sequence([
             Act("move_right", [Entity.SELF]),
-            Act("jump", [Entity.SELF, 42]),
-            Act("jump", [Entity.SELF, 42]),
-            Act("jump", [Entity.SELF, 42])
+            Assign("i", 0),
+            While("i < 100", [
+                Act("jump", [Entity.SELF, 42]),
+                Assign("i", "i + 1")
+            ])
         ])
 
         agent = Agent("rob1", "robot", Procedure(seq))
@@ -295,7 +296,8 @@ class WorldTest(BaseWorldTest):
         experiment = Experiment(world)
         experiment.run_until_finished(step_listeners=[self.record_outcomes])
         world.printState()
-        print(self.__crash_count)
+        print("crash: {} - land on: {}".format(self.__crash_count, self.__land_on_count))
+        # TODO: test hypothesis for uniform distribution
 
     def generate_outcomes(self, jump_action):
         """

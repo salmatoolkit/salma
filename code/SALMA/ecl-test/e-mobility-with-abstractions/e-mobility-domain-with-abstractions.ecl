@@ -58,7 +58,7 @@ ensemble(freeSlotsR, SAM, PLCS, S) :- true.
 % includes a list of alternatives for possible PLCSs. The PLCSSAM is supposed to select
 % the optimal PLCS out of this list.
 
-%stochastic_action(bla, [v:vehicle], [explode]).
+
 
 init_domaindesc :- true.
 

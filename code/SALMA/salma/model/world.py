@@ -1118,6 +1118,7 @@ class LocalEvaluationContext(EvaluationContext):
     def evaluate_python(self, source_type, source, *resolved_params):
         result = None
         if source_type == EvaluationContext.PYTHON_EXPRESSION:
+            source = str(source)
             ctx = World.instance().getExpressionContext().copy()
             ctx.update(self.__variable_bindings)
             ctx['self'] = self.__context_entity.id
@@ -1405,7 +1406,8 @@ class LocalEvaluationContext(EvaluationContext):
                 return EvaluationContext.EXTENDED_PYTHON_FUNCTION
             else:
                 return EvaluationContext.PYTHON_FUNCTION
-        elif isinstance(source, str):
+        else:
+            source = str(source)
             wd = World.instance()
             if wd.getFluent(source) is not None:
                 return EvaluationContext.FLUENT

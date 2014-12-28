@@ -16,7 +16,7 @@ fluent(vehiclePosition, [veh:vehicle], term).
 doc(vehiclePosition : fluent,[
 	summary: "The vehicles's position.",
 	desc: "The vehicle position is stored as aterm pos(p1, p2, pos_on_road) where
-		pos_on_road is in the interval [0, roadlength(p1,p1)]"
+		pos_on_road is in the interval [0, roadlength(p1,p2)]"
 	]).
 	
 
@@ -56,23 +56,30 @@ primitive_action(setPOI, [veh:vehicle, p:poi]).
 poss(setPOI(_,_), _) :- true.
 	
 	
-exogenous_action(speedChanges, [veh:vehicle], [newSpeed:integer]).
-poss(speedChanges(Vehicle, _), S) :-
-	currentPLCS(Vehicle, none, S).
-	
-
 	
 exogenous_action(driverLeavesPLCS, [veh:vehicle], []).
-poss(driverLeavesPLCS(Vehicle), S) :-
+schedulable(driverLeavesPLCS(Vehicle), S) :-
 	currentPLCS(Vehicle, PLCS, S),
 	PLCS \= none.
 
+exogenous_action(arriveAtRoadEnd, [veh:vehicle], []).
+schedulable(arriveAtRoadEnd(Vehicle), S) :-
+	vehiclePosition(Vehicle, Pos, S),
+	Pos = pos(A, B),
+	A \= B.
+		
+exogenous_action(enterNextRoad, [veh:vehicle], []).
+schedulable(enterNextRoad(Vehicle), S) :-
+	vehiclePosition(Vehicle, Pos, S),
+	Pos = pos(A, A),
+	currentTarget(Vehicle, Target, S),
+	Target \= none.
+	
 % SUCCESSOR STATE AXIOMS
-
 
 currentTarget(Vehicle, Target, S) :-
 	currentRoute(Vehicle, Route, S),
-	(length(Route) $= 0 -> 
+	(length(Route) =:= 0 -> 
 		Target = none
 		;
 		Route = [Target | _]
@@ -90,58 +97,25 @@ hasTargetPLCS(Vehicle, S) :-
 	currentTargetPLCS(Vehicle, PLCS, S),
 	not PLCS=none.
 	
-get_next_target_start(Vehicle, ActPos, NextTargetStart, S) :-
-	nextTarget(Vehicle, Target, S),
-	(Target = none -> 
-			NextTargetStart = pos(ActPos, ActPos, 0)
-			;
-			NextTargetStart = pos(ActPos, Target, 0)
-	).
 	
 
-calculate_new_position(Vehicle, OldPos, Steps, Position, S) :-
-	OldPos = pos(P1, P2, PosOnRoad),
-	(P1 = P2 ->
-		% we are at the end / beginning of a road
-		get_next_target_start(Vehicle, P1, Position, S)		
+effect(vehiclePosition(Vehicle), enterNextRoad(Vehicle), OldPos, Position, S) :-
+	OldPos = pos(_, OldEnd),
+	currentTarget(Vehicle, Target, S),
+	(Target = none ->
+		Position = OldPos
 		;
-		% somewhere on the road
-		roadlength(P1, P2, RoadLength),
-		(PosOnRoad >= RoadLength ->
-			% just arrived at target -> start next route segment
-			get_next_target_start(Vehicle, P2, Position, S)
-			;
-			vehicleSpeed(Vehicle, Speed, S),
-			NewPosOnRoad is PosOnRoad + Speed * Steps,
-			Position = pos(P1, P2, NewPosOnRoad)
-		)	
+		Position = pos(OldEnd, Target)
 	).
-
-effect(vehiclePosition(Vehicle), tick(Steps), OldPos, Position, S) :-
-	calculate_new_position(Vehicle, OldPos, Steps, Position, S).
 	
+effect(vehiclePosition(Vehicle), arriveAtRoadEnd(Vehicle), OldPos, Position, S) :-
+	OldPos = pos(_, OldEnd),
+	Position = pos(OldEnd, OldEnd).
 	
-% a predicate that checks whether Vehicle will arrive at its target in situation
-% S
-arrive_at_targetPLCS(Vehicle, S) :-
-	vehiclePosition(Vehicle, Position, S),
-	currentTargetPLCS(Vehicle, TargetPLCS, S),
-	Position = pos(TargetPLCS, TargetPLCS, 0).
-	
-	
-
-effect(vehicleSpeed(Vehicle), speedChanges(Vehicle, NewSpeed), _, NewSpeed, _).
-
-% this ineffective effect will be eliminated by the event schedule! 
-effect(vehicleSpeed(Vehicle), tick(Steps), OldSpeed, NewSpeed, S) :-
-	(arrive_at_targetPLCS(Vehicle, do2(tick(Steps), S)) ->
-		NewSpeed = 0
-		;
-		NewSpeed = OldSpeed
-	).
 
 effect(currentRoute(Vehicle), setRoute(Vehicle, NewRoute), _, NewRoute, _).
-	
+effect(currentRoute(Vehicle), arriveAtRoadEnd(Vehicle), _, NewRoute, S).
+
 effect(currentRoute(Vehicle), tick(Steps), OldRoute, Route, S) :-
     currentRoute(Vehicle, OldRoute, S),
 	vehiclePosition(Vehicle, OldPos, S),
