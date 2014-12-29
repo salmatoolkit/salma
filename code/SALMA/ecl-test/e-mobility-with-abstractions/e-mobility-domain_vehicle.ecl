@@ -56,11 +56,17 @@ primitive_action(setPOI, [veh:vehicle, p:poi]).
 poss(setPOI(_,_), _) :- true.
 	
 	
-	
+% TODO: make 
+% TODO: make % TODO: make 
 exogenous_action(driverLeavesPLCS, [veh:vehicle], []).
 schedulable(driverLeavesPLCS(Vehicle), S) :-
 	currentPLCS(Vehicle, PLCS, S),
 	PLCS \= none.
+
+exogenous_action(driverParksAtPLCS, [veh:vehicle, p:plcs], []).
+schedulable(driverParksAtPLCS(vehicle, PLCS
+	
+
 
 exogenous_action(arriveAtRoadEnd, [veh:vehicle], []).
 schedulable(arriveAtRoadEnd(Vehicle), S) :-
@@ -114,18 +120,11 @@ effect(vehiclePosition(Vehicle), arriveAtRoadEnd(Vehicle), OldPos, Position, S) 
 	
 
 effect(currentRoute(Vehicle), setRoute(Vehicle, NewRoute), _, NewRoute, _).
-effect(currentRoute(Vehicle), arriveAtRoadEnd(Vehicle), _, NewRoute, S).
-
-effect(currentRoute(Vehicle), tick(Steps), OldRoute, Route, S) :-
-    currentRoute(Vehicle, OldRoute, S),
-	vehiclePosition(Vehicle, OldPos, S),
-	calculate_new_position(Vehicle, OldPos, Steps, NewPos, S),
-	nextTarget(Vehicle, NextTarget, S),
-	NewPos = pos(_, P2, _),
-	((P2 = NextTarget, NextTarget \= none) -> % remove current target if next target was selected
-		OldRoute = [_ | Route]
+effect(currentRoute(Vehicle), arriveAtRoadEnd(Vehicle), OldRoute, NewRoute, S) :-
+	(length(OldRoute, 0) ->
+		NewRoute = []
 		;
-		Route = OldRoute
+		OldRoute = [_ | NewRoute]
 	).
 
 effect(currentTargetPLCS(Vehicle), setTargetPLCS(Vehicle, NewTarget), _, NewTarget, _).
