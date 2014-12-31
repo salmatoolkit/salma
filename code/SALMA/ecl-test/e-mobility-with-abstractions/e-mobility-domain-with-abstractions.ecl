@@ -1,5 +1,5 @@
-:- dynamic locX/2, locY/2, connected/3, roadlength/3,
-	responsiblePLCSSAM/2.
+:- dynamic locX/2, locY/2, roadEnds/2, roadlength/2, roadBaseSpeed/2,
+	numVehiclesOnRoad/3,	responsiblePLCSSAM/2.
 	
 :- ['e-mobility-domain_vehicle'].
 :- ['e-mobility-domain_plcs'].
@@ -15,7 +15,7 @@
 %   set with setFluentValue
 % 	- examples could be state flags, plans, etc.
 
-sorts([vehicle, plcs, plcssam, poi, crossing, location]).
+sorts([vehicle, plcs, plcssam, poi, crossing, location, road]).
 subsort(location, object).
 subsorts([plcs, plcssam, poi, crossing], location).
 subsorts([vehicle, plcs, plcssam], agent).
@@ -24,8 +24,18 @@ constant(locX, [loc:location], integer).
 constant(locY, [loc:location], integer).
 
 % ROADS
-constant(connected, [l1:location, l2:location], boolean).
-constant(roadlength, [l1:location, l2:location], integer).
+%% given as r(Start, End) 
+constant(roadEnds, [r:road], term).
+
+constant(roadlength, [r:road], float).
+constant(roadBaseSpeed, [r:road], float).
+
+derived_fluent(numVehiclesOnRoad, [r:road], integer).
+
+numVehiclesOnRoad(Road, Count, S) :-
+	findall(V, vehiclePosition(V, r(Road), S), Vehicles),
+	length(Vehicles, Count).
+	
 
 constant(responsiblePLCSSAM, [loc:location], plcssam).
 doc(responsiblePLCSSAM : constant, [
@@ -38,29 +48,9 @@ channel(assignment, veh:vehicle, sam:plcssam, unicast).
 channel(reservation, veh:vehicle, plcs:plcs, unicast).
 remoteSensor(freeSlotsR, plcssam, freeSlotsL, plcs).
 
+% TODO: define cool ensembles
 ensemble(freeSlotsR, SAM, PLCS, S) :- true.
 
 
 
-
-% -------------------------------------
-% communication fluents
-% -------------------------------------
-
-% communication flow:
-% 1. PLCSSAM reads all current vehicleReservationRequests
-% 2. PLCSSAM selects best PLCS for each vehicle
-% 3. PLCSSAM writes to PLCS::reservations
-% 4. PLCSSAM sets Vehice::reservation
-
- 
-% The list of reservation requests that a vehicle intends to send to the PLCSSAM. Each request
-% includes a list of alternatives for possible PLCSs. The PLCSSAM is supposed to select
-% the optimal PLCS out of this list.
-
-
-
 init_domaindesc :- true.
-
-connected(_, _, T) :- T = false, !.
-roadlength(_, _, L) :- L = 50, !.

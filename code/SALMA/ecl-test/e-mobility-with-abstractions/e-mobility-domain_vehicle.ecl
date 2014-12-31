@@ -1,9 +1,13 @@
 :- dynamic vehiclePosition/3,
-	vehicleSpeed/3, currentRoute/3, currentTargetPOI/3, currentTarget/3,
-	nextTarget/3, currentPLCS/3, currentTargetPLCS/3,
+	currentRoute/3, currentTargetPOI/3, currentRoad/3,
+	currentLocation/3, currentTarget/3,
+	nextRoad/3, currentPLCS/3, currentTargetPLCS/3,
 	calendar/2, waitingForAssignment/2, waitingForReservation/2.
 	
 % VEHICLE
+
+%% Stores the vehicle's schedule as list of POIs together with the time
+%% interval this POI should be visited.
 constant(calendar, [veh:vehicle], list).
 doc(calendar : constant,[
 	summary: "Stores the vehicle's schedule as list of POIs together with the time
@@ -12,21 +16,8 @@ doc(calendar : constant,[
 			cal(poi, startTime, plannedDuration)"
 	]).
 
+%% either l(loc) for crossing, plcs, poi, or r(road)
 fluent(vehiclePosition, [veh:vehicle], term).
-doc(vehiclePosition : fluent,[
-	summary: "The vehicles's position.",
-	desc: "The vehicle position is stored as aterm pos(p1, p2, pos_on_road) where
-		pos_on_road is in the interval [0, roadlength(p1,p2)]"
-	]).
-	
-
-fluent(vehicleSpeed, [veh:vehicle], integer).
-doc(vehicleSpeed : fluent, [
-	summary: "The vehicle's current speed.",
-	desc: "This should be a stochastic fluent with a distribution
-		that could depend on type of the current road but optionally also on the
-		number of vehicles on the road."
-	]).
 
 % none when driving	
 fluent(currentPLCS, [veh:vehicle], plcs).
@@ -38,15 +29,17 @@ fluent(currentTargetPLCS, [veh:vehicle], plcs).
 fluent(waitingForAssignment, [veh:vehicle], boolean).
 fluent(waitingForReservation, [veh:vehicle], boolean).
 
-% route is given as the remaining list of locations
+% route is given as the remaining list of roads
 fluent(currentRoute, [veh:vehicle], list).
-
+derived_fluent(currentRoad, [veh:vehicle], road).
+derived_fluent(currentLocation, [veh:vehicle], location).
 derived_fluent(currentTarget, [veh:vehicle], location).
-derived_fluent(nextTarget, [veh:vehicle], location).
+derived_fluent(nextRoad, [veh:vehicle], road).
+
 derived_fluent(hasTargetPLCS, [veh:vehicle], boolean).
-derived_fluent(arrive_at_targetPLCS, [veh:vehicle], boolean).
 
 primitive_action(setTargetPLCS, [veh:vehicle, target:plcs]).
+
 poss(setTargetPLCS(_,_),_) :- true.
 
 primitive_action(setRoute, [veh:vehicle, route:list]).
@@ -64,63 +57,78 @@ schedulable(driverLeavesPLCS(Vehicle), S) :-
 	PLCS \= none.
 
 exogenous_action(driverParksAtPLCS, [veh:vehicle, p:plcs], []).
-schedulable(driverParksAtPLCS(vehicle, PLCS
-	
+schedulable(driverParksAtPLCS(Vehicle), S) :-
+	currentPLCS(Vehicle, CurrentPLCS, S),
+	CurrentPLCS = none,
+	vehiclePosition(Vehicle, Pos, S),
+	Pos = l(Loc),
+	domain(plcs, PLCS), 
+	member(Loc, PLCS).
 
 
 exogenous_action(arriveAtRoadEnd, [veh:vehicle], []).
 schedulable(arriveAtRoadEnd(Vehicle), S) :-
 	vehiclePosition(Vehicle, Pos, S),
-	Pos = pos(A, B),
-	A \= B.
+	Pos = r(_).
 		
 exogenous_action(enterNextRoad, [veh:vehicle], []).
 schedulable(enterNextRoad(Vehicle), S) :-
 	vehiclePosition(Vehicle, Pos, S),
-	Pos = pos(A, A),
-	currentTarget(Vehicle, Target, S),
-	Target \= none.
+	Pos = l(_),
+	nextRoad(Vehicle, NextRoad, S),
+	NextRoad \= none.
+	
 	
 % SUCCESSOR STATE AXIOMS
 
-currentTarget(Vehicle, Target, S) :-
+
+
+nextRoad(Vehicle, NextRoad, S) :-
 	currentRoute(Vehicle, Route, S),
 	(length(Route) =:= 0 -> 
-		Target = none
+		NextRoad = none
 		;
-		Route = [Target | _]
+		Route = [NextRoad | _]
 	).
 
-nextTarget(Vehicle, Target, S) :-
-	currentRoute(Vehicle, Route, S),
-	(length(Route) < 2 -> 
-		Target = none
-		;
-		Route = [_ | [Target | _]]
-	).
 	
 hasTargetPLCS(Vehicle, S) :-
 	currentTargetPLCS(Vehicle, PLCS, S),
 	not PLCS=none.
+
+currentRoad(Vehicle, Road, S) :-
+	vehiclePosition(Vehicle, Pos, S),
+	(Pos = r(Road), !
+		;
+		Road = none
+	).
 	
-	
+currentTarget(Vehicle, Target, S) :-
+	currentRoad(Vehicle, Road, S),
+	(Road = none ->
+		Target = none
+		;
+		roadEnds(Road, Ends),
+		Ends = r(_, Target)
+	).
 
 effect(vehiclePosition(Vehicle), enterNextRoad(Vehicle), OldPos, Position, S) :-
-	OldPos = pos(_, OldEnd),
-	currentTarget(Vehicle, Target, S),
-	(Target = none ->
+	nextRoad(Vehicle, NextRoad, S),
+	(NextRoad = none ->
 		Position = OldPos
 		;
-		Position = pos(OldEnd, Target)
+		Position = r(NextRoad)
 	).
 	
 effect(vehiclePosition(Vehicle), arriveAtRoadEnd(Vehicle), OldPos, Position, S) :-
-	OldPos = pos(_, OldEnd),
-	Position = pos(OldEnd, OldEnd).
+	OldPos = r(Road),
+	roadEnds(Road, Ends),
+	Ends = r(_, Target),
+	Position = l(Target).
 	
 
 effect(currentRoute(Vehicle), setRoute(Vehicle, NewRoute), _, NewRoute, _).
-effect(currentRoute(Vehicle), arriveAtRoadEnd(Vehicle), OldRoute, NewRoute, S) :-
+effect(currentRoute(Vehicle), enterNextRoad(Vehicle), OldRoute, NewRoute, S) :-
 	(length(OldRoute, 0) ->
 		NewRoute = []
 		;
@@ -129,12 +137,10 @@ effect(currentRoute(Vehicle), arriveAtRoadEnd(Vehicle), OldRoute, NewRoute, S) :
 
 effect(currentTargetPLCS(Vehicle), setTargetPLCS(Vehicle, NewTarget), _, NewTarget, _).
 
-effect(currentPLCS(Vehicle), tick(Steps), _, PLCS, S) :-
-	arrive_at_targetPLCS(Vehicle, do2(tick(Steps),S)),
-	currentTargetPLCS(Vehicle, PLCS, S).
 
 effect(currentPLCS(Vehicle), driverLeavesPLCS(Vehicle), _, none, _).
-	
+effect(currentPLCS(Vehicle), driverParksAtPLCS(Vehicle, PLCS), _, PLCS, _).
+
 effect(currentTargetPOI(Vehicle), setPOI(Vehicle, NewPOI), _, NewPOI, _).
 
 
