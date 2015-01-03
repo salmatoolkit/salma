@@ -1,7 +1,9 @@
 :- dynamic plcsReservations/3, currentOccupancy/3, maxCapacity/2, freeSlots/3, 
-	freeSlotsL/3, availableSlots/3, tstamp_freeSlotsL/3.
+	freeSlotsL/3, availableSlots/3, tstamp_freeSlotsL/3, plcsChargeRate/2.
 % PLCS
 constant(maxCapacity, [p:plcs], integer).
+constant(plcsChargeRate, [p:plcs], float).
+
 
 % format: res(vehicle, startTime, plannedDuration)
 fluent(plcsReservations, [p:plcs], list).

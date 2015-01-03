@@ -2,7 +2,8 @@
 	currentRoute/3, currentTargetPOI/3, currentRoad/3,
 	currentLocation/3, currentTarget/3,
 	nextRoad/3, currentPLCS/3, currentTargetPLCS/3,
-	calendar/2, waitingForAssignment/2, waitingForReservation/2.
+	calendar/2, waitingForAssignment/2, waitingForReservation/2,
+	batteryLevel/3, currentDischargeRate/3, baseDischargeRate/2.
 	
 % VEHICLE
 
@@ -28,6 +29,15 @@ fluent(currentTargetPLCS, [veh:vehicle], plcs).
 
 fluent(waitingForAssignment, [veh:vehicle], boolean).
 fluent(waitingForReservation, [veh:vehicle], boolean).
+
+fluent(batteryLevel, [veh:vehicle], float).
+derived_fluent(currentDischargeRate, [veh:vehicle], float).
+
+constant(baseDischargeRate, [veh:vehicle], float).
+
+
+primitive_action(setWaitingForAssignment, [veh:vehicle, state:boolean]).
+primitive_action(setWaitingForReservation, [veh:vehicle, state:boolean]).
 
 % route is given as the remaining list of roads
 fluent(currentRoute, [veh:vehicle], list).
@@ -142,6 +152,21 @@ effect(currentPLCS(Vehicle), driverLeavesPLCS(Vehicle), _, none, _).
 effect(currentPLCS(Vehicle), driverParksAtPLCS(Vehicle, PLCS), _, PLCS, _).
 
 effect(currentTargetPOI(Vehicle), setPOI(Vehicle, NewPOI), _, NewPOI, _).
+
+currentDischargeRate(Vehicle, DischargeRate, S) :-
+	baseDischargeRate(Vehicle, BaseDischargeRate),
+	% TODO: consider average speed etc.
+	DischargeRate is BaseDischargeRate.
+	
+
+effect(batteryLevel(Vehicle), tick(Steps), OldLevel, NewLevel, S) :-
+	currentPLCS(Vehicle, PLCS, S),
+	(PLCS = none ->
+		currentDischargeRate(Vehicle, DischargeRate, S),
+		NewLevel is OldLevel - Steps * DischargeRate
+		;
+		NewLevel is min(100.0, OldLevel + Steps * plcsChargeRate(PLCS))
+	).
 
 
 	

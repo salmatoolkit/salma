@@ -1,7 +1,7 @@
 import math
 import networkx as nx
 from salma.model.agent import Agent
-from salma.model.core import Entity
+from salma.model.core import Entity, Term
 from salma.model.world import World
 
 
@@ -38,10 +38,12 @@ class MapTranslator(object):
             self.__world.setConstantValue("locX", [node], pos[0])
             self.__world.setConstantValue("locY", [node], pos[1])
             self.__world.setConstantValue("responsiblePLCSSAM", [node], "sam1")
-
+        road_num = 1
         for u, v, data in self.__graph.edges_iter(data=True):
-            self.__world.setConstantValue("connected", [u, v], True)
-            self.__world.setConstantValue("roadlength", [u, v], data["weight"])
+            road_id = "r{}".format(road_num)
+            self.__world.addEntity(Entity(road_id, "road"))
+            self.__world.setConstantValue("roadEnds", [road_id], Term("r", u, v))
+            self.__world.setConstantValue("roadlength", [road_id], data["weight"])
 
     def get_position_from_node(self, node):
         """

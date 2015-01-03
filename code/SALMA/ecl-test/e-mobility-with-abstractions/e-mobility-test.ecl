@@ -5,6 +5,7 @@
 init :-
 	init_agasmc,
 	setDomain(crossing, [c1, c2, c3, c4]),
+	setDomain(road, [r1, r2, r3, r4, r5]),
 	setDomain(vehicle, [vehicle1, vehicle2]),
 	setDomain(plcs, [plcs1, plcs2]),
 	setDomain(poi, [poi1, poi2]),
@@ -17,28 +18,42 @@ init :-
 	domain(plcs, PLs),
 	(foreach(P, PLs) do 
 		setConstant(maxCapacity, [P, 10]),
-		set_current(freeSlotsL, [P], none)
+		set_current(freeSlotsL, [P], none),
+		setConstant(plcsChargeRate, [P, 0.05])
 	),	
 	domain(channel, Channels),
 	(foreach(C, Channels) do
 		set_current(channel_in_queue, [C], [])
 	),
-	setConstant(connected, [c1,c2, true]),
-	setConstant(connected, [c2,c3, true]),
-	setConstant(connected, [c3,c4, true]),
-	setConstant(connected, [c4,plcs1, true]),
-	setConstant(connected, [c4,plcs2, true]),
-	setConstant(roadlength, [c1, c2, 100]),
-	setConstant(roadlength, [c2, c3, 100]),
-	setConstant(roadlength, [c3, c4, 100]),
-	setConstant(roadlength, [c4, plcs1, 100]),
-	setConstant(roadlength, [c4, plcs2, 100]),
-	set_current(vehiclePosition, [vehicle1], pos(c1,c1,0)),
+	setConstant(roadEnds, [r1, r(c1, c2)]),
+	setConstant(roadEnds, [r2, r(c2, c3)]),
+	setConstant(roadEnds, [r3, r(c3, c4)]),
+	setConstant(roadEnds, [r4, r(c4, plcs1)]),
+	setConstant(roadEnds, [r5, r(c4, plcs2)]),
+	
+	setConstant(roadlength, [r1, 100]),
+	setConstant(roadlength, [r2, 100]),
+	setConstant(roadlength, [r3, 100]),
+	setConstant(roadlength, [r4, 100]),
+	setConstant(roadlength, [r5, 100]),
+	setConstant(roadBaseSpeed, [r1, 1]),
+	setConstant(roadBaseSpeed, [r2, 1]),
+	setConstant(roadBaseSpeed, [r3, 1]),
+	setConstant(roadBaseSpeed, [r4, 1]),
+	setConstant(roadBaseSpeed, [r5, 1]),
+		
+	domain(vehicle, Vehicles),
+	(foreach(V, Vehicles) do
+		setConstant(calendar, [V, []]),
+		setConstant(baseDischargeRate, [V, 0.01]),
+		set_current(batteryLevel, [V], 100.0)
+	),	
+	set_current(vehiclePosition, [vehicle1], l(c1)),
 	set_current(currentTargetPOI, [vehicle1], poi1),
 	set_current(currentTargetPLCS, [vehicle1], plcs1),
+	
 	set_current(currentPLCS, [vehicle1], none),
-	set_current(currentRoute, [vehicle1], [c1,c2,c3,c4,plcs1]),
-	set_current(vehicleSpeed, [vehicle1], 10),
+	set_current(currentRoute, [vehicle1], [r1,r2,r3,r4]),
 	place_vehicle_at_plcs(vehicle2, plcs2),
 	set_current(time, [], 0).
 	
@@ -46,9 +61,8 @@ init :-
 place_vehicle_at_plcs(Vehicle, PLCS) :-
 	set_current(currentPLCS, [Vehicle], PLCS),
 	set_current(currentTargetPLCS, [Vehicle], PLCS),
-	set_current(vehiclePosition, [Vehicle], pos(PLCS, PLCS, 0)),
-	set_current(currentRoute, [Vehicle], []),
-	set_current(vehicleSpeed, [Vehicle], 0).
+	set_current(vehiclePosition, [Vehicle], l(PLCS)),
+	set_current(currentRoute, [Vehicle], []).
 
 	
 start_sensing(Agent, Sensor, Msg) :-
