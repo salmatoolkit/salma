@@ -1191,8 +1191,6 @@ class LocalEvaluationContext(EvaluationContext):
     def getFluentValue(self, fluentName, *params):
         resolvedParams = self.resolve(*params)
         fv = World.instance().getFluentValue(fluentName, resolvedParams)
-        if fv is None:
-            raise SALMAException("No value found for fluent: {0}({1}).".format(fluentName, resolvedParams))
         return fv
 
     def set_fluent_value(self, fluent_name: str, params: list, value: object):
@@ -1202,6 +1200,11 @@ class LocalEvaluationContext(EvaluationContext):
         NOTE: params has to be resolved first!
         """
         World.logic_engine().setFluentValue(fluent_name, params, value)
+
+    def get_derived_fluent_value(self, fluent_name, params):
+        resolvedParams = self.resolve(*params)
+        fv = World.instance().get_derived_fluent_value()
+
 
     def create_message(self, connector, agent, msg_type, params):
         """

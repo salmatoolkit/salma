@@ -6,6 +6,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 
 from salma.model.evaluationcontext import EvaluationContext
+from salma.model.experiment import Experiment
 from salma.test.emobility.map_translator import MapTranslator
 from salma.test.emobility.visualizer import Visualizer
 from salma.model.world import World
@@ -55,12 +56,10 @@ class EMobilityTest(unittest.TestCase):
             world.setFluentValue("freeSlotsL", [plcs.id], None)
 
         for vehicle in vehicles:
-            world.setFluentValue("vehicleSpeed", [vehicle.id], 0)
             world.setFluentValue("currentPLCS", [vehicle.id], None)
             world.setFluentValue("currentTargetPLCS", [vehicle.id], None)
             world.setFluentValue("currentTargetPOI", [vehicle.id], None)
             world.setFluentValue("currentRoute", [vehicle.id], [])
-
 
     def __log(self, msg):
         print(msg)
@@ -74,7 +73,6 @@ class EMobilityTest(unittest.TestCase):
                     scheduled_results=None,
                     pending_properties=None):
         """
-
         :param World world: the world
         :param int step: the step number
         :param float deltaT: the duration
@@ -137,16 +135,18 @@ class EMobilityTest(unittest.TestCase):
             self.__fig.savefig(path)
         return True, None
 
-    def run_experiment(self, world, world_map, step_limit=None, log=True, visualize=True):
+    def run_experiment(self, experiment, world_map, step_limit=None, log=True, visualize=True):
         """
         Runs the simulation until all targets have been reached.
 
-        :param World world: the world
+        :param Experiment experiment: the experiment
         :param world_map:
         :param step_limit:
         :param visualize:
         :return:
         """
+        world = experiment.world
+
         self.__should_log = log
         if visualize:
             self.__fig = plt.figure("emobility", (8, 8), 200)
@@ -161,7 +161,7 @@ class EMobilityTest(unittest.TestCase):
             os.makedirs(self.__outdir)
             self.__logfile = open(os.path.join(self.__outdir, "log.txt"), mode="w")
 
-        verdict, results = world.runExperiment(check_verdict=True, maxSteps=step_limit,
+        verdict, results = experiment.runExperiment(check_verdict=True, maxSteps=step_limit,
                                                stepListeners=[self.record_step])
 
         if self.__logfile is not None:

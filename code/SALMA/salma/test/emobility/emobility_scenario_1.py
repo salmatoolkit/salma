@@ -4,7 +4,8 @@ import random
 from statsmodels.stats import proportion
 
 from salma.model.distributions import DelayedOccurrenceDistribution, NormalDistribution, \
-    ConstantDistribution
+    ConstantDistribution, Distribution
+from salma.model.selectionstrategy import Stepwise
 
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
@@ -20,6 +21,15 @@ import numpy as np
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
 _MODE = VISUALIZE
+
+
+class RoadTravelTimeDistribution(Distribution):
+    def __init__(self):
+        super().__init__("integer", (float("-inf"), float("inf")))
+
+    def generateSample(self, evaluationContext, paramValues):
+        evaluationContext.getFluentValue("vehiclePosition", )
+        evaluationContext.eva
 
 
 class EMobilityScenario1(EMobilityTest):
@@ -52,7 +62,7 @@ class EMobilityScenario1(EMobilityTest):
         print(p1)
         print(p2)
 
-    def test_scenario3(self):
+    def test_scenario1(self):
         world = World.instance()
         log = False
 
@@ -81,6 +91,7 @@ class EMobilityScenario1(EMobilityTest):
         # -------------------------------
         for plcs in plcses:
             world.setConstantValue("maxCapacity", [plcs.id], EMobilityScenario1.PLCS_CAPACITY)
+            world.setConstantValue("plcsChargeRate", [plcs.id], 0.05)
             plcs.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
 
         for vehicle in vehicles:
@@ -88,24 +99,39 @@ class EMobilityScenario1(EMobilityTest):
             # starts.remove(start)
             target_poi = random.choice(target_pois)
             # target_pois.remove(target_poi)
-            world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", start.id, start.id, 0))
-            world.setFluentValue("vehicleSpeed", [vehicle.id], EMobilityScenario1.VEHICLE_SPEED)
+            world.setFluentValue("vehiclePosition", [vehicle.id], ("l", start.id))
+            world.setFluentValue("batteryLevel", [vehicle.id], 100.0)
+            world.setConstantValue("baseDischargeRate", [vehicle.id], 0.01)
             world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
             world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 0, 0)])
             vehicle.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
         for sam in sams:
             sam.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
 
-        transferStarts = world.get_exogenous_action("transferStarts")
-        transferStarts.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 5, 1))
-        transferStarts.config.set_param_distribution("error", ConstantDistribution("term", None))
+        transfer_starts = world.get_exogenous_action("transferStarts")
+        transfer_starts.config.occurrence_distribution = NormalDistribution("float", 5, 1)
+        transfer_starts.config.set_param_distribution("error", ConstantDistribution("term", None))
 
-        transferEnds = world.get_exogenous_action("transferEnds")
-        transferEnds.config.occurrence_distribution = DelayedOccurrenceDistribution(NormalDistribution("float", 5, 1))
-        transferEnds.config.set_param_distribution("error", ConstantDistribution("term", None))
+        transfer_ends = world.get_exogenous_action("transferEnds")
+        transfer_ends.config.occurrence_distribution = NormalDistribution("float", 5, 1)
+        transfer_ends.config.set_param_distribution("error", ConstantDistribution("term", None))
 
-        transferFails = world.get_exogenous_action("transferFails")
-        transferFails.config.set_probability(0.0)
+        transfer_fails = world.get_exogenous_action("transferFails")
+        transfer_fails.config.occurrence_distribution = NormalDistribution("float", 5, 1)
+
+        message_start = world.get_exogenous_action_choice("message_start")
+        message_start.selection_strategy = Stepwise(transferStarts=0.9, transferFails=0.1)
+
+        message_end = world.get_exogenous_action_choice("message_end")
+        message_end.selection_strategy = Stepwise(transferEnds=0.8, transferFails=0.2)
+
+        enterNextRoad = world.get_exogenous_action("enterNextRoad")
+        enterNextRoad.config.occurrence_distribution = NormalDistribution("float", 5, 4)
+
+        arriveAtRoadEnd = world.get_exogenous_action("arriveAtRoadEnd")
+        arriveAtRoadEnd.config.occurrence_distribution = NormalDistribution("float", 5, 4)
+
+
         # messageSent(v, assignment, veh, ?, ?, ?),
         fstr = """
         forall(v:vehicle,

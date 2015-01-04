@@ -1,5 +1,5 @@
 :- dynamic locX/2, locY/2, roadEnds/2, roadlength/2, roadBaseSpeed/2,
-	numVehiclesOnRoad/3,	responsiblePLCSSAM/2.
+	numVehiclesOnRoad/3, responsiblePLCSSAM/2.
 	
 :- ['e-mobility-domain_vehicle'].
 :- ['e-mobility-domain_plcs'].
@@ -50,7 +50,5 @@ remoteSensor(freeSlotsR, plcssam, freeSlotsL, plcs).
 
 % TODO: define cool ensembles
 ensemble(freeSlotsR, SAM, PLCS, S) :- true.
-
-
 
 init_domaindesc :- true.

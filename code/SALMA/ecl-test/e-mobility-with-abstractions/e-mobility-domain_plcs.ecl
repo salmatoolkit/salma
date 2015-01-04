@@ -9,12 +9,11 @@ constant(plcsChargeRate, [p:plcs], float).
 fluent(plcsReservations, [p:plcs], list).
 primitive_action(add_reservation, 
 	[p:plcs, veh:vehicle, startTime:integer, plannedDuration:integer]).
-immediate_action(add_reservation).
+
 poss(add_reservation(_,_,_,_),_) :- true.
 	
 % Performed periodically to clean up reservation list.
 primitive_action(update_reservations, [p:plcs]).
-immediate_action(update_reservations).
 poss(update_reservations(_),_) :- true.
 
 derived_fluent(currentOccupancy, [p:plcs], integer).
