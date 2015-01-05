@@ -290,7 +290,7 @@ class StochasticAction(Action):
         self.__outcome_list = list(self.__outcomes.values())
         outcome.stochastic_action = self
 
-    def generateOutcome(self, evaluation_context, param_values):
+    def generate_outcome(self, evaluation_context, param_values):
         """
         Returns a concrete sample as a (action, params) tuple.
 

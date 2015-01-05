@@ -4,7 +4,6 @@ from salma.model.distributions import BernoulliDistribution, UniformDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.termutils import tuplify
 from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
-import itertools
 
 
 class ExogenousAction(object):
@@ -159,6 +158,7 @@ class ExogenousAction(object):
         res = self.config.occurrence_distribution.generateSample(evaluation_context, param_values)
         assert isinstance(res, int) and not isinstance(res, bool)
         t = evaluation_context.getFluentValue("time")
+        assert isinstance(t, int)
         return t + res
 
     def generate_instance(self, evaluation_context, entity_combination):
@@ -562,3 +562,8 @@ class EventOccurrence:
             raise TypeError("Can't compare EventOccurrence to {}".format(type(other)))
         else:
             return self.time_point < other.time_point
+
+    def __repr__(self):
+        return "EventOccurrence({}, {}, {})".format(self.__time_point, self.__event, self.__params)
+
+

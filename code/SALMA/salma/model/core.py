@@ -11,9 +11,9 @@ class Entity(object):
     """
     SELF = 'self'
 
-    def __init__(self, entityId, sortName):
-        self.__id = entityId
-        self.__sortName = sortName
+    def __init__(self, entity_id, sort_name):
+        self.__id = entity_id
+        self.__sortName = sort_name
 
     # TODO: et rid of deprecated access to get* -functions -> use properties
     def getId(self):

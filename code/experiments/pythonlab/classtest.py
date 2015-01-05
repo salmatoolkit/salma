@@ -59,7 +59,6 @@ class C:
     def prop(self):
         return self.__statprop
 
-
     @staticmethod
     def statprop():
         return C.__statprop

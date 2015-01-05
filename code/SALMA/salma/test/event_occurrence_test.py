@@ -60,6 +60,14 @@ class EventOccurrenceTest(unittest.TestCase):
         occ3 = EventOccurrence(2, ev2, [42, 3.14])
         self.assertTrue(occ1 < occ2)
         self.assertFalse(occ2 < occ3)
+        l = []
+        heapq.heappush(l, occ3)
+        heapq.heappush(l, occ2)
+        heapq.heappush(l, occ1)
+        print(l)
+        self.assertEqual(l[0], occ1)
+        occ4 = EventOccurrence(2, ev2, [42, 3.14])
+        self.assertTrue(occ4 in l)
 
 
 

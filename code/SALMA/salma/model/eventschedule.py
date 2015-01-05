@@ -9,6 +9,7 @@ from salma.model.events import EventOccurrence
 from salma.model.evaluationcontext import EvaluationContext
 from salma.mathutils import min_robust
 import random
+from collections.abc import Iterable
 
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -95,7 +96,7 @@ class EventSchedule:
         :param tuple params: params
         """
         for option in exogenous_action_choice.options:
-            option_instance = (time, (option, params))
+            option_instance = EventOccurrence(time, option, params)
             if option_instance in self.__event_schedule:
                 return True
         return False
@@ -105,56 +106,50 @@ class EventSchedule:
         :param int current_time: the current time step
         :param EvaluationContext evaluation_context: the evaluation context used for the occurrence distributions.
         """
-        # TODO: handle event alternatives
         # check if we can add any possible event
         for pe in self.__possible_event_schedule:
-            evtime = pe[0]
-            event = pe[1][0]
-            params = pe[1][1]
-            ev_occ = EventOccurrence(evtime, event, params)
 
-            if (evtime == current_time
+            if (pe.time_point == current_time
                     and pe not in self.__already_processed_events):
-                if isinstance(event, ExogenousAction):
+                if isinstance(pe.event, ExogenousAction):
                     if pe not in self.__event_schedule:
-                        new_ev = (current_time, (event, params))
-                        if event.should_happen(evaluation_context, params):
-                            heapq.heappush(self.__event_schedule, new_ev)
-                        self.__already_processed_events.add(new_ev)
+                        if pe.event.should_happen(evaluation_context, pe.params):
+                            heapq.heappush(self.__event_schedule, pe)
+                        self.__already_processed_events.add(pe)
                 else:
+                    event = pe.event
                     assert isinstance(event, ExogenousActionChoice)
-                    if not self.__option_already_scheduled(current_time, event, params):
-                        if event.should_happen(evaluation_context, params):
-                            option = event.make_choice(evaluation_context, params)
-                            option_instance = (current_time, (option, params))
+                    if not self.__option_already_scheduled(current_time, event, pe.params):
+                        if event.should_happen(evaluation_context, pe.params):
+                            option = event.make_choice(evaluation_context, pe.params)
+                            option_instance = EventOccurrence(current_time, option, pe.params)
                             heapq.heappush(self.__event_schedule, option_instance)
-                        self.__already_processed_events.add((current_time, (event, params)))
+                        self.__already_processed_events.add(pe)
 
         for se in self.__schedulable_event_schedule:
-            if (se[0] == current_time
+            if (se.time_point == current_time
                     and se not in self.__already_processed_events):
-                ev_src = se[1][0]
-                params = se[1][1]
+                ev_src = se.event
                 if isinstance(ev_src, ExogenousAction):
                     event = ev_src
                     already_scheduled = se in self.__event_schedule
                 else:
                     assert isinstance(ev_src, ExogenousActionChoice)
-                    already_scheduled = self.__option_already_scheduled(current_time, ev_src, params)
-                    if (not already_scheduled) and ev_src.should_happen(evaluation_context, params):
-                        event = ev_src.make_choice(evaluation_context, params)
+                    already_scheduled = self.__option_already_scheduled(current_time, ev_src, se.params)
+                    if (not already_scheduled) and ev_src.should_happen(evaluation_context, se.params):
+                        event = ev_src.make_choice(evaluation_context, se.params)
                     else:
                         event = None
                 if not already_scheduled:
                     assert isinstance(event, ExogenousAction)
-                    schedule_time = event.get_next_occurrence_time(evaluation_context, params)
+                    schedule_time = event.get_next_occurrence_time(evaluation_context, se.params)
                     if schedule_time is not None:
                         assert schedule_time >= current_time
-                        new_ev = (schedule_time, (event, params))
+                        new_ev = EventOccurrence(schedule_time, event, se.params)
                         heapq.heappush(self.__event_schedule, new_ev)
                 # mark the fact that we sampled the occurrence distribution regardless of
                 # whether or not it's been scheduled
-                self.__already_processed_events.add((current_time, (ev_src, params)))
+                self.__already_processed_events.add(se)
 
     def update_event_schedule(self, current_time, evaluation_context, scan, scan_start=None, scan_time_limit=None):
         """
@@ -219,25 +214,27 @@ class EventSchedule:
             if isinstance(act, DeterministicAction):
                 action_name = act.name
                 args = ai[1]
-                act_seq.append((action_name, args))
             elif isinstance(act, ExogenousAction):
                 # Note: for exogenous actions, the evaluation context is used that is
                 # given as a parameter. This is usually the world's global context.
                 #
+                if len(act_seq) > 0:
+                    fa = self.__logics_engine.progress(act_seq)
+                    performed_actions.extend(act_seq)
+                    failed.extend(fa)
+                    act_seq.clear()
+
                 action_name, args = act.generate_instance(evaluation_context, ai[1])
-                act_seq.append((action_name, args))
             elif isinstance(act, StochasticAction):
                 if len(act_seq) > 0:
                     fa = self.__logics_engine.progress(act_seq)
                     performed_actions.extend(act_seq)
                     failed.extend(fa)
                     act_seq.clear()
-                action_name, args = act.generateOutcome(ai[2], ai[1])
-                fa = self.__logics_engine.progress([(action_name, args)])
-                failed.extend(fa)
-                performed_actions.append((action_name, args))
+                action_name, args = act.generate_outcome(ai[2], ai[1])
             else:
                 raise SALMAException("Unsupported action instance: {}".format(type(act)))
+            act_seq.append((action_name, args))
         if len(act_seq) > 0:
             fa = self.__logics_engine.progress(act_seq)
             failed.extend(fa)
@@ -251,7 +248,7 @@ class EventSchedule:
         Translates event tuples retrieved from the logics engine to tuples that refer to ExogenousAction entries.
 
         :param list[(int, str, tuple)] raw_event_instances: the event instances gathered by the engine
-        :param list[(int, (ExogenousAction|ExogenousActionChoice, tuple))] schedule: the event schedule heap
+        :param list[EventOccurrence] schedule: the event schedule heap
             in which the translated event instances will be pushed.
         """
         for rev in raw_event_instances:
@@ -262,26 +259,26 @@ class EventSchedule:
                 ea = self.__exogenous_action_chooices[ev_name]
             else:
                 raise SALMAException("Unregistered exogenous action (choice): {}".format(ev_name))
-            heapq.heappush(schedule, (rev[0], (ea, rev[2])))
+            heapq.heappush(schedule, EventOccurrence(rev[0], ea, rev[2]))
 
+    # noinspection PyMethodMayBeStatic
     def __translate_event_instances_to_raw(self, schedule):
         """
         Translates a generator for conversion of the current event schedule to a list of event tuples of form
         (time, action_name param_values).
 
-        :param set[tuple]|list[tuple] schedule: the event schedule.
+        :param Iterable[EventOccurrence] schedule: the event schedule.
         :rtype: list[(int, str, tuple)]
         """
         result = []
         for entry in schedule:
-            time = entry[0]
-            event, params = entry[1]
+            event = entry.event
             if isinstance(event, ExogenousAction):
                 name = event.action_name
             else:
                 assert isinstance(event, ExogenousActionChoice)
                 name = event.choice_name
-            result.append((time, name, params))
+            result.append((entry.time_point, name, entry.params))
         return result
 
     def check_exogenous_action_initialization(self):
@@ -334,9 +331,9 @@ class EventSchedule:
         :rtype: list[(ExogenousAction, tuple)]
         """
         due_events = []
-        while len(self.__event_schedule) > 0 and self.__event_schedule[0][0] <= current_time:
+        while len(self.__event_schedule) > 0 and self.__event_schedule[0].time_point <= current_time:
             entry = heapq.heappop(self.__event_schedule)
-            due_events.append(entry[1])
+            due_events.append((entry.event, entry.params))
         return due_events
 
     def get_next_time_checkpoint(self):
@@ -347,16 +344,16 @@ class EventSchedule:
 
         :rtype: int
         """
-        t1 = self.__event_schedule[0][0] if len(self.__event_schedule) > 0 else None
-        t2 = self.__possible_event_schedule[0][0] if len(self.__possible_event_schedule) > 0 else None
-        t3 = self.__schedulable_event_schedule[0][0] if len(self.__schedulable_event_schedule) > 0 else None
+        t1 = self.__event_schedule[0].time_point if len(self.__event_schedule) > 0 else None
+        t2 = self.__possible_event_schedule[0].time_point if len(self.__possible_event_schedule) > 0 else None
+        t3 = self.__schedulable_event_schedule[0].time_point if len(self.__schedulable_event_schedule) > 0 else None
         return min_robust([t1, t2, t3])
 
     def get_next_scheduled_event(self):
         """
         Returns the next scheduled event instance as a tuple of the form (time, (event, params)) or
         None if no event is currently scheduled.
-        :rtype: (int, (ExogenousAction, list))
+        :rtype: EventOccurrence
         """
         if len(self.__event_schedule) > 0:
             return self.__event_schedule[0]

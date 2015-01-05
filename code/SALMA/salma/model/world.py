@@ -780,6 +780,7 @@ class World(Entity, WorldDeclaration):
             World.__instance = World()
         return World.__instance
 
+    # noinspection PyMethodMayBeStatic
     def getFluentValue(self, fluent_name, fluent_params):
         """
         Returns the current value of the fluent instance that is given by the fluent name and the parameter list.
@@ -795,6 +796,7 @@ class World(Entity, WorldDeclaration):
         else:
             return fv.value
 
+    # noinspection PyMethodMayBeStatic
     def get_state_snapshot(self):
         """
         Returns a state snapshot that contains all fluent instances except the domains.
@@ -803,6 +805,7 @@ class World(Entity, WorldDeclaration):
         current_state = [fv for fv in World.logic_engine().getCurrentState() if fv.fluentName != "domain"]
         return current_state
 
+    # noinspection PyMethodMayBeStatic
     def get_derived_fluent_value(self, fluent_name, fluent_params):
         """
         Retrieves the current value of the given derived fluent instance.
@@ -812,6 +815,7 @@ class World(Entity, WorldDeclaration):
         """
         return World.logic_engine().get_derived_fluent_value(fluent_name, fluent_params)
 
+    # noinspection PyMethodMayBeStatic
     def is_fluent__instance_defined(self, fluent_name, fluent_params):
         """
         Returns True if the given fluent instance defined.
@@ -829,6 +833,7 @@ class World(Entity, WorldDeclaration):
         """
         return self.getFluentValue('time', [])
 
+    # noinspection PyMethodMayBeStatic
     def getConstantValue(self, constantName, constantParams):
         """
         Returns the current value of the given constant instance.
@@ -838,6 +843,7 @@ class World(Entity, WorldDeclaration):
         """
         return World.logic_engine().getConstantValue(constantName, constantParams)[1]
 
+    # noinspection PyMethodMayBeStatic
     def is_constant_defined(self, constant_name, constant_params):
         """
         Returns True if the given constant is defined.
@@ -848,6 +854,7 @@ class World(Entity, WorldDeclaration):
         d, _ = World.logic_engine().getConstantValue(constant_name, constant_params)
         return d
 
+    # noinspection PyMethodMayBeStatic
     def setFluentValue(self, fluentName, fluentParams, value):
         """
         Sets the current value for the given fluent instance.
@@ -857,6 +864,7 @@ class World(Entity, WorldDeclaration):
         """
         World.logic_engine().setFluentValue(fluentName, fluentParams, value)
 
+    # noinspection PyMethodMayBeStatic
     def setConstantValue(self, constantName, constantParams, value):
         """
         Sets the current value for the given constant instance.
@@ -914,7 +922,7 @@ class World(Entity, WorldDeclaration):
             t2 = self.__event_schedule.get_next_time_checkpoint()
         else:
             ev = self.__event_schedule.get_next_scheduled_event()
-            t2 = ev[0] if ev is not None else None
+            t2 = ev.time_point if ev is not None else None
         return min_robust([t1, t2])
 
     def step(self, time_limit, evaluate_properties=True):
@@ -1036,6 +1044,7 @@ class World(Entity, WorldDeclaration):
         for agent in self.getAgents():
             agent.restart()
 
+    # noinspection PyMethodMayBeStatic
     def restore_state(self, fluent_values):
         """
         Uses the given list of fluent values to update the world state.
@@ -1050,6 +1059,7 @@ class World(Entity, WorldDeclaration):
         for f in state:
             print(f)
 
+    # noinspection PyMethodMayBeStatic
     def log_info(self, msg):
         print("INFO: {}".format(msg))
 
@@ -1266,6 +1276,7 @@ class LocalEvaluationContext(EvaluationContext):
         """
         return World.instance().getEntityById(entity_id)
 
+    # noinspection PyMethodMayBeStatic
     def __select_free_variables(self, params):
         """
         :param list|tuple params: the parameters

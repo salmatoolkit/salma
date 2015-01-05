@@ -710,7 +710,7 @@ class Assign(ControlNode):
         else:
             for i in range(len(self.variable_names)):
                 evaluation_context.assignVariable(self.variable_names[i], val[i])
-        #TODO: proper error handling
+        # TODO: proper error handling
         return ControlNode.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):

@@ -1,3 +1,4 @@
+from numbers import Number
 from .core import Entity
 from salma.SALMAException import SALMAException
 from salma.model.procedure import ControlNode, Act, Procedure, Wait
@@ -185,12 +186,14 @@ class Process(object):
         """
         return False
 
+    # noinspection PyMethodMayBeStatic
     def _on_start(self):
         """
         Called at start.
         """
         pass
 
+    # noinspection PyMethodMayBeStatic
     def _on_finish(self):
         """
         Called at finish.
@@ -387,6 +390,7 @@ class PeriodicProcess(Process):
         """
         min_time = self.introduction_time or 0
         current_time = self.agent.evaluation_context.getFluentValue('time')
+        assert isinstance(current_time, Number)
         if current_time < min_time:
             return None
         num = divmod(current_time - min_time, self.__period)[0] + 1
