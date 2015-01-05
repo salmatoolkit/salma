@@ -6,6 +6,7 @@ from salma.termutils import tuplify
 from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 import itertools
 
+
 class ExogenousAction(object):
     """
     Represents an exogenous action, i.e. an event from the environment.
@@ -521,9 +522,6 @@ class ExogenousActionConfiguration:
         return self
 
 
-event_occurrence_counter = itertools.count()
-
-
 class EventOccurrence:
 
     def __init__(self, time_point, event, params):
@@ -536,7 +534,6 @@ class EventOccurrence:
         self.__time_point = time_point
         self.__event = event
         self.__params = params
-        self.__count = next(event_occurrence_counter)
 
     @property
     def time_point(self):
@@ -550,28 +547,18 @@ class EventOccurrence:
     def params(self):
         return self.__params
 
-    def order(self):
-        """
-        :rtype: (int, int)
-        """
-        return self.__time_point, self.__count
-
     def __eq__(self, other):
-        return ((self.__time_point, self.__count, self.__event, self.__params) ==
-                (other.__time_point, other.__count, other.__event, other.__params))
+        if not isinstance(other, EventOccurrence):
+            return False
+        else:
+            return ((self.__time_point, self.__event, self.__params) ==
+                    (other.__time_point, other.__event, other.__params))
 
-    def __ne__(self, other):
-        return ((self.__time_point, self.__count, self.__event, self.__params) !=
-                (other.__time_point, other.__count, other.__event, other.__params))
+    def __hash__(self):
+        return hash((self.__time_point, self.__event, self.__params))
 
     def __lt__(self, other):
-        return self.order() < other.order()
-
-    def __le__(self, y):
-        return self.order() <= y.order()
-
-    def __gt__(self, y):
-        return self.order() > y.order()
-
-    def __ge__(self, y):
-        return self.order() >= y.order()
+        if not isinstance(other, EventOccurrence):
+            raise TypeError("Can't compare EventOccurrence to {}".format(type(other)))
+        else:
+            return self.time_point < other.time_point
