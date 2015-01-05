@@ -4,7 +4,7 @@ from salma.model.distributions import BernoulliDistribution, UniformDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.termutils import tuplify
 from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
-
+import itertools
 
 class ExogenousAction(object):
     """
@@ -519,3 +519,59 @@ class ExogenousActionConfiguration:
         """
         self.occurrence_distribution = BernoulliDistribution(prob)
         return self
+
+
+event_occurrence_counter = itertools.count()
+
+
+class EventOccurrence:
+
+    def __init__(self, time_point, event, params):
+        """
+        Defines an event occurrence at the given time point.
+        :param int time_point: the time step at which the given event instance occurs.
+        :param ExogenousAction|ExogenousActionChoice event: the event.
+        :param list|tuple params: the parameters of the event occurrence.
+        """
+        self.__time_point = time_point
+        self.__event = event
+        self.__params = params
+        self.__count = next(event_occurrence_counter)
+
+    @property
+    def time_point(self):
+        return self.__time_point
+
+    @property
+    def event(self):
+        return self.__event
+
+    @property
+    def params(self):
+        return self.__params
+
+    def order(self):
+        """
+        :rtype: (int, int)
+        """
+        return self.__time_point, self.__count
+
+    def __eq__(self, other):
+        return ((self.__time_point, self.__count, self.__event, self.__params) ==
+                (other.__time_point, other.__count, other.__event, other.__params))
+
+    def __ne__(self, other):
+        return ((self.__time_point, self.__count, self.__event, self.__params) !=
+                (other.__time_point, other.__count, other.__event, other.__params))
+
+    def __lt__(self, other):
+        return self.order() < other.order()
+
+    def __le__(self, y):
+        return self.order() <= y.order()
+
+    def __gt__(self, y):
+        return self.order() > y.order()
+
+    def __ge__(self, y):
+        return self.order() >= y.order()

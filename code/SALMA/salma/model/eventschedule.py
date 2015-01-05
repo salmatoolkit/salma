@@ -5,6 +5,7 @@ from salma.engine import Engine
 from salma.model.actions import *
 from salma.model.events import ExogenousActionChoice
 from salma.model.events import ExogenousAction
+from salma.model.events import EventOccurrence
 from salma.model.evaluationcontext import EvaluationContext
 from salma.mathutils import min_robust
 import random
@@ -33,13 +34,13 @@ class EventSchedule:
         # step just before execution of the event. This means that the distribution fo the stochastic parameters
         # refer to tha scheduled time.
         #
-        #: :type: list[(int, (ExogenousAction, tuple))]
+        #: :type: list[EventOccurrence]
         self.__event_schedule = []
-        #: :type: list[(int, (ExogenousAction|ExogenousActionChoice, tuple))]
+        #: :type: list[EventOccurrence]
         self.__possible_event_schedule = []
-        #: :type: list[(int, (ExogenousAction|ExogenousActionChoice, tuple))]
+        #: :type: list[EventOccurrence]
         self.__schedulable_event_schedule = []
-        #: :type: set[(int, (ExogenousAction|ExogenousActionChoice, tuple))]
+        #: :type: set[EventOccurrence]
         self.__already_processed_events = set()
         #: :type: int
         self.__last_processed_timestep = -1
@@ -110,6 +111,7 @@ class EventSchedule:
             evtime = pe[0]
             event = pe[1][0]
             params = pe[1][1]
+            ev_occ = EventOccurrence(evtime, event, params)
 
             if (evtime == current_time
                     and pe not in self.__already_processed_events):

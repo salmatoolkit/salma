@@ -75,9 +75,21 @@ class EvaluationContext(object):
     def getFluentValue(self, fluentName, *params):
         """
         Returns the current value of the given fluent with the given parameters.
+        If no value for the given fluent instance is defined, None is returned.
 
-        :param fluentName: str
-        :param params: list
+        :param str fluentName: the name of the fluent
+        :param list params: the parameters qualifying the fluent instance
+        :rtype: object
+        """
+        raise NotImplementedError()
+
+    def get_derived_fluent_value(self, fluent_name, params):
+        """
+        Returns the current value of the given derived fluent with the given parameters.
+
+        :param str fluent_name: the name of the derived fluent.
+        :param params:
+        :rtype: object
         """
         raise NotImplementedError()
 

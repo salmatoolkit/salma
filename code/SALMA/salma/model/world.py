@@ -1188,10 +1188,9 @@ class LocalEvaluationContext(EvaluationContext):
             result = self.getEntity(result)
         return result
 
-    def getFluentValue(self, fluentName, *params):
-        resolvedParams = self.resolve(*params)
-        fv = World.instance().getFluentValue(fluentName, resolvedParams)
-        return fv
+    def getFluentValue(self, fluent_name, *params):
+        resolved_params = self.resolve(*params)
+        return World.instance().getFluentValue(fluent_name, resolved_params)
 
     def set_fluent_value(self, fluent_name: str, params: list, value: object):
         """
@@ -1202,9 +1201,8 @@ class LocalEvaluationContext(EvaluationContext):
         World.logic_engine().setFluentValue(fluent_name, params, value)
 
     def get_derived_fluent_value(self, fluent_name, params):
-        resolvedParams = self.resolve(*params)
-        fv = World.instance().get_derived_fluent_value()
-
+        resolved_params = self.resolve(*params)
+        return World.instance().get_derived_fluent_value(fluent_name, resolved_params)
 
     def create_message(self, connector, agent, msg_type, params):
         """

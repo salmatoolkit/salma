@@ -1,6 +1,6 @@
 import logging
 from salma.SALMAException import SALMAException
-from salma.constants import INVARIANT, ACHIEVE
+from salma.constants import INVARIANT, ACHIEVE, OK
 from salma.engine import EclipseCLPEngine
 from salma.model import process
 from salma.model.agent import Agent
@@ -119,11 +119,11 @@ class EventSchedulingTest(unittest.TestCase):
 
         e1 = Experiment(world)
         # e1.run_until_finished(max_world_time=500, step_listeners=[steplogger])
-        e1.property_collection.register_property("f", "xpos(rob1) =\= 495", INVARIANT)
+        e1.property_collection.register_property("f", "let(mx : 500-5, xpos(rob1) =\= mx)", INVARIANT)
         e1.property_collection.register_property("g", "xpos(rob1) =:= 240", ACHIEVE)
         # e1.property_collection.register_property("h", "not(occur(asteroid_hit(rob1, ?)))", INVARIANT)
         verdict, info = e1.run_experiment(max_world_time=500, step_listeners=[steplogger])
-
+        self.assertEqual(verdict, OK)
         print("T = {}, verdict = {}\n\ninfo: {}".format(world.getTime(), verdict, info))
 
     def test_flawed_stepwise_distrib(self):

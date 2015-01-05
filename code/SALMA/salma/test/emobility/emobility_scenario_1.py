@@ -24,12 +24,21 @@ _MODE = VISUALIZE
 
 
 class RoadTravelTimeDistribution(Distribution):
-    def __init__(self):
+    def __init__(self, relative_sd):
         super().__init__("integer", (float("-inf"), float("inf")))
+        self.__relative_sd = relative_sd
 
     def generateSample(self, evaluationContext, paramValues):
-        evaluationContext.getFluentValue("vehiclePosition", )
-        evaluationContext.eva
+        world = World.instance()
+        road = evaluationContext.get_derived_fluent_value("currentRoad", paramValues[0])
+        if road is not None:
+            road_length = world.getConstantValue("roadlength", [road])
+            speed = world.getConstantValue("roadBaseSpeed", [road])
+            base_duration = road_length / speed
+            d = random.normalvariate(base_duration, self.__relative_sd * base_duration)
+            return round(d)
+        else:
+            return None
 
 
 class EMobilityScenario1(EMobilityTest):
@@ -129,10 +138,8 @@ class EMobilityScenario1(EMobilityTest):
         enterNextRoad.config.occurrence_distribution = NormalDistribution("float", 5, 4)
 
         arriveAtRoadEnd = world.get_exogenous_action("arriveAtRoadEnd")
-        arriveAtRoadEnd.config.occurrence_distribution = NormalDistribution("float", 5, 4)
+        arriveAtRoadEnd.config.occurrence_distribution = RoadTravelTimeDistribution(0.2)
 
-
-        # messageSent(v, assignment, veh, ?, ?, ?),
         fstr = """
         forall(v:vehicle,
             implies(
@@ -145,8 +152,15 @@ class EMobilityScenario1(EMobilityTest):
         )
         """.format(EMobilityScenario1.TIME_LIMIT)
 
-        goal1 = "forall([v,vehicle], arrive_at_targetPLCS(v))"
-        goal2 = "forall([v,vehicle], currentTargetPLCS(v) \= none)"
+        goal1 = """
+        forall(v:vehicle,
+            and(
+                currentTargetPLCS(v) \= none,
+                currentPLCS
+            )
+        )
+        """
+        goal2 = "forall(v:vehicle, currentTargetPLCS(v) \= none)"
         if _MODE == VISUALIZE:
             world.registerProperty("g", goal1, World.ACHIEVE)
         else:
