@@ -13,6 +13,9 @@ class MyExperiment(Experiment):
     def __init__(self):
         super().__init__("ecl-test/domaindesc.ecl")
 
+    def augment_world_context(self):
+        self.world.register_clp_function("robotLeftFrom")
+
     # def create_entities(self):
     # proc = Procedure("main", [], [
     #         Act("move_right", [Entity.SELF])
@@ -21,11 +24,11 @@ class MyExperiment(Experiment):
     #     self.world.addAgent(Agent("rob1", "robot", [p]))
 
     def create_entities(self):
-        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
+        w = While("robotLeftFrom",
                   [Entity.SELF, 100],
                   [
                       Act("move_right", [Entity.SELF]),
-                      Wait(EvaluationContext.PYTHON_EXPRESSION, "not moving(self)", [])
+                      Wait("not moving(self)")
                   ])
 
         agent = Agent("rob1", "robot", Procedure("main", [], w))

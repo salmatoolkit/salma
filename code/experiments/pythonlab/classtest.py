@@ -1,8 +1,4 @@
-'''
-Created on 18.07.2013
 
-@author: kroiss
-'''
 
 class ClassTest(object):
     def __init__(self, num):
@@ -22,10 +18,17 @@ class Foo:
     def foo(self, msg):
         pass
 
+    def say(self):
+        print("Foo")
+
 
 class A(Foo):
     def foo(self, msg):
         print("A-foo: " + msg)
+
+    def say(self):
+        print("A")
+        super().say()
 
 
 class B(Foo):
@@ -46,7 +49,8 @@ class B(Foo):
     def __foo(self):
         def __f(msg):
             print("B-foo: " + self.name + " - " + msg)
-        return  __f
+        return __f
+
 
 class C:
     __statprop = 42
@@ -68,6 +72,7 @@ class C:
         :rtype (int, B)
         """
         return 42, B("chris")
+
 
 def foo(name, *params):
     print(len(params))
@@ -98,3 +103,4 @@ if __name__ == "__main__":
     print(c1.complex_prop()[1].name)
 
     a = A()
+    a.say()

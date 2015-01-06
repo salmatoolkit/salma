@@ -79,12 +79,17 @@ class Experiment(object):
             World.create_new_world()
             self.__world = World.instance()
             self.world.load_declarations()
+            self.augment_world_context()
+
         self.create_entities()
         self.world.initialize(sample_fluent_values=False)
         self.setup_distributions()
         self.create_initial_situation()
 
-    def create_entities(self):
+    def augment_world_context(self):
+        pass
+
+    def create_entities(self, world):
         pass
 
     def setup_distributions(self):

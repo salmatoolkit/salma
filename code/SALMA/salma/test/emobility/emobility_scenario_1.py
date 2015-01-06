@@ -3,14 +3,14 @@ import random
 
 from statsmodels.stats import proportion
 
-from salma.model.distributions import DelayedOccurrenceDistribution, NormalDistribution, \
+from salma.model.distributions import NormalDistribution, \
     ConstantDistribution, Distribution
 from salma.model.selectionstrategy import Stepwise
 
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
 from salma.model.world import World
-from salma.test.emobility.emobility_test import EMobilityTest
+from salma.test.emobility.emobility_base import EMobilityBase
 from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.emobility.vehicle import create_vehicles
 from salma.test.emobility.plcs import create_plcs_processes
@@ -41,7 +41,7 @@ class RoadTravelTimeDistribution(Distribution):
             return None
 
 
-class EMobilityScenario1(EMobilityTest):
+class EMobilityScenario1(EMobilityBase):
     NUM_OF_VEHICLES = 5
     PLCS_CAPACITY = 10
     VEHICLE_SPEED = 5
@@ -71,14 +71,16 @@ class EMobilityScenario1(EMobilityTest):
         print(p1)
         print(p2)
 
+    def create_entities(self):
+
+        super().create_entities()
+
+
     def test_scenario1(self):
         world = World.instance()
         log = False
 
-        mgen = MapGenerator(world)
-        world_map = mgen.load_from_graphml("testdata/test1.graphml")
-        # world_map = mgen.generate_map(5, 15, 25, 1000, 1000)
-        mt = MapTranslator(world_map, world)
+
 
         create_plcssam(world, world_map, mt)
         create_vehicles(world, world_map, mt, EMobilityScenario1.NUM_OF_VEHICLES)

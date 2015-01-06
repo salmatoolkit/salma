@@ -81,8 +81,6 @@ class MapGenerator(object):
         for u, v in graph.edges_iter():
             MapGenerator.set_roadlength(graph, u, v)
 
-
-
     def generate_map(self, num_of_pois, num_of_plcs, num_of_crossings, max_x, max_y):
         """
         :type num_of_pois: int

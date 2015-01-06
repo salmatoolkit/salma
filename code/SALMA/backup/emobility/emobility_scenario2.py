@@ -13,10 +13,10 @@ import random
 import matplotlib.pyplot as plt
 import networkx as nx
 import pyclp
-from salma.test.emobility.emobility_test import EMobilityTest
+from salma.test.emobility.emobility_base import EMobilityBase
 
 
-class EMobilityScenario2(EMobilityTest):
+class EMobilityScenario2(EMobilityBase):
     NUM_OF_VEHICLES = 3
 
     def createVehicles(self, world):

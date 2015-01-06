@@ -19,7 +19,7 @@ import random
 import matplotlib.pyplot as plt
 import networkx as nx
 import pyclp
-from salma.test.emobility.emobility_test import EMobilityTest
+from salma.test.emobility.emobility_base import EMobilityBase
 import salma.test.emobility.utils as utils
 from salma.statistics import SequentialProbabilityRatioTest
 from statsmodels.stats import proportion
@@ -84,7 +84,7 @@ def create_plcssam_functions(world_map, mt):
     return process_requests_plcs
 
 
-class EMobilityScenario3(EMobilityTest):
+class EMobilityScenario3(EMobilityBase):
     NUM_OF_VEHICLES = 3
 
     def create_vehicles(self, world, world_map, mt):
