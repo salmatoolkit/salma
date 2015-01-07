@@ -8,8 +8,8 @@ from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 
 
 class DeterministicAction(Action):
-    def __init__(self, name, parameters, immediate=False):
-        Action.__init__(self, name, parameters, immediate)
+    def __init__(self, name, parameters):
+        Action.__init__(self, name, parameters)
 
     def __str__(self):
         return "DeterministicAction: {}({})".format(self.name, self.parameters)
@@ -188,7 +188,10 @@ class RandomActionOutcome(object):
                      self.action_name, len(action.parameters), len(self.param_distributions))]
         problems = []
         for i in range(len(self.param_distributions)):
-            if self.param_distributions[i].sort != action.parameters[i][1]:
+            if self.param_distributions[i] is None:
+                problems.append(("random_action_outcome.undefined_param_distribution",
+                        self.action_name, i))
+            elif self.param_distributions[i].sort != action.parameters[i][1]:
                 problems.append(
                     ("random_action_outcome.wrong_param_type",
                      self.action_name, i, action.parameters[i][1], self.param_distributions[i].sort)
@@ -208,7 +211,7 @@ class RandomActionOutcome(object):
 
 class StochasticAction(Action):
     # TODO remove immediate action stuff
-    def __init__(self, name, parameters, outcomes, selection_strategy=None, immediate=False):
+    def __init__(self, name, parameters, outcomes, selection_strategy=None):
         """
         Represents a stochastic action. Action instances are created when the declaration is read and
         added to the world's action registry. The outcome and parameter distribution can then be set with the
@@ -218,9 +221,8 @@ class StochasticAction(Action):
         :param list[(str, str)] parameters: the stochastic action's parameters
         :param list[RandomActionOutcome] outcomes: list of RandomActionOutcome objects
         :param OutcomeSelectionStrategy|None selection_strategy: the outcome selection strategy
-        :param bool immediate: whether or not this action is an immediate action (TODO: obsolete)
         """
-        Action.__init__(self, name, parameters, immediate)
+        Action.__init__(self, name, parameters)
 
         # : :type: dict[str, RandomActionOutcome]
         self.__outcomes = dict()

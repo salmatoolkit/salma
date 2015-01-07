@@ -1,6 +1,7 @@
 import math
 from salma.model.agent import Agent
-from salma.model.core import Entity, Term
+from salma.model.core import Entity
+from salma.model.data import Term
 from salma.model.world import World
 
 

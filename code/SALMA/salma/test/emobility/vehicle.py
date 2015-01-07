@@ -1,4 +1,5 @@
 from salma.model.agent import Agent
+from salma.model.data import Term
 from salma.model.procedure import *
 from salma.model.process import TriggeredProcess, PeriodicProcess
 import networkx as nx
@@ -14,8 +15,10 @@ def create_navigation_functions(world_map, mt):
 
     def route_finder(agent=None, vehiclePosition=None, currentTargetPLCS=None, **ctx):
         pos = vehiclePosition(agent.id)
+        assert isinstance(pos, Term)
+        assert pos.functor == "l"
         target = currentTargetPLCS(agent.id)
-        r = nx.shortest_path(world_map, pos[1], target)
+        r = nx.shortest_path(world_map, pos.params[0], target)
         return r
 
     def response_selector(agent=None, sam_responses=None, **ctx):
@@ -26,7 +29,9 @@ def create_navigation_functions(world_map, mt):
         # for now: ignore any time information
         # format: rresp(StartTime, PlannedDuration, BestPLCS)
         if len(sam_responses) > 0:
-            return sam_responses[0].content[3]
+            msg = sam_responses[0].content
+            assert isinstance(msg, Term)
+            return msg.params[2]
         else:
             return None
 
@@ -41,7 +46,8 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                                    If("currentTargetPLCS(self) is None",
                                       [
                                           Assign("possible_targets", target_chooser),
-                                          Send("assignment", ("areq", Entity.SELF, Variable("possible_targets"), 0, 0),
+                                          Send("assignment", 
+                                               Term("areq", Entity.SELF, Variable("possible_targets"), 0, 0),
                                                "veh", "sam1", "sam")
                                       ])])
 
@@ -49,7 +55,8 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                                    [
                                        Receive("assignment", "veh", "sam_responses"),
                                        Assign("chosen_plcs", response_selector),
-                                       Send("reservation", ("res", Entity.SELF, 0, 0), "veh", Variable("chosen_plcs"),
+                                       Send("reservation",
+                                            Term("res", Entity.SELF, 0, 0), "veh", Variable("chosen_plcs"),
                                             "plcs")])
 
     p_set_target = Procedure("main", [],

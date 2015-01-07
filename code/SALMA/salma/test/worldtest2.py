@@ -41,7 +41,7 @@ class WorldTest2(unittest.TestCase):
         except SALMAException as e:
             print(e)
             raise
-        logger = logging.getLogger('agamemnon-smc')
+        logger = logging.getLogger('salma')
         logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         logger.addHandler(ch)

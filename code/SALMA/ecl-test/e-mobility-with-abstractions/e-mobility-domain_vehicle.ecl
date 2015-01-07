@@ -59,22 +59,20 @@ primitive_action(setPOI, [veh:vehicle, p:poi]).
 poss(setPOI(_,_), _) :- true.
 	
 	
-% TODO: make 
-% TODO: make % TODO: make 
 exogenous_action(driverLeavesPLCS, [veh:vehicle], []).
 schedulable(driverLeavesPLCS(Vehicle), S) :-
 	currentPLCS(Vehicle, PLCS, S),
 	PLCS \= none.
 
-exogenous_action(driverParksAtPLCS, [veh:vehicle, p:plcs], []).
+% for now: only allow parking at actual target PLCS
+exogenous_action(driverParksAtPLCS, [veh:vehicle], []).
 schedulable(driverParksAtPLCS(Vehicle), S) :-
 	currentPLCS(Vehicle, CurrentPLCS, S),
 	CurrentPLCS = none,
+	currentTargetPLCS(Vehicle, TargetPLCS, S),
+	TargetPLCS \= none,
 	vehiclePosition(Vehicle, Pos, S),
-	Pos = l(Loc),
-	domain(plcs, PLCS), 
-	member(Loc, PLCS).
-
+	Pos = l(TargetPLCS).
 
 exogenous_action(arriveAtRoadEnd, [veh:vehicle], []).
 schedulable(arriveAtRoadEnd(Vehicle), S) :-

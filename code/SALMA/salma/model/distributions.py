@@ -97,8 +97,8 @@ class BernoulliDistribution(Distribution):
         return self.__probability
 
     def generateSample(self, evaluationContext, paramValues):
-        r = random.uniform(0, 1)
-        return r <= self.__probability
+        r = random.random()
+        return r < self.__probability
 
     def describe(self):
         return "Pr({})".format(self.__probability)
@@ -194,8 +194,8 @@ class OptionalDistribution(Distribution):
         return self.__nested_distribution
 
     def generateSample(self, evaluation_ontext, param_values):
-        r = random.uniform(0, 1)
-        if r <= self.__probability:
+        r = random.random()
+        if r < self.__probability:
             return self.__nested_distribution.generateSample(evaluation_ontext, param_values)
         else:
             return None

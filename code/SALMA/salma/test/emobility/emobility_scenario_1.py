@@ -2,9 +2,10 @@ import random
 
 from statsmodels.stats import proportion
 from salma.constants import ACHIEVE, INVARIANT
+from salma.model.data import Term
 
 from salma.model.distributions import NormalDistribution, \
-    ConstantDistribution, Distribution
+    ConstantDistribution, Distribution, OptionalDistribution
 from salma.model.selectionstrategy import Stepwise
 
 from salma.model.world import World
@@ -27,7 +28,7 @@ TIME_LIMIT = 152
 
 class RoadTravelTimeDistribution(Distribution):
     def __init__(self, relative_sd):
-        super().__init__("integer", (float("-inf"), float("inf")))
+        super().__init__("integer")
         self.__relative_sd = relative_sd
 
     def generateSample(self, evaluation_context, param_values):
@@ -105,11 +106,11 @@ class EMobilityScenario1(EMobilityBase):
             # starts.remove(start)
             target_poi = random.choice(target_pois)
             # target_pois.remove(target_poi)
-            self.world.setFluentValue("vehiclePosition", [vehicle.id], ("l", start.id))
+            self.world.setFluentValue("vehiclePosition", [vehicle.id], Term("l", start.id))
             self.world.setFluentValue("batteryLevel", [vehicle.id], 100.0)
             self.world.setConstantValue("baseDischargeRate", [vehicle.id], 0.01)
             self.world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
-            self.world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 0, 0)])
+            self.world.setConstantValue("calendar", [vehicle.id], [Term("cal", target_poi.id, 0, 0)])
             vehicle.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
         for sam in sams:
             sam.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
@@ -117,15 +118,15 @@ class EMobilityScenario1(EMobilityBase):
     def setup_distributions(self):
         super().setup_distributions()
         transfer_starts = self.world.get_exogenous_action("transferStarts")
-        transfer_starts.config.occurrence_distribution = NormalDistribution("float", 5, 1)
+        transfer_starts.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
         transfer_starts.config.set_param_distribution("error", ConstantDistribution("term", None))
 
         transfer_ends = self.world.get_exogenous_action("transferEnds")
-        transfer_ends.config.occurrence_distribution = NormalDistribution("float", 5, 1)
+        transfer_ends.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
         transfer_ends.config.set_param_distribution("error", ConstantDistribution("term", None))
 
         transfer_fails = self.world.get_exogenous_action("transferFails")
-        transfer_fails.config.occurrence_distribution = NormalDistribution("float", 5, 1)
+        transfer_fails.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
 
         message_start = self.world.get_exogenous_action_choice("message_start")
         message_start.selection_strategy = Stepwise(transferStarts=0.9, transferFails=0.1)
@@ -134,13 +135,20 @@ class EMobilityScenario1(EMobilityBase):
         message_end.selection_strategy = Stepwise(transferEnds=0.8, transferFails=0.2)
 
         enterNextRoad = self.world.get_exogenous_action("enterNextRoad")
-        enterNextRoad.config.occurrence_distribution = NormalDistribution("float", 5, 4)
+        enterNextRoad.config.occurrence_distribution = NormalDistribution("integer", 5, 4)
 
         arriveAtRoadEnd = self.world.get_exogenous_action("arriveAtRoadEnd")
         arriveAtRoadEnd.config.occurrence_distribution = RoadTravelTimeDistribution(0.2)
 
+        driverParksAtPLCS = self.world.get_exogenous_action("driverParksAtPLCS")
+        driverParksAtPLCS.config.occurrence_distribution = NormalDistribution("integer", 5, 4)
+
+        driverLeavesPLCS = self.world.get_exogenous_action("driverLeavesPLCS")
+        driverLeavesPLCS.config.occurrence_distribution = OptionalDistribution(
+            0.0, NormalDistribution("integer", 5, 4))
+
     def run_scenario1(self):
-        log = False
+        log = True
 
         self.prepare(log, _MODE == VISUALIZE)
         fstr = """

@@ -1,9 +1,3 @@
-"""
-Created on 21.05.2013
-
-@author: kroiss
-"""
-
 import logging
 import numbers
 import os
@@ -14,10 +8,10 @@ from salma.SALMAException import SALMAException
 from .constants import *
 import salma
 import salma.termutils
-from salma.model.core import Term
+from salma.model.data import Term
 from salma.termutils import tuplify
 
-MODULE_LOGGER_NAME = 'agamemnon-smc.engine'
+MODULE_LOGGER_NAME = 'salma.engine'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
 
@@ -538,13 +532,15 @@ class EclipseCLPEngine(Engine):
         if isinstance(raw_value, pyclp.Var):
             return self.__convert_value_from_engine_result(raw_value.value())
         elif isinstance(raw_value, pyclp.Compound):
-            # handle name : type arguments
+            # handle "name : type" arguments specially
             subterms = []
-            if raw_value.functor() != ':':
-                subterms.append(raw_value.functor())
+
             for subterm in raw_value:
                 subterms.append(self.__convert_value_from_engine_result(subterm))
-            return tuple(subterms)
+            if raw_value.functor() == ':':
+                return tuple(subterms)
+            else:
+                return Term(raw_value.functor(), *subterms)
         elif isinstance(raw_value, numbers.Number):
             return raw_value
         elif isinstance(raw_value, (pyclp.PList, list, tuple)):

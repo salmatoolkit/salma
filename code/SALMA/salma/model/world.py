@@ -7,6 +7,7 @@ from salma.SALMAException import SALMAException
 from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome
 from salma.model.events import ExogenousAction, ExogenousActionChoice
 from salma.model.core import Constant, Action
+from salma.model.data import Term
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
 from salma.model.eventschedule import EventSchedule
@@ -376,8 +377,7 @@ class World(Entity, WorldDeclaration):
         for c in declarations['constants']:
             self.addConstant(Constant(c[0], c[2], c[1]))
         for pa in declarations['primitive_actions']:
-            immediate = pa[0] in declarations['immediate_actions']
-            self.addAction(DeterministicAction(pa[0], pa[1], immediate))
+            self.addAction(DeterministicAction(pa[0], pa[1]))
 
         self.__load_stochastic_action_declarations(declarations["stochastic_actions"])
 
@@ -1268,6 +1268,11 @@ class LocalEvaluationContext(EvaluationContext):
                 for t in term:
                     l.append(self.resolve(t)[0])
                 gt = tuple(l)
+            elif isinstance(term, Term):
+                l = []
+                for t in term.params:
+                    l.append(self.resolve(t)[0])
+                gt = Term(term.functor, *l)
             else:
                 gt = term
 

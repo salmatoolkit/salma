@@ -1,5 +1,6 @@
 import networkx as nx
 from matplotlib.figure import Figure
+from salma.model.data import Term
 from salma.model.world import World
 
 
@@ -45,14 +46,18 @@ class Visualizer(object):
 
         for vehicle in self.world.getDomain("vehicle"):
             pos = self.world.getFluentValue("vehiclePosition", [vehicle.id])
-            assert isinstance(pos, (tuple, list))
-            if pos[1] == pos[2]:
-                if pos[1] not in nodes_with_vehicles:
-                    nodes_with_vehicles[pos[1]] = []
-                nodes_with_vehicles[pos[1]].append(vehicle.id)
-            else:
-                edge = pos[1], pos[2]
-                rev_edge = pos[2], pos[1]
+            assert isinstance(pos, Term)
+            if pos.functor == "l":
+                if pos.params[0] not in nodes_with_vehicles:
+                    nodes_with_vehicles[pos.params[0]] = []
+                nodes_with_vehicles[pos.params[0]].append(vehicle.id)
+            else:   # road
+                road = pos.params[0]
+                road_spec = self.world.getConstantValue("roadEnds", [road])
+                assert isinstance(road_spec, Term)
+
+                edge = road_spec.params[0], road_spec.params[1]
+                rev_edge = road_spec.params[1], road_spec.params[0]
                 if edge not in edges_with_vehicles:
                     edges_with_vehicles[edge] = []
                 if rev_edge not in edges_with_vehicles:
@@ -99,10 +104,10 @@ class Visualizer(object):
 
         for vid in sorted(vids):
             pos = self.world.getFluentValue("vehiclePosition", [vid])
-            assert isinstance(pos, (tuple, list))
+            assert isinstance(pos, Term)
             poi = self.world.getFluentValue("currentTargetPOI", [vid])
             plcs = self.world.getFluentValue("currentTargetPLCS", [vid])
-            poslabels.append("{}:({},{},{}) --> {}|{}".format(vid, pos[1], pos[2], pos[3], plcs, poi))
+            poslabels.append("{}:({}) --> {}|{}".format(vid, pos.params[0], plcs, poi))
         time = self.world.getTime()
         poslabel = ", ".join(poslabels)
         ax.text(20, 20, "t={:06}, {}".format(time, poslabel), fontsize=9)

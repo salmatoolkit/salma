@@ -142,7 +142,6 @@ class MapGenerator(object):
         max_qualifiers = dict(crossing=0, poi=0, plcs=0)
         node_mapping = dict()
 
-
         for node, data in g1.nodes_iter(data=True):
 
             m = typetest.match(data["label"])

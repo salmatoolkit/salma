@@ -95,7 +95,7 @@ class RoboticScenario(unittest.TestCase):
         except SALMAException as e:
             print(e)
             raise
-        RoboticScenario.logger = logging.getLogger('agamemnon-smc')
+        RoboticScenario.logger = logging.getLogger('salma')
         RoboticScenario.logger.setLevel(logging.INFO)
         ch = logging.StreamHandler()
         RoboticScenario.logger.addHandler(ch)

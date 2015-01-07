@@ -1,6 +1,6 @@
 import unittest
 from salma.termutils import tuplify
-from salma.model.core import Term
+from salma.model.data import Term
 from collections.abc import Hashable
 
 

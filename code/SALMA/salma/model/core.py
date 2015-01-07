@@ -1,7 +1,6 @@
 from salma.SALMAException import SALMAException
 from salma.model.distributions import Distribution, UniformDistribution
 from .evaluationcontext import EvaluationContext
-from salma.termutils import tuplify
 
 
 class Entity(object):
@@ -213,19 +212,16 @@ class Action(object):
     World.load_declarations(). It it therefore uncommon to create Action instances manually.
     """
 
-    def __init__(self, name, parameters, immediate=False):
+    def __init__(self, name, parameters):
         """
         :type name: str
-        :type parameters: list of (str, str)
-        :type immediate: bool
-        TODO: blocking: if true, the action's precondition (poss) will be evaluated before it is actually executed
+        :type parameters: list[(str, str)]|tuple[(str,str)]
         """
         self.__name = name
         self.__params = parameters
         self.__param_indices = dict()
         for i, p in enumerate(parameters):
             self.__param_indices[p[0]] = i
-        self.__immediate = immediate
 
     @property
     def name(self):
@@ -267,57 +263,8 @@ class Action(object):
         i = self.get_parameter_index(parameter_name)
         return self.__params[i][1]
 
-    @property
-    def immediate(self):
-        """
-        Whether the action is executed immediately, i.e. without blocking the agent for the rest of the current step.
-        :rtype: bool
-        """
-        return self.__immediate
-
-    @immediate.setter
-    def immediate(self, is_immediate):
-        """
-        :type is_immediate: bool
-        """
-        self.__immediate = is_immediate
-
     def describe(self):
         return "n/a"
-
-
-class Term(object):
-    """
-    Represents terms used in actions or as content of fluents.
-    """
-    def __init__(self, functor: str, *params):
-        self.__functor = functor
-        #: :type: tuple
-        self.__params = tuplify(params)
-
-    @property
-    def arity(self) -> int:
-        return len(self.__params)
-
-    @property
-    def functor(self) -> str:
-        return self.__functor
-
-    @property
-    def params(self) -> tuple:
-        return self.__params
-
-    def __hash__(self, *args, **kwargs):
-        return hash((self.__functor, self.__params))
-
-    def __eq__(self, *args, **kwargs):
-        return (self.__functor, self.__params) == args[0]
-
-    def __repr__(self, *args, **kwargs):
-        return "Term(\"{}\", {})".format(self.__functor, self.__params)
-
-    def __str__(self, *args, **kwargs):
-        return "{}{}".format(self.__functor, self.__params)
 
 
 

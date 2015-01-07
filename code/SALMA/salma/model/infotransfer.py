@@ -1,4 +1,5 @@
 from salma.SALMAException import SALMAException
+from salma.model.data import Term
 
 
 class Connector(object):
@@ -114,12 +115,12 @@ class ReceivedMessage(object):
 
     def __init__(self, message_term):
         """
-        :type message_term: (str, str, str, str, int, object)
+        :type message_term: Term
 
         format: msg(Sender, SrcRole, Dest, DestRole, Time, Content2)
         """
         (self.__sender, self.__src_role, self.__dest, self.__dest_role,
-         self.__time, self.__content) = message_term
+         self.__time, self.__content) = message_term.params
 
     @property
     def sender(self):

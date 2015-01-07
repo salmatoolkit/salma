@@ -124,7 +124,7 @@ class EMobilityBase(Experiment):
 
             # for a in actions:
             # if a[0] in ("requestTransfer", "transferStarts", "transferEnds", "transferFails"):
-            #         msgid = a[1][0]
+            # msgid = a[1][0]
             for msgid in messages:
                 spec = world.evaluation_context.evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec",
                                                                  msgid)
@@ -142,10 +142,9 @@ class EMobilityBase(Experiment):
                 pos = world.getFluentValue("vehiclePosition", [vehicle.id])
                 route = world.getFluentValue("currentRoute", [vehicle.id])
                 target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
-                speed = world.getFluentValue("vehicleSpeed", [vehicle.id])
 
-                self.__log("   {}: {} - {} - {} - speed: {}".format(vehicle.id,
-                                                                    pos, route, target, speed))
+                self.__log("   {}: {} - {} - {}".format(vehicle.id,
+                                                        pos, route, target))
             for plcs in world.getDomain("plcs"):
                 fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
                 fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])

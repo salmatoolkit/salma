@@ -156,6 +156,8 @@ class ExogenousAction(object):
         :rtype: int|None
         """
         res = self.config.occurrence_distribution.generateSample(evaluation_context, param_values)
+        if res is None:
+            return None
         assert isinstance(res, int) and not isinstance(res, bool)
         t = evaluation_context.getFluentValue("time")
         assert isinstance(t, int)
@@ -367,13 +369,12 @@ class ExogenousActionConfiguration:
         if not stochastic_param_distribution_specs:
             stochastic_param_distribution_specs = []
         self.__exogenous_action = exogenous_action
-        self.__occurrence_distribution = (occurrence_distribution if occurrence_distribution is not None
-                                          else BernoulliDistribution(0.0))
+        self.__occurrence_distribution = occurrence_distribution
 
         self.__stochastic_param_distributions = []
-        # initialize with uniform distributions with default settings
+        # initialize slots
         for p in self.__exogenous_action.stochastic_params:
-            self.__stochastic_param_distributions.append(UniformDistribution(p[1]))
+            self.__stochastic_param_distributions.append(None)
         # add distributions from constructor argument
         for p_spec in stochastic_param_distribution_specs:
             i = self.__exogenous_action.get_stochastic_parameter_index(p_spec[0])
@@ -394,9 +395,8 @@ class ExogenousActionConfiguration:
                 "ExogenousActionConfig.".format(self.__exogenous_action.action_name))
 
         if self.__occurrence_distribution is None:
-            problems.append(
-                "No occurrence probability distribution specified for exogenous action %s ." %
-                self.__exogenous_action.action_name)
+            return [("exogenous_action.undefined_ocurrence_distribution", self.exogenous_action.action_name)]
+
         else:
             assert isinstance(self.__occurrence_distribution, Distribution)
             # TODO: check for type according to event type (ad hoc | scheduled)
@@ -408,23 +408,23 @@ class ExogenousActionConfiguration:
             # ))
 
         if len(self.__stochastic_param_distributions) != len(self.exogenous_action.stochastic_params):
-            return [
-                "Wrong number of stochastic parameters for exogenous action {}: expected {} but was {}.".format(
-                    self.exogenous_action.action_name,
-                    len(self.exogenous_action.stochastic_params),
-                    len(self.__stochastic_param_distributions))]
+            return [("exogenous_action.wrong_stochastic_param_count",
+                     self.exogenous_action.action_name,
+                     len(self.exogenous_action.stochastic_params),
+                     len(self.__stochastic_param_distributions))]
 
-        wrong_types = []
+        parameter_problems = []
         for i in range(len(self.__stochastic_param_distributions)):
-            if self.__stochastic_param_distributions[i].sort != self.exogenous_action.stochastic_params[i][1]:
-                wrong_types.append(
-                    "Wrong type for stochastic parameter no. {} of exogenous action {}: "
-                    "expected {} but was {}.".format(
-                        i, self.exogenous_action.action_name,
-                        self.exogenous_action.stochastic_params[i][1],
-                        self.__stochastic_param_distributions[i].sort
-                    ))
-        return wrong_types
+            if self.__stochastic_param_distributions[i] is None:
+                parameter_problems.append(("exogenous_action.undefined_stochastic_param_distribution",
+                                           self.exogenous_action.action_name, i))
+            elif self.__stochastic_param_distributions[i].sort != self.exogenous_action.stochastic_params[i][1]:
+                parameter_problems.append(
+                    ("exogenous_action.wrong_stochastic_param_distribution_sort",
+                     self.exogenous_action.action_name, i,
+                     self.exogenous_action.stochastic_params[i][1],
+                     self.__stochastic_param_distributions[i].sort))
+        return parameter_problems
 
     @property
     def occurrence_distribution(self):
@@ -523,7 +523,6 @@ class ExogenousActionConfiguration:
 
 
 class EventOccurrence:
-
     def __init__(self, time_point, event, params):
         """
         Defines an event occurrence at the given time point.

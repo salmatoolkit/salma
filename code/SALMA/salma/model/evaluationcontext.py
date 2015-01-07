@@ -129,7 +129,7 @@ class EvaluationContext(object):
         """
         raise NotImplementedError()
  
-    def resolve(self, *terms):
+    def resolve(self, *terms, **kwargs):
         """
         Evaluates each term in terms and returns a list with the collected results.
         """

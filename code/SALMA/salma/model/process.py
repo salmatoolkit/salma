@@ -125,8 +125,8 @@ class Process(object):
         return self.__blocking_condition
 
     @blocking_condition.setter
-    def blocking_condition(self, condition_type, condition, params):
-        self.__blocking_condition = (condition_type, condition, params)
+    def blocking_condition(self, condition_spec):
+        self.__blocking_condition = condition_spec
 
     @property
     def suspended_until(self):
