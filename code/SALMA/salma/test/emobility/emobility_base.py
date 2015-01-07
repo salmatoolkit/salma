@@ -1,4 +1,3 @@
-import unittest
 import logging
 import os
 from datetime import datetime
@@ -33,12 +32,17 @@ class EMobilityBase(Experiment):
         self.logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         self.logger.addHandler(ch)
+        #: :type : networkx.classes.graph.Graph
         self.__world_map = None
+        #: :type : MapTranslator
         self.__mt = None
         self.__should_log = False
+        #: :type : Figure
         self.__fig = None
         self.__visualizer = None
+        #: :type : str
         self.__outdir = None
+        #: :type : IOBase
         self.__logfile = None
         self.__step_listeners = []
 
@@ -114,15 +118,16 @@ class EMobilityBase(Experiment):
             self.__log("   Verdict: {}".format(verdict))
             self.__log("   Actions: {}".format(actions))
 
-            messages = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "domain",
-                                                                   "message")
+            messages = world.evaluation_context.evaluateFunction(
+                EvaluationContext.ECLP_FUNCTION, "domain",
+                "message")
 
             # for a in actions:
             # if a[0] in ("requestTransfer", "transferStarts", "transferEnds", "transferFails"):
             #         msgid = a[1][0]
             for msgid in messages:
-                spec = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec",
-                                                                   msgid)
+                spec = world.evaluation_context.evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec",
+                                                                 msgid)
                 stransval = world.getFluentValue("sensor_transmitted_value", [msgid])
                 chtransval = world.getFluentValue("channel_transmission_content", [msgid])
                 self.__log("      #{}: {}   sensor_transmitted_value: {}    "
@@ -144,9 +149,7 @@ class EMobilityBase(Experiment):
             for plcs in world.getDomain("plcs"):
                 fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
                 fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])
-
-                fsreal = world.evaluation_context().evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, "freeSlots",
-                                                                     plcs.id)
+                fsreal = world.get_derived_fluent_value("freeSlots", [plcs.id])
                 self.__log("   {}: real = {}, local = {}, remote = {}".format(plcs, fsreal, fslocal, fsremote))
 
         if self.__visualizer is not None:
@@ -161,9 +164,8 @@ class EMobilityBase(Experiment):
     def prepare(self, log=True, visualize=True):
         """
         Runs the simulation until all targets have been reached.
-
-        :param step_limit:
-        :param visualize:
+        :param bool log: whether or not logging should be activated.
+        :param bool visualize: whether or not the simulation should be visulaized.
         :return:
         """
 

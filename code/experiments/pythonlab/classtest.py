@@ -98,8 +98,9 @@ if __name__ == "__main__":
     C.set_statprop(100)
     print(c1.prop)
     print(c2.prop)
-    print(C.statprop)
-
+    print(C.statprop())
+    c2.set_statprop(200)
+    print("c1.prop", c1.prop)
     print(c1.complex_prop()[1].name)
 
     a = A()

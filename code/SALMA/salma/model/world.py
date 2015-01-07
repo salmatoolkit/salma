@@ -1256,7 +1256,7 @@ class LocalEvaluationContext(EvaluationContext):
                     if strict:
                         raise SALMAException("Variable %s not bound." % term.name)
                     else:
-                        gt = term
+                        gt = (term.name, term.sort)
                 else:
                     gt = self.__variable_bindings[term.name]
             elif isinstance(term, (list, set)):
@@ -1308,9 +1308,10 @@ class LocalEvaluationContext(EvaluationContext):
         :param int source_type: the type of the predicate
         :param str source: the name of the predicate
         """
-        resolved_params = self.resolve(*params)  # the free variables tuples are ignored by resolve()
-
         free_vars = self.__select_free_variables(params)
+        resolved_params = self.resolve(*params, strict=False)  # the free variables tuples are ignored by resolve()
+
+
         if len(free_vars) == 0:
             raise SALMAException("No iterator variable specified in selectAll.")
 

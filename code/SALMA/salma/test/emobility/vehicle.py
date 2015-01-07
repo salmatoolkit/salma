@@ -55,36 +55,29 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
     p_set_target = Procedure("main", [],
                              [
                                  Receive("reservation", "veh", "res_response"),
-                                 Act("setWaitingForAssignment", [Entity.SELF, False])
-                                 SetFluent("waitingForAssignment", EvaluationContext.PYTHON_EXPRESSION, "False",
-                                           [Entity.SELF]),
-                                 If(EvaluationContext.PYTHON_EXPRESSION, "res_response[0].content[2] == True", [],
+                                 Act("setWaitingForAssignment", [Entity.SELF, False]),
+                                 If("res_response[0].content[2] == True", [],
                                     [
-                                        Assign("plcs", EvaluationContext.PYTHON_EXPRESSION,
-                                               "res_response[0].content[1]", []),
-                                        Act("setTargetPLCS", [Entity.SELF, Variable("plcs")])
-                                    ])
-                             ])
+                                        Assign("plcs", "res_response[0].content[1]"),
+                                        Act("setTargetPLCS", [Entity.SELF, Variable("plcs")])])])
 
     p_find_route = Procedure("main", [],
                              [
-                                 Assign("route", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                        route_finder, []),
-                                 Act("setRoute", [Entity.SELF, Variable("route")])
-                             ])
+                                 Assign("route", route_finder),
+                                 Act("setRoute", [Entity.SELF, Variable("route")])])
 
     for i in range(number_of_vehicles):
         p1 = PeriodicProcess(p_request_plcs, 10)
-        p2 = TriggeredProcess(p_find_route, EvaluationContext.PYTHON_EXPRESSION,
-                              "len(currentRoute(self)) == 0 and currentTargetPLCS(self) is not None", [])
+        p2 = TriggeredProcess(p_find_route,
+                              "len(currentRoute(self)) == 0 and currentTargetPLCS(self) is not None")
 
-        p3 = TriggeredProcess(p_set_target, EvaluationContext.PYTHON_EXPRESSION,
+        p3 = TriggeredProcess(p_set_target,
                               "len(local_channel_in_queue(self, 'reservation', 'veh')) > 0 "
-                              "and currentTargetPLCS(self) is None", [])
+                              "and currentTargetPLCS(self) is None")
 
-        p4 = TriggeredProcess(p_make_reservation, EvaluationContext.PYTHON_EXPRESSION,
+        p4 = TriggeredProcess(p_make_reservation,
                               "currentTargetPLCS(self) is None and "
-                              "len(local_channel_in_queue(self, 'assignment', 'veh')) > 0", [])
+                              "len(local_channel_in_queue(self, 'assignment', 'veh')) > 0")
 
         vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3, p4])
         world.addAgent(vehicle)

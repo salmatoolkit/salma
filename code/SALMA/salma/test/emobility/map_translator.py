@@ -1,5 +1,4 @@
 import math
-import networkx as nx
 from salma.model.agent import Agent
 from salma.model.core import Entity, Term
 from salma.model.world import World
@@ -16,10 +15,6 @@ class MapTranslator(object):
         self.__world = world
 
     def init_world_from_graph(self):
-        """
-        :type graph: networkx.classes.graph.Graph
-        :type world: World
-        """
         for node, data in self.__graph.nodes_iter(data=True):
             if self.__world.getEntityById(node) is None:
                 if data["loctype"] == "poi":
@@ -41,7 +36,7 @@ class MapTranslator(object):
         road_num = 1
         for u, v, data in self.__graph.edges_iter(data=True):
             road_id = "r{}".format(road_num)
-            road_id += 1
+            road_num += 1
             self.__world.addEntity(Entity(road_id, "road"))
             self.__world.setConstantValue("roadEnds", [road_id], Term("r", u, v))
             self.__world.setConstantValue("roadlength", [road_id], data["weight"])

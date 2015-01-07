@@ -1,7 +1,7 @@
-import unittest
 import random
 
 from statsmodels.stats import proportion
+from salma.constants import ACHIEVE, INVARIANT
 
 from salma.model.distributions import NormalDistribution, \
     ConstantDistribution, Distribution
@@ -35,7 +35,9 @@ class RoadTravelTimeDistribution(Distribution):
         road = evaluation_context.get_derived_fluent_value("currentRoad", param_values[0])
         if road is not None:
             road_length = world.getConstantValue("roadlength", [road])
+            assert isinstance(road_length, (float, int))
             speed = world.getConstantValue("roadBaseSpeed", [road])
+            assert isinstance(speed, (float, int))
             base_duration = road_length / speed
             d = random.normalvariate(base_duration, self.__relative_sd * base_duration)
             return round(d)
@@ -48,7 +50,8 @@ class EMobilityScenario1(EMobilityBase):
     def __init__(self):
         super().__init__()
 
-    def __print_info(self, world):
+    @staticmethod
+    def __print_info(world):
         """
         :param World world: the world
         """
@@ -60,17 +63,18 @@ class EMobilityScenario1(EMobilityBase):
 
         print("Uninitialized Constants:")
         print(uninitialized_constant_instances)
-        problematic_stochastic_actions, problematic_exogenous_actions = world.check_action_initialization()
+        problematic_stochastic_actions, problematic_exogenous_actions, problematic_action_choices = \
+            world.check_action_initialization()
         print("-" * 80)
         print("Uninitialized stochastic actions:")
         print(problematic_stochastic_actions)
         print("-" * 80)
         print("Uninitialized exogenous actions:")
         print(problematic_exogenous_actions)
+        print("-" * 80)
+        print("Uninitialized exogenous action choices:")
+        print(problematic_action_choices)
         world.printState()
-        p1, p2 = world.check_action_initialization()
-        print(p1)
-        print(p2)
 
     def create_entities(self):
         super().create_entities()
@@ -163,10 +167,10 @@ class EMobilityScenario1(EMobilityBase):
         """
         goal2 = "forall(v:vehicle, currentTargetPLCS(v) \= none)"
         if _MODE == VISUALIZE:
-            self.property_collection.register_property("g", goal1, World.ACHIEVE)
+            self.property_collection.register_property("g", goal1, ACHIEVE)
         else:
-            self.property_collection.register_property("f", fstr, World.INVARIANT)
-            self.property_collection.register_property("g", goal2, World.ACHIEVE)
+            self.property_collection.register_property("f", fstr, INVARIANT)
+            self.property_collection.register_property("g", goal2, ACHIEVE)
 
         if log:
             self.__print_info(self.world)

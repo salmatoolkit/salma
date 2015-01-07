@@ -428,11 +428,11 @@ class PeriodicProcess(Process):
 
 
 class TriggeredProcess(Process):
-    def __init__(self, procedure, condition, condition_params, relative_deadline=None,
+    def __init__(self, procedure, condition, condition_params=None, relative_deadline=None,
                  introduction_time=0):
         Process.__init__(self, procedure, introduction_time)
         self.__condition = condition
-        self.__condition_params = condition_params
+        self.__condition_params = condition_params if condition_params is not None else []
         self.__relative_deadline = relative_deadline
 
     def process_type(self) -> int:

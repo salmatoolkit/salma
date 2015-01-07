@@ -1,7 +1,6 @@
 from salma.model.agent import Agent
 from salma.model.procedure import *
 from salma.model.process import TriggeredProcess
-from salma.test.emobility import utils
 from salma.model.infotransfer import ReceivedMessage
 
 

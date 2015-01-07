@@ -507,7 +507,7 @@ class Iterate(ControlNode):
         :param ProcedureRegistry procedure_registry: the procedure registry
         """
         res_source = evaluation_context.resolve(self.source)
-        res_params = evaluation_context.resolve(*self.params)
+        res_params = evaluation_context.resolve(*self.params, strict=False)
         source_type = evaluation_context.determine_source_type(res_source, res_params)
         result_list = evaluation_context.getCurrentResultList(self)
         result_index = evaluation_context.getCurrentResultListIndex(self)

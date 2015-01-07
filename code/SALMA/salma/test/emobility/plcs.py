@@ -1,5 +1,5 @@
 from salma.model.procedure import *
-from salma.model.process import PeriodicProcess, TriggeredProcess
+from salma.model.process import TriggeredProcess
 
 
 def create_plcs_processes(world, world_map, mt):
@@ -7,7 +7,7 @@ def create_plcs_processes(world, world_map, mt):
                                              [
                                                  Receive("reservation", "plcs", "reservation_requests"),
                                                  Iterate(Variable("reservation_requests"),
-                                                         [("req", "term")],
+                                                         [Variable("req", "term")],
                                                          [
                                                              Assign("vehicle", "req.content[1]"),
                                                              If("availableSlots(self) > 0",

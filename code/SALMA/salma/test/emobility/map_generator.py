@@ -1,10 +1,12 @@
 import networkx as nx
+from networkx.algorithms.connectivity import local_edge_connectivity
 import random
 import logging
 import math
 from salma.SALMAException import SALMAException
 from salma.model.world import World
 import re
+
 
 class MapGenerator(object):
     logger = logging.getLogger('salmalab')
@@ -39,7 +41,6 @@ class MapGenerator(object):
         dist = math.ceil(direct_dist)
         graph.edge[node1][node2]["weight"] = dist
 
-
     @staticmethod
     def __select_removal_candidate(graph):
         """
@@ -47,7 +48,7 @@ class MapGenerator(object):
         :rtype: tuple
         """
         for u, v in graph.edges_iter():
-            if nx.local_edge_connectivity(graph, u, v) > 1:
+            if local_edge_connectivity(graph, u, v) > 1:
                 return u, v
 
         return None
@@ -62,7 +63,6 @@ class MapGenerator(object):
             graph.remove_edge(*candidate)
             candidate = MapGenerator.__select_removal_candidate(graph)
 
-
     @staticmethod
     def __scale_positions(graph, map_width, map_height):
         """
@@ -72,7 +72,6 @@ class MapGenerator(object):
             pos = graph.node[node]["pos"]
             graph.node[node]["scaled_pos"] = (pos[0] * map_width, pos[1] * map_height)
 
-
     @staticmethod
     def __add_roadlengths(graph):
         """
@@ -81,7 +80,8 @@ class MapGenerator(object):
         for u, v in graph.edges_iter():
             MapGenerator.set_roadlength(graph, u, v)
 
-    def generate_map(self, num_of_pois, num_of_plcs, num_of_crossings, max_x, max_y):
+    @staticmethod
+    def generate_map(num_of_pois, num_of_plcs, num_of_crossings, max_x, max_y):
         """
         :type num_of_pois: int
 
@@ -126,7 +126,8 @@ class MapGenerator(object):
 
         return g
 
-    def load_from_graphml(self, path):
+    @staticmethod
+    def load_from_graphml(path):
         """
         :type path: str
         :rtype: networkx.classes.graph.Graph
@@ -155,7 +156,7 @@ class MapGenerator(object):
                 loctype = "poi"
             elif loctype in ["pl"]:
                 loctype = "plcs"
-            if not loctype in ["poi", "plcs", "crossing"]:
+            if loctype not in ["poi", "plcs", "crossing"]:
                 raise(SALMAException("Wrong loctype for node {}: {}".format(node, loctype)))
             qualifier = m.group(2)
             if len(qualifier) == 0:

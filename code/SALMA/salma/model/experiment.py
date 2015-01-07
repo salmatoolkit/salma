@@ -35,6 +35,11 @@ class Experiment(object):
             self.__world = None
             self.__world_declaration_path = world
         self.__procedure_defs_path = procedure_defs
+        if self.__world is None:
+            if self.world_declaration_path is None:
+                raise SALMAException("Neither world not world declaration path given for experiment.")
+            World.set_logic_engine(EclipseCLPEngine(self.world_declaration_path, self.procedure_defs_path))
+
         #: :type: PropertyCollection
         self.__property_collection = PropertyCollection(World.logic_engine())
 
@@ -73,9 +78,6 @@ class Experiment(object):
 
     def initialize(self):
         if self.world is None:
-            if self.world_declaration_path is None:
-                raise SALMAException("Neither world not world declaration path given for experiment.")
-            World.set_logic_engine(EclipseCLPEngine(self.world_declaration_path, self.procedure_defs_path))
             World.create_new_world()
             self.__world = World.instance()
             self.world.load_declarations()

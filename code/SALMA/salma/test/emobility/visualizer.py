@@ -1,12 +1,11 @@
 import networkx as nx
-import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from salma.model.world import World
-import numpy as np
 
 
-def create_label_list(ids : list) -> str:
+def create_label_list(ids: list) -> str:
     return ", ".join(map(str, ids))
+
 
 class Visualizer(object):
     def __init__(self, worldmap, world):
@@ -28,9 +27,7 @@ class Visualizer(object):
 
     def visualize_map(self, fig):
         """
-        :type m: networkx.classes.graph.Graph
         :type fig: Figure
-        :type world: World
         """
         m = self.worldmap
         positions = dict()
@@ -48,6 +45,7 @@ class Visualizer(object):
 
         for vehicle in self.world.getDomain("vehicle"):
             pos = self.world.getFluentValue("vehiclePosition", [vehicle.id])
+            assert isinstance(pos, (tuple, list))
             if pos[1] == pos[2]:
                 if pos[1] not in nodes_with_vehicles:
                     nodes_with_vehicles[pos[1]] = []
@@ -101,6 +99,7 @@ class Visualizer(object):
 
         for vid in sorted(vids):
             pos = self.world.getFluentValue("vehiclePosition", [vid])
+            assert isinstance(pos, (tuple, list))
             poi = self.world.getFluentValue("currentTargetPOI", [vid])
             plcs = self.world.getFluentValue("currentTargetPLCS", [vid])
             poslabels.append("{}:({},{},{}) --> {}|{}".format(vid, pos[1], pos[2], pos[3], plcs, poi))

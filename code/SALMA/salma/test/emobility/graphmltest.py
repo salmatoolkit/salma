@@ -1,9 +1,7 @@
-
-__author__ = 'kroiss'
-
 import unittest
 import networkx as nx
 import os
+
 
 class GraphMLTest(unittest.TestCase):
     def test_loadgraphml(self):
