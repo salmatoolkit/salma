@@ -169,7 +169,14 @@ effect(batteryLevel(Vehicle), tick(Steps), OldLevel, NewLevel, S) :-
 	).
 
 
+effect(waitingForAssignment(Vehicle), 
+	setWaitingForAssignment(Vehicle, NewState),
+	_, NewState, _).
 	
+effect(waitingForReservation(Vehicle), 
+	setWaitingForReservation(Vehicle, NewState),
+	_, NewState, _).
+
 
 		
 		

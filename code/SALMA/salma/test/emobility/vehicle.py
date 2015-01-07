@@ -38,28 +38,24 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
 
     p_request_plcs = Procedure("main", [],
                                [
-                                   If(EvaluationContext.PYTHON_EXPRESSION, "currentTargetPLCS(self) is None", [],
+                                   If("currentTargetPLCS(self) is None",
                                       [
-                                          Assign("possible_targets",
-                                                 EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                                 target_chooser, []),
+                                          Assign("possible_targets", target_chooser),
                                           Send("assignment", ("areq", Entity.SELF, Variable("possible_targets"), 0, 0),
                                                "veh", "sam1", "sam")
-                                      ])
-                               ])
+                                      ])])
 
     p_make_reservation = Procedure("main", [],
                                    [
                                        Receive("assignment", "veh", "sam_responses"),
-                                       Assign("chosen_plcs", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                              response_selector, []),
+                                       Assign("chosen_plcs", response_selector),
                                        Send("reservation", ("res", Entity.SELF, 0, 0), "veh", Variable("chosen_plcs"),
-                                            "plcs")
-                                   ])
+                                            "plcs")])
 
     p_set_target = Procedure("main", [],
                              [
                                  Receive("reservation", "veh", "res_response"),
+                                 Act("setWaitingForAssignment", [Entity.SELF, False])
                                  SetFluent("waitingForAssignment", EvaluationContext.PYTHON_EXPRESSION, "False",
                                            [Entity.SELF]),
                                  If(EvaluationContext.PYTHON_EXPRESSION, "res_response[0].content[2] == True", [],

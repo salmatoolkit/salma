@@ -89,7 +89,7 @@ class Experiment(object):
     def augment_world_context(self):
         pass
 
-    def create_entities(self, world):
+    def create_entities(self):
         pass
 
     def setup_distributions(self):

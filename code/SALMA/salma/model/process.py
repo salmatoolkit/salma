@@ -428,10 +428,9 @@ class PeriodicProcess(Process):
 
 
 class TriggeredProcess(Process):
-    def __init__(self, procedure, condition_type, condition, condition_params, relative_deadline=None,
+    def __init__(self, procedure, condition, condition_params, relative_deadline=None,
                  introduction_time=0):
         Process.__init__(self, procedure, introduction_time)
-        self.__condition_type = condition_type
         self.__condition = condition
         self.__condition_params = condition_params
         self.__relative_deadline = relative_deadline
@@ -445,7 +444,8 @@ class TriggeredProcess(Process):
         if current_time < min_time:
             return False
         ectx = self.current_evaluation_context or self.agent.evaluation_context
-        result = ectx.evaluateCondition(self.__condition_type,
+        condition_type = ectx.determine_source_type(self.__condition, self.__condition_params)
+        result = ectx.evaluateCondition(condition_type,
                                         self.__condition,
                                         *self.__condition_params)
         return result

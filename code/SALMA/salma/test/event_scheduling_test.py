@@ -80,8 +80,7 @@ class EventSchedulingTest(unittest.TestCase):
             Act("set_velocity", [Entity.SELF, Variable("nvx"), Variable("nvy")])
         ])
 
-        proc = process.TriggeredProcess(seq, EvaluationContext.PYTHON_EXPRESSION,
-                                        "occur('wall_alert', self)", [])
+        proc = process.TriggeredProcess(seq, "occur('wall_alert', self)", [])
         agent = Agent(robotId, "robot", [proc])
         return agent
 

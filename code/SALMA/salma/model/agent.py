@@ -198,8 +198,7 @@ class Agent(Entity):
         proc = Procedure("main", [],
                          [UpdateRemoteSensor(sensor_name)
                           ])
-        p = TriggeredProcess(proc, EvaluationContext.TRANSIENT_FLUENT,
-                             "message_available", [Entity.SELF, sensor_name, sensor_name])
+        p = TriggeredProcess(proc, "message_available", [Entity.SELF, sensor_name, sensor_name])
         self.set_remote_sensor_dest_process(sensor_name, p)
 
     def add_process(self, p: Process):

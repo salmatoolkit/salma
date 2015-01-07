@@ -43,6 +43,23 @@ class Element(object):
         return self.__id
 
 
+def makevars(*args):
+    """
+    Creates one or several variables.
+    :rtype: list[Variable]
+    """
+    newvars = []
+    for arg in args:
+        if isinstance(arg, str):
+            newvar = Variable(arg)
+        elif isinstance(arg, (tuple, list)) and len(arg) == 2:
+            newvar = Variable(arg[0], arg[1])
+        else:
+            raise SALMAException("Wrong formal of variable specification: {}".format(arg))
+        newvars.append(newvar)
+    return newvars
+
+
 class Variable(object):
     """
     A class that marks a typed variable. This class is used in parameter lists of control nodes to
@@ -489,7 +506,9 @@ class Iterate(ControlNode):
         :param EvaluationContext evaluation_context: the evaluation context
         :param ProcedureRegistry procedure_registry: the procedure registry
         """
-        source_type = evaluation_context.determine_source_type(self.source, self.params)
+        res_source = evaluation_context.resolve(self.source)
+        res_params = evaluation_context.resolve(*self.params)
+        source_type = evaluation_context.determine_source_type(res_source, res_params)
         result_list = evaluation_context.getCurrentResultList(self)
         result_index = evaluation_context.getCurrentResultListIndex(self)
 

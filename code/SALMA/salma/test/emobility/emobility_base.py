@@ -11,13 +11,22 @@ from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
 from salma.test.emobility.visualizer import Visualizer
 from salma.model.world import World
-from salma.engine import EclipseCLPEngine
-from salma import SALMAException
+import numpy as np
 from salma.model.core import Action
 
 
-class EMobilityBase(Experiment):
+def print_timing_info(info):
+    steps = [ti["steps"] for ti in info]
 
+    times = [ti["time"].total_seconds() for ti in info]
+    print(
+        "Steps: mean = {}, median = {}, min={}, max={}".format(np.mean(steps), np.median(steps), np.min(steps),
+                                                               np.max(steps)))
+    print("Time: mean = {}, median = {}, min={}, max={}".format(np.mean(times), np.median(times), np.min(times),
+                                                                np.max(times)))
+
+
+class EMobilityBase(Experiment):
     def __init__(self):
         super().__init__("ecl-test/e-mobility-with-abstractions/e-mobility-domain-with-abstractions.ecl")
         self.logger = logging.getLogger('salmalab')
@@ -31,6 +40,7 @@ class EMobilityBase(Experiment):
         self.__visualizer = None
         self.__outdir = None
         self.__logfile = None
+        self.__step_listeners = []
 
     @property
     def world_map(self):
@@ -46,6 +56,13 @@ class EMobilityBase(Experiment):
         :rtype: MapTranslator
         """
         return self.__mt
+
+    @property
+    def step_listeners(self):
+        """
+        :rtype: list[]
+        """
+        return self.__step_listeners
 
     def create_entities(self):
         mgen = MapGenerator(self.world)
@@ -101,15 +118,15 @@ class EMobilityBase(Experiment):
                                                                    "message")
 
             # for a in actions:
-            #     if a[0] in ("requestTransfer", "transferStarts", "transferEnds", "transferFails"):
+            # if a[0] in ("requestTransfer", "transferStarts", "transferEnds", "transferFails"):
             #         msgid = a[1][0]
             for msgid in messages:
-                    spec = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec",
-                                                                       msgid)
-                    stransval = world.getFluentValue("sensor_transmitted_value", [msgid])
-                    chtransval = world.getFluentValue("channel_transmission_content", [msgid])
-                    self.__log("      #{}: {}   sensor_transmitted_value: {}    "
-                               "channel_trans_value: {}".format(msgid, spec, stransval, chtransval))
+                spec = world.evaluation_context().evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec",
+                                                                   msgid)
+                stransval = world.getFluentValue("sensor_transmitted_value", [msgid])
+                chtransval = world.getFluentValue("channel_transmission_content", [msgid])
+                self.__log("      #{}: {}   sensor_transmitted_value: {}    "
+                           "channel_trans_value: {}".format(msgid, spec, stransval, chtransval))
 
             self.__log("   Toplevel Results: {}".format(toplevel_results))
             self.__log("   Scheduled Results: {}".format(scheduled_results))
@@ -123,7 +140,7 @@ class EMobilityBase(Experiment):
                 speed = world.getFluentValue("vehicleSpeed", [vehicle.id])
 
                 self.__log("   {}: {} - {} - {} - speed: {}".format(vehicle.id,
-                                                        pos, route, target, speed))
+                                                                    pos, route, target, speed))
             for plcs in world.getDomain("plcs"):
                 fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
                 fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])
@@ -141,7 +158,7 @@ class EMobilityBase(Experiment):
             self.__fig.savefig(path)
         return True, None
 
-    def start(self, step_limit=None, log=True, visualize=True):
+    def prepare(self, log=True, visualize=True):
         """
         Runs the simulation until all targets have been reached.
 
@@ -163,11 +180,8 @@ class EMobilityBase(Experiment):
             self.__outdir = datetime.now().strftime("imgout/%Y%m%d_%H-%M-%S")
             os.makedirs(self.__outdir)
             self.__logfile = open(os.path.join(self.__outdir, "log.txt"), mode="w")
+        self.__step_listeners.append(self.record_step)
 
-        verdict, results = self.runExperiment(check_verdict=True, maxSteps=step_limit,
-                                              stepListeners=[self.record_step])
-
+    def cleanup(self):
         if self.__logfile is not None:
             self.__logfile.close()
-
-        return verdict, results

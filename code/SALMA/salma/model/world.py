@@ -1233,7 +1233,7 @@ class LocalEvaluationContext(EvaluationContext):
         """
         self.__variable_bindings[variableName] = value
 
-    def resolve(self, *terms):
+    def resolve(self, *terms, **kwargs):
         """
         Evaluates each term in terms and returns a list with the collected results.
 
@@ -1242,6 +1242,10 @@ class LocalEvaluationContext(EvaluationContext):
         :param list terms: the unresolved terms.
         :rtype: list
         """
+        if "strict" in kwargs:
+            strict = kwargs["strict"]
+        else:
+            strict = True
         ground_terms = []
         for term in terms:
             # var gt : object
@@ -1249,8 +1253,12 @@ class LocalEvaluationContext(EvaluationContext):
                 gt = self.__context_entity.id
             elif isinstance(term, Variable):
                 if term.name not in self.__variable_bindings:
-                    raise SALMAException("Variable %s not bound." % term.name)
-                gt = self.__variable_bindings[term.name]
+                    if strict:
+                        raise SALMAException("Variable %s not bound." % term.name)
+                    else:
+                        gt = term
+                else:
+                    gt = self.__variable_bindings[term.name]
             elif isinstance(term, (list, set)):
                 gt = list()
                 for t in term:
@@ -1284,8 +1292,10 @@ class LocalEvaluationContext(EvaluationContext):
         """
         free_vars = []
         for p in params:
-            if isinstance(p, tuple) and len(p) == 2 and isinstance(p[0], str) and isinstance(p[1], str):
-                free_vars.append(p)
+            if isinstance(p, Variable):
+                if p.sort is None:
+                    raise SALMAException("No sort defined for free variable {} in Select.".format(p.name))
+                free_vars.append((p.name, p.sort))
         return free_vars
 
     def selectAll(self, source_type, source, *params):

@@ -37,7 +37,7 @@ def create_plcssam_functions(world_map, mt):
                     result.append((vehicle, plcs))
                     fs -= 1
                 free_slot_map[plcs] = fs
-        #todo: solve constraint
+        # todo: solve constraint
         return result
 
     return process_assignment_requests
@@ -45,21 +45,16 @@ def create_plcssam_functions(world_map, mt):
 
 def create_plcssam(world, world_map, mt):
     request_processor = create_plcssam_functions(world_map, mt)
-
+    assignments, p, v = makevars("assignments", ("p", "plcs"), ("v", "vehicle"))
     p_process_requests = Procedure("main", [],
                                    [
-
                                        Receive("assignment", "sam", "assignment_requests"),
-                                       Assign("assignments", EvaluationContext.EXTENDED_PYTHON_FUNCTION,
-                                              request_processor, []),
-                                       Iterate(EvaluationContext.ITERATOR, Variable("assignments"),
-                                               [("v", "vehicle"), ("p", "plcs")],
-                                               Send("assignment", ("aresp", 0, 0, Variable("p")), "sam", Variable("v"),
-                                                    "veh"))
-                                   ])
+                                       Assign(assignments, request_processor),
+                                       Iterate(Variable("assignments"),
+                                               [v, p],
+                                               Send("assignment", ("aresp", 0, 0, p), "sam", v, "veh"))])
 
-    p1 = TriggeredProcess(p_process_requests, EvaluationContext.TRANSIENT_FLUENT,
-                          "message_available", [Entity.SELF, "assignment", "sam"])
+    p1 = TriggeredProcess(p_process_requests, "message_available", [Entity.SELF, "assignment", "sam"])
 
     sam = Agent("sam1", "plcssam", [p1], world_declaration=world)
     world.addAgent(sam)
