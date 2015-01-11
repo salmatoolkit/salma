@@ -5,7 +5,7 @@ from salma.constants import ACHIEVE, INVARIANT
 from salma.model.data import Term
 
 from salma.model.distributions import NormalDistribution, \
-    ConstantDistribution, Distribution, OptionalDistribution
+    ConstantDistribution, Distribution, OptionalDistribution, UniformDistribution
 from salma.model.selectionstrategy import Stepwise
 
 from salma.model.world import World
@@ -33,7 +33,7 @@ class RoadTravelTimeDistribution(Distribution):
 
     def generateSample(self, evaluation_context, param_values):
         world = World.instance()
-        road = evaluation_context.get_derived_fluent_value("currentRoad", param_values[0])
+        road = evaluation_context.get_derived_fluent_value("currentRoad", [param_values[0]])
         if road is not None:
             road_length = world.getConstantValue("roadlength", [road])
             assert isinstance(road_length, (float, int))
@@ -41,7 +41,7 @@ class RoadTravelTimeDistribution(Distribution):
             assert isinstance(speed, (float, int))
             base_duration = road_length / speed
             d = random.normalvariate(base_duration, self.__relative_sd * base_duration)
-            return round(d)
+            return max(0, round(d))
         else:
             return None
 
@@ -80,7 +80,7 @@ class EMobilityScenario1(EMobilityBase):
     def create_entities(self):
         super().create_entities()
         create_plcssam(self.world, self.world, self.mt)
-        create_vehicles(self.world, self.world, self.mt, NUM_OF_VEHICLES)
+        create_vehicles(self.world, self.world_map, self.mt, NUM_OF_VEHICLES)
         create_plcs_processes(self.world, self.world_map, self.mt)
 
     def create_initial_situation(self):
@@ -135,17 +135,20 @@ class EMobilityScenario1(EMobilityBase):
         message_end.selection_strategy = Stepwise(transferEnds=0.8, transferFails=0.2)
 
         enterNextRoad = self.world.get_exogenous_action("enterNextRoad")
-        enterNextRoad.config.occurrence_distribution = NormalDistribution("integer", 5, 4)
+        enterNextRoad.config.occurrence_distribution = UniformDistribution("integer",
+                                                                           value_range=(3, 4))
 
         arriveAtRoadEnd = self.world.get_exogenous_action("arriveAtRoadEnd")
         arriveAtRoadEnd.config.occurrence_distribution = RoadTravelTimeDistribution(0.2)
 
         driverParksAtPLCS = self.world.get_exogenous_action("driverParksAtPLCS")
-        driverParksAtPLCS.config.occurrence_distribution = NormalDistribution("integer", 5, 4)
+        driverParksAtPLCS.config.occurrence_distribution = UniformDistribution("integer",
+                                                                               value_range=(3, 4))
 
         driverLeavesPLCS = self.world.get_exogenous_action("driverLeavesPLCS")
         driverLeavesPLCS.config.occurrence_distribution = OptionalDistribution(
-            0.0, NormalDistribution("integer", 5, 4))
+            0.0, UniformDistribution("integer",
+                                     value_range=(3, 4)))
 
     def run_scenario1(self):
         log = True
@@ -215,9 +218,10 @@ class EMobilityScenario1(EMobilityBase):
 
         elif _MODE == VISUALIZE:
             print("Visualize")
-            verdict, _ = self.run_experiment(step_listeners=self.step_listeners)
+            verdict, info = self.run_experiment(step_listeners=self.step_listeners)
 
             print("Verdict: {}".format(verdict))
+            print("Info: {}".format(info))
 
 
 if __name__ == '__main__':

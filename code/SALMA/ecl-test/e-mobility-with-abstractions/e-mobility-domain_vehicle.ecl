@@ -37,7 +37,11 @@ constant(baseDischargeRate, [veh:vehicle], float).
 
 
 primitive_action(setWaitingForAssignment, [veh:vehicle, state:boolean]).
+poss(setWaitingForAssignment(_, _), _) :- true.
+
 primitive_action(setWaitingForReservation, [veh:vehicle, state:boolean]).
+poss(setWaitingForReservation(_, _), _) :- true.
+
 
 % route is given as the remaining list of roads
 fluent(currentRoute, [veh:vehicle], list).

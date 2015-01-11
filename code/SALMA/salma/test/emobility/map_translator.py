@@ -42,6 +42,7 @@ class MapTranslator(object):
             self.__world.setConstantValue("roadEnds", [road_id], Term("r", u, v))
             self.__world.setConstantValue("roadlength", [road_id], data["weight"])
             self.__world.setConstantValue("roadBaseSpeed", [road_id], 1)
+            self.__graph.edge[u][v]["road_id"] = road_id
 
     def get_position_from_node(self, node):
         """

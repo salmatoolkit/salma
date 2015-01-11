@@ -1,3 +1,4 @@
+from networkx.classes.graph import Graph
 from salma.model.agent import Agent
 from salma.model.data import Term
 from salma.model.procedure import *
@@ -19,7 +20,14 @@ def create_navigation_functions(world_map, mt):
         assert pos.functor == "l"
         target = currentTargetPLCS(agent.id)
         r = nx.shortest_path(world_map, pos.params[0], target)
-        return r
+        assert isinstance(world_map, Graph)
+        if len(r) <= 1:
+            return []
+        roads = []
+        for i in range(len(r) - 1):
+            road_id = world_map.edge[r[i]][r[i+1]]["road_id"]
+            roads.append(road_id)
+        return roads
 
     def response_selector(agent=None, sam_responses=None, **ctx):
         """
@@ -63,9 +71,9 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                              [
                                  Receive("reservation", "veh", "res_response"),
                                  Act("setWaitingForAssignment", [Entity.SELF, False]),
-                                 If("res_response[0].content[2] == True", [],
+                                 If("res_response[0].content.params[1] == True",
                                     [
-                                        Assign("plcs", "res_response[0].content[1]"),
+                                        Assign("plcs", "res_response[0].content.params[0]"),
                                         Act("setTargetPLCS", [Entity.SELF, Variable("plcs")])])])
 
     p_find_route = Procedure("main", [],
