@@ -3,6 +3,7 @@ from networkx.algorithms.connectivity import local_edge_connectivity
 import random
 import logging
 import math
+from networkx.classes.digraph import DiGraph
 from salma.SALMAException import SALMAException
 from salma.model.world import World
 import re
@@ -21,10 +22,11 @@ class MapGenerator(object):
     @staticmethod
     def get_dist(graph, node1, node2):
         """
-        :type graph: networkx.classes.graph.Graph
+        :type graph: networkx.classes.digraph.DiGraph
         :type node1: str
         :type node2: str
         """
+        assert isinstance(graph, DiGraph)
         pos1 = graph.node[node1]["scaled_pos"]
         pos2 = graph.node[node2]["scaled_pos"]
         return math.sqrt((pos2[0]-pos1[0])**2 + (pos2[1]-pos1[1])**2)
@@ -32,7 +34,7 @@ class MapGenerator(object):
     @staticmethod
     def set_roadlength(graph, node1, node2):
         """
-        :type graph: networkx.classes.graph.Graph
+        :type graph: networkx.classes.digraph.DiGraph
         :type node1: str
         :type node2: str
         """
@@ -75,7 +77,7 @@ class MapGenerator(object):
     @staticmethod
     def __add_roadlengths(graph):
         """
-        :type graph: networkx.classes.graph.Graph
+        :type graph: networkx.classes.digraph.DiGraph
         """
         for u, v in graph.edges_iter():
             MapGenerator.set_roadlength(graph, u, v)
@@ -134,8 +136,8 @@ class MapGenerator(object):
         """
         #: :type : networkx.classes.graph.Graph
         g1 = nx.read_graphml(path)
-        #: :type : networkx.classes.graph.Graph
-        g2 = nx.Graph()
+        #: :type graph: networkx.classes.digraph.DiGraph
+        g2 = DiGraph()
 
         typetest = re.compile(r"([a-zA-z]+)(\d*)")
 
@@ -174,6 +176,7 @@ class MapGenerator(object):
             n1 = node_mapping[u]
             n2 = node_mapping[v]
             g2.add_edge(n1, n2)
+            g2.add_edge(n2, n1)
 
         MapGenerator.__add_roadlengths(g2)
         return g2

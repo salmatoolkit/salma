@@ -18,7 +18,7 @@ from salma.test.emobility.plcssam import create_plcssam
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = VISUALIZE
+_MODE = ESTIMATION
 
 NUM_OF_VEHICLES = 5
 PLCS_CAPACITY = 10
@@ -99,7 +99,7 @@ class EMobilityScenario1(EMobilityBase):
         for plcs in plcses:
             self.world.setConstantValue("maxCapacity", [plcs.id], PLCS_CAPACITY)
             self.world.setConstantValue("plcsChargeRate", [plcs.id], 0.05)
-            plcs.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
+            plcs.initialize_connector_processes(default_sense_period=10, default_remote_sensor_send_period=30)
 
         for vehicle in vehicles:
             start = random.choice(starts)
@@ -111,9 +111,9 @@ class EMobilityScenario1(EMobilityBase):
             self.world.setConstantValue("baseDischargeRate", [vehicle.id], 0.01)
             self.world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
             self.world.setConstantValue("calendar", [vehicle.id], [Term("cal", target_poi.id, 0, 0)])
-            vehicle.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
+            vehicle.initialize_connector_processes(default_sense_period=10, default_remote_sensor_send_period=30)
         for sam in sams:
-            sam.initialize_connector_processes(default_sense_period=5, default_remote_sensor_send_period=5)
+            sam.initialize_connector_processes(default_sense_period=10, default_remote_sensor_send_period=30)
 
     def setup_distributions(self):
         super().setup_distributions()
@@ -199,7 +199,7 @@ class EMobilityScenario1(EMobilityBase):
             print_timing_info(info)
         elif _MODE == ESTIMATION:
             print("len: ", len(self.world.getDomain("plcs")))
-            _, results, info = self.run_repetitions(number_of_repetitions=20, step_listeners=self.step_listeners)
+            _, results, info = self.run_repetitions(number_of_repetitions=2, step_listeners=self.step_listeners)
 
             successes = sum(results)
             nobs = len(results)

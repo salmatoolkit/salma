@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 import matplotlib.pyplot as plt
+from salma.model.data import Term
 
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.experiment import Experiment
@@ -140,11 +141,18 @@ class EMobilityBase(Experiment):
             all_finished = True
             for vehicle in vehicles:
                 pos = world.getFluentValue("vehiclePosition", [vehicle.id])
-                route = world.getFluentValue("currentRoute", [vehicle.id])
-                target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
+                assert isinstance(pos, Term)
+                if pos.functor == "r":
+                    pos2 = self.__get_road_info(world, pos.params[0])[0]
+                else:
+                    pos2 = pos.params[0]
 
-                self.__log("   {}: {} - {} - {}".format(vehicle.id,
-                                                        pos, route, target))
+                route = world.getFluentValue("currentRoute", [vehicle.id])
+                route2 = self.__get_road_info(world, *route)
+                target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
+                currentPLCS = world.getFluentValue("currentPLCS", [vehicle.id])
+                self.__log("   {}: {} - {} - {} / {}".format(vehicle.id,
+                                                        pos2, route2, target, currentPLCS))
             for plcs in world.getDomain("plcs"):
                 fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
                 fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])
@@ -186,3 +194,20 @@ class EMobilityBase(Experiment):
     def cleanup(self):
         if self.__logfile is not None:
             self.__logfile.close()
+
+    def __get_road_info(self, world, *road_ids):
+        """
+        :param World world: the world
+        :param str road_id: the road id
+        :rtype: list[str]
+        """
+        result = []
+        for r in road_ids:
+            road_ends = world.getConstantValue("roadEnds", [r])
+            road_length = world.getConstantValue("roadlength", [r])
+            assert isinstance(road_ends, Term)
+            result.append("{}({}-{}={})".format(r, road_ends.params[0], road_ends.params[1], road_length))
+        return result
+
+
+

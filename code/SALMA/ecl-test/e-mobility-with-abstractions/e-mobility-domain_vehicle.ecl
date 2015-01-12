@@ -114,6 +114,13 @@ currentRoad(Vehicle, Road, S) :-
 		;
 		Road = none
 	).
+
+currentLocation(Vehicle, Location, S) :-
+	vehiclePosition(Vehicle, Pos, S),
+	(Pos = l(Location), !
+		;
+		Location = none
+	).
 	
 currentTarget(Vehicle, Target, S) :-
 	currentRoad(Vehicle, Road, S),
@@ -151,7 +158,11 @@ effect(currentTargetPLCS(Vehicle), setTargetPLCS(Vehicle, NewTarget), _, NewTarg
 
 
 effect(currentPLCS(Vehicle), driverLeavesPLCS(Vehicle), _, none, _).
-effect(currentPLCS(Vehicle), driverParksAtPLCS(Vehicle, PLCS), _, PLCS, _).
+effect(currentPLCS(Vehicle), driverParksAtPLCS(Vehicle), _, PLCS, S) :-
+	vehiclePosition(Vehicle, Pos, S),
+	Pos = l(PLCS).
+	
+	
 
 effect(currentTargetPOI(Vehicle), setPOI(Vehicle, NewPOI), _, NewPOI, _).
 

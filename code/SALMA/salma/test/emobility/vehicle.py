@@ -84,7 +84,9 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
     for i in range(number_of_vehicles):
         p1 = PeriodicProcess(p_request_plcs, 10)
         p2 = TriggeredProcess(p_find_route,
-                              "len(currentRoute(self)) == 0 and currentTargetPLCS(self) is not None")
+                              "len(currentRoute(self)) == 0 and currentTargetPLCS(self) is not None "
+                              "and currentRoad(self) is None "
+                              "and currentLocation(self) != currentTargetPLCS(self)")
 
         p3 = TriggeredProcess(p_set_target,
                               "len(local_channel_in_queue(self, 'reservation', 'veh')) > 0 "
