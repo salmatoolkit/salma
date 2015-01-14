@@ -373,7 +373,7 @@ class ExogenousActionConfiguration:
 
         self.__stochastic_param_distributions = []
         # initialize slots
-        for p in self.__exogenous_action.stochastic_params:
+        for _ in self.__exogenous_action.stochastic_params:
             self.__stochastic_param_distributions.append(None)
         # add distributions from constructor argument
         for p_spec in stochastic_param_distribution_specs:
@@ -388,7 +388,6 @@ class ExogenousActionConfiguration:
         return self.__exogenous_action
 
     def check(self):
-        problems = []
         if self.__exogenous_action.config is not self:
             raise SALMAException(
                 "Inconsistent exogenous action configuration: config of exogenous action {} points to different "

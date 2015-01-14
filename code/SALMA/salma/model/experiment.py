@@ -260,9 +260,9 @@ class Experiment(object):
             # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
             else:
                 if ((self.__world.is_finished() or time_out is True) and
-                            len(self.property_collection.achieve_goals) == 0 and
-                            len(self.property_collection.achieve_and_sustain_goals) == 0 and
-                            len(scheduled_keys) == 0):
+                        len(self.property_collection.achieve_goals) == 0 and
+                        len(self.property_collection.achieve_and_sustain_goals) == 0 and
+                        len(scheduled_keys) == 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
@@ -277,7 +277,7 @@ class Experiment(object):
                    "achieved_goals": self.__property_collection.already_achieved_goals,
                    "failure_stack": failure_stack,
                    "scheduled_keys": scheduled_keys}
-        self.after_run(verdict, details)
+        self.after_run(verdict, **details)
         return verdict, details
 
     def run_until_finished(self, **kwargs):
@@ -296,20 +296,36 @@ class Experiment(object):
             verdict = OK if self.__world.is_finished() else NOT_OK
         return verdict, results
 
-    def run_repetitions(self, number_of_repetitions=100, hypothesis_test=None, **kwargs):
+
+class ExperimentRunner(object):
+    def run_repetitions(self, experiment, number_of_repetitions=100, hypothesis_test=None, **kwargs):
         """
         Runs repetitions of the configured experiment. If an hypothesis test object is given then the acceptance
-        of this hypothesis test is
+        of this hypothesis test is calculated.
+
+        :param Experiment experiment: the experiment to run.
         :param int number_of_repetitions: fixed number of repetitions if no hypothesis test is given
-        :param int max_retrials: maximum number of retrials
         :param HypothesisTest hypothesis_test: the (sequential) hypothesis test to conduct
         :return:
         """
-        # save state
+        raise NotImplementedError()
+
+
+class SingleProcessExperimentRunner(ExperimentRunner):
+    def run_repetitions(self, experiment, number_of_repetitions=100, hypothesis_test=None, **kwargs):
+        """
+        Runs repetitions of the configured experiment. If an hypothesis test object is given then the acceptance
+        of this hypothesis test is calculated.
+
+        :param Experiment experiment: the experiment to run.
+        :param int number_of_repetitions: fixed number of repetitions if no hypothesis test is given
+        :param HypothesisTest hypothesis_test: the (sequential) hypothesis test to conduct
+        :return:
+        """
         check_initialization = kwargs.get("check_initialization", True)
         max_retrials = kwargs.get("max_retrials", 3)
         if check_initialization:
-            self.assure_consistent_initilization()
+            experiment.assure_consistent_initilization()
         results = []  # list of True/False
         trial_infos = []
         retrial = 0
@@ -319,9 +335,9 @@ class Experiment(object):
         accepted_hypothesis = None
         successes, failures = 0, 0
         while should_continue:
-            self.reset()
+            experiment.reset()
 
-            verdict, res = self.run_experiment(**kwargs)
+            verdict, res = experiment.run_experiment(**kwargs)
             trial_infos.append(res)
             if verdict == NONDET or verdict == CANCEL:
                 if verdict == CANCEL:
@@ -352,5 +368,4 @@ class Experiment(object):
             else:
                 should_continue = conclusive_trial_count < number_of_repetitions
 
-        self.__world.reset()
         return accepted_hypothesis, results, trial_infos

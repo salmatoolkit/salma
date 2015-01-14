@@ -1,16 +1,12 @@
 import random
 
-from statsmodels.stats import proportion
 from salma.constants import ACHIEVE, INVARIANT
 from salma.model.data import Term
-
 from salma.model.distributions import NormalDistribution, \
     ConstantDistribution, Distribution, OptionalDistribution, UniformDistribution
 from salma.model.selectionstrategy import Stepwise
-
 from salma.model.world import World
-from salma.test.emobility.emobility_base import EMobilityBase, print_timing_info
-from salma.statistics import SequentialProbabilityRatioTest
+from salma.test.emobility.emobility_base import EMobilityBase
 from salma.test.emobility.vehicle import create_vehicles
 from salma.test.emobility.plcs import create_plcs_processes
 from salma.test.emobility.plcssam import create_plcssam
@@ -47,7 +43,7 @@ class RoadTravelTimeDistribution(Distribution):
 
 class EMobilityScenario1(EMobilityBase):
 
-    def __init__(self, mode, num_vehicles=DEFAULT_NUM_OF_VEHICLES,
+    def __init__(self, mode, should_log, num_vehicles=DEFAULT_NUM_OF_VEHICLES,
                  plcs_capacity=DEFAULT_PLCS_CAPACITY,
                  vehicle_speed=DEFAULT_VEHICLE_SPEED,
                  time_limit=DEFAULT_TIME_LIMIT):
@@ -55,13 +51,14 @@ class EMobilityScenario1(EMobilityBase):
         Creates a new instance of the E-Mobility scenario.
 
         :param int mode: one of VISUALIZE, ESTIMATION, or HYPTEST
+        :param bool should_log: activates logging if True.
         :param int num_vehicles: the number of vehicles
         :param int plcs_capacity: the capacity of each PLCS
         :param int vehicle_speed: the average number of road length units that a vehicle moves per time unit
         :param int time_limit: the time limit for each vehicle to receive a target PLCS assignment after
             it has sent a request.
         """
-        super().__init__()
+        super().__init__(should_log, mode == VISUALIZE)
         self.__mode = mode
         self.__num_vehicles = num_vehicles
         self.__plcs_capacity = plcs_capacity
@@ -97,7 +94,7 @@ class EMobilityScenario1(EMobilityBase):
     def create_entities(self):
         super().create_entities()
         create_plcssam(self.world, self.world, self.mt)
-        create_vehicles(self.world, self.world_map, self.mt, NUM_OF_VEHICLES)
+        create_vehicles(self.world, self.world_map, self.mt, self.__num_vehicles)
         create_plcs_processes(self.world, self.world_map, self.mt)
 
     def create_initial_situation(self):
@@ -114,7 +111,7 @@ class EMobilityScenario1(EMobilityBase):
         # Simulation config
         # -------------------------------
         for plcs in plcses:
-            self.world.setConstantValue("maxCapacity", [plcs.id], PLCS_CAPACITY)
+            self.world.setConstantValue("maxCapacity", [plcs.id], self.__plcs_capacity)
             self.world.setConstantValue("plcsChargeRate", [plcs.id], 0.05)
             plcs.initialize_connector_processes(default_sense_period=10, default_remote_sensor_send_period=30)
 
@@ -196,55 +193,3 @@ class EMobilityScenario1(EMobilityBase):
         else:
             self.property_collection.register_property("f", fstr, INVARIANT)
             self.property_collection.register_property("g", goal2, ACHIEVE)
-
-    def run_scenario1(self):
-        log = True
-
-        self.prepare(log, _MODE == VISUALIZE)
-
-
-        if log:
-            self.__print_info(self.world)
-
-        # assumption success prob = 0.6 --> H0: p <= 0.4
-        if _MODE == HYPTEST:
-            sprt = SequentialProbabilityRatioTest(0.59, 0.61, 0.05, 0.05)
-            accepted_hypothesis, results, info = self.run_repetitions(hypothesis_test=sprt,
-                                                                      step_listeners=self.step_listeners)
-            print("SPRT")
-            print("Conducted tests: {}".format(len(results)))
-            print("Successes: {} of {}".format(sum(results), len(results)))
-            print("Hypothesis accepted: {}".format(accepted_hypothesis))
-
-            print_timing_info(info)
-        elif _MODE == ESTIMATION:
-            print("len: ", len(self.world.getDomain("plcs")))
-            _, results, info = self.run_repetitions(number_of_repetitions=5, step_listeners=self.step_listeners)
-
-            successes = sum(results)
-            nobs = len(results)
-            ratio = successes / nobs
-            print("ESTIMATION")
-            print("Successes: {} of {}".format(successes, nobs))
-            print("Ratio: {}".format(ratio))
-            alpha = 0.05
-
-            print("Confidence intervals, alpha={}: ".format(alpha))
-            for method in ["normal", "agresti_coull", "beta", "wilson", "jeffrey"]:
-                ci_low, ci_upp = proportion.proportion_confint(successes, nobs, alpha=alpha, method=method)
-                print("   {} => [{}..{}]".format(method, ci_low, ci_upp))
-
-            print_timing_info(info)
-
-        elif _MODE == VISUALIZE:
-            print("Visualize")
-            verdict, info = self.run_experiment(step_listeners=self.step_listeners)
-
-            print("Verdict: {}".format(verdict))
-            print("Info: {}".format(info))
-
-
-if __name__ == '__main__':
-    sc1 = EMobilityScenario1()
-    sc1.initialize()
-    sc1.run_scenario1()

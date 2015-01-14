@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 import logging
 import os
 from datetime import datetime
@@ -27,22 +28,21 @@ def print_timing_info(info):
 
 
 def get_road_info(world, *road_ids):
-        """
-        :param World world: the world
-        :param str road_id: the road id
-        :rtype: list[str]
-        """
-        result = []
-        for r in road_ids:
-            road_ends = world.getConstantValue("roadEnds", [r])
-            road_length = world.getConstantValue("roadlength", [r])
-            assert isinstance(road_ends, Term)
-            result.append("{}({}-{}={})".format(r, road_ends.params[0], road_ends.params[1], road_length))
-        return result
+    """
+    :param World world: the world
+    :param list[str] road_id: the road id
+    :rtype: list[str]
+    """
+    result = []
+    for r in road_ids:
+        road_ends = world.getConstantValue("roadEnds", [r])
+        road_length = world.getConstantValue("roadlength", [r])
+        assert isinstance(road_ends, Term)
+        result.append("{}({}-{}={})".format(r, road_ends.params[0], road_ends.params[1], road_length))
+    return result
 
 
 class EMobilityBase(Experiment):
-
     def __init__(self, should_log, should_visualize):
         """
         :param bool should_log: whether or not logging should be activated.
@@ -66,7 +66,8 @@ class EMobilityBase(Experiment):
         self.__outdir = None
         #: :type : IOBase
         self.__logfile = None
-        self.step_listeners.append(self.record_step)
+        if self.__should_log or self.__should_visualize:
+            self.step_listeners.append(self.record_step)
 
     @property
     def world_map(self):
@@ -82,13 +83,6 @@ class EMobilityBase(Experiment):
         :rtype: MapTranslator
         """
         return self.__mt
-
-    @property
-    def step_listeners(self):
-        """
-        :rtype: list[]
-        """
-        return self.__step_listeners
 
     def create_entities(self):
         mgen = MapGenerator(self.world)
@@ -169,11 +163,12 @@ class EMobilityBase(Experiment):
                     pos2 = pos.params[0]
 
                 route = world.getFluentValue("currentRoute", [vehicle.id])
+                assert isinstance(route, Iterable)
                 route2 = get_road_info(world, *route)
                 target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
                 currentPLCS = world.getFluentValue("currentPLCS", [vehicle.id])
                 self.__log("   {}: {} - {} - {} / {}".format(vehicle.id,
-                                                        pos2, route2, target, currentPLCS))
+                                                             pos2, route2, target, currentPLCS))
             for plcs in world.getDomain("plcs"):
                 fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
                 fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])

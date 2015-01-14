@@ -1316,7 +1316,6 @@ class LocalEvaluationContext(EvaluationContext):
         free_vars = self.__select_free_variables(params)
         resolved_params = self.resolve(*params, strict=False)  # the free variables tuples are ignored by resolve()
 
-
         if len(free_vars) == 0:
             raise SALMAException("No iterator variable specified in selectAll.")
 
