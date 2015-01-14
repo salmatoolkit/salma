@@ -161,7 +161,7 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def reset(self, removeFormulas=True, deleteConstants=True):
+    def reset(self):
         raise NotImplementedError()
 
     def defineDomain(self, sortName, objectIds):
@@ -404,19 +404,26 @@ class EclipseCLPEngine(Engine):
 
     __verdictMapping = {'ok': OK, 'not_ok': NOT_OK, 'nondet': NONDET}
 
-    def __init__(self, domainPath, procedureDefPath=None):
+    __pyclp_initialized = False
+
+    def __init__(self, domain_path, procedure_def_path=None, domain_init_function=None):
         # make absolute path
 
-        self.__domainPath = os.path.abspath(domainPath)
+        self.__domainPath = os.path.abspath(domain_path)
 
-        self.__proceduresPath = None if procedureDefPath is None else os.path.abspath(procedureDefPath)
+        self.__proceduresPath = None if procedure_def_path is None else os.path.abspath(procedure_def_path)
+        self.__domain_init_function = domain_init_function
         self.__properties = dict()
         self.__constants = dict()
 
         # dict: (fluentName, tuple(fluentParams)) -> engine.FluentValue
         self.__currentState = None
-
+        if EclipseCLPEngine.__pyclp_initialized:
+            pyclp.cleanup()
+            EclipseCLPEngine.__pyclp_initialized = False
         pyclp.init()  # Init ECLiPSe engine
+        EclipseCLPEngine.__pyclp_initialized = True
+
         lib_path_var = pyclp.Var()
         domain_path_var = pyclp.Var()
         procedures_def_path_var = pyclp.Var()
@@ -436,7 +443,9 @@ class EclipseCLPEngine(Engine):
         if result != pyclp.SUCCEED:
             raise (SALMAException("Can't compile Eclipse CLP progression module (msg = {})".format(msg)))
 
-        self.reset()
+        self.__callGoal("init_agasmc", erorMsg="Can't initialize main module.")
+        if self.__domain_init_function is not None:
+            self.__callGoal(self.__domain_init_function, erorMsg="Can't initialize domain description.")
 
     def printToplevelGoals(self):
         # v = pyclp.Var()
@@ -501,23 +510,16 @@ class EclipseCLPEngine(Engine):
                 errorMsg.format(goalName, readableParams, result, msg, stream_num)))
         return goal, result, msg
 
-    def reset(self, removeFormulas=True, deleteConstants=True, domain_init_function=None):
+    def reset(self):
 
         self.__currentState = None
         self.__properties = dict()
+        self.__constants = dict()
 
-        a = pyclp.Var()
-        b = pyclp.Var()
+        self.__callGoal("reset_agasmc", erorMsg="Can't reset main module.")
 
-        if deleteConstants:
-            self.__constants = dict()
-
-        if removeFormulas:
-            self.__callGoal("init_agasmc", erorMsg="Can't initialize main module.")
-        else:
-            self.__callGoal("reset_agasmc", erorMsg="Can't reset main module.")
-        if domain_init_function is not None:
-            self.__callGoal(domain_init_function, erorMsg="Can't initialize domain description.")
+        if self.__domain_init_function is not None:
+            self.__callGoal(self.__domain_init_function, erorMsg="Can't initialize domain description.")
 
     def __convert_value_from_engine_result(self, raw_value):
         """
@@ -619,7 +621,7 @@ class EclipseCLPEngine(Engine):
 
         if (self.__currentState is None) or (key not in self.__currentState):
             self.__updateCurrentState(key)
-        #self.__updateCurrentState(key)
+        # self.__updateCurrentState(key)
         if key not in self.__currentState:
             return None
         else:

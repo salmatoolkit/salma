@@ -18,12 +18,11 @@ from salma.test.emobility.plcssam import create_plcssam
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = ESTIMATION
 
-NUM_OF_VEHICLES = 5
-PLCS_CAPACITY = 10
-VEHICLE_SPEED = 5
-TIME_LIMIT = 152
+DEFAULT_NUM_OF_VEHICLES = 5
+DEFAULT_PLCS_CAPACITY = 10
+DEFAULT_VEHICLE_SPEED = 5
+DEFAULT_TIME_LIMIT = 110
 
 
 class RoadTravelTimeDistribution(Distribution):
@@ -48,8 +47,26 @@ class RoadTravelTimeDistribution(Distribution):
 
 class EMobilityScenario1(EMobilityBase):
 
-    def __init__(self):
+    def __init__(self, mode, num_vehicles=DEFAULT_NUM_OF_VEHICLES,
+                 plcs_capacity=DEFAULT_PLCS_CAPACITY,
+                 vehicle_speed=DEFAULT_VEHICLE_SPEED,
+                 time_limit=DEFAULT_TIME_LIMIT):
+        """
+        Creates a new instance of the E-Mobility scenario.
+
+        :param int mode: one of VISUALIZE, ESTIMATION, or HYPTEST
+        :param int num_vehicles: the number of vehicles
+        :param int plcs_capacity: the capacity of each PLCS
+        :param int vehicle_speed: the average number of road length units that a vehicle moves per time unit
+        :param int time_limit: the time limit for each vehicle to receive a target PLCS assignment after
+            it has sent a request.
+        """
         super().__init__()
+        self.__mode = mode
+        self.__num_vehicles = num_vehicles
+        self.__plcs_capacity = plcs_capacity
+        self.__vehicle_speed = vehicle_speed
+        self.__time_limit = time_limit
 
     @staticmethod
     def __print_info(world):
@@ -150,10 +167,7 @@ class EMobilityScenario1(EMobilityBase):
             0.0, UniformDistribution("integer",
                                      value_range=(3, 4)))
 
-    def run_scenario1(self):
-        log = True
-
-        self.prepare(log, _MODE == VISUALIZE)
+    def setup_properties(self):
         fstr = """
         forall(v:vehicle,
             implies(
@@ -164,7 +178,7 @@ class EMobilityScenario1(EMobilityBase):
                 )
             )
         )
-        """.format(TIME_LIMIT)
+        """.format(self.__time_limit)
 
         goal1 = """
         forall(v:vehicle,
@@ -177,11 +191,17 @@ class EMobilityScenario1(EMobilityBase):
         )
         """
         goal2 = "forall(v:vehicle, currentTargetPLCS(v) \= none)"
-        if _MODE == VISUALIZE:
+        if self.__mode == VISUALIZE:
             self.property_collection.register_property("g", goal1, ACHIEVE)
         else:
             self.property_collection.register_property("f", fstr, INVARIANT)
             self.property_collection.register_property("g", goal2, ACHIEVE)
+
+    def run_scenario1(self):
+        log = True
+
+        self.prepare(log, _MODE == VISUALIZE)
+
 
         if log:
             self.__print_info(self.world)
@@ -199,7 +219,7 @@ class EMobilityScenario1(EMobilityBase):
             print_timing_info(info)
         elif _MODE == ESTIMATION:
             print("len: ", len(self.world.getDomain("plcs")))
-            _, results, info = self.run_repetitions(number_of_repetitions=2, step_listeners=self.step_listeners)
+            _, results, info = self.run_repetitions(number_of_repetitions=5, step_listeners=self.step_listeners)
 
             successes = sum(results)
             nobs = len(results)
