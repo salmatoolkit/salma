@@ -4,10 +4,10 @@ from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.emobility.emobility_scenario_1 import EMobilityScenario1, ESTIMATION, VISUALIZE, HYPTEST
 from salma.test.emobility.emobility_base import print_timing_info
 
-_MODE = ESTIMATION
+_MODE = VISUALIZE
 
 if __name__ == '__main__':
-    sc1 = EMobilityScenario1(ESTIMATION, False, time_limit=120)
+    sc1 = EMobilityScenario1(_MODE, True, time_limit=120)
     sc1.setup_properties()
     sc1.initialize()
 
