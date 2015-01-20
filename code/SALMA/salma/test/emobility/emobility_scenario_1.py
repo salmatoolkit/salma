@@ -18,7 +18,7 @@ from salma.test.emobility.plcssam import create_plcssam
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
 
-_MODE = ESTIMATION
+_MODE = VISUALIZE
 
 NUM_OF_VEHICLES = 5
 PLCS_CAPACITY = 10
