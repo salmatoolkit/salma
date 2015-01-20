@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 import logging
 import os
 from datetime import datetime
@@ -26,8 +27,27 @@ def print_timing_info(info):
                                                                 np.max(times)))
 
 
+def get_road_info(world, *road_ids):
+    """
+    :param World world: the world
+    :param list[str] road_id: the road id
+    :rtype: list[str]
+    """
+    result = []
+    for r in road_ids:
+        road_ends = world.getConstantValue("roadEnds", [r])
+        road_length = world.getConstantValue("roadlength", [r])
+        assert isinstance(road_ends, Term)
+        result.append("{}({}-{}={})".format(r, road_ends.params[0], road_ends.params[1], road_length))
+    return result
+
+
 class EMobilityBase(Experiment):
-    def __init__(self):
+    def __init__(self, should_log, should_visualize):
+        """
+        :param bool should_log: whether or not logging should be activated.
+        :param bool should_visualize: whether or not the simulation should be visulaized.
+        """
         super().__init__("ecl-test/e-mobility-with-abstractions/e-mobility-domain-with-abstractions.ecl")
         self.logger = logging.getLogger('salmalab')
         self.logger.setLevel(logging.DEBUG)
@@ -37,7 +57,8 @@ class EMobilityBase(Experiment):
         self.__world_map = None
         #: :type : MapTranslator
         self.__mt = None
-        self.__should_log = False
+        self.__should_log = should_log
+        self.__should_visualize = should_visualize
         #: :type : Figure
         self.__fig = None
         self.__visualizer = None
@@ -45,7 +66,8 @@ class EMobilityBase(Experiment):
         self.__outdir = None
         #: :type : IOBase
         self.__logfile = None
-        self.__step_listeners = []
+        if self.__should_log or self.__should_visualize:
+            self.step_listeners.append(self.record_step)
 
     @property
     def world_map(self):
@@ -61,13 +83,6 @@ class EMobilityBase(Experiment):
         :rtype: MapTranslator
         """
         return self.__mt
-
-    @property
-    def step_listeners(self):
-        """
-        :rtype: list[]
-        """
-        return self.__step_listeners
 
     def create_entities(self):
         mgen = MapGenerator(self.world)
@@ -143,16 +158,17 @@ class EMobilityBase(Experiment):
                 pos = world.getFluentValue("vehiclePosition", [vehicle.id])
                 assert isinstance(pos, Term)
                 if pos.functor == "r":
-                    pos2 = self.__get_road_info(world, pos.params[0])[0]
+                    pos2 = get_road_info(world, pos.params[0])[0]
                 else:
                     pos2 = pos.params[0]
 
                 route = world.getFluentValue("currentRoute", [vehicle.id])
-                route2 = self.__get_road_info(world, *route)
+                assert isinstance(route, Iterable)
+                route2 = get_road_info(world, *route)
                 target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
                 currentPLCS = world.getFluentValue("currentPLCS", [vehicle.id])
                 self.__log("   {}: {} - {} - {} / {}".format(vehicle.id,
-                                                        pos2, route2, target, currentPLCS))
+                                                             pos2, route2, target, currentPLCS))
             for plcs in world.getDomain("plcs"):
                 fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
                 fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])
@@ -168,16 +184,8 @@ class EMobilityBase(Experiment):
             self.__fig.savefig(path)
         return True, None
 
-    def prepare(self, log=True, visualize=True):
-        """
-        Runs the simulation until all targets have been reached.
-        :param bool log: whether or not logging should be activated.
-        :param bool visualize: whether or not the simulation should be visulaized.
-        :return:
-        """
-
-        self.__should_log = log
-        if visualize:
+    def before_run(self, **kwargs):
+        if self.__should_visualize:
             self.__fig = plt.figure("emobility", (8, 8), 200)
             self.__visualizer = Visualizer(self.world_map, self.world)
         else:
@@ -189,25 +197,12 @@ class EMobilityBase(Experiment):
             self.__outdir = datetime.now().strftime("imgout/%Y%m%d_%H-%M-%S")
             os.makedirs(self.__outdir)
             self.__logfile = open(os.path.join(self.__outdir, "log.txt"), mode="w")
-        self.__step_listeners.append(self.record_step)
 
-    def cleanup(self):
+    def after_run(self, verdict, **kwargs):
         if self.__logfile is not None:
             self.__logfile.close()
 
-    def __get_road_info(self, world, *road_ids):
-        """
-        :param World world: the world
-        :param str road_id: the road id
-        :rtype: list[str]
-        """
-        result = []
-        for r in road_ids:
-            road_ends = world.getConstantValue("roadEnds", [r])
-            road_length = world.getConstantValue("roadlength", [r])
-            assert isinstance(road_ends, Term)
-            result.append("{}({}-{}={})".format(r, road_ends.params[0], road_ends.params[1], road_length))
-        return result
+
 
 
 

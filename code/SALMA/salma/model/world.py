@@ -418,14 +418,14 @@ class World(Entity, WorldDeclaration):
                     self.__entities[entityId] = entity
                 self.__domainMap[sort].add(entity)
 
-    def initialize(self, sample_fluent_values=True, removeFormulas=True, deleteConstants=True):
+    def initialize(self, sample_fluent_values=False):
         """
         1. Sets up domains, i.e. defines the sets of entity objects for each sort.
 
         2. Optionally sets ups the a new initial situation by creating samples for the fluent instance for
             each combination of parameter values.
         """
-        World.logic_engine().reset(removeFormulas=removeFormulas, deleteConstants=deleteConstants)
+        World.logic_engine().reset()
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
         for sort in self.__domainMap.keys():
@@ -1038,7 +1038,7 @@ class World(Entity, WorldDeclaration):
     def reset(self):
         # re-init domains
         self.__reset_domainmap()
-        self.initialize(sample_fluent_values=False, removeFormulas=False)
+        self.initialize()
 
         # : :type agent: Agent
         for agent in self.getAgents():
@@ -1315,7 +1315,6 @@ class LocalEvaluationContext(EvaluationContext):
         """
         free_vars = self.__select_free_variables(params)
         resolved_params = self.resolve(*params, strict=False)  # the free variables tuples are ignored by resolve()
-
 
         if len(free_vars) == 0:
             raise SALMAException("No iterator variable specified in selectAll.")

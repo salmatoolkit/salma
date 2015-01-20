@@ -190,7 +190,7 @@ class RandomActionOutcome(object):
         for i in range(len(self.param_distributions)):
             if self.param_distributions[i] is None:
                 problems.append(("random_action_outcome.undefined_param_distribution",
-                        self.action_name, i))
+                                 self.action_name, i))
             elif self.param_distributions[i].sort != action.parameters[i][1]:
                 problems.append(
                     ("random_action_outcome.wrong_param_type",
