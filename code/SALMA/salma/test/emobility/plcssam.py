@@ -48,14 +48,13 @@ def create_plcssam_functions(world_map, mt):
 def create_plcssam(world, world_map, mt):
     request_processor = create_plcssam_functions(world_map, mt)
     assignments, p, v = makevars("assignments", ("p", "plcs"), ("v", "vehicle"))
-    p_process_requests = Procedure("main", [],
-                                   [
-                                       Receive("assignment", "sam", "assignment_requests"),
-                                       Assign(assignments, request_processor),
-                                       Iterate(Variable("assignments"),
-                                               [v, p],
-                                               Send("assignment",
-                                                    Term("aresp", 0, 0, p), "sam", v, "veh"))])
+    p_process_requests = Procedure([
+        Receive("assignment", "sam", "assignment_requests"),
+        Assign(assignments, request_processor),
+        Iterate(Variable("assignments"),
+                [v, p],
+                Send("assignment",
+                     Term("aresp", 0, 0, p), "sam", v, "veh"))])
 
     p1 = TriggeredProcess(p_process_requests, "message_available", [Entity.SELF, "assignment", "sam"])
 
