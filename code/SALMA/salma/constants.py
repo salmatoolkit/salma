@@ -7,6 +7,7 @@ OK = 1
 NOT_OK = -1
 NONDET = 0
 CANCEL = -2
+SELF = 'self'
 
 MSG_TYPE_MULTICAST_SRC = "multicastSrc"
 MSG_TYPE_UNICAST = "unicast"
