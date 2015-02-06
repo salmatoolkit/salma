@@ -4,10 +4,10 @@ from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.emobility.emobility_scenario_1 import EMobilityScenario1, ESTIMATION, VISUALIZE, HYPTEST
 from salma.test.emobility.emobility_base import print_timing_info
 
-_MODE = VISUALIZE
+_MODE = ESTIMATION
 
 if __name__ == '__main__':
-    sc1 = EMobilityScenario1(_MODE, True, time_limit=120)
+    sc1 = EMobilityScenario1(_MODE, _MODE == VISUALIZE, time_limit=110)
     sc1.setup_properties()
     sc1.initialize()
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
         print_timing_info(info)
     elif _MODE == ESTIMATION:
         print("len: ", len(sc1.world.getDomain("plcs")))
-        _, results, info = runner.run_repetitions(sc1, number_of_repetitions=5)
+        _, results, info = runner.run_repetitions(sc1, number_of_repetitions=10)
 
         successes = sum(results)
         nobs = len(results)

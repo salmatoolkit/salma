@@ -15,6 +15,9 @@ from salma.model.world import World
 import numpy as np
 from salma.model.core import Action
 
+ASPECT_RATIO = 1.4
+FIG_HEIGHT = 8
+
 
 def print_timing_info(info):
     steps = [ti["steps"] for ti in info]
@@ -176,17 +179,19 @@ class EMobilityBase(Experiment):
                 self.__log("   {}: real = {}, local = {}, remote = {}".format(plcs, fsreal, fslocal, fsremote))
 
         if self.__visualizer is not None:
-            image_file_name = "step_{:04}.png".format(step)
+            # image_file_name = "step_{:04}.png".format(step)
+            image_file_name = "step_{:04}.pdf".format(step)
             path = os.path.join(self.__outdir, image_file_name)
             self.__fig.clf()
             self.__visualizer.visualize_map(self.__fig)
-            # self.__fig.savefig(path, dpi=200)
-            self.__fig.savefig(path)
+            self.__fig.savefig(path, dpi=200)
+            # self.__fig.savefig(path)
         return True, None
 
     def before_run(self, **kwargs):
         if self.__should_visualize:
-            self.__fig = plt.figure("emobility", (8, 8), 200)
+
+            self.__fig = plt.figure("emobility", (ASPECT_RATIO * FIG_HEIGHT, FIG_HEIGHT), 200)
             self.__visualizer = Visualizer(self.world_map, self.world)
         else:
             self.__fig = None
