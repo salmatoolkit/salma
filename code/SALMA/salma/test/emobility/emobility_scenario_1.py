@@ -1,4 +1,5 @@
 import random
+from salma import SALMAException
 
 from salma.constants import ACHIEVE, INVARIANT
 from salma.model.data import Term
@@ -39,6 +40,32 @@ class RoadTravelTimeDistribution(Distribution):
             return max(0, round(d))
         else:
             return None
+
+
+class MessageDelayDistribution(Distribution):
+    def __init__(self, connector_specs, default=None):
+        """
+        :param dict[str, (int, int)] connector_specs: connector specifications
+        """
+        super().__init__("integer")
+        self.__connector_specs = connector_specs
+        self.__default = default
+
+    def generateSample(self, evaluation_context, param_values):
+        world = World.instance()
+        mid = param_values[0]
+        spec = world.getConstantValue("message_spec", [mid])
+        assert isinstance(spec, Term)
+        con, msg_type, agent, _ = spec.params
+        if con not in self.__connector_specs:
+            if self.__default is None:
+                raise SALMAException("No parameters defined for message delay distribution of connector con!")
+            else:
+                mu, sigma = self.__default
+        else:
+            mu, sigma = self.__connector_specs[con]
+        d = random.normalvariate(mu, sigma)
+        return max(0, round(d))
 
 
 class EMobilityScenario1(EMobilityBase):
@@ -132,11 +159,15 @@ class EMobilityScenario1(EMobilityBase):
     def setup_distributions(self):
         super().setup_distributions()
         transfer_starts = self.world.get_exogenous_action("transferStarts")
-        transfer_starts.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
+        # transfer_starts.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
+        transfer_starts.config.occurrence_distribution = MessageDelayDistribution(
+            {"freeSlotsL": (1, 0)}, default=(5, 1))
         transfer_starts.config.set_param_distribution("error", ConstantDistribution("term", None))
 
         transfer_ends = self.world.get_exogenous_action("transferEnds")
-        transfer_ends.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
+        #transfer_ends.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
+        transfer_ends.config.occurrence_distribution = MessageDelayDistribution(
+            {"freeSlotsL": (1, 0)}, default=(5, 1))
         transfer_ends.config.set_param_distribution("error", ConstantDistribution("term", None))
 
         transfer_fails = self.world.get_exogenous_action("transferFails")
