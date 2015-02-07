@@ -13,7 +13,7 @@ from salma.test.emobility.plcs import create_plcs_processes
 from salma.test.emobility.plcssam import create_plcssam
 
 
-HYPTEST, ESTIMATION, VISUALIZE = range(3)
+HYPTEST, ESTIMATION, VISUALIZE, LOG = range(4)
 
 
 DEFAULT_NUM_OF_VEHICLES = 5
