@@ -1,10 +1,12 @@
 salma
 =====
 
-The main repository for the SALMA toolkit.
+The main repository for the SALMA toolkit (http://www.salmatoolkit.org).
 
 
 The main code of the SALMA toolkit is found in the directory code/SALMA.
+
+
 
 Dependencies
 ------------
