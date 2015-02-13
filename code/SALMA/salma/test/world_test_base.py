@@ -13,7 +13,7 @@ from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.events import ExogenousAction
 from salma.model.agent import Agent
 from salma.model.distributions import UniformDistribution, \
-    ArgumentIdentityDistribution, BernoulliDistribution, Distribution
+    ArgumentIdentityDistribution, BernoulliDistribution, Distribution, ConstantDistribution, Never, Zero
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
     Act, Procedure, While, Assign, ArbitraryAction, Variable, \
@@ -48,6 +48,11 @@ class BaseWorldTest(unittest.TestCase):
         world.load_declarations()
         world.setConstantValue("gravity", [], 9.81)
         world.register_clp_function("robotLeftFrom")
+        world.deactivate_info_transfer()
+        ea = world.get_exogenous_action("collision")
+        ea.config.occurrence_distribution = Never()
+        ea.config.set_param_distribution("severity", Zero())
+
 
     def create_right_moving_mobot(self, robotId):
         """

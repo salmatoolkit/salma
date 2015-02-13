@@ -44,8 +44,6 @@ class InfoTransferTest(unittest.TestCase):
             qc = world.getFluentValue("channel_in_queue", [c.name])
             self.assertListEqual(qc, [])
 
-
-
         #: :type: Channel
         c1 = world.get_connector("con2rob")
         self.assertTrue(isinstance(c1, Channel))

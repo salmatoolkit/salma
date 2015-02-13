@@ -199,3 +199,27 @@ class OptionalDistribution(Distribution):
             return self.__nested_distribution.generateSample(evaluation_ontext, param_values)
         else:
             return None
+
+
+class Never(Distribution):
+    """
+    A convience distribution meant for scheduled events that always returns None, which means that the event will
+    not be scheduled.
+    """
+    def __init__(self):
+        super().__init__("integer")
+
+    def generateSample(self, ec, pv):
+        return None
+
+
+class Zero(Distribution):
+    """
+    A convinience distribution that always returns 0.
+    """
+
+    def __init__(self):
+        super().__init__("integer")
+
+    def generateSample(self, ec, pv):
+        return 0

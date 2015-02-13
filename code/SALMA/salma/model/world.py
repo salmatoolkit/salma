@@ -5,6 +5,7 @@ from collections.abc import Iterable, Iterator
 
 from salma.SALMAException import SALMAException
 from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome
+from salma.model.distributions import ConstantDistribution, Never
 from salma.model.events import ExogenousAction, ExogenousActionChoice
 from salma.model.core import Constant, Action
 from salma.model.data import Term
@@ -265,16 +266,19 @@ class World(Entity, WorldDeclaration):
     def __make_fluent_access_function(self, fluent_name):
         def __f(*params):
             return self.getFluentValue(fluent_name, params)
+
         return __f
 
     def __make_constant_access_function(self, constant_name):
         def __f(*params):
             return self.getConstantValue(constant_name, params)
+
         return __f
 
     def __make_derived_fluent_access_function(self, derived_fluent_name):
         def __f(*params):
             return self.get_derived_fluent_value(derived_fluent_name, params)
+
         return __f
 
     def __create_general_functions(self, expression_context: dict):
@@ -769,6 +773,18 @@ class World(Entity, WorldDeclaration):
         :rtype: Iterable[RemoteSensor]
         """
         return (s for s in self.__connectors.values() if isinstance(s, RemoteSensor))
+
+    def deactivate_info_transfer(self):
+        """
+        Deactivates all exogenous actions for information transfer.
+        """
+        for ea_name in ["transferStarts", "transferEnds"]:
+            ea = self.get_exogenous_action(ea_name)
+            ea.config.occurrence_distribution = Never()
+            ea.config.set_param_distribution("error", ConstantDistribution("term", None))
+
+        ea = self.get_exogenous_action("transferFails")
+        ea.config.occurrence_distribution = Never()
 
     @staticmethod
     def instance():
@@ -1350,7 +1366,7 @@ class LocalEvaluationContext(EvaluationContext):
                     assignment = dict({free_vars[0][0]: result_entry})
                 else:
                     if (not isinstance(result_entry, (list, tuple)) or
-                            len(free_vars) != len(result_entry)):
+                                len(free_vars) != len(result_entry)):
                         raise SALMAException("Number of free variables in iterator doesn't match element structure.")
                     assignment = dict()
                     for fv, value in zip(free_vars, result_entry):
