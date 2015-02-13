@@ -608,14 +608,17 @@ class Wait(ControlNode):
     Blocks the process until the given condition is fulfilled.
     """
 
-    def __init__(self, condition, condition_params=None):
+    def __init__(self, condition, condition_params=None, **kwargs):
         """
         :param object condition: the condition
         :param list condition_params: parameters
+        :param timeout: [obtional]
         """
         ControlNode.__init__(self)
         self.__condition = condition
         self.__condition_params = condition_params if condition_params is not None else []
+        self.__timeout_expr = kwargs["timeout"] if "timeout" in kwargs else None
+        self.__current_timeout = None
 
     @property
     def condition(self):
@@ -628,13 +631,21 @@ class Wait(ControlNode):
         """
         return self.__condition_params
 
+    @property
+    def current_timeout(self):
+        return self.__current_timeout
+
     def execute_step(self, evaluation_context, procedure_registry):
+        self.__current_timeout = None
         condition_type = evaluation_context.determine_source_type(self.condition, self.condition_params)
         result = evaluation_context.evaluateCondition(condition_type, self.condition,
                                                       *self.condition_params)
         if result is True:
             return ControlNode.CONTINUE, None, evaluation_context
         else:
+            if self.__timeout_expr is not None:
+                current_time = evaluation_context.getFluentValue('time')
+                self.__current_timeout = current_time + evaluation_context.resolve(self.__timeout_expr)
             return ControlNode.BLOCK, self, evaluation_context
 
     def reset(self, evaluation_context):

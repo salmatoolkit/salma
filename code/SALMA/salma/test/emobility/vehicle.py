@@ -25,7 +25,7 @@ def create_navigation_functions(world_map, mt):
             return []
         roads = []
         for i in range(len(r) - 1):
-            road_id = world_map.edge[r[i]][r[i+1]]["road_id"]
+            road_id = world_map.edge[r[i]][r[i + 1]]["road_id"]
             roads.append(road_id)
         return roads
 
@@ -49,37 +49,33 @@ def create_navigation_functions(world_map, mt):
 def create_vehicles(world, world_map, mt, number_of_vehicles):
     target_chooser, route_finder, response_selector = create_navigation_functions(world_map, mt)
 
-    p_request_plcs = Procedure("main", [],
-                               [
-                                   If("currentTargetPLCS(self) is None",
-                                      [
-                                          Assign("possible_targets", target_chooser),
-                                          Send("assignment", 
-                                               Term("areq", Entity.SELF, Variable("possible_targets"), 0, 0),
-                                               "veh", "sam1", "sam")
-                                      ])])
+    p_request_plcs = Procedure([
+        If("currentTargetPLCS(self) is None",
+           [
+               Assign("possible_targets", target_chooser),
+               Send("assignment",
+                    Term("areq", Entity.SELF, Variable("possible_targets"), 0, 0),
+                    "veh", "sam1", "sam")
+           ])])
 
-    p_make_reservation = Procedure("main", [],
-                                   [
-                                       Receive("assignment", "veh", "sam_responses"),
-                                       Assign("chosen_plcs", response_selector),
-                                       Send("reservation",
-                                            Term("res", Entity.SELF, 0, 0), "veh", Variable("chosen_plcs"),
-                                            "plcs")])
+    p_make_reservation = Procedure([
+        Receive("assignment", "veh", "sam_responses"),
+        Assign("chosen_plcs", response_selector),
+        Send("reservation",
+             Term("res", Entity.SELF, 0, 0), "veh", Variable("chosen_plcs"),
+             "plcs")])
 
-    p_set_target = Procedure("main", [],
-                             [
-                                 Receive("reservation", "veh", "res_response"),
-                                 Act("setWaitingForAssignment", [Entity.SELF, False]),
-                                 If("res_response[0].content.params[1] == True",
-                                    [
-                                        Assign("plcs", "res_response[0].content.params[0]"),
-                                        Act("setTargetPLCS", [Entity.SELF, Variable("plcs")])])])
+    p_set_target = Procedure([
+        Receive("reservation", "veh", "res_response"),
+        Act("setWaitingForAssignment", [Entity.SELF, False]),
+        If("res_response[0].content.params[1] == True",
+           [
+               Assign("plcs", "res_response[0].content.params[0]"),
+               Act("setTargetPLCS", [Entity.SELF, Variable("plcs")])])])
 
-    p_find_route = Procedure("main", [],
-                             [
-                                 Assign("route", route_finder),
-                                 Act("setRoute", [Entity.SELF, Variable("route")])])
+    p_find_route = Procedure([
+        Assign("route", route_finder),
+        Act("setRoute", [Entity.SELF, Variable("route")])])
 
     for i in range(number_of_vehicles):
         p1 = PeriodicProcess(p_request_plcs, 10)
@@ -89,12 +85,12 @@ def create_vehicles(world, world_map, mt, number_of_vehicles):
                               "and currentLocation(self) != currentTargetPLCS(self)")
 
         p3 = TriggeredProcess(p_set_target,
-                              "len(local_channel_in_queue(self, 'reservation', 'veh')) > 0 "
+                              "message_available(self, 'reservation', 'veh') "
                               "and currentTargetPLCS(self) is None")
 
         p4 = TriggeredProcess(p_make_reservation,
-                              "currentTargetPLCS(self) is None and "
-                              "len(local_channel_in_queue(self, 'assignment', 'veh')) > 0")
+                              "message_available(self, 'assignment', 'veh') "
+                              "and currentTargetPLCS(self) is None")
 
         vehicle = Agent("v" + str(i), "vehicle", [p1, p2, p3, p4])
         world.addAgent(vehicle)

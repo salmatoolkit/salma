@@ -3,7 +3,7 @@ from salma.model.data import Term
 from salma.model.procedure import *
 from salma.model.process import TriggeredProcess
 from salma.model.infotransfer import ReceivedMessage
-
+from salma.constants import SELF
 
 def create_plcssam_functions(world_map, mt):
     def process_assignment_requests(agent=None, assignment_requests=None, freeSlotsR=None, **ctx):
@@ -56,7 +56,7 @@ def create_plcssam(world, world_map, mt):
                 Send("assignment",
                      Term("aresp", 0, 0, p), "sam", v, "veh"))])
 
-    p1 = TriggeredProcess(p_process_requests, "message_available", [Entity.SELF, "assignment", "sam"])
+    p1 = TriggeredProcess(p_process_requests, "message_available", [SELF, "assignment", "sam"])
 
     sam = Agent("sam1", "plcssam", [p1], world_declaration=world)
     world.addAgent(sam)

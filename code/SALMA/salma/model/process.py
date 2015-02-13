@@ -148,7 +148,16 @@ class Process(object):
         """
         if self.state == Process.RUNNING:
             return True
-        elif self.state == Process.WAITING and self.blocking_condition is not None:
+
+        if (self.state in [Process.SLEEPING, Process.WAITING] and
+                self.suspended_until is not None):
+            current_time = self.current_evaluation_context.getFluentValue('time')
+            if current_time >= self.suspended_until:
+                self.__state = Process.RUNNING
+                self.__suspended_until = None
+                return True
+
+        if self.state == Process.WAITING and self.blocking_condition is not None:
             condition_type, condition, params = self.blocking_condition
             if self.current_evaluation_context is None:
                 raise SALMAException("Undefined evaluation context in process!")
@@ -156,19 +165,9 @@ class Process(object):
             if res:
                 self.__state = Process.RUNNING
                 self.__blocking_condition = None
-                return True
-            else:
-                return False
-        elif self.state == Process.SLEEPING and self.suspended_until is not None:
-            current_time = self.current_evaluation_context.getFluentValue('time')
-            if current_time >= self.suspended_until:
-                self.__state = Process.RUNNING
                 self.__suspended_until = None
                 return True
-            else:
-                return False
-        else:
-            return False
+        return False
 
     # TEMPLATE METHODS
 
@@ -305,7 +304,6 @@ class Process(object):
         if self.__current_control_node is not None:
             # status == BLOCKED
             if isinstance(self.__current_control_node, Act):
-                # TODO: add support for activity perform / wait after act
                 self.__state = Process.EXECUTING_ACTION
                 action = self.__current_control_node
 
@@ -322,7 +320,7 @@ class Process(object):
                     cparams = self.__current_control_node.condition_params
                     ctype = self.__current_evaluation_context.determine_source_type(cond, cparams)
                     self.__blocking_condition = ctype, cond, cparams
-                    # TODO: handle sleep
+                    self.__suspended_until = self.__current_control_node.current_timeout
 
         if self.__current_control_node is None:
             self.__execution_count += 1

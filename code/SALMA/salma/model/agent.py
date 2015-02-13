@@ -120,10 +120,7 @@ class Agent(Entity):
         self.__sensor_processes[sensor_name] = sensor_process
 
     def set_local_sensor_period(self, sensor_name, period):
-        proc = Procedure("main", [],
-                         [Sense(sensor_name, [])
-                         ])
-
+        proc = Procedure("main", [], [Sense(sensor_name, [])])
         p = PeriodicProcess(proc, period)
         self.set_local_sensor_process(sensor_name, p)
 
@@ -154,11 +151,9 @@ class Agent(Entity):
         self.__remote_sensor_src_processes[sensor_name] = sensor_process
 
     def set_remote_sensor_send_period(self, sensor_name: str, period: int):
-        proc = Procedure("main", [],
-                         [
-                             # TODO: think about how to deal with parameters
-                             TransmitRemoteSensorReading(sensor_name)
-                         ])
+        proc = Procedure("main", [], [
+            # TODO: think about how to deal with parameters
+            TransmitRemoteSensorReading(sensor_name)])
         p = PeriodicProcess(proc, period)
         self.set_remote_sensor_src_process(sensor_name, p)
 
@@ -188,9 +183,7 @@ class Agent(Entity):
         self.__remote_sensor_dest_processes[sensor_name] = sensor_process
 
     def set_remote_sensor_update_period(self, sensor_name: str, period: int):
-        proc = Procedure("main", [],
-                         [UpdateRemoteSensor(sensor_name)
-                         ])
+        proc = Procedure("main", [], [UpdateRemoteSensor(sensor_name)])
         p = PeriodicProcess(proc, period)
         self.set_remote_sensor_dest_process(sensor_name, p)
 
