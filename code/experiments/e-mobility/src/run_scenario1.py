@@ -1,14 +1,17 @@
 from statsmodels.stats import proportion
+
 from salma.model.experiment import SingleProcessExperimentRunner
 from salma.statistics import SequentialProbabilityRatioTest
-from salma.test.emobility.emobility_scenario_1 import EMobilityScenario1, ESTIMATION, VISUALIZE, HYPTEST
-from salma.test.emobility.emobility_base import print_timing_info
+from emobility_scenario_1 import EMobilityScenario1, ESTIMATION, VISUALIZE, HYPTEST
+from emobility_base import print_timing_info
+
 
 _MODE = ESTIMATION
+NUM_REPETITIONS = 20
 
 if __name__ == '__main__':
-    #sc1 = EMobilityScenario1(_MODE, True, time_limit=110, num_vehicles=5)
-    sc1 = EMobilityScenario1(_MODE, True, time_limit=500, num_vehicles=30)
+    sc1 = EMobilityScenario1(_MODE, True, time_limit=110, num_vehicles=5)
+    # sc1 = EMobilityScenario1(_MODE, True, time_limit=500, num_vehicles=30)
     sc1.setup_properties()
     sc1.initialize()
 
@@ -26,7 +29,7 @@ if __name__ == '__main__':
         print_timing_info(info)
     elif _MODE == ESTIMATION:
         print("len: ", len(sc1.world.getDomain("plcs")))
-        _, results, info = runner.run_repetitions(sc1, number_of_repetitions=3)
+        _, results, info = runner.run_repetitions(sc1, number_of_repetitions=NUM_REPETITIONS)
 
         successes = sum(results)
         nobs = len(results)

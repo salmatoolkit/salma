@@ -1,11 +1,8 @@
-from statsmodels.stats import proportion
-from salma.model.experiment import SingleProcessExperimentRunner
-from salma.statistics import SequentialProbabilityRatioTest
-from salma.test.emobility.emobility_scenario_1 import EMobilityScenario1, ESTIMATION, VISUALIZE, HYPTEST
-from salma.test.emobility.emobility_base import print_timing_info
 import numpy as np
-import pandas as pd
 from pandas import DataFrame
+
+from salma.model.experiment import SingleProcessExperimentRunner
+from emobility_scenario_1 import EMobilityScenario1, ESTIMATION
 
 
 def run_with_given_vehicle_number(vnum):

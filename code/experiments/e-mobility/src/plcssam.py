@@ -5,6 +5,7 @@ from salma.model.process import TriggeredProcess
 from salma.model.infotransfer import ReceivedMessage
 from salma.constants import SELF
 
+
 def create_plcssam_functions(world_map, mt):
     def process_assignment_requests(agent=None, assignment_requests=None, freeSlotsR=None, **ctx):
         """

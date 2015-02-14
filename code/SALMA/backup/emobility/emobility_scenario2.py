@@ -1,18 +1,12 @@
+import unittest
+import random
+
+import networkx as nx
+
 from salma.model.core import Entity
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
-from salma.test.emobility.visualizer import Visualizer
-import unittest
 from salma.model.world import World
-from salma.engine import EclipseCLPEngine
-from salma import SALMAException
-import logging
-import salma
-import os
-import random
-import matplotlib.pyplot as plt
-import networkx as nx
-import pyclp
 from salma.test.emobility.emobility_base import EMobilityBase
 
 

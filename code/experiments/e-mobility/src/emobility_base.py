@@ -4,16 +4,17 @@ import os
 from datetime import datetime
 
 import matplotlib.pyplot as plt
-from salma.model.data import Term
+import numpy as np
 
+from salma.model.data import Term
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.experiment import Experiment
-from salma.test.emobility.map_generator import MapGenerator
-from salma.test.emobility.map_translator import MapTranslator
-from salma.test.emobility.visualizer import Visualizer
+from map_generator import MapGenerator
+from map_translator import MapTranslator
+from visualizer import Visualizer
 from salma.model.world import World
-import numpy as np
 from salma.model.core import Action
+
 
 ASPECT_RATIO = 1.4
 FIG_HEIGHT = 8
@@ -51,7 +52,7 @@ class EMobilityBase(Experiment):
         :param bool should_log: whether or not logging should be activated.
         :param bool should_visualize: whether or not the simulation should be visulaized.
         """
-        super().__init__("ecl-test/e-mobility-with-abstractions/e-mobility-domain-with-abstractions.ecl")
+        super().__init__("ecl-src/e-mobility-domain-with-abstractions.ecl")
         self.logger = logging.getLogger('salmalab')
         self.logger.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()

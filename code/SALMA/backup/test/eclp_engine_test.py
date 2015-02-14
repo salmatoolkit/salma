@@ -74,7 +74,6 @@ class EclipseCLPEngineTest(unittest.TestCase):
 
         print("result3: ", result)
 
-
     @withHeader()
     def testEvaluationStep(self):
         self.engine.registerProperty('f', 'xpos(rob1) > 20')
@@ -134,7 +133,6 @@ class EclipseCLPEngineTest(unittest.TestCase):
         result = self.engine.selectFirst("carrying", ('rob', 'robot'), ('i', 'item'), situation = 's0')
         self.assertDictEqual(result, {'i': 'item1', 'rob': 'rob1'}) 
         pprint.pprint(result)
-    
     
     @withHeader()
     def testCreatePlan_OK_UniquePlan(self):
@@ -206,8 +204,7 @@ class EclipseCLPEngineTest(unittest.TestCase):
         self.assertEqual(v1, 12.3)
         v2 = self.engine.evaluateFunctionGoal('gravity')
         self.assertEqual(v2, 9.81)
-                             
-        
+
     def tearDown(self):
         self.engine.cleanup()             
 

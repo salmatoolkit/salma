@@ -2,7 +2,7 @@ import logging
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ConstantDistribution, OptionalDistribution, ExponentialDistribution, \
-    BernoulliDistribution
+    BernoulliDistribution, Never, NormalDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.experiment import Experiment
 from salma.model.procedure import While, Act, Wait, Procedure
@@ -47,13 +47,14 @@ class MyExperiment(Experiment):
             self.world.setFluentValue('carrying', [robot_id, i.id], False)
 
     def setup_distributions(self):
+        self.world.deactivate_info_transfer()
         finish_step = self.world.get_exogenous_action("finish_step")
         finish_step.config.occurrence_distribution = ConstantDistribution("integer", 5)
         accidental_drop = self.world.get_exogenous_action("accidental_drop")
-        accidental_drop.config.occurrence_distribution = OptionalDistribution(0.0,
-                                                                              ExponentialDistribution("integer", 0.1))
+        accidental_drop.config.occurrence_distribution = Never()
         collision = self.world.get_exogenous_action("collision")
         collision.config.occurrence_distribution = BernoulliDistribution(1.0)
+        collision.config.set_param_distribution("severity", NormalDistribution("integer", 10.0, 1.0))
 
     def create_initial_situation(self):
         self.world.setConstantValue("gravity", [], 9.81)

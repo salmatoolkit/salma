@@ -7,7 +7,9 @@ Created on 23.09.2013
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from salma.test.positionplotter import NUM_OF_ROBOTS
+
+from backup.test.positionplotter import NUM_OF_ROBOTS
+
 
 NUM_OF_ROBOTS=5
 

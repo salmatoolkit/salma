@@ -1,5 +1,6 @@
 import unittest
-import salma.test.emobility.utils as utils
+
+import utils as utils
 
 
 class UtilTest(unittest.TestCase):

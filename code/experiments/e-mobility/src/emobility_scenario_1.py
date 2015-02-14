@@ -1,16 +1,16 @@
 import random
-from salma import SALMAException
 
+from salma import SALMAException
 from salma.constants import ACHIEVE, INVARIANT
 from salma.model.data import Term
 from salma.model.distributions import NormalDistribution, \
     ConstantDistribution, Distribution, OptionalDistribution, UniformDistribution
 from salma.model.selectionstrategy import Stepwise
 from salma.model.world import World
-from salma.test.emobility.emobility_base import EMobilityBase
-from salma.test.emobility.vehicle import create_vehicles
-from salma.test.emobility.plcs import create_plcs_processes
-from salma.test.emobility.plcssam import create_plcssam
+from emobility_base import EMobilityBase
+from vehicle import create_vehicles
+from plcs import create_plcs_processes
+from plcssam import create_plcssam
 
 
 HYPTEST, ESTIMATION, VISUALIZE, LOG = range(4)
@@ -165,7 +165,7 @@ class EMobilityScenario1(EMobilityBase):
         transfer_starts.config.set_param_distribution("error", ConstantDistribution("term", None))
 
         transfer_ends = self.world.get_exogenous_action("transferEnds")
-        #transfer_ends.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
+        # transfer_ends.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
         transfer_ends.config.occurrence_distribution = MessageDelayDistribution(
             {"freeSlotsL": (1, 0)}, default=(5, 1))
         transfer_ends.config.set_param_distribution("error", ConstantDistribution("term", None))

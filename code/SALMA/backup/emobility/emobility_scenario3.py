@@ -1,28 +1,20 @@
-from numpy.distutils.system_info import agg2_info
+import unittest
+import random
+
+import networkx as nx
+from statsmodels.stats import proportion
+
 from salma.model.agent import Agent
 from salma.model.core import Entity
-from salma.model.distributions import BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import Procedure, Sequence, Assign, Act, Variable, Iterate
+from salma.model.procedure import Procedure, Assign, Act, Variable, Iterate
 from salma.model.process import TriggeredProcess, PeriodicProcess
 from salma.test.emobility.map_generator import MapGenerator
 from salma.test.emobility.map_translator import MapTranslator
-from salma.test.emobility.visualizer import Visualizer
-import unittest
 from salma.model.world import World
-from salma.engine import EclipseCLPEngine
-from salma import SALMAException
-import logging
-import salma
-import os
-import random
-import matplotlib.pyplot as plt
-import networkx as nx
-import pyclp
 from salma.test.emobility.emobility_base import EMobilityBase
 import salma.test.emobility.utils as utils
 from salma.statistics import SequentialProbabilityRatioTest
-from statsmodels.stats import proportion
 
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
