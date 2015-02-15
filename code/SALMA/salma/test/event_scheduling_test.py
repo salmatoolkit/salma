@@ -6,7 +6,7 @@ from salma.model import process
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ExponentialDistribution, ConstantDistribution, \
-    BernoulliDistribution
+    BernoulliDistribution, NormalDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.experiment import Experiment
 from salma.model.procedure import Sequence, Assign, Act, Variable
@@ -51,6 +51,7 @@ class EventSchedulingTest(unittest.TestCase):
         world = World.instance()
         world.add_additional_expression_context_global("random", random)
         world.load_declarations()
+        world.deactivate_all_events()
 
     def create_random_walk_robot(self, robotId):
         def change_direction(agent: Agent=None, xpos=None, ypos=None, vx=None, vy=None, **kwargs):
@@ -100,6 +101,7 @@ class EventSchedulingTest(unittest.TestCase):
         world.setFluentValue("vy", [rob1.id], 0)
         world.setFluentValue("active", [rob1.id], True)
         world.setFluentValue("wheels_wet", [rob1.id], False)
+        world.deactivate_info_transfer()
 
     def test_movement(self):
         self.setup_world()
@@ -109,6 +111,7 @@ class EventSchedulingTest(unittest.TestCase):
 
         asteroid_hit = world.get_exogenous_action("asteroid_hit")
         asteroid_hit.config.occurrence_distribution = ConstantDistribution("integer", 10)
+        asteroid_hit.config.set_param_distribution("size", NormalDistribution("float", 100.0, 25.0))
 
         disaster = world.get_exogenous_action_choice("disaster")
         disaster.selection_strategy = Stepwise(lightning_strike=0.1, asteroid_hit=0.9)
@@ -133,6 +136,7 @@ class EventSchedulingTest(unittest.TestCase):
 
         asteroid_hit = world.get_exogenous_action("asteroid_hit")
         asteroid_hit.config.occurrence_distribution = ConstantDistribution("integer", 10)
+        asteroid_hit.config.set_param_distribution("size", NormalDistribution("float", 100.0, 25.0))
 
         disaster = world.get_exogenous_action_choice("disaster")
         # use wrong probabilities that don't sum up to 1.0

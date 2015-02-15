@@ -386,7 +386,7 @@ class World(Entity, WorldDeclaration):
         self.__load_stochastic_action_declarations(declarations["stochastic_actions"])
 
         for ea in declarations['exogenous_actions']:
-            self.__event_schedule.add_exogenous_action(ExogenousAction(ea[0], ea[1], ea[2]))
+            self.__event_schedule.add_exogenous_action(ExogenousAction(ea[0], ea[1], ea[2], ea[3]))
 
         self.__load_exogenous_action_choice(declarations['exogenous_action_choices'])
 
@@ -785,6 +785,12 @@ class World(Entity, WorldDeclaration):
 
         ea = self.get_exogenous_action("transferFails")
         ea.config.occurrence_distribution = Never()
+
+    def deactivate_all_events(self):
+        """
+        Deactivates all events by setting their occurrence distributions to NEVER or DONT_OCCUR.
+        """
+        self.__event_schedule.deactivate_all_events()
 
     @staticmethod
     def instance():
@@ -1366,7 +1372,7 @@ class LocalEvaluationContext(EvaluationContext):
                     assignment = dict({free_vars[0][0]: result_entry})
                 else:
                     if (not isinstance(result_entry, (list, tuple)) or
-                                len(free_vars) != len(result_entry)):
+                            len(free_vars) != len(result_entry)):
                         raise SALMAException("Number of free variables in iterator doesn't match element structure.")
                     assignment = dict()
                     for fv, value in zip(free_vars, result_entry):

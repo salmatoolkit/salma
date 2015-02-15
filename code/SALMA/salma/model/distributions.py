@@ -212,6 +212,10 @@ class Never(Distribution):
     def generateSample(self, ec, pv):
         return None
 
+NEVER = Never()
+
+DONT_OCCUR = ConstantDistribution("boolean", False)
+
 
 class Zero(Distribution):
     """
@@ -223,3 +227,6 @@ class Zero(Distribution):
 
     def generateSample(self, ec, pv):
         return 0
+
+
+ZERO_INT = Zero()

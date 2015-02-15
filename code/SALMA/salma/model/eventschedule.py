@@ -3,9 +3,9 @@ import heapq
 
 from salma.engine import Engine
 from salma.model.actions import *
+from salma.model.distributions import NEVER, DONT_OCCUR
 from salma.model.events import ExogenousActionChoice
-from salma.model.events import ExogenousAction
-from salma.model.events import EventOccurrence
+from salma.model.events import ExogenousAction, EventOccurrence
 from salma.model.evaluationcontext import EvaluationContext
 from salma.mathutils import min_robust
 import random
@@ -298,6 +298,15 @@ class EventSchedule:
                     problematic_exogenous_actions.append((exo_action, problems))
         return problematic_exogenous_actions
 
+    def deactivate_all_events(self):
+        for exo_action in self.__exogenous_actions.values():
+            assert isinstance(exo_action, ExogenousAction)
+            if exo_action.scheduling_type in [ExogenousAction.SCHEDULABLE, ExogenousAction.CHOICE_OPTION,
+                                              ExogenousAction.CAUSED]:
+                exo_action.config.occurrence_distribution = NEVER
+            else:
+                exo_action.config.occurrence_distribution = DONT_OCCUR
+
     def check_exogenous_action_choice_initialization(self):
         """
         Checks whether all registered exogenous actions are properly configured.
@@ -359,3 +368,4 @@ class EventSchedule:
             return self.__event_schedule[0]
         else:
             return None
+

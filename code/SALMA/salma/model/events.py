@@ -1,24 +1,27 @@
 from salma.SALMAException import SALMAException
 from salma.model.core import Entity
-from salma.model.distributions import BernoulliDistribution, UniformDistribution, Distribution, NormalDistribution
+from salma.model.distributions import BernoulliDistribution, UniformDistribution, Distribution, NormalDistribution, \
+    NEVER, DONT_OCCUR
 from salma.model.evaluationcontext import EvaluationContext
 from salma.termutils import tuplify
 from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 
 
 class ExogenousAction(object):
+    SCHEDULABLE, AD_HOC, CHOICE_OPTION, CAUSED = range(4)
+    TYPE_MAP = {"schedulable": SCHEDULABLE, "ad_hoc": AD_HOC, "choice_option": CHOICE_OPTION,
+                "caused": CAUSED}
+
     """
     Represents an exogenous action, i.e. an event from the environment.
     """
 
-    def __init__(self, action_name, entity_params, stochastic_params, configuration=None):
+    def __init__(self, action_name, entity_params, stochastic_params, scheduling_type, configuration=None):
         """
-        :param action_name: the action_name
-        :param entity_params and stochastic_params: list of (param-name, sort) tuples
-
-        :type action_name: str
-        :type entity_params: list[(str, str)]
-        :type stochastic_params: list[(str, str)]
+        :param str action_name: the action_name
+        :param list[(str, str)] entity_params: list of (param-name, sort) tuples describing entity parameters.
+        :param list[(str, str)] stochastic_params: list of (param-name, sort) tuples describing stochastic parameters.
+        :param str scheduling_type: the event type (one of schedulable, ad_hoc, and choice_option)
         """
         self.__action_name = action_name
         self.__entity_params = entity_params
@@ -33,6 +36,11 @@ class ExogenousAction(object):
         for i, p in enumerate(stochastic_params):
             self.__stochastic_param_indices[p[0]] = i
 
+        try:
+            self.__scheduling_type = ExogenousAction.TYPE_MAP[scheduling_type]
+        except KeyError:
+            raise SALMAException("Wrong scheduling type for exogenous action {}: {}".format(action_name,
+                                                                                            scheduling_type))
         self.__configuration = configuration if configuration is not None else ExogenousActionConfiguration(self)
 
     @property
@@ -62,6 +70,15 @@ class ExogenousAction(object):
         :rtype: list of (str, str)
         """
         return self.__stochastic_params
+
+    @property
+    def scheduling_type(self):
+        """
+        The scheduling type of this exogenous action, i.e. one of ExogenousAction.SCHEDULED,
+        ExogenousAction.AD_HOC, ExogenousAction.CHOICE_OPTION
+        :rtype: int
+        """
+        return self.__scheduling_type
 
     def get_entity_parameter_index(self, parameter_name):
         """
@@ -388,6 +405,18 @@ class ExogenousActionConfiguration:
         return self.__exogenous_action
 
     def check(self):
+        """
+        Checks the event configuration.
+        - is the occurrence distribution defined?
+        - does the occurrence distribution have the right type?
+        - is a correct distribution configured for every stochastic parameter?
+
+        NOTE: the parameter check is omitted when the event is deactivated by setting the occurrence distribution
+        to NEVER or DONT_OCCUR
+
+        :return: list of tuples with (error_id, event_name[, expected, actual])
+        :rtype: list[tuple]
+        """
         if self.__exogenous_action.config is not self:
             raise SALMAException(
                 "Inconsistent exogenous action configuration: config of exogenous action {} points to different "
@@ -398,13 +427,19 @@ class ExogenousActionConfiguration:
 
         else:
             assert isinstance(self.__occurrence_distribution, Distribution)
-            # TODO: check for type according to event type (ad hoc | scheduled)
-            # if self.occurrence_distribution.sort != "boolean":
-            # problems.append(
-            # "Wrong type for occurrence distribution of
-            # exogenous action {}: was {} but must be boolean.".format(
-            # self.exogenous_action.action_name, self.occurrence_distribution.sort
-            # ))
+            if self.__exogenous_action.scheduling_type in [ExogenousAction.SCHEDULABLE,
+                                                           ExogenousAction.CHOICE_OPTION,
+                                                           ExogenousAction.CAUSED]:
+                expected = "integer"
+
+            else:  # AD_HOC
+                expected = "boolean"
+            if self.__occurrence_distribution.sort != expected:
+                return [("exogenous_action.wrong_occurence_distribution_type",
+                         self.exogenous_action.action_name, expected, self.__occurrence_distribution.sort)]
+
+        if self.__occurrence_distribution in [NEVER, DONT_OCCUR]:
+            return []
 
         if len(self.__stochastic_param_distributions) != len(self.exogenous_action.stochastic_params):
             return [("exogenous_action.wrong_stochastic_param_count",
