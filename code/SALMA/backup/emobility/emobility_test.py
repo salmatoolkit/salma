@@ -1,20 +1,14 @@
-from statsmodels.base.tests.test_shrink_pickle import RemoveDataPickle
-from salma.model.core import Entity
-from salma.test.emobility.map_generator import MapGenerator
-from salma.test.emobility.map_translator import MapTranslator
-from salma.test.emobility.visualizer import Visualizer
 import unittest
+import logging
+import os
+from datetime import datetime
+
+import matplotlib.pyplot as plt
+
+from salma.test.emobility.visualizer import Visualizer
 from salma.model.world import World
 from salma.engine import EclipseCLPEngine
 from salma import SALMAException
-import logging
-import salma
-import os
-import random
-import matplotlib.pyplot as plt
-import networkx as nx
-import pyclp
-from datetime import datetime
 
 
 class EMobilityTest(unittest.TestCase):

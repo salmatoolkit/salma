@@ -1,4 +1,5 @@
-from salma import SALMAException
+from salma.SALMAException import SALMAException
+from salma.model.data import Term
 
 
 class Connector(object):
@@ -22,7 +23,7 @@ class Channel(Connector):
         """
         super().__init__(name)
         if (isinstance(role1, (tuple, list)) and
-                    len(role1) == 2 and
+                len(role1) == 2 and
                 isinstance(role1[0], str) and
                 isinstance(role1[1], str)):
             self.__role1 = role1
@@ -31,7 +32,7 @@ class Channel(Connector):
                 "Wrong format for role 1 of channel {}: {} but expected (name, type)".format(self.name, role1))
 
         if (isinstance(role2, (tuple, list)) and
-                    len(role2) == 2 and
+                len(role2) == 2 and
                 isinstance(role2[0], str) and
                 isinstance(role2[1], str)):
             self.__role2 = role2
@@ -114,12 +115,12 @@ class ReceivedMessage(object):
 
     def __init__(self, message_term):
         """
-        :type message_term: (str, str, str, str, int, object)
+        :type message_term: Term
 
         format: msg(Sender, SrcRole, Dest, DestRole, Time, Content2)
         """
-        (_, self.__sender, self.__src_role, self.__dest, self.__dest_role,
-         self.__time, self.__content) = message_term
+        (self.__sender, self.__src_role, self.__dest, self.__dest_role,
+         self.__time, self.__content) = message_term.params
 
     @property
     def sender(self):

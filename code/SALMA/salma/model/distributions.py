@@ -31,7 +31,7 @@ class Distribution(object):
         Generates a sample from this distribution.
 
         :param EvaluationContext evaluationContext: The current evaluation context.
-        :param list paramValues: the parameter values
+        :param list|tuple paramValues: the parameter values
         """
         raise NotImplementedError()
 
@@ -49,9 +49,9 @@ class UniformDistribution(Distribution):
 
     def generateSample(self, evaluationContext, paramValues):
         if self.sort == 'integer':
-            return random.randint(*(self.value_range))
+            return random.randint(*self.value_range)
         elif self.sort == 'float':
-            return random.uniform(*(self.value_range))
+            return random.uniform(*self.value_range)
         elif self.sort == 'boolean':
             return random.choice([True, False])
         else:
@@ -97,8 +97,8 @@ class BernoulliDistribution(Distribution):
         return self.__probability
 
     def generateSample(self, evaluationContext, paramValues):
-        r = random.uniform(0, 1)
-        return r <= self.__probability
+        r = random.random()
+        return r < self.__probability
 
     def describe(self):
         return "Pr({})".format(self.__probability)
@@ -132,6 +132,30 @@ class NormalDistribution(Distribution):
         return "N({:.4},{:.4})".format(self.mu, self.sigma ** 2)
 
 
+class ExponentialDistribution(Distribution):
+
+    def __init__(self, sort, rate):
+        if sort not in ["float", "integer"]:
+            raise SALMAException(
+                "Trying to use exponential distribution for sort %s but only integer or float allowed." % sort)
+        super().__init__(sort, (float("-inf"), float("inf")))
+        self.__rate = rate
+
+    def generateSample(self, evaluation_context, param_values):
+        val = random.expovariate(self.__rate)
+        if self.sort == "integer":
+            return round(val)
+        else:
+            return val
+
+    @property
+    def rate(self):
+        return self.__rate
+
+    def describe(self):
+        return "Exp({:4})".format(self.rate)
+
+
 class ConstantDistribution(Distribution):
     def __init__(self, sort, value):
         super().__init__(sort)
@@ -148,49 +172,61 @@ class ConstantDistribution(Distribution):
         return "Constant({})".format(self.__value)
 
 
-class DelayedOccurrenceDistribution(Distribution):
-    """
-    A distribution that delays occurrence for a time that is sampled once from a given numerical distribution.
-    """
-    def __init__(self, delay_distribution):
+class OptionalDistribution(Distribution):
+
+    def __init__(self, probability, nested_distribution):
         """
-        :type delay_distribution: Distribution
+        :param float probability: the probability
+        :param Distribution nested_distribution: the nested distribution
         """
-        super().__init__("boolean")
-        self.__delay_distribution = delay_distribution
-        # format: params -> (refpoint, delay)
-        #: :type: dict[tuple, (int, int)]
-        self.__schedule = dict()
+        super().__init__(nested_distribution.sort, nested_distribution.value_range)
+        #: :type: float
+        self.__probability = probability
+        #: :type: Distribution
+        self.__nested_distribution = nested_distribution
 
     @property
-    def delay_distribution(self):
-        return self.__delay_distribution
+    def probability(self) -> float:
+        return self.__probability
 
-    def generateSample(self, evaluationContext, paramValues):
-        key = tuple(paramValues)
-        current_time = evaluationContext.getFluentValue("time")
-        if key in self.__schedule:
-            s = self.__schedule[key]
-            if s[0] + s[1] <= current_time:
-                del self.__schedule[key]
-                return True
-            else:
-                return False
+    @property
+    def nested_distribution(self) -> Distribution:
+        return self.__nested_distribution
+
+    def generateSample(self, evaluation_ontext, param_values):
+        r = random.random()
+        if r < self.__probability:
+            return self.__nested_distribution.generateSample(evaluation_ontext, param_values)
         else:
-            delay = round(self.__delay_distribution.generateSample(evaluationContext, paramValues))
-            if delay <= 0:
-                return True
-            else:
-                self.__schedule[key] = current_time, delay
-                return False
+            return None
 
 
+class Never(Distribution):
+    """
+    A convience distribution meant for scheduled events that always returns None, which means that the event will
+    not be scheduled.
+    """
+    def __init__(self):
+        super().__init__("integer")
+
+    def generateSample(self, ec, pv):
+        return None
+
+NEVER = Never()
+
+DONT_OCCUR = ConstantDistribution("boolean", False)
 
 
+class Zero(Distribution):
+    """
+    A convinience distribution that always returns 0.
+    """
+
+    def __init__(self):
+        super().__init__("integer")
+
+    def generateSample(self, ec, pv):
+        return 0
 
 
-
-
-
-
-
+ZERO_INT = Zero()

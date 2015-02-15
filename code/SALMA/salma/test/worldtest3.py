@@ -2,7 +2,7 @@ import unittest
 
 from salma.model.agent import Agent
 from salma.model.core import Entity, Constant
-from salma.model.actions import Stepwise
+from salma.model.selectionstrategy import Stepwise
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Act, Procedure, While
 from salma.model.process import OneShotProcess, PeriodicProcess

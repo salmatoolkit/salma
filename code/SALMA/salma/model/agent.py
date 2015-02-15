@@ -14,8 +14,7 @@ class Agent(Entity):
     An agent is an active entity that executes one or several processes.
     """
 
-    def __init__(self, entity_id, sort_name, processes=[], procedure_registry=None,
-                 world_declaration=None):
+    def __init__(self, entity_id, sort_name, processes=None, procedure_registry=None, world_declaration=None):
         """
         Creates an agent with the given id, sort and control procedure. Additionally,
         a procedure registry can be specified to allow procedure calls within the agent's control
@@ -26,8 +25,9 @@ class Agent(Entity):
         :type processes: object
         :type procedure_registry: ProcedureRegistry
         :type world_declaration: WorldDeclaration
-        :type automatic_info_transfer: bool
         """
+        if not processes:
+            processes = []
         Entity.__init__(self, entity_id, sort_name)
         self.__evaluation_context = None
         # : :type : set[process.Process]
@@ -120,11 +120,7 @@ class Agent(Entity):
         self.__sensor_processes[sensor_name] = sensor_process
 
     def set_local_sensor_period(self, sensor_name, period):
-        proc = Procedure("main", [],
-                         [
-                             Sense(sensor_name, [])
-                         ])
-
+        proc = Procedure("main", [], [Sense(sensor_name, [])])
         p = PeriodicProcess(proc, period)
         self.set_local_sensor_process(sensor_name, p)
 
@@ -155,11 +151,9 @@ class Agent(Entity):
         self.__remote_sensor_src_processes[sensor_name] = sensor_process
 
     def set_remote_sensor_send_period(self, sensor_name: str, period: int):
-        proc = Procedure("main", [],
-                         [
-                             # TODO: think about how to deal with parameters
-                             TransmitRemoteSensorReading(sensor_name)
-                         ])
+        proc = Procedure("main", [], [
+            # TODO: think about how to deal with parameters
+            TransmitRemoteSensorReading(sensor_name)])
         p = PeriodicProcess(proc, period)
         self.set_remote_sensor_src_process(sensor_name, p)
 
@@ -189,20 +183,13 @@ class Agent(Entity):
         self.__remote_sensor_dest_processes[sensor_name] = sensor_process
 
     def set_remote_sensor_update_period(self, sensor_name: str, period: int):
-        proc = Procedure("main", [],
-                         [
-                             UpdateRemoteSensor(sensor_name)
-                         ])
+        proc = Procedure("main", [], [UpdateRemoteSensor(sensor_name)])
         p = PeriodicProcess(proc, period)
         self.set_remote_sensor_dest_process(sensor_name, p)
 
     def make_remote_sensor_update_triggered(self, sensor_name: str):
-        proc = Procedure("main", [],
-                         [
-                             UpdateRemoteSensor(sensor_name)
-                         ])
-        p = TriggeredProcess(proc, EvaluationContext.TRANSIENT_FLUENT,
-                             "message_available", [Entity.SELF, sensor_name, sensor_name])
+        proc = Procedure([UpdateRemoteSensor(sensor_name)])
+        p = TriggeredProcess(proc, "message_available", [Entity.SELF, sensor_name, sensor_name])
         self.set_remote_sensor_dest_process(sensor_name, p)
 
     def add_process(self, p: Process):
@@ -241,11 +228,12 @@ class Agent(Entity):
 
         for p in self.processes:
             if not p.terminated:
+                if p.state == process.Process.WAITING or p.state == process.Process.SLEEPING:
+                    p.wake_up_if_possible()
                 if p.state == process.Process.IDLE and p.should_start():
                     p.start()
                 if p.is_scheduled():
                     running_processes.append(p)
-
         return running_processes
 
     def initialize_connector_processes(self, mode_remote_sensor_src=process.PERIODIC_PROCESS,
@@ -262,6 +250,8 @@ class Agent(Entity):
         if self.__world_declaration is None:
             raise SALMAException("No world declaration specified for agent {}.".format(self.id))
 
+        if mode_remote_sensor_src != process.PERIODIC_PROCESS:
+            raise SALMAException("Currently only periodic remote sensor source processes are supported.")
         sensors = self.__world_declaration.get_sensors()
         for s in sensors:
             if s.owner_type == self.sortName:

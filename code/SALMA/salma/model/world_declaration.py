@@ -1,14 +1,10 @@
 from salma.model.infotransfer import *
-from salma.model.actions import Action, ExogenousAction, StochasticAction
-from salma.model.core import Fluent, Constant
+from salma.model.actions import Action, StochasticAction
+from salma.model.events import ExogenousAction
+from salma.model.core import Fluent, Constant, DerivedFluent
+
 
 class WorldDeclaration:
-    def get_sensors(self):
-        """
-        Returns the registered (local/direct) sensors.
-        :rtype: Iterable[Sensor]
-        """
-        raise NotImplementedError()
 
     def getFluents(self):
         """
@@ -74,7 +70,16 @@ class WorldDeclaration:
     def get_derived_fluents(self):
         """
         Returns the list of declared derived fluents as tuples of kind (fluent_name, fluent_type, params).
-        :rtype: Iterable[(str, str, list)]
+        :rtype: Iterable[DerivedFluent]
+        """
+        raise NotImplementedError()
+
+    def get_derived_fluent(self, derived_fluent_name):
+        """
+        Returns the DerivedFluent object associated by the given fluent name or None if such a derived fluent
+        hasn't been registered.
+        :param str derived_fluent_name: the name of the derived fluent.
+        :rtype: DerivedFluent
         """
         raise NotImplementedError()
 

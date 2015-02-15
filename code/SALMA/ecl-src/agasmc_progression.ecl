@@ -11,8 +11,6 @@
 % :- local initialization(init).
 
 
-
-
 % primitive_action(name, params=[name:sort,...])
 :- dynamic primitive_action/2.
 % declares that a primitive action is immediate
@@ -20,6 +18,12 @@
 :- dynamic stochastic_action/3.
 % exogenous_action(name, qualifying-params, augmenting-params)
 :- dynamic exogenous_action/3.
+:- dynamic exogenous_action_choice/3.
+:- dynamic ad_hoc_event/2.
+:- dynamic schedulable_event/2.
+:- dynamic caused_event/1.
+
+
 :- dynamic last_initialized/0.
 % clock for primitive and exogenous actions
 % action_clock(name, params, clock_value)
@@ -31,6 +35,8 @@
 
 :- dynamic time/2.
 
+:- [axiom_construction].
+:- [event_scheduling].
 
 % action declaration
 primitive_action(tick,[steps:integer]).
@@ -40,16 +46,9 @@ immediate_action(nop).
 fluent(time,[], integer).
 untracked_fluent(time).
 
-time(T,do2(A,S)) :-
-		time(TOld, S),
-		(A = tick(Steps) -> 
-			T is TOld + Steps
-		;
-			T  is TOld
-		).
-		
-time(T, s0) :- get_current(time, [], T).		
-time(T, slast) :- get_last(time, [], T).	
+effect(time, tick(Steps), TOld, T, _) :-
+	T is TOld + Steps.
+	
 poss(tick(_), _) :- true.
 poss(nop, _) :- true.
 
@@ -369,126 +368,51 @@ init_progression :-
 	retractall(action_clock(_,_,_)),
 	retractall(action_count(_,_,_)),
 	construct_ssas,
-	close_successor_state_axioms.
+	close_successor_state_axioms,
+	init_event_scheduling.
 
 	
 
-close_successor_state_axioms :- 
-	add_default_domain_ssas,
-	findall(fluent(Name,Args,Type),fluent(Name,Args,Type), Fluents),
-	(foreach(F, Fluents) do
-		F = fluent(Name,Args,Type),
-		add_storage_query_to_ssa(Name,Args,Type, s0, get_current),
-		add_storage_query_to_ssa(Name,Args,Type, slast, get_last)
-	).
-	
-add_default_domain_ssas :-
-	get_all_sorts(Sorts),
-	(foreach(Sort, Sorts) do
-		(not clause(domain(Sort, _, do2(_,_)), _) ->
-			assert(domain(Sort, D, do2(_,S)) :- domain(Sort, D, S)) 
+
+
+% Checks recursively whether the given term could possibly affected by the given
+% action instance.
+term_affected_by_action(Term, Action) :-
+	% if Term is fluent: check effect directly
+	% if Term is derived fluent: check body of definition
+	not var(Term),	
+	Term =.. [Functor | Args],
+	(
+		fluent(Functor, _, Type), !,
+		(Type = boolean ->
+			L2 is length(Args) - 2
+			; % not boolean -> result argument present
+			L2 is length(Args) - 3
+		),
+		(L2 >= 0 ->
+			sublist(Args, 0, L2, Args2)
 			;
-			true
-		)
-	).
-		
-add_storage_query_to_ssa(Name, Args, Type, Sit, QueryName) :-
-	length(Args, NArgs),
-	length(NewArgs, NArgs),
-	var(Val),
-	QueryArgs = [Name, NewArgs, Val],
-	Query =.. [QueryName | QueryArgs],
-	(Type = boolean ->
-		append(NewArgs,[Sit], NewArgsWithSit),
-		Head =.. [Name | NewArgsWithSit],
-		(not clause(Head, _) ->
-			assert((Head :- Query, Val = true))
-			; 
+			Args2 = []
+		),
+		Term2 =.. [Functor | Args2],
+		clause(effect(Term2, Action, _, _, _), _)
+		;
+		derived_fluent(Functor, _, _), !,
+		(clause(Term, DFluentBody) -> 
+			term_affected_by_action(DFluentBody, Action)
+			;
 			true
 		)
 		;
-		append(NewArgs,[Val,Sit], NewArgsWithSit),
-		Head =.. [Name | NewArgsWithSit],
-		(not clause(Head, _) ->
-			%assert((Head :- Query, ! ; Val = none))
-			assert((Head :- Query))
-			;
-			true
-		)
-	).	
-	
-construct_boolean_fluent_ssa(FluentName, Params, Head, Body) :-
-	Len is length(Params),
-	length(Args1, Len),
-	Qualifier =.. [FluentName | Args1],
-	append(Args1, [do2(A,S)], Args),
-	append(Args1, [S], OldArgs),
-	Head =.. [FluentName | Args],
-	OldQuery =.. [FluentName | OldArgs],
-	Body = (
-				(OldQuery -> OldValue = true ; OldValue = false),
-				(
-					effect(Qualifier, A, OldValue, NewValue, S), !
-					;
-					NewValue = OldValue
-				),
-				NewValue = true
-	).						
-									
-construct_nonboolean_fluent_ssa(FluentName, Params, Head, Body) :-
-	Len is length(Params),
-	length(Args1, Len),
-	Qualifier =.. [FluentName | Args1],
-	append(Args1, [NewValue, do2(A,S)], Args),
-	append(Args1, [OldValue, S], OldArgs),
-	Head =.. [FluentName | Args],
-	OldQuery =.. [FluentName | OldArgs],
-	Body = (
-				OldQuery,
-				(
-					effect(Qualifier, A, OldValue, NewValue, S), !
-					;
-					NewValue = OldValue
-				)
-	).	
-
-construct_ssas :-
-	get_declared_fluents(Fluents),
-	(foreach(F, Fluents), fromto([], HandledIn, HandledOut, _) do
-		F = f(FluentName, Params, Type),
-		(member(FluentName, HandledIn) ->
-			HandledOut = HandledIn
-			;
-			(Type = boolean ->
-				construct_boolean_fluent_ssa(FluentName, Params, Head, Body)
-				;
-				construct_nonboolean_fluent_ssa(FluentName, Params, Head, Body)
-			),	
-			% if there's already a fluent clause then back off!
-			(not clause(Head, _) ->
-				retractall(Head),
-				asserta((Head :- Body))
-				;
-				true
-			),
-			append(HandledIn, [FluentName], HandledOut)
-		)
-	).
-
-
-term_affected_by_action(Term, Action) :-
-	clause(effect(Term, Action, _, _, _), _), !
-	;
-	Term =.. [_ | Args],
-	(
+		member(Functor, [evaluate_ad_hoc, test_ad_hoc]),
+		Args = [Formula | _],
+		compile_formula(Formula, Formula2, _),
+		term_affected_by_action(Formula2, Action), !
+		;		
 		member(Arg, Args),
 		term_affected_by_action(Arg, Action), !
 	).
 		
-	
-	
-
-
 
 	
 create_situation([A], Time, S1, S2) :-
@@ -523,35 +447,27 @@ situation([A | Tl], S1, S2) :-
 
 situation([A | Tl], S2) :- situation([A | Tl], s0, S2).
 
+unfold_var_time_steps(S1, S2) :-
+	S1 = do2(tick(Delta), SOld), !,
+	(
+		Delta =< 0,
+		S2 = SOld, !
+		;
+		Delta = 1,
+		S2 = S1, !
+		; %	Delta > 1
+		Delta2 is Delta - 1,
+		unfold_var_time_steps(do2(tick(Delta2), do2(tick(1), SOld)), S2)
+	)
+	;
+	S2 = S1.
+	
+	
 
 % The following section contains functions that are used by the simulation engine
 % for automatic initialization of the domain.
 	
-possible_action_instance(ActionName, PossibleInstanceArgs) :-
-	exogenous_action(ActionName, EntityParams, StochasticParams),
-	(foreach(Param, EntityParams), foreach(Arg, PossibleInstanceArgs) do
-		Param = _ : DomainName,
-		domain(DomainName, Domain),
-		member(Arg, Domain)
-	), 
-	% generate variable stochastic params to check possibility
-	(foreach(_, StochasticParams), fromto(PossibleInstanceArgs, In, Out, TestArgs) do
-		append(In, [_], Out)
-	),
-	ActionTerm =.. [ActionName | TestArgs],
-	poss(ActionTerm, s0).
 	
-get_exogenous_action_instances(ActionName, Candidates) :-
-	findall(InstanceArgs, possible_action_instance(ActionName, InstanceArgs), Candidates).
-		
-
-get_all_exogenous_action_instances(Candidates) :-
-	findall(ActionName, exogenous_action(ActionName, _, _), ActionNames),
-	(foreach(A, ActionNames), foreach(C, Candidates) do
-		get_exogenous_action_instances(A, CandidatesForAction),
-		C = A : CandidatesForAction
-	).
-
 get_declared_fluents(Fluents) :-
 	findall(f(FName,Params,Type),fluent(FName,Params,Type),Fluents).
 	
@@ -570,9 +486,37 @@ retract_constant(ConstantName, Params) :-
 get_declared_primitive_actions(Actions) :-
 	findall(pa(AName,Params),primitive_action(AName,Params),Actions).
 get_declared_stochastic_actions(Actions) :-
-	findall(pa(AName,Params,Outcomes),stochastic_action(AName,Params,Outcomes),Actions).	
-get_declared_exogenous_actions(Actions) :-
-	findall(ea(AName,P1,P2),exogenous_action(AName,P1,P2),Actions).
+	findall(pa(AName,Params,Outcomes),stochastic_action(AName,Params,Outcomes),Actions).
+	
+get_event_type(EventName, EType, TimeDependent) :-
+	schedulable_event(EventName, TimeDependent), EType = schedulable, !
+	;
+	ad_hoc_event(EventName, TimeDependent), EType = ad_hoc, !
+	;
+	caused_event(EventName), EType = caused, !
+	;
+	is_choice_option(EventName, _), !, EType = choice_option, TimeDependent = false
+	;
+	throw(no_axiom_for_event(EventName)).
+	
+get_declared_exogenous_actions(EventDeclarations) :-
+	findall(ea(Name,P1,P2),exogenous_action(Name,P1,P2),DeclaredEvents),
+	(foreach(Event, DeclaredEvents), foreach(EDecl, EventDeclarations) do
+		Event = ea(EventName, Params1, Params2),
+		get_event_type(EventName, EType, TimeDependent),
+		EDecl = ea(EventName, Params1, Params2, EType, TimeDependent)
+	).
+	
+get_declared_exogenous_action_choices(ChoiceDeclarations) :-
+	findall(eac(Name, Params, Options), 
+		exogenous_action_choice(Name, Params, Options), 
+		DeclaredChoices),
+	(foreach(Choice, DeclaredChoices), foreach(CDecl, ChoiceDeclarations) do
+		Choice = eac(ChoiceName, Params, Options),
+		get_event_type(ChoiceName, EType, TimeDependent),
+		CDecl = eac(ChoiceName, Params, Options, EType, TimeDependent)
+	).
+		
 get_declared_immediate_actions(ImmediateActions) :-
 	findall(ia(AName), immediate_action(AName), ImmediateActions).
 

@@ -1,6 +1,7 @@
+from numbers import Number
 from .core import Entity
 from salma.SALMAException import SALMAException
-from salma.model.procedure import ControlNode, Act, Procedure
+from salma.model.procedure import ControlNode, Act, Procedure, Wait
 from salma.model.evaluationcontext import EvaluationContext
 
 ONE_SHOT_PROCESS = 0
@@ -14,7 +15,7 @@ class Process(object):
     by some condition, or one-shot, which is defined in the corresponding subclasses.
     """
 
-    IDLE, RUNNING, BLOCKED, EXECUTING_ACTION = range(4)
+    IDLE, RUNNING, WAITING, SLEEPING, EXECUTING_ACTION = range(5)
 
     def __init__(self, procedure, introduction_time=0):
         """
@@ -25,16 +26,18 @@ class Process(object):
         """
         self.__agent = None
         self.__state = Process.IDLE
+
+        self.__blocking_condition = None
+        self.__suspended_until = None
+
         if isinstance(procedure, Procedure):
             self.__procedure = procedure
         elif isinstance(procedure, (ControlNode, list)):
             self.__procedure = Procedure("main", [], procedure)
         else:
             raise SALMAException("Unsupported type for process procedure.")
-
         self.__current_control_node = self.__procedure.body
         self.__current_evaluation_context = None
-        self.__pending_action = None
         self.__introduction_time = introduction_time
         self.__last_start_time = None
         self.__last_end_time = None
@@ -113,20 +116,58 @@ class Process(object):
     def current_evaluation_context(self) -> EvaluationContext:
         return self.__current_evaluation_context
 
-    def get_pending_action(self):
+    @property
+    def blocking_condition(self):
         """
-        Returns, if any, the action that was yielded by the agent during the immediate action gathering phase.
-         This action is added to the non-immediate action list in World.step and will thus be executed after the
-         immediate action phase.
-        :rtype: (str, list)
+        Returns the blocking condition as tuple (condition_type, condition, params)
+        :rtype: (int, object, list)
         """
-        return self.__pending_action
+        return self.__blocking_condition
 
-    def set_pending_action(self, pending_action):
+    @blocking_condition.setter
+    def blocking_condition(self, condition_spec):
+        self.__blocking_condition = condition_spec
+
+    @property
+    def suspended_until(self):
         """
-        :type pending_action: (str, list)
+        Returns the time until which the process is suspended by a sleep node.
+        :rtype: int
         """
-        self.__pending_action = pending_action
+        return self.__suspended_until
+
+    @suspended_until.setter
+    def suspended_until(self, t):
+        self.__suspended_until = t
+
+    def wake_up_if_possible(self):
+        """
+        Wakes the process up (i.e. sets state to RUNNING) if the blocking condition is fulfilled or
+        the suspension period is over.
+        :return: True if the process is running after this call
+        """
+        if self.state == Process.RUNNING:
+            return True
+
+        if (self.state in [Process.SLEEPING, Process.WAITING] and
+                self.suspended_until is not None):
+            current_time = self.current_evaluation_context.getFluentValue('time')
+            if current_time >= self.suspended_until:
+                self.__state = Process.RUNNING
+                self.__suspended_until = None
+                return True
+
+        if self.state == Process.WAITING and self.blocking_condition is not None:
+            condition_type, condition, params = self.blocking_condition
+            if self.current_evaluation_context is None:
+                raise SALMAException("Undefined evaluation context in process!")
+            res = self.current_evaluation_context.evaluateCondition(condition_type, condition, *params)
+            if res:
+                self.__state = Process.RUNNING
+                self.__blocking_condition = None
+                self.__suspended_until = None
+                return True
+        return False
 
     # TEMPLATE METHODS
 
@@ -144,17 +185,42 @@ class Process(object):
         """
         return False
 
+    # noinspection PyMethodMayBeStatic
     def _on_start(self):
         """
         Called at start.
         """
         pass
 
+    # noinspection PyMethodMayBeStatic
     def _on_finish(self):
         """
         Called at finish.
         """
         pass
+
+    def get_next_known_start_time(self, current_time):
+        """
+        Returns the next known start time of the process that is later than the current time.
+        :type current_time: int
+        :rtype: int
+        """
+        raise NotImplementedError()
+
+    def get_next_known_activation_time(self, current_time):
+        """
+        Returns the next known time when the process will be (re-)activated that is later than
+        the current time.
+        :type current_time: int
+        :rtype: int
+        """
+        if self.state == Process.SLEEPING:
+            if self.suspended_until is not None and self.suspended_until > current_time:
+                return self.suspended_until
+            else:
+                return None
+        else:
+            return self.get_next_known_start_time(current_time)
 
     def start(self):
         """
@@ -165,7 +231,6 @@ class Process(object):
         self.__current_evaluation_context = self.agent.evaluation_context
         self.procedure.restart(self.__current_evaluation_context)
         self.__current_control_node = self.procedure.body
-        self.__pending_action = None
         self.__last_start_time = self.agent.evaluation_context.getFluentValue('time')
 
         self._on_start()
@@ -179,7 +244,6 @@ class Process(object):
         """
         self.__current_control_node = None
         self.__current_evaluation_context = self.agent.evaluation_context
-        self.__pending_action = None
         self._on_finish()
         self.__state = Process.IDLE
         if self.should_terminate():
@@ -189,15 +253,15 @@ class Process(object):
         self.__state = Process.IDLE
         self.__current_control_node = self.procedure.body
         self.__current_evaluation_context = None
-        self.__pending_action = None
         self.__last_start_time = None
         self.__last_end_time = None
         self.__terminated = False
         self.__execution_count = 0
 
-    def step(self, new_step):
+    def step(self):
         """
         Performs one step of the process.
+        :return: returns an Act instance if an action is performed or None
 
         :rtype: Act
         """
@@ -207,16 +271,17 @@ class Process(object):
         if self.__current_control_node is None:
             return None
 
-        if self.__pending_action is not None and new_step is False:
+        if self.__state == Process.EXECUTING_ACTION:
+            self.__state = Process.RUNNING
+        if not self.__state == Process.RUNNING:
             return None
-        self.__state = Process.RUNNING
-        self.__pending_action = None
 
         status = ControlNode.CONTINUE
         current_node = self.__current_control_node
         current_context = self.__current_evaluation_context
         while status == ControlNode.CONTINUE and current_node is not None:
-            status, next_node, next_context = current_node.executeStep(current_context, self.__agent.procedure_registry)
+            status, next_node, next_context = current_node.execute_step(current_context,
+                                                                        self.__agent.procedure_registry)
 
             # : :type next_context: EvaluationContext
             if next_node is None:
@@ -249,7 +314,13 @@ class Process(object):
                 else:
                     self.__current_control_node = None
             else:
-                self.__state = Process.BLOCKED
+                self.__state = Process.WAITING
+                if isinstance(self.__current_control_node, Wait):
+                    cond = self.__current_control_node.condition
+                    cparams = self.__current_control_node.condition_params
+                    ctype = self.__current_evaluation_context.determine_source_type(cond, cparams)
+                    self.__blocking_condition = ctype, cond, cparams
+                    self.__suspended_until = self.__current_control_node.current_timeout
 
         if self.__current_control_node is None:
             self.__execution_count += 1
@@ -285,6 +356,13 @@ class OneShotProcess(Process):
     def should_terminate(self):
         return self.execution_count > 0
 
+    def get_next_known_start_time(self, current_time):
+        min_time = self.introduction_time or 0
+        if min_time > current_time:
+            return min_time
+        else:
+            return None
+
 
 class PeriodicProcess(Process):
     def __init__(self, procedure, period, introduction_time=0):
@@ -310,6 +388,7 @@ class PeriodicProcess(Process):
         """
         min_time = self.introduction_time or 0
         current_time = self.agent.evaluation_context.getFluentValue('time')
+        assert isinstance(current_time, Number)
         if current_time < min_time:
             return None
         num = divmod(current_time - min_time, self.__period)[0] + 1
@@ -327,13 +406,10 @@ class PeriodicProcess(Process):
     def should_start(self):
         # start if IDLE and the last start time was before the start of this time slot
         if self.period is None:
-            #TODO: include process name
+            # TODO: include process name
             raise SALMAException("Unspecified period for periodic process.")
 
-        min_time = self.introduction_time or 0
-        current_time = self.agent.evaluation_context.getFluentValue('time')
-        tslot = self.time_slot
-        if (self.state != Process.IDLE) or (tslot is None):
+        if (self.state != Process.IDLE) or (self.time_slot is None):
             return False
 
         return (self.last_start_time is None
@@ -342,14 +418,19 @@ class PeriodicProcess(Process):
     def should_terminate(self):
         return False
 
+    def get_next_known_start_time(self, current_time):
+        min_time = self.introduction_time or 0
+        if min_time > current_time:
+            return min_time
+        return min_time + self.time_slot[0] * self.__period
+
 
 class TriggeredProcess(Process):
-    def __init__(self, procedure, condition_type, condition, condition_params, relative_deadline=None,
+    def __init__(self, procedure, condition, condition_params=None, relative_deadline=None,
                  introduction_time=0):
         Process.__init__(self, procedure, introduction_time)
-        self.__condition_type = condition_type
         self.__condition = condition
-        self.__condition_params = condition_params
+        self.__condition_params = condition_params if condition_params is not None else []
         self.__relative_deadline = relative_deadline
 
     def process_type(self) -> int:
@@ -361,7 +442,8 @@ class TriggeredProcess(Process):
         if current_time < min_time:
             return False
         ectx = self.current_evaluation_context or self.agent.evaluation_context
-        result = ectx.evaluateCondition(self.__condition_type,
+        condition_type = ectx.determine_source_type(self.__condition, self.__condition_params)
+        result = ectx.evaluateCondition(condition_type,
                                         self.__condition,
                                         *self.__condition_params)
         return result
@@ -382,6 +464,12 @@ class TriggeredProcess(Process):
     def should_terminate(self):
         return False
 
+    def get_next_known_start_time(self, current_time):
+        min_time = self.introduction_time or 0
+        if min_time > current_time:
+            return min_time
+        else:
+            return None
 
 
 

@@ -545,7 +545,10 @@ evaluate_action_occured(ActionTerm, Time, Result) :-
 		(T2 is Time -> Result = ok ; Result = not_ok).
 
 		
-
+action_occured(ActionTerm, Sit) :-
+	time(Time, Sit),
+	evaluate_action_occured(ActionTerm, Time, Result),
+	Result = ok.
 
 
 % Calculates the minimum among V1 and V2. Handles nondet.

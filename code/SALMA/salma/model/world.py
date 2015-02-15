@@ -1,25 +1,26 @@
 import itertools
 import logging
 import random
-import datetime
-import time
-
-import pyclp
+from collections.abc import Iterable, Iterator
 
 from salma.SALMAException import SALMAException
-from salma.constants import *
-from salma.model.actions import StochasticAction, DeterministicAction, ExogenousAction, RandomActionOutcome, \
-    Deterministic, Uniform
+from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome
+from salma.model.distributions import ConstantDistribution, Never
+from salma.model.events import ExogenousAction, ExogenousActionChoice
 from salma.model.core import Constant, Action
+from salma.model.data import Term
 from salma.model.evaluationcontext import EvaluationContext
 from ..engine import Engine
+from salma.model.eventschedule import EventSchedule
 from salma.model.world_declaration import WorldDeclaration
-from salma.statistics import HypothesisTest
-from .core import Entity, Fluent
+from .core import Entity, Fluent, DerivedFluent
 from .agent import Agent
 from .procedure import Variable, Act
 from salma.model.infotransfer import Connector, Channel, Sensor, RemoteSensor
-from collections.abc import Iterable
+from salma.mathutils import min_robust, max_robust
+from salma.termutils import tuplify
+import inspect
+
 
 MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -28,13 +29,11 @@ moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 class World(Entity, WorldDeclaration):
     """
     Singleton class that acts as the *center of the simulation*. The domain model is loaded with load_declaration and
-    all actions can be configured using the appropriate configuration classes. The configuration can then be checked with
-    several check_* methods. After that, the domain models are set up with initialize, optionally also generating a randomized
-    initial situation by sampling values for all fluent and constant instances. Additionally, the fluent and constant values
-    can also be manipulated with
+    all actions can be configured using the appropriate configuration classes. The configuration can then be checked
+    with several check_* methods. After that, the domain models are set up with initialize, optionally also generating
+    a randomized initial situation by sampling values for all fluent and constant instances. Additionally, the fluent
+    and constant values can also be manipulated with setter and getter functions.
     """
-
-    INVARIANT, ACHIEVE, ACHIEVE_AND_SUSTAIN = range(3)
 
     __logic_engine = None
 
@@ -63,25 +62,33 @@ class World(Entity, WorldDeclaration):
         Entity.__init__(self, World.ENTITY_ID, World.SORT_NAME)
 
         # fluentName -> core.Fluent
+        #: :type : dict[str, Fluent]
         self.__fluents = dict()
 
-        # : :type: dict[str, (str, str, list)]
+        #: :type: dict[str, DerivedFluent]
         self.__derived_fluents = dict()
 
-        #: :type: dict[str, Constant]
+        # : :type: dict[str, Constant]
         self.__constants = dict()
+
         # action_name -> core.Action
+        # : :type : dict[str, Action]
         self.__actions = dict()
 
-        self.__exogenousActions = dict()
+        self.__virtualSorts = {"sort", "message"}
 
-        self.__virtualSorts = set(["sort", "message"])
-
-        # store all entities in a sort -> entity dict 
+        # store all entities in a sort -> entity dict
+        # : :type: dict[str, set[Entity]]
         self.__domainMap = dict()
         # agents is a dict that stores
+        # : :type: dict[str, Entity]
         self.__entities = dict()
+        # : :type: dict[str, Agent]
         self.__agents = dict()
+
+        # ------------------- event schedule ---------------------------
+        # : :type: EventSchedule
+        self.__event_schedule = EventSchedule(World.logic_engine())
 
         # ------------------- information transfer ---------------------
         #: :type: dict[str, Connector]
@@ -97,16 +104,8 @@ class World(Entity, WorldDeclaration):
         #: :type: dict[str, object]
         self.__additional_expression_context_globals = dict()
 
-        # dict with registered properties: name -> (formula, property_type)
-        #: :type: dict[str, (str, int)]
-        self.__invariants = dict()
-        #: :type: dict[str, (str, int)]
-        self.__achieve_goals = dict()
-        #: :type: dict[str, (str, int)]
-        self.__achieve_and_sustain_goals = dict();
-
         #: :type: set[str]
-        self.__already_achieved_goals = set()
+        self.__clp_functions = set()
 
         if World.logic_engine() is None:
             raise SALMAException("Engine not set when creating world.")
@@ -128,6 +127,13 @@ class World(Entity, WorldDeclaration):
         """
         self.__virtualSorts = set(vsorts)
 
+    @property
+    def clp_functions(self):
+        """
+        :rtype: set[str]
+        """
+        return self.__clp_functions
+
     def getExpressionContext(self):
         return self.__expressionContext
 
@@ -143,6 +149,9 @@ class World(Entity, WorldDeclaration):
         """
         self.__additional_expression_context_globals[name] = value
 
+    def register_clp_function(self, name):
+        self.__clp_functions.add(name)
+
     @staticmethod
     def create_new_world():
         """
@@ -152,14 +161,18 @@ class World(Entity, WorldDeclaration):
         World.__instance = World()
         return World.__instance
 
+    @property
     def evaluation_context(self):
+        """
+        :rtype: EvaluationContext
+        """
         return self.__evaluationContext
 
     def enumerate_fluent_instances(self, fluent):
         """
         Creates an iterator for instances of the given fluent
         :type fluent: Fluent
-        :rtype: list of list of str
+        :rtype: list[list[str]]
         """
         candidates = []
         candidate_indexes = []
@@ -217,17 +230,14 @@ class World(Entity, WorldDeclaration):
 
         for con in self.__constants.values():
             for paramSelection in self.enumerate_fluent_instances(con):
-                v = self.getConstantValue(con.name, paramSelection)
-                if v is None:
+                if not self.is_constant_defined(con.name, paramSelection):
                     instance = (con.name, paramSelection)
                     uninitialized_constant_instances.append(instance)
 
         for fluent in self.__fluents.values():
             """:type fluent: Fluent """
             for paramSelection in self.enumerate_fluent_instances(fluent):
-                instance = None
-                v = self.getFluentValue(fluent.name, paramSelection)
-                if v is None:
+                if not self.is_fluent__instance_defined(fluent.name, paramSelection):
                     instance = (fluent.name, paramSelection)
                     uninitialized_fluent_instances.append(instance)
 
@@ -239,10 +249,9 @@ class World(Entity, WorldDeclaration):
         :return: tuple with (problematic_stochastic_actions, problematic_exogenous_actions) where each is a list of
         tuples with (action, promblem_list)
 
-        :rtype: (list[(StochasticAction, list)], list[(ExogenousAction, list)])
+        :rtype: (list[(StochasticAction, list)], list[(ExogenousAction, list)], list[(ExogenousActionChoice, list)])
         """
         problematic_stochastic_actions = []
-        problematic_exogenous_actions = []
 
         for action in filter(lambda a: isinstance(a, StochasticAction), self.__actions.values()):
             assert isinstance(action, StochasticAction)
@@ -250,23 +259,15 @@ class World(Entity, WorldDeclaration):
             if len(problems) > 0:
                 problematic_stochastic_actions.append((action, problems))
 
-        for exo_action in self.__exogenousActions.values():
-            assert isinstance(exo_action, ExogenousAction)
-            if exo_action.config is None:
-                problematic_exogenous_actions.append((exo_action, ["uninitialized"]))
-            else:
-                problems = exo_action.config.check()
-                if len(problems) > 0:
-                    problematic_exogenous_actions.append((exo_action, problems))
-
-        return problematic_stochastic_actions, problematic_exogenous_actions
+        problematic_exogenous_actions = self.__event_schedule.check_exogenous_action_initialization()
+        problematic_exogenous_action_choices = self.__event_schedule.check_exogenous_action_choice_initialization()
+        return problematic_stochastic_actions, problematic_exogenous_actions, problematic_exogenous_action_choices
 
     def __make_fluent_access_function(self, fluent_name):
         def __f(*params):
             return self.getFluentValue(fluent_name, params)
 
         return __f
-
 
     def __make_constant_access_function(self, constant_name):
         def __f(*params):
@@ -276,36 +277,42 @@ class World(Entity, WorldDeclaration):
 
     def __make_derived_fluent_access_function(self, derived_fluent_name):
         def __f(*params):
-            return self.__evaluationContext.evaluateFunction(EvaluationContext.TRANSIENT_FLUENT, derived_fluent_name,
-                                                             *params)
+            return self.get_derived_fluent_value(derived_fluent_name, params)
 
         return __f
+
+    def __create_general_functions(self, expression_context: dict):
+        # todo: include derived fluents in expression context?
+        def __fcc(fluentName, *params):
+            return self.getFluentChangeTime(fluentName, params)
+
+        def __ac(actionName, *params):
+            return self.getActionClock(actionName, params)
+
+        def __oc(actionName, *params):
+            return self.getActionClock(actionName, params) == self.getTime()
+
+        # todo: add action count
+        expression_context['fluentClock'] = __fcc
+        expression_context['actionClock'] = __ac
+        expression_context['occur'] = __oc
 
     def __create_expression_context(self):
         self.__expressionContext = dict()
         self.__expressionContext.update(self.__additional_expression_context_globals)
-        # : :type fluent: Fluent
         for fluent in self.__fluents.values():
             self.__expressionContext[fluent.name] = self.__make_fluent_access_function(fluent.name)
         for df in self.__derived_fluents.values():
-            self.__expressionContext[df[0]] = self.__make_derived_fluent_access_function(df[0])
+            self.__expressionContext[df.name] = self.__make_derived_fluent_access_function(df.name)
         for con in self.__constants.values():
             self.__expressionContext[con.name] = self.__make_constant_access_function(con.name)
 
-        #todo: include derived fluents in expression context?
-        def __fluentChangeClock(fluentName, *params):
-            return self.getFluentChangeTime(fluentName, params)
+        self.__create_general_functions(self.__expressionContext)
 
-        def __actionClock(actionName, *params):
-            return self.getActionClock(actionName, params)
-
-        #todo: add action count
-        self.__expressionContext['fluentClock'] = __fluentChangeClock
-        self.__expressionContext['actionClock'] = __actionClock
         # add a "variable" for each entity to allow access without quotation marks
-        for id in self.__entities.keys():
-            if not str(id) in self.__expressionContext:
-                self.__expressionContext[str(id)] = str(id)
+        for entity_id in self.__entities.keys():
+            if not str(entity_id) in self.__expressionContext:
+                self.__expressionContext[str(entity_id)] = str(entity_id)
 
     def sample_fluent_values(self):
         """
@@ -314,23 +321,44 @@ class World(Entity, WorldDeclaration):
         for fluent in itertools.filterfalse(lambda f: f.name == 'time', self.__fluents.values()):
             self.__initialize_fluent(fluent)
 
-    def __load_stochastic_action_declarations(self, declarations, immediate_action_names):
+    def __load_stochastic_action_declarations(self, declarations):
         """
         Loads the stochastic declarations and creates StochasticAction objects accordingly.
-        :type declarations: list of (str, list of object, list of str)
-        :type immediate_action_names: list of str
+        :param list[(str, list[(str, str)], list[str])] declarations: the declarations as
+                (name, params, outcome_names) tuples
         """
         for sa in declarations:
-            immediate = sa[0] in immediate_action_names
             params = sa[1]
             outcome_names = sa[2]
+            #: :type: list[RandomActionOutcome]
             outcomes = []
             for o_name in outcome_names:
                 outcome_action = self.getAction(o_name)
+                assert isinstance(outcome_action, DeterministicAction)
                 outcomes.append(RandomActionOutcome(outcome_action))
-            strategy = Deterministic() if len(outcomes) == 1 else Uniform()
-            action = StochasticAction(sa[0], params, outcomes, strategy, immediate)
+            action = StochasticAction(sa[0], params, outcomes, selection_strategy=None)
             self.addAction(action)
+
+    def __load_exogenous_action_choice(self, declarations):
+        """
+        Loads the exogenous action choice declarations.
+        :param list[(str, list[(str, str)], list[str], str, bool)] declarations: the declarations as
+                (name, params, option_names, type, time-dependent) tuples.
+        """
+        for ec in declarations:
+            choice_name, params, option_names, _, _ = ec
+            #: :type: list[ExogenousAction]
+            options = []
+            for oname in option_names:
+                try:
+                    option_event = self.__event_schedule.exogenous_actions[oname]
+                except KeyError:
+                    raise SALMAException("Option '{}' of choice '{}' points to "
+                                         "unregistered exogenous action".format(oname, choice_name))
+                options.append(option_event)
+
+            choice = ExogenousActionChoice(choice_name, params, options)
+            self.__event_schedule.add_exogenous_action_choice(choice)
 
     def load_declarations(self):
         """
@@ -342,9 +370,9 @@ class World(Entity, WorldDeclaration):
         self.__constants = dict()
         # action_name -> core.Action
         self.__actions = dict()
-        self.__exogenousActions = dict()
         self.__connectors = dict()
 
+        self.__event_schedule.clear()
         declarations = World.logic_engine().load_declarations()
         for f in declarations['fluents']:
             self.addFluent(Fluent(f[0], f[2], f[1]))
@@ -353,14 +381,14 @@ class World(Entity, WorldDeclaration):
         for c in declarations['constants']:
             self.addConstant(Constant(c[0], c[2], c[1]))
         for pa in declarations['primitive_actions']:
-            immediate = pa[0] in declarations['immediate_actions']
-            self.addAction(DeterministicAction(pa[0], pa[1], immediate))
+            self.addAction(DeterministicAction(pa[0], pa[1]))
 
-        self.__load_stochastic_action_declarations(declarations["stochastic_actions"],
-                                                   declarations["immediate_actions"])
+        self.__load_stochastic_action_declarations(declarations["stochastic_actions"])
 
         for ea in declarations['exogenous_actions']:
-            self.addExogenousAction(ExogenousAction(ea[0], ea[1], ea[2]))
+            self.__event_schedule.add_exogenous_action(ExogenousAction(ea[0], ea[1], ea[2], ea[3]))
+
+        self.__load_exogenous_action_choice(declarations['exogenous_action_choices'])
 
         # info transfer
         for c in declarations["channels"]:
@@ -385,23 +413,23 @@ class World(Entity, WorldDeclaration):
         for sort, domain in domain_map_from_engine.items():
             self.__domainMap[sort] = set()
             for entityId in domain:
-                entity = None
+                # var entity : Entity
                 try:
                     entity = self.__entities[entityId]
                 except KeyError:
-                    # raise SALMAException("No Entity instance registered for {}:{}".format(entityId, sort))
+                    # add a new entity if required
                     entity = Entity(entityId, sort)
                     self.__entities[entityId] = entity
                 self.__domainMap[sort].add(entity)
 
-    def initialize(self, sample_fluent_values=True, removeFormulas=True, deleteConstants=True):
+    def initialize(self, sample_fluent_values=False):
         """
         1. Sets up domains, i.e. defines the sets of entity objects for each sort.
 
-        2. Optionally sets ups the a new initial situation by creating samples for the fluent instance for each combination
-            of parameter values.
+        2. Optionally sets ups the a new initial situation by creating samples for the fluent instance for
+            each combination of parameter values.
         """
-        World.logic_engine().reset(removeFormulas=removeFormulas, deleteConstants=deleteConstants)
+        World.logic_engine().reset()
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
         for sort in self.__domainMap.keys():
@@ -426,7 +454,7 @@ class World(Entity, WorldDeclaration):
             self.sample_fluent_values()
 
         self.__initialized = True
-        #self.__persistentPropertiesInitialized = False
+        # self.__persistentPropertiesInitialized = False
         self.__create_expression_context()
 
     def is_finished(self):
@@ -462,7 +490,7 @@ class World(Entity, WorldDeclaration):
         :type entityId: str
         :rtype: Entity
         """
-        if not entityId in self.__entities:
+        if entityId not in self.__entities:
             return None
         else:
             return self.__entities[entityId]
@@ -478,7 +506,7 @@ class World(Entity, WorldDeclaration):
         if entity.sortName in self.__domainMap:
             self.__domainMap[entity.sortName].add(entity)
         else:
-            self.__domainMap[entity.sortName] = set([entity])
+            self.__domainMap[entity.sortName] = {entity}
 
     def addAgent(self, agent):
         """
@@ -496,11 +524,11 @@ class World(Entity, WorldDeclaration):
         :type entity: Entity
         :raises: an SALMAException if the given entity was not found in the registry.
         """
-        if not entity.sortName in self.__domainMap:
+        if entity.sortName not in self.__domainMap:
             raise SALMAException("Trying to remove entity {} with unregistered sort {}".format(
                 entity.id, entity.sortName))
         eset = self.__domainMap[entity.sortName]
-        if (not entity in eset) or (not entity.id in self.__entities):
+        if (entity not in eset) or (entity.id not in self.__entities):
             raise SALMAException("Trying to remove unregistered entity {}.".format(entity.id))
         eset.remove(entity)
         self.__entities.pop(entity.id)
@@ -569,24 +597,6 @@ class World(Entity, WorldDeclaration):
         """
         return self.__actions.values()
 
-    def addExogenousAction(self, exogenousAction):
-        """
-        Registers the given exogenous action. Normally this method is called automatically by load_declarations().
-        :type exogenousAction: ExogenousAction
-        """
-        self.__exogenousActions[exogenousAction.action_name] = exogenousAction
-
-    def removeExogenousAction(self, exogenousAction):
-        """
-        Removes the given exogenous action.
-        :type exogenousAction: ExogenousAction
-        """
-        try:
-            del self.__exogenousActions[exogenousAction.action_name]
-        except KeyError:
-            raise (
-                SALMAException("Trying to erase unregistered exogenous action {}.".format(exogenousAction.action_name)))
-
     def get_exogenous_action(self, action_name):
         """
         Returns the exogenous action with the given name.
@@ -595,7 +605,7 @@ class World(Entity, WorldDeclaration):
         :rtype: ExogenousAction
         """
         try:
-            return self.__exogenousActions[action_name]
+            return self.__event_schedule.exogenous_actions[action_name]
         except KeyError:
             raise (SALMAException("Unregistered exogenous action {}.".format(action_name)))
 
@@ -604,7 +614,25 @@ class World(Entity, WorldDeclaration):
         Returns a list view on all exogenous actions.
         :rtype: Iterable[ExogenousAction]
         """
-        return self.__exogenousActions.values()
+        return self.__event_schedule.exogenous_actions.values()
+
+    def get_exogenous_action_choice(self, choice_name):
+        """
+        Return the exogenous action choice with the given name.
+        :param str choice_name: name of the choice
+        :rtype: ExogenousActionChoice
+        """
+        try:
+            return self.__event_schedule.exogenous_action_choices[choice_name]
+        except KeyError:
+            raise (SALMAException("Unregistered exogenous action choice {}.".format(choice_name)))
+
+    def get_exogenous_action_choices(self):
+        """
+        Return a list view on all registered exogenous action choices.
+        :rtype: Iterable[ExogenousActionChoice]
+        """
+        return self.__event_schedule.exogenous_action_choices.values()
 
     def getSorts(self):
         """
@@ -627,18 +655,20 @@ class World(Entity, WorldDeclaration):
     def addFluent(self, fluent):
         """
         Adds a core.Fluent object to the metamodel.
-        NOTE: this method should normally not be called directly but is automatically called in World.load_declarations().
+        NOTE: this method should normally not be called directly but is automatically called in
+            World.load_declarations().
         :type fluent: Fluent
         """
         self.__fluents[fluent.name] = fluent
 
     def add_derived_fluent(self, fluent_name, fluent_type, params):
-        self.__derived_fluents[fluent_name] = (fluent_name, fluent_type, params)
+        self.__derived_fluents[fluent_name] = DerivedFluent(fluent_name, fluent_type, params)
 
     def addConstant(self, con):
         """
         Adds a constant to the metamodel.
-        NOTE: this method should normally not be called directly but is automatically called in World.load_declarations().
+        NOTE: this method should normally not be called directly but is automatically
+            called in World.load_declarations().
         :type con: Constant
         """
         self.__constants[con.name] = con
@@ -662,9 +692,15 @@ class World(Entity, WorldDeclaration):
     def get_derived_fluents(self):
         """
         Returns the list of declared derived fluents as tuples of kind (fluent_name, fluent_type, params).
-        :rtype: Iterable[(str, str, list)]
+        :rtype: Iterable[DerivedFluent]
         """
         return self.__derived_fluents.values()
+
+    def get_derived_fluent(self, derived_fluent_name):
+        if derived_fluent_name in self.__derived_fluents:
+            return self.__derived_fluents[derived_fluent_name]
+        else:
+            return None
 
     def getConstants(self):
         """
@@ -738,6 +774,24 @@ class World(Entity, WorldDeclaration):
         """
         return (s for s in self.__connectors.values() if isinstance(s, RemoteSensor))
 
+    def deactivate_info_transfer(self):
+        """
+        Deactivates all exogenous actions for information transfer.
+        """
+        for ea_name in ["transferStarts", "transferEnds"]:
+            ea = self.get_exogenous_action(ea_name)
+            ea.config.occurrence_distribution = Never()
+            ea.config.set_param_distribution("error", ConstantDistribution("term", None))
+
+        ea = self.get_exogenous_action("transferFails")
+        ea.config.occurrence_distribution = Never()
+
+    def deactivate_all_events(self):
+        """
+        Deactivates all events by setting their occurrence distributions to NEVER or DONT_OCCUR.
+        """
+        self.__event_schedule.deactivate_all_events()
+
     @staticmethod
     def instance():
         """
@@ -748,11 +802,13 @@ class World(Entity, WorldDeclaration):
             World.__instance = World()
         return World.__instance
 
+    # noinspection PyMethodMayBeStatic
     def getFluentValue(self, fluent_name, fluent_params):
         """
         Returns the current value of the fluent instance that is given by the fluent name and the parameter list.
+        If the fluent instance is undefined, this method returns None.
         :type fluent_name: str
-        :type fluent_params: list
+        :type fluent_params: list|tuple
         :rtype: object
         """
         # we don't check if the fluent has been registered for performance reasons
@@ -762,6 +818,36 @@ class World(Entity, WorldDeclaration):
         else:
             return fv.value
 
+    # noinspection PyMethodMayBeStatic
+    def get_state_snapshot(self):
+        """
+        Returns a state snapshot that contains all fluent instances except the domains.
+        :rtype: list[FluentValue]
+        """
+        current_state = [fv for fv in World.logic_engine().getCurrentState() if fv.fluentName != "domain"]
+        return current_state
+
+    # noinspection PyMethodMayBeStatic
+    def get_derived_fluent_value(self, fluent_name, fluent_params):
+        """
+        Retrieves the current value of the given derived fluent instance.
+        :param str fluent_name: the name of the derived fluent.
+        :param list|tuple fluent_params: the parameters defining the derived fluent instance.
+        :rtype: object
+        """
+        return World.logic_engine().get_derived_fluent_value(fluent_name, fluent_params)
+
+    # noinspection PyMethodMayBeStatic
+    def is_fluent__instance_defined(self, fluent_name, fluent_params):
+        """
+        Returns True if the given fluent instance defined.
+        :param str fluent_name:
+        :param list|tuple fluent_params: the parameters defining the fluent instance
+        :rtype: bool
+        """
+        fv = World.logic_engine().getFluentValue(fluent_name, *fluent_params)
+        return fv is not None
+
     def getTime(self):
         """
         Returns the current value of the fluent 'time'.
@@ -769,117 +855,135 @@ class World(Entity, WorldDeclaration):
         """
         return self.getFluentValue('time', [])
 
+    # noinspection PyMethodMayBeStatic
     def getConstantValue(self, constantName, constantParams):
         """
         Returns the current value of the given constant instance.
         :type constantName: str
-        :type constantParams: list
+        :type constantParams: list|tuple
         :rtype: object
         """
-        return World.logic_engine().getConstantValue(constantName, constantParams)
+        return World.logic_engine().getConstantValue(constantName, constantParams)[1]
 
+    # noinspection PyMethodMayBeStatic
+    def is_constant_defined(self, constant_name, constant_params):
+        """
+        Returns True if the given constant is defined.
+        :param str constant_name:
+        :param list|tuple constant_params: the parameters
+        :rtype: bool
+        """
+        d, _ = World.logic_engine().getConstantValue(constant_name, constant_params)
+        return d
+
+    # noinspection PyMethodMayBeStatic
     def setFluentValue(self, fluentName, fluentParams, value):
         """
         Sets the current value for the given fluent instance.
         :type fluentName: str
-        :type fluentParams: list
+        :type fluentParams: list|tuple
         :type value: object
         """
         World.logic_engine().setFluentValue(fluentName, fluentParams, value)
 
+    # noinspection PyMethodMayBeStatic
     def setConstantValue(self, constantName, constantParams, value):
         """
         Sets the current value for the given constant instance.
         :type constantName: str
-        :type constantParams: list
+        :type constantParams: list|tuple
         :type value: object
         """
         World.logic_engine().setConstantValue(constantName, constantParams, value)
 
     def __translate_action_execution(self, evaluation_context, action_execution):
         """
-        Generates a ground deterministic action outcome from the given Act as a
-        (action_name, [ground_params]) tuple. If actionExecution refers to a stochastic action,
-        an outcome is generated according to the distribution that was defined for the action.
-        The given evaluation context is used for generating an outcome.
+        Generates a ground instance of an action from the given Act as a
+        (Action, [ground_params], EvaluationContext) tuple. The given evaluation context is used to resolve the action
+        parameters.
 
-        :return: (str, list)
         :raises: SALMAException if action is not registered.
 
-        :type evaluation_context: EvaluationContext
-        :type action_execution: Act
-        :rtype: (str, list)
+        :param EvaluationContext evaluation_context: the evaluation context used for parameter resolution
+        :param Act action_execution: the action execution control node
+        :rtype: (Action, tuple, EvaluationContext)
         """
         try:
-            action = self.__actions[action_execution.actionName]
+            action = self.__actions[action_execution.action_name]
+            ground_params = tuplify(evaluation_context.resolve(*action_execution.action_parameters))
+            return action, ground_params, evaluation_context
         except KeyError:
             raise (
                 SALMAException("Trying to execute unregistered action: {}".format(
-                    action_execution.actionName)))
+                    action_execution.action_name)))
 
-        ground_params = evaluation_context.resolve(*action_execution.actionParameters)
+    def __get_next_process_time(self):
+        """
+        Returns the next known time at which a process will be activated.
+        :rtype: int
+        """
+        current_time = self.getTime()
+        min_time = None
+        for agent in self.__agents.values():
+            for proc in agent.processes:
+                ptime = proc.get_next_known_activation_time(current_time)
+                min_time = min_robust([min_time, ptime])
+        return min_time
 
-        if isinstance(action, StochasticAction):
-            return action.generateOutcome(evaluation_context, ground_params)
+    def get_next_stop_time(self, consider_scanning_points):
+        """
+        Determines the next point in time at which the simulation must stop.
+
+        :param bool consider_scanning_points: whether or not scanning points should be considered, i.e. points
+            where events will become possible / schedulable.
+        :rtype: int
+        """
+        t1 = self.__get_next_process_time()
+        # var t2 : int
+        if consider_scanning_points:
+            t2 = self.__event_schedule.get_next_time_checkpoint()
         else:
-            return action_execution.actionName, ground_params
+            ev = self.__event_schedule.get_next_scheduled_event()
+            t2 = ev.time_point if ev is not None else None
+        return min_robust([t1, t2])
 
-    @staticmethod
-    def __get_action_name_from_term(action_term):
+    def step(self, time_limit, evaluate_properties=True):
         """
-        Extracts the action name from the given term. This is either the functor if action_term is a Compound or
-        the string representation of action_term.
-        :param action_term: (pyclp.Atom, pyclp.Compound)
-        :rtype: str
-        """
-        if isinstance(action_term, pyclp.Compound):
-            return action_term.functor()
-        else:
-            return str(action_term)
+        Performs one discrete time step for all agents and optionally performs the
+        evaluation of all registered properties.
 
-    def get_exogenous_action_instances(self):
+        :param int time_limit: the upper time limit until which the search for event occurrences is scanned
+        :param bool evaluate_properties: if True, perform property evaluation
+        :returns: (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
+                failed_actions, failure_stack)
+        :rtype: (bool, dict[str, int], dict, dict[str, list[int]], list, list, list)
         """
-        Creates a list of all exogenous action instances (see ExogenusAction.generate_instance) for
-        all possible candidates. The list of possible candidates is calculated by calling
-        Engine.getExogenousActionCandidates() first. Then ExogenousAction.shouldHappen() is used to
-        select instances that should occur.
-        :rtype: list
-        """
-        candidates = World.logic_engine().getExogenousActionCandidates()
-        ea_instances = []
-        for candidate in candidates.items():
-            action_name = candidate[0]
-            combinations = candidate[1]
-            # just ignore if the ex action is not registered
-            if action_name in self.__exogenousActions:
-                ea = self.__exogenousActions[action_name]
-                for params in combinations:
-                    if ea.should_happen(self.__evaluationContext, params):
-                        instance = ea.generate_instance(self.__evaluationContext, params)
-                        ea_instances.append(instance)
-        return ea_instances
-
-    def step(self, evaluate_properties=True):
-        """
-        Performs one discrete time step for all agents and runs the progression.
-
-        :returns: (verdict, self.__finished, toplevel_results, scheduled_results, all_actions, [],
-                failed_invariants, failed_sustain_goals, failure_stack)
-        :rtype: (int, bool, dict[str, int], dict, list, list, set[str], set[str], list)
-        """
-        actions = []  # list of tuples: (action_execution, params)
-        all_actions = []
-        # gather actions
-
-        # A set that keeps track of all processes that have been entered already in this step.
-        # This is used to by the process to determine whether a new step is started and hence a pending
-        # action should be discarded.
-        # : :type : set of process.Process
-        entered_processes = set()
+        current_time = self.getTime()
         if moduleLogger.isEnabledFor(logging.DEBUG):
-            moduleLogger.debug("T = %d", self.getTime())
+            moduleLogger.debug("T = %d", current_time)
+        performed_actions = []
+        failed_actions = []
+        # update the actual event schedule using only the possibility and schedulability information at hand
+        self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext,
+                                                    scan=False)
+        next_stop_time = None
         while True:
-            #: :type: list[process.Process]
+            due_events = self.__event_schedule.get_due_events(current_time)
+            pre_events = []
+            interleaved_events = []
+            # randomly split actions into one part that are performed before process flow and another
+            # that is interleaved with actions
+            for ev in due_events:
+                if random.random() < 0.5:
+                    pre_events.append(ev)
+                else:
+                    interleaved_events.append(ev)
+
+            pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, pre_events)
+            performed_actions.extend(pa)
+            failed_actions.extend(fa)
+
+            # : :type: list[process.Process]
             active_processes = []
 
             # The schedule trigger predicate is evaluated iteratively here. This allows processes to
@@ -889,285 +993,59 @@ class World(Entity, WorldDeclaration):
                 if not agent.is_finished():
                     self.__finished = False
                 active_processes.extend(agent.update_schedule())
-            immediate_actions = []
-
+            actions = []
             for proc in active_processes:
-                action_execution = proc.step(proc not in entered_processes)
-                entered_processes.add(proc)
+                action_execution = proc.step()
                 if action_execution is not None:
                     act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
+                    actions.append(act)
+            actions.extend(interleaved_events)
+            pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, actions)
+            performed_actions.extend(pa)
+            failed_actions.extend(fa)
+            # for scanning for possible / schedulable events, don't stop at previously calculated
+            # scanning point because this point might have become invalid during the last progression
+            next_stop_time = self.get_next_stop_time(consider_scanning_points=False)
 
-                    if act[0] in self.__actions and self.__actions[act[0]].immediate:
-                        immediate_actions.append(act)
-                    else:
-                        actions.append(act)
-                        proc.set_pending_action(act)
-                        # progress immediate actions without succeeding time step
-                        # leave loop only if we don't have any immediate actions left
-            if len(immediate_actions) == 0:
-                break
-            random.shuffle(immediate_actions)
-            failed_actions = World.logic_engine().progress(immediate_actions)
-            all_actions.extend(immediate_actions)
+            stl = min_robust([next_stop_time, time_limit])
+            assert isinstance(stl, int)
+            self.__event_schedule.update_event_schedule(current_time, self.__evaluationContext,
+                                                        scan=True, scan_start=current_time,
+                                                        scan_time_limit=stl)
 
-            if moduleLogger.isEnabledFor(logging.DEBUG):
-                moduleLogger.debug("  Progressed immediately: %s", immediate_actions)
-            if len(failed_actions) > 0:
-                return NOT_OK, self.__finished, {}, {}, [], all_actions, failed_actions, set(), set(), []
-
-        ex_act_instances = self.get_exogenous_action_instances()
-
-        if ex_act_instances is not None:
-            actions.extend(ex_act_instances)
-
-        # regular action means non-exogenous actions
-        failed_regular_actions = []
-
-        if len(actions) > 0:
-            # shuffle actions as means for achieving fairness
-            random.shuffle(actions)
-            failed_actions = World.logic_engine().progress(actions)
-            all_actions.extend(actions)
-            if moduleLogger.isEnabledFor(logging.DEBUG):
-                moduleLogger.debug("  Progressed: %s", actions)
-
-            # failed_regular_actions = list(
-            #     itertools.filterfalse(lambda fa: World.__get_action_name_from_term(fa) in self.__exogenousActions,
-            #                           failed_actions))
-
-            for fa in failed_actions:
-                if fa[0] not in self.__exogenousActions:
-                    failed_regular_actions.append(fa)
-
-        if len(failed_regular_actions) > 0:
-            return (NOT_OK, self.__finished, {}, {}, [], all_actions, failed_regular_actions,
-                    set(), set(), [])
-
-        verdict = NONDET
+            # continue until no actions or events were performed during the iteration and
+            # the no event is scheduled / possible / schedulable at the current point
+            if len(due_events) == 0 and len(actions) == 0:
+                # update the next stop time using all available information
+                next_stop_time = self.get_next_stop_time(consider_scanning_points=True)
+                if next_stop_time is None or next_stop_time > current_time:
+                    break
+        if self.is_finished():
+            interval_end = current_time
+        else:
+            if next_stop_time is None:
+                interval_end = min_robust([current_time + 1, time_limit])
+            else:
+                interval_end = min_robust([next_stop_time, time_limit])
+        assert isinstance(interval_end, int)
+        # now we know that next_stop_time is set up correctly
         if evaluate_properties:
-            toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep()
-            verdict, failed_invariants, failed_sustain_goals = self.__arbitrate_verdict(toplevel_results,
-                                                                                        scheduled_results,
-                                                                                        scheduled_keys)
+            ie2 = max_robust([interval_end - 1, current_time])
+            assert isinstance(ie2, int)
+            toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
+                interval_end=ie2)
             if moduleLogger.isEnabledFor(logging.DEBUG):
                 moduleLogger.debug(("  toplevel_results: {}\n"
-                                   "  scheduled_results:{}\n"
-                                   "  scheduled_keys: {}").format(toplevel_results, scheduled_results, scheduled_keys))
+                                    "  scheduled_results: {}\n"
+                                    "  scheduled_keys: {}").format(toplevel_results,
+                                                                   scheduled_results,
+                                                                   scheduled_keys))
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
-            failed_invariants, failed_sustain_goals = set(), set()
-
-        World.logic_engine().progress([('tick', [1])])
-        # it's ok if events fail but if regular actions fail, we're in trouble!
-
-        # TODO: distinguish between actions that take time and actions that don't
-        # execute all non-time actions before taking a time step
-        return (verdict, self.__finished, toplevel_results, scheduled_results, scheduled_keys, all_actions, [],
-                failed_invariants, failed_sustain_goals, failure_stack)
-
-    @staticmethod
-    def __check_property_success(pname, toplevel_results, scheduled_results):
-        if toplevel_results[pname] == OK:
-            return True
-        if pname in scheduled_results:
-            for t, v in scheduled_results[pname]:
-                if v == OK:
-                    return True
-
-    @staticmethod
-    def __check_property_failure(pname, toplevel_results, scheduled_results):
-        if toplevel_results[pname] == NOT_OK:
-            return True
-        if pname in scheduled_results:
-            for t, v in scheduled_results[pname]:
-                if v == NOT_OK:
-                    return True
-
-    def __arbitrate_verdict(self, toplevel_results, scheduled_results, scheduled_keys):
-        """
-        Calculates an overall decision whether the current experiment should be counted as
-        a success or not. A run is a success if all achieve goals are true. A
-        :param dict[str, int] toplevel_results: the toplevel results
-        :param dict[str, list[(int,int)]] scheduled_results: scheduled results
-        :param dict[str, list[int]] scheduled_keys: scheduled keys
-        :returns: Returns a tuple: verdict, list of decision reasons
-        :rtype: (int, set, set)
-        """
-        failed_invariants = set()
-        pending_properties = set()
-        failed_sustain_goals = set()
-        verdict = NONDET
-
-        for pname in self.__invariants.keys():
-            if pname not in toplevel_results:
-                raise SALMAException("Invariant {} was not contained in the evaluation "
-                                     "step's top-level results ({})!".format(pname, toplevel_results))
-
-            if World.__check_property_failure(pname, toplevel_results, scheduled_results):
-                verdict = NOT_OK
-                failed_invariants.add(pname)
-
-        for pname in self.__achieve_goals.keys():
-            if pname not in toplevel_results:
-                raise SALMAException("Achieve goal {} was not contained in the evaluation "
-                                     "step's top-level results ({})!".format(pname, toplevel_results))
-
-            if World.__check_property_success(pname, toplevel_results, scheduled_results):
-                self.__already_achieved_goals.add(pname)
-
-        for pname in self.__achieve_and_sustain_goals.keys():
-            if pname not in toplevel_results:
-                raise SALMAException("Achieve-and-sustain goal {} was not contained in the evaluation "
-                                     "step's top-level results ({})!".format(pname, toplevel_results))
-
-            if World.__check_property_success(pname, toplevel_results, scheduled_results):
-                self.__already_achieved_goals.add(pname)
-            elif (World.__check_property_failure(pname, toplevel_results, scheduled_results)
-                  and pname in self.__already_achieved_goals):
-                verdict = NOT_OK
-                failed_sustain_goals.add(pname)
-
-        for pname in self.properties.keys():
-            if pname in scheduled_keys:
-                pending_properties.add(pname)
-
-        # if there's no achieve goal, we actually just run until some time limit (see runExperiment)
-        if (len(self.__achieve_goals) + len(self.__achieve_and_sustain_goals) > 0):
-            all_achieved = True
-        else:
-            all_achieved = False
-        # check whether all achieve goals have been achieved
-        for pname in (self.__achieve_goals.keys() | self.__achieve_and_sustain_goals.keys()):
-            if not pname in self.__already_achieved_goals:
-                all_achieved = False
-                break
-
-        if (verdict == NONDET and all_achieved is True
-            and len(pending_properties) == 0):
-            verdict = OK
-
-        return verdict, failed_invariants, failed_sustain_goals
-
-    def runExperiment(self, check_verdict=True, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
-        """
-        Runs the experiment that has been set up until a) a conclusive verdict can be determined,
-        b) the world has finished, c) the given step or time maximum is reached, or d) at least one of
-        the given step listener functions returns False.
-
-        If check_verdict is False then the registered properties are not evaluated and the verdict remains NONDET.
-
-        :param bool check_verdict: whether properties are evaluated. default=True
-        :param int maxSteps: maximum number of steps
-        :param float maxRealTime: maximum real time
-        :param int maxWorldTime: maximum world time
-        :param list stepListeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
-        :rtype: (int, dict[str, object])
-        """
-        step_num = 0
-        verdict = NONDET
-        self.__already_achieved_goals = set()
-        failedRegularActions = []
-        c1 = c2 = time.clock()
-        finish_reason = None
-        failed_invariants = set()
-        failed_sustain_goals = set()
-        # : :type: dict[str, list[int]]
-        scheduled_keys = dict()
-        time_out = False
-
-        while (not self.is_finished()) and (not check_verdict or verdict == NONDET):
-            #self.__finished, overall_verdict, toplevel_results, scheduled_results, actions, []
-            (verdict, _, toplevel_results, scheduled_results, scheduled_keys, actions, failedRegularActions,
-             failed_invariants, failed_sustain_goals, failure_stack) = self.step(evaluate_properties=check_verdict)
-            c2 = time.clock()
-            step_num += 1
-            deltaT = c2 - c1
-            should_continue = True
-            break_reason = None
-            for sl in stepListeners:
-                continue_from_listener, break_reason_from_listener = sl(self,
-                                                                        verdict=verdict,
-                                                                        step=step_num, deltaT=deltaT,
-                                                                        actions=actions,
-                                                                        failedActions=failedRegularActions,
-                                                                        toplevel_results=toplevel_results,
-                                                                        scheduled_results=scheduled_results,
-                                                                        pending_properties=scheduled_keys)
-                should_continue &= continue_from_listener
-                if break_reason is None and not continue_from_listener:
-                    break_reason = break_reason_from_listener
-            # note that reason of step listener gets precedence over other reasons
-            if not should_continue:
-                finish_reason = break_reason
-                verdict = CANCEL
-                break
-            if failedRegularActions is not None and len(failedRegularActions) > 0:
-                finish_reason = "failed_actions"
-                verdict = CANCEL
-                break
-            if maxSteps != None and step_num >= maxSteps:
-                finish_reason = "max_steps"
-                time_out = True
-                break
-            if maxRealTime != None and datetime.timedelta(seconds=deltaT) >= maxRealTime:
-                finish_reason = "max_real_time"
-                time_out = True
-                break
-            if maxWorldTime != None:
-                t = self.getFluentValue('time', [])
-                if t >= maxWorldTime:
-                    finish_reason = "max_world_time"
-                    time_out = True
-                    break
-        if finish_reason is None and verdict != NONDET:
-            finish_reason = "verdict_found"
-        if self.is_finished():
-            finish_reason = "world_finished"
-        if verdict == NONDET:
-            if check_verdict is False:
-                verdict = OK if self.is_finished() else NOT_OK
-            # if no achieve goal was given then having finished or "surviving" until the time limit means success!
-            # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
-            else:
-                if ((self.is_finished() or time_out is True) and
-                            len(self.__achieve_goals) == 0 and
-                            len(self.__achieve_and_sustain_goals) == 0 and
-                            len(scheduled_keys) == 0):
-                    verdict = OK
-
-        duration = datetime.timedelta(seconds=c2 - c1)
-        worldTime = self.getFluentValue('time', [])
-        return (verdict,
-                {'steps': step_num,
-                 'time': duration,
-                 'worldTime': worldTime,
-                 'failedActions': failedRegularActions,
-                 "finish_reason": finish_reason,
-                 "failed_invariants": failed_invariants,
-                 "failed_sustain_goals": failed_sustain_goals,
-                 "achieved_goals": self.__already_achieved_goals,
-                 "failure_stack": failure_stack,
-                 "scheduled_keys": scheduled_keys
-                }
-        )
-
-    def runUntilFinished(self, maxSteps=None, maxRealTime=None, maxWorldTime=None, stepListeners=[]):
-        """
-        Repeatedly runs World.step() until either the world's finished flag becomes true or
-        either the step or time limit is reached. The properties are not evaluated.
-
-        :param int maxSteps: maximum number of steps
-        :param float maxRealTime: maximum real time
-        :param int maxWorldTime: maximum world time
-        :param list stepListeners: step listener functions with siugnature (step_num, deltaT, actions, toplevel_results)
-        :rtype: (int, dict[str, object])
-        """
-        verdict, results = self.runExperiment(check_verdict=False, maxSteps=maxSteps, maxRealTime=maxRealTime,
-                                              maxWorldTime=maxWorldTime, stepListeners=stepListeners)
-        if verdict != CANCEL:
-            verdict = OK if self.is_finished() else NOT_OK
-        return verdict, results
+        World.logic_engine().progress([('tick', [interval_end - current_time])])
+        return (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
+                failed_actions, failure_stack)
 
     def __reset_domainmap(self):
         self.__domainMap = dict()
@@ -1177,84 +1055,33 @@ class World(Entity, WorldDeclaration):
             if entity.sortName in self.__domainMap:
                 self.__domainMap[entity.sortName].add(entity)
             else:
-                self.__domainMap[entity.sortName] = set([entity])
+                self.__domainMap[entity.sortName] = {entity}
 
     def reset(self):
         # re-init domains
         self.__reset_domainmap()
-        self.initialize(sample_fluent_values=False, removeFormulas=False)
+        self.initialize()
 
-        self.__already_achieved_goals = set()
         # : :type agent: Agent
         for agent in self.getAgents():
             agent.restart()
 
-    def run_repetitions(self, number_of_repetitions=100, max_retrials=3, hypothesis_test=None, **kwargs):
+    # noinspection PyMethodMayBeStatic
+    def restore_state(self, fluent_values):
         """
-        Runs repetitions of the configured experiment. If an hypothesis test object is given then the acceptance
-        of this hypothesis test is
-        :param int number_of_repetitions: fixed number of repetitions if no hypothesis test is given
-        :param int max_retrials: maximum number of retrials
-        :param HypothesisTest hypothesis_test: the (sequential) hypothesis test to conduct
-        :return:
+        Uses the given list of fluent values to update the world state.
+        :param list[FluentValue] fluent_values: the fluent values that define the state
         """
-        # save state
-        current_state = [fv for fv in World.logic_engine().getCurrentState() if fv.fluentName != "domain"]
-        results = []  # list of True/False
-        trial_infos = []
-        retrial = 0
-        conclusive_trial_count = 0
-        trial_number = 1
-        should_continue = True
-        accepted_hypothesis = None
-        successes, failures = 0, 0
-        while should_continue:
-            self.reset()
-            World.logic_engine().restoreState(current_state)
-
-            verdict, res = self.runExperiment(**kwargs)
-            trial_infos.append(res)
-            if verdict == NONDET or verdict == CANCEL:
-                if verdict == CANCEL:
-                    moduleLogger.warn("Trail #{} was canceled! Reason: {}".format(trial_number, res["finish_reason"]))
-                if verdict == NONDET:
-                    moduleLogger.warn("Received non-conclusive result for trial #{}!".format(trial_number))
-                if retrial < max_retrials:
-                    retrial += 1
-                    moduleLogger.warn("Starting retrial #".format(retrial))
-                else:
-                    moduleLogger.warn("Maximum number of retrials reached ({}) --> giving up!".format(retrial))
-                    break
-            else:
-                retrial = 0
-                results.append(verdict == OK)
-                if verdict == OK:
-                    successes += 1
-                else:
-                    failures += 1
-                conclusive_trial_count += 1
-                # moduleLogger.info("Trial #{} --> {}".format(trial_number, verdict))
-                self.log_info(
-                    "Trial #{} --> {}, steps = {}, time = {}".format(trial_number, verdict, res["steps"], res["time"]))
-                #print("Trial #{} --> {}\n   Info: {}".format(trial_number, verdict, res))
-            trial_number += 1
-
-            if hypothesis_test is not None:
-                accepted_hypothesis = hypothesis_test.check_hypothesis_accepted(conclusive_trial_count, failures)
-                should_continue = accepted_hypothesis is None
-            else:
-                should_continue = conclusive_trial_count < number_of_repetitions
-
-        self.reset()
-        World.logic_engine().restoreState(current_state)
-        return accepted_hypothesis, results, trial_infos
+        World.logic_engine().restore_state(fluent_values)
 
     def printState(self):
-        if not self.__initialized: self.initialize()
+        if not self.__initialized:
+            self.initialize()
         state = World.logic_engine().getCurrentState()
         for f in state:
             print(f)
 
+    # noinspection PyMethodMayBeStatic
     def log_info(self, msg):
         print("INFO: {}".format(msg))
 
@@ -1267,68 +1094,6 @@ class World(Entity, WorldDeclaration):
         for ea in exoactions:
             action_descriptions.append(ea.describe())
         return "\n".join(action_descriptions)
-
-    def registerProperty(self, propertyName, formula, property_type):
-        """
-        Registers the given formula under the given name.
-        :param str propertyName: the name of the property usd for referencing it later.
-        :param str formula: the formula.
-        :param int property_type: one of World.INVARIANT, World.ACHIEVE, or World.ACHIEVE_AND_SUSTAIN
-        """
-        if property_type not in (World.INVARIANT, World.ACHIEVE, World.ACHIEVE_AND_SUSTAIN):
-            raise SALMAException("Unknown property type: {}".format(property_type))
-        if (propertyName in self.__invariants or propertyName in self.__achieve_goals
-            or propertyName in self.__achieve_and_sustain_goals):
-            raise SALMAException("Property {} already registered.".format(propertyName))
-        World.logic_engine().registerProperty(propertyName, formula)
-        if property_type == World.INVARIANT:
-            self.__invariants[propertyName] = (formula, property_type)
-        elif property_type == World.ACHIEVE:
-            self.__achieve_goals[propertyName] = (formula, property_type)
-        else:
-            self.__achieve_and_sustain_goals[propertyName] = (formula, property_type)
-
-    def unregister_property(self, property_name):
-        """
-        Un-registers a property.
-        :param str property_name: the property's name
-        """
-        if property_name in self.__invariants:
-            del self.__invariants[property_name]
-        if property_name in self.__achieve_goals:
-            del self.__achieve_goals[property_name]
-        if property_name in self.__achieve_and_sustain_goals:
-            del self.__achieve_and_sustain_goals[property_name]
-
-    @property
-    def properties(self):
-        """
-        A new dict containing all properties that are registered currently. The dict has the
-          structure name -> (formula, property_type)
-        :rtype: dict[str, (str, int)]
-        """
-        all_props = dict(self.__invariants)
-        all_props.update(self.__achieve_goals)
-        all_props.update(self.__achieve_and_sustain_goals)
-        return all_props
-
-    @property
-    def invariants(self):
-        return self.__invariants
-
-    @property
-    def achieve_goals(self):
-        return self.__achieve_goals
-
-    @property
-    def achieve_and_sustain_goals(self):
-        return self.__achieve_and_sustain_goals
-
-    def all_goals(self):
-        goals = dict()
-        goals.update(self.__achieve_goals)
-        goals.update(self.__achieve_and_sustain_goals)
-        return goals
 
     def getActionClock(self, actionName, params):
         """
@@ -1355,14 +1120,14 @@ class World(Entity, WorldDeclaration):
         """
         return self.logic_engine().getFluentChangeTime(fluentName, params)
 
-    def queryPersistentProperty(self, propertyName):
-        '''
+    def queryPersistentProperty(self, property_name):
+        """
         Returns a tuple with the current status of the given property together with the last
         change time.
-        
-        :param propertyName: str
-        '''
-        return self.logic_engine().queryPersistentProperty(propertyName)
+
+        :param str property_name: the name of the property
+        """
+        return self.logic_engine().queryPersistentProperty(property_name)
 
 
 # --------------------------------------------------------------------------------------
@@ -1372,87 +1137,104 @@ class LocalEvaluationContext(EvaluationContext):
     An evaluation context that is coupled with an entity.
     """
 
-    def __init__(self, contextEntity, parent):
+    def __init__(self, context_entity, parent):
         """
-        :type contextEntity: Entity
-        :type parent: EvaluationContext
+        :type context_entity: Entity
+        :type parent: EvaluationContext|None
         """
         EvaluationContext.__init__(self, parent)
-        self.__contextEntity = contextEntity
-        self.__variableBindings = dict()  # variable name
-        self.__variableBindings[Entity.SELF] = self.__contextEntity
+        self.__context_entity = context_entity
+        self.__variable_bindings = dict()  # variable name
+        self.__variable_bindings[Entity.SELF] = self.__context_entity
 
-    def evaluate_python(self, source_type, source, *resolvedParams):
+    def evaluate_python(self, source_type, source, *resolved_params):
         result = None
         if source_type == EvaluationContext.PYTHON_EXPRESSION:
+            source = str(source)
             ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.__variableBindings)
-            ctx['self'] = self.__contextEntity.id
-            ctx['params'] = resolvedParams
+            ctx.update(self.__variable_bindings)
+            ctx['self'] = self.__context_entity.id
+            ctx['params'] = resolved_params
             result = eval(source, ctx)
         elif source_type == EvaluationContext.PYTHON_FUNCTION:
-            result = source(*resolvedParams)
+            result = source(*resolved_params)
         elif source_type == EvaluationContext.EXTENDED_PYTHON_FUNCTION:  # is python function
             ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.__variableBindings)
-            ctx['agent'] = self.__contextEntity  # don't call it self here to avoid confusion in function
-            result = source(*resolvedParams, **ctx)
+            ctx.update(self.__variable_bindings)
+            ctx['agent'] = self.__context_entity  # don't call it self here to avoid confusion in function
+            result = source(*resolved_params, **ctx)
         return result
 
-    def evaluateCondition(self, sourceType, source, *params):
-        resolvedParams = self.resolve(*params)
-        result = None
-        if sourceType == EvaluationContext.FLUENT:
-            result = World.instance().getFluentValue(source, resolvedParams)
-            if result == None:
-                raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
-        elif sourceType == EvaluationContext.ECLP_FUNCTION:
-            result = World.logic_engine().evaluateCondition(source, *resolvedParams)
-        elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
-            result = World.logic_engine().evaluateCondition(source, *resolvedParams, situation='s0')
-        elif sourceType == EvaluationContext.CONSTANT:
-            result = bool(World.getConstantValue(source, resolvedParams))
-        elif sourceType in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
-                            EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
-            result = self.evaluate_python(sourceType, source, *resolvedParams)
+    def evaluateCondition(self, source_type, source, *params):
+        """
+        Evaluates the given condition.
+
+        :param int source_type: FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION or PYTHON_FUNCTION
+        :param object source: a python function, the name of a fluent, or a pothon expression
+        :param list params: parameters
+        :returns: true if evaluation succeeded
+        :rtype: bool
+        """
+        resolved_params = self.resolve(*params)
+        # var result : bool
+        if source_type == EvaluationContext.FLUENT:
+            assert isinstance(source, str)
+            result = World.instance().getFluentValue(source, resolved_params)
+            if result is None:
+                raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolved_params))
+        elif source_type == EvaluationContext.ECLP_FUNCTION:
+            result = World.logic_engine().evaluateCondition(source, *resolved_params)
+        elif source_type == EvaluationContext.TRANSIENT_FLUENT:
+            result = World.logic_engine().evaluateCondition(source, *resolved_params, situation='s0')
+        elif source_type == EvaluationContext.CONSTANT:
+            result = bool(World.logic_engine().getConstantValue(source, resolved_params))
+        elif source_type in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
+                             EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
+            result = self.evaluate_python(source_type, source, *resolved_params)
         else:
-            raise SALMAException("Unsupported source type: {}".format(sourceType))
+            raise SALMAException("Unsupported source type: {}".format(source_type))
         return result
 
-    def evaluateFunction(self, sourceType, source, *params):
+    def evaluateFunction(self, source_type, source, *params):
         resolvedParams = self.resolve(*params)
-        result = None
-        if sourceType == EvaluationContext.FLUENT:
+        # var result : bool
+        if source_type == EvaluationContext.FLUENT:
             fv = World.instance().getFluentValue(source, resolvedParams)
             if fv is None:
                 raise SALMAException("No value found for fluent: {0}({1}).".format(source, resolvedParams))
             result = fv
-        elif sourceType == EvaluationContext.ECLP_FUNCTION:
+        elif source_type == EvaluationContext.ECLP_FUNCTION:
             result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams)
-        elif sourceType == EvaluationContext.TRANSIENT_FLUENT:
+        elif source_type == EvaluationContext.TRANSIENT_FLUENT:
             result = World.logic_engine().evaluateFunctionGoal(source, *resolvedParams, situation='s0')
-        elif sourceType == EvaluationContext.CONSTANT:
-            result = World.instance.getConstantValue(source, resolvedParams)
-        elif sourceType in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
-                            EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
-            result = self.evaluate_python(sourceType, source, *resolvedParams)
+        elif source_type == EvaluationContext.CONSTANT:
+            result = World.instance().getConstantValue(source, resolvedParams)
+        elif source_type in {EvaluationContext.PYTHON_EXPRESSION,
+                             EvaluationContext.PYTHON_FUNCTION,
+                             EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
+            result = self.evaluate_python(source_type, source, *resolvedParams)
         else:
-            raise SALMAException("Unsupported source type: {}".format(sourceType))
+            raise SALMAException("Unsupported source type: {}".format(source_type))
 
         if isinstance(result, str):
             result = self.getEntity(result)
         return result
 
-    def getFluentValue(self, fluentName, *params):
-        resolvedParams = self.resolve(*params)
-        fv = World.instance().getFluentValue(fluentName, resolvedParams)
-        if fv == None:
-            raise SALMAException("No value found for fluent: {0}({1}).".format(fluentName, resolvedParams))
-        return fv
-
-    def set_fluent_value(self, fluent_name, params, value):
+    def getFluentValue(self, fluent_name, *params):
         resolved_params = self.resolve(*params)
+        return World.instance().getFluentValue(fluent_name, resolved_params)
+
+    def set_fluent_value(self, fluent_name: str, params: list, value: object):
+        """
+        Sets the value of the given fluent instance.
+
+        NOTE: params has to be resolved first!
+        """
         World.logic_engine().setFluentValue(fluent_name, params, value)
+
+    def get_derived_fluent_value(self, fluent_name, params):
+        resolved_params = self.resolve(*params)
+        return World.instance().get_derived_fluent_value(fluent_name, resolved_params)
 
     def create_message(self, connector, agent, msg_type, params):
         """
@@ -1471,23 +1253,34 @@ class LocalEvaluationContext(EvaluationContext):
         :param str variableName: name of variable that should be set.
         :param object value: the value to assign
         """
-        self.__variableBindings[variableName] = value
+        self.__variable_bindings[variableName] = value
 
-    def resolve(self, *terms):
+    def resolve(self, *terms, **kwargs):
         """
         Evaluates each term in terms and returns a list with the collected results.
 
         Entity instances are converted to their ids.
+
+        :param list terms: the unresolved terms.
+        :rtype: list
         """
-        groundTerms = []
+        if "strict" in kwargs:
+            strict = kwargs["strict"]
+        else:
+            strict = True
+        ground_terms = []
         for term in terms:
-            gt = None
+            # var gt : object
             if term is Entity.SELF:
-                gt = self.__contextEntity.id
+                gt = self.__context_entity.id
             elif isinstance(term, Variable):
-                if not term.name in self.__variableBindings:
-                    raise SALMAException("Variable %s not bound." % term.name)
-                gt = self.__variableBindings[term.name]
+                if term.name not in self.__variable_bindings:
+                    if strict:
+                        raise SALMAException("Variable %s not bound." % term.name)
+                    else:
+                        gt = (term.name, term.sort)
+                else:
+                    gt = self.__variable_bindings[term.name]
             elif isinstance(term, (list, set)):
                 gt = list()
                 for t in term:
@@ -1497,32 +1290,40 @@ class LocalEvaluationContext(EvaluationContext):
                 for t in term:
                     l.append(self.resolve(t)[0])
                 gt = tuple(l)
+            elif isinstance(term, Term):
+                l = []
+                for t in term.params:
+                    l.append(self.resolve(t)[0])
+                gt = Term(term.functor, *l)
             else:
                 gt = term
 
             if isinstance(gt, Entity):
                 gt = gt.id
 
-            groundTerms.append(gt)
+            ground_terms.append(gt)
 
-        return groundTerms
+        return ground_terms
 
-    def getEntity(self, entityId):
+    def getEntity(self, entity_id):
         """
         returns the entity with the given id
         """
-        return World.instance().getEntityById(entityId)
+        return World.instance().getEntityById(entity_id)
 
+    # noinspection PyMethodMayBeStatic
     def __select_free_variables(self, params):
         """
-        :param list params: the parameters
+        :param list|tuple params: the parameters
         :rtype: list[(str,str)]
         """
-        vars = []
+        free_vars = []
         for p in params:
-            if isinstance(p, tuple) and len(p) == 2 and isinstance(p[0], str) and isinstance(p[1], str):
-                vars.append(p)
-        return vars
+            if isinstance(p, Variable):
+                if p.sort is None:
+                    raise SALMAException("No sort defined for free variable {} in Select.".format(p.name))
+                free_vars.append((p.name, p.sort))
+        return free_vars
 
     def selectAll(self, source_type, source, *params):
         """
@@ -1534,16 +1335,14 @@ class LocalEvaluationContext(EvaluationContext):
         :param int source_type: the type of the predicate
         :param str source: the name of the predicate
         """
-
-        resolved_params = self.resolve(*params)  # the free variables tuples are ignored by resolve()
-
         free_vars = self.__select_free_variables(params)
+        resolved_params = self.resolve(*params, strict=False)  # the free variables tuples are ignored by resolve()
+
         if len(free_vars) == 0:
             raise SALMAException("No iterator variable specified in selectAll.")
 
         sit = 's0' if source_type in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
-        result_list = []
-
+        # var result_list : list
         if source_type in {EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT,
                            EvaluationContext.ECLP_FUNCTION}:
             result_list = World.logic_engine().selectAll(source, *resolved_params, situation=sit)
@@ -1556,17 +1355,15 @@ class LocalEvaluationContext(EvaluationContext):
                 result_list = self.resolve(source)[0]
             else:
                 result_list = source
-            if not "__iter__" in result_list.__dir__():
+            if "__iter__" not in result_list.__dir__():
                 raise SALMAException("Trying to use non-iterator in Iterate statement: {} ".format(str(source)))
         else:
             raise SALMAException("Unsupported source type for Iterate statement: {}".format(source_type))
 
         refined_result = []
-
         # : :type result_entry: dict
-
         for result_entry in result_list:
-            assignment = None
+            # var assignment : dict
             refined_assignment = dict()
             if isinstance(result_entry, dict):
                 assignment = result_entry
@@ -1575,14 +1372,14 @@ class LocalEvaluationContext(EvaluationContext):
                     assignment = dict({free_vars[0][0]: result_entry})
                 else:
                     if (not isinstance(result_entry, (list, tuple)) or
-                                len(free_vars) != len(result_entry)):
+                            len(free_vars) != len(result_entry)):
                         raise SALMAException("Number of free variables in iterator doesn't match element structure.")
                     assignment = dict()
                     for fv, value in zip(free_vars, result_entry):
                         assignment[fv[0]] = value
 
             for name, value in assignment.items():
-                #TODO: handle params with interval domains?
+                # TODO: handle params with interval domains?
                 if isinstance(value, str):
                     refined_assignment[name] = self.getEntity(value)
                 else:
@@ -1612,7 +1409,7 @@ class LocalEvaluationContext(EvaluationContext):
         # : :type valueCombination: dict
 
         for name, value in result.items():
-            #TODO: handle params with interval domains?
+            # TODO: handle params with interval domains?
 
             if isinstance(value, str):
                 refinedResult[name] = self.getEntity(value)
@@ -1625,7 +1422,7 @@ class LocalEvaluationContext(EvaluationContext):
         plan, values = World.logic_engine().createPlan(procedureName,
                                                        *resolvedParams)
         if values is None:
-            return (None, None)
+            return None, None
 
         refinedValues = dict()
 
@@ -1644,10 +1441,33 @@ class LocalEvaluationContext(EvaluationContext):
         return refinedPlan, refinedValues
 
     def createChildContext(self):
-        return LocalEvaluationContext(self.__contextEntity, self)
+        return LocalEvaluationContext(self.__context_entity, self)
 
     def getSorts(self):
         return World.instance().getSorts()
+
+    # noinspection PyUnusedLocal
+    def determine_source_type(self, source, params):
+        if isinstance(source, (Iterable, Iterator)) and not isinstance(source, str):
+            return EvaluationContext.ITERATOR
+        elif callable(source):
+            if inspect.isfunction(source) and inspect.getfullargspec(source).varkw is not None:
+                return EvaluationContext.EXTENDED_PYTHON_FUNCTION
+            else:
+                return EvaluationContext.PYTHON_FUNCTION
+        else:
+            source = str(source)
+            wd = World.instance()
+            if wd.getFluent(source) is not None:
+                return EvaluationContext.FLUENT
+            elif wd.getConstant(source) is not None:
+                return EvaluationContext.CONSTANT
+            elif wd.get_derived_fluent(source) is not None:
+                return EvaluationContext.TRANSIENT_FLUENT
+            elif source in wd.clp_functions:
+                return EvaluationContext.ECLP_FUNCTION
+            else:
+                return EvaluationContext.PYTHON_EXPRESSION
 
     def getDomain(self, sortName):
         """
@@ -1663,3 +1483,11 @@ class LocalEvaluationContext(EvaluationContext):
         """
         return World.instance().get_connector(name)
 
+    def queryPersistentProperty(self, property_name):
+        World.logic_engine().queryPersistentProperty(property_name)
+
+    def getActionClock(self, action_name, *params):
+        World.logic_engine().getActionClock(action_name, params)
+
+    def getFluentChangeTime(self, fluent_name, *params):
+        World.logic_engine().getFluentChangeTime(fluent_name, params)

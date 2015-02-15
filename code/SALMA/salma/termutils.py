@@ -1,4 +1,17 @@
-__author__ = 'kroiss'
+from collections.abc import Iterable
+
+
+def tuplify(src: object):
+    if isinstance(src, Iterable) and not isinstance(src, str):
+        if len(src) == 0:
+            return ()
+        else:
+            parts = []
+            for p in src:
+                parts.append(tuplify(p))
+            return tuple(parts)
+    else:
+        return src
 
 
 def term_from_tuple(tupleterm):
