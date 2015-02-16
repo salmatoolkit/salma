@@ -53,7 +53,6 @@ class BaseWorldTest(unittest.TestCase):
         ea.config.occurrence_distribution = Never()
         ea.config.set_param_distribution("severity", Zero())
 
-
     def create_right_moving_mobot(self, robotId):
         """
         Creates a simple robot agent that moves one step to the right and then one step down.

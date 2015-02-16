@@ -993,12 +993,15 @@ class World(Entity, WorldDeclaration):
                 if not agent.is_finished():
                     self.__finished = False
                 active_processes.extend(agent.update_schedule())
+            random.shuffle(active_processes)
             actions = []
             for proc in active_processes:
                 action_execution = proc.step()
                 if action_execution is not None:
                     act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
                     actions.append(act)
+                    #TODO: handle atomic actions
+
             actions.extend(interleaved_events)
             pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, actions)
             performed_actions.extend(pa)

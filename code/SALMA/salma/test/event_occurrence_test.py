@@ -50,9 +50,9 @@ class EventOccurrenceTest(unittest.TestCase):
         self.assertListEqual(l, [a1, a3, a2])
 
     def test_event_occurrence_ordering(self):
-        ev1 = ExogenousAction("ev1", [("a", "integer"), ("b", "float")], [])
-        ev1b = ExogenousAction("ev1", [("a", "integer"), ("b", "float")], [])
-        ev2 = ExogenousAction("ev2", [("a", "integer"), ("b", "float")], [])
+        ev1 = ExogenousAction("ev1", [("a", "integer"), ("b", "float")], [], "ad_hoc")
+        ev1b = ExogenousAction("ev1", [("a", "integer"), ("b", "float")], [], "ad_hoc")
+        ev2 = ExogenousAction("ev2", [("a", "integer"), ("b", "float")], [], "ad_hoc")
         self.assertNotEqual(ev1, ev2)
         self.assertNotEqual(ev1, ev1b)
         occ1 = EventOccurrence(1, ev1, [42, 3.14])

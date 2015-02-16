@@ -1,43 +1,56 @@
-import logging
-import unittest
+from salma.model.experiment import Experiment
 from salma.model.world import World
-from salma.engine import EclipseCLPEngine
-from salma import SALMAException
 from salma.model.core import Entity
-from salma.model.distributions import Distribution, BernoulliDistribution
+from salma.model.distributions import BernoulliDistribution, ConstantDistribution, OptionalDistribution, \
+    ExponentialDistribution
 
 from salma.test.testhelpers import withHeader
 from salma.model.agent import Agent
 from salma.model import process
-from salma.model.procedure import Procedure, Act, While, Sequence
+from salma.model.procedure import Procedure, Act, While, Sequence, Wait
 from salma.test.world_test_base import BaseWorldTest
 from salma import constants
 from salma.model.evaluationcontext import EvaluationContext
 
 
 class ProcessTest(BaseWorldTest):
-    @withHeader()
+    def __configure_events_default(self):
+        world = World.instance()
+        finish_step = world.get_exogenous_action("finish_step")
+        finish_step.config.occurrence_distribution = ConstantDistribution("integer", 5)
+        accidental_drop = world.get_exogenous_action("accidental_drop")
+        accidental_drop.config.occurrence_distribution = OptionalDistribution(0.0,
+                                                                              ExponentialDistribution("integer", 0.1))
+        collision = world.get_exogenous_action("collision")
+        collision.config.occurrence_distribution = BernoulliDistribution(1.0)
+
     def test_one_shot_process(self):
+        self.__configure_events_default()
         world = World.instance()
         seq = Sequence()
-        seq.add_child(Act("move_right", [Entity.SELF]))
-        seq.add_child(Act("move_down", [Entity.SELF]))
+        pmain = Procedure([
+            Act("move_right", [Entity.SELF]),
+            Wait("not moving(self)"),
+            Act("move_down", [Entity.SELF]),
+            Wait("not moving(self)")
+        ])
 
-        proc = process.OneShotProcess(Procedure("main", [], seq))
+        proc = process.OneShotProcess(pmain)
         agent = Agent("rob1", "robot", [proc])
         world.addAgent(agent)
 
         world.initialize(False)
         world.setFluentValue("xpos", ["rob1"], 10)
         world.setFluentValue("ypos", ["rob1"], 15)
-
+        self.initialize_robot("rob1", 10, 15, 0, 0)
         self.setNoOneCarriesAnything()
         print("INIT:")
         print("----")
         world.printState()
         print("----\n\n")
 
-        verdict, info = world.runUntilFinished()
+        experiment = Experiment(world)
+        verdict, info = experiment.run_until_finished()
         print("Verdict: {}  after {} steps".format(verdict, info['steps']))
         print("----")
         world.printState()
@@ -45,59 +58,59 @@ class ProcessTest(BaseWorldTest):
         self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
         self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 16)
         self.assertEqual(verdict, constants.OK)
-        self.assertEqual(info['steps'], 4)
 
         self.assertEqual(proc.execution_count, 1)
         self.assertEqual(proc.introduction_time, 0)
         self.assertEqual(proc.last_start_time, 0)
-        self.assertEqual(proc.last_end_time, 2)
+        # we expect time to be 10 since we use a constant movement delay of 5
+        self.assertEqual(proc.last_end_time, 10)
 
-    @withHeader()
     def test_two_one_shot_processes(self):
+        self.__configure_events_default()
         world = World.instance()
-        seq = Sequence()
-        seq.add_child(Act("move_right", [Entity.SELF]))
-        seq.add_child(Act("move_down", [Entity.SELF]))
 
-        proc1 = process.OneShotProcess(Procedure("main", [], seq))
+        proc1 = process.OneShotProcess([
+            Act("move_right", [Entity.SELF]),
+            Wait("not moving(self)"),
+            Act("move_right", [Entity.SELF]),
+            Wait("not moving(self)")])
 
-        seq2 = Sequence()
-        seq2.add_child(Act("move_left", [Entity.SELF]))
-        seq2.add_child(Act("move_up", [Entity.SELF]))
+        proc2 = process.OneShotProcess([
+            Act("move_down", [Entity.SELF]),
+            Wait("not moving(self)"),
+            Act("move_down", [Entity.SELF]),
+            Wait("not moving(self)")])
 
-        proc2 = process.OneShotProcess(Procedure("main", [], seq2))
-
-        agent = Agent("rob1", "robot", [proc1, proc2])
+        agent = Agent("rob1", "robot", [proc2, proc1])
         world.addAgent(agent)
 
         world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 15)
-
+        self.initialize_robot("rob1", 10, 15, 0, 0)
         self.setNoOneCarriesAnything()
+
         print("INIT:")
         print("----")
         world.printState()
         print("----\n\n")
 
-        verdict, info = world.runUntilFinished()
+        experiment = Experiment(world)
+        verdict, info = experiment.run_until_finished()
         print("Verdict: {}  after {} steps".format(verdict, info['steps']))
         print("----")
         world.printState()
         print("----\n\n")
 
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 10)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 15)
+        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 12)
+        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 17)
         self.assertEqual(verdict, constants.OK)
-        self.assertEqual(info['steps'], 4)
         self.assertEqual(proc1.execution_count, 1)
         self.assertEqual(proc1.introduction_time, 0)
         self.assertEqual(proc1.last_start_time, 0)
-        self.assertEqual(proc1.last_end_time, 2)
+        self.assertEqual(proc1.last_end_time, 10)
         self.assertEqual(proc2.execution_count, 1)
         self.assertEqual(proc2.introduction_time, 0)
         self.assertEqual(proc2.last_start_time, 0)
-        self.assertEqual(proc2.last_end_time, 2)
+        self.assertEqual(proc2.last_end_time, 10)
 
     @staticmethod
     def create_agent_with_periodic_processes():
