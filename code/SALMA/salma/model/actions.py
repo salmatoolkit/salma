@@ -8,14 +8,31 @@ from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 
 
 class DeterministicAction(Action):
-    def __init__(self, name, parameters):
+    """
+    Represents a deterministic (primitive) action. The action can be atomic, which means that
+    it will be progressed immediately in the simulation loop instead of being interleaved with others.
+    """
+
+    def __init__(self, name, parameters, atomic):
+        """
+        Creates a deterministic action with the given name, parameters and atomicity setting.
+
+        :param str name: the action's name
+        :param list[(str, str)]|tuple[(str,str)] parameters: the actions's parameters as list of (name, sort) tuples.
+        :param bool atomic: whether ot not the action is atomic
+        """
         Action.__init__(self, name, parameters)
+        self.__atomic = atomic
+
+    @property
+    def atomic(self):
+        return self.__atomic
 
     def __str__(self):
-        return "DeterministicAction: {}({})".format(self.name, self.parameters)
+        return "DeterministicAction: {}({})".format(self.name, self.parameters, self.__atomic)
 
     def describe(self):
-        return "DeterministicAction: {}({})".format(self.name, self.parameters)
+        return "DeterministicAction: {}({})".format(self.name, self.parameters, self.__atomic)
 
 
 class RandomActionOutcome(object):
@@ -210,10 +227,15 @@ class RandomActionOutcome(object):
 
 
 class StochasticAction(Action):
-    # TODO remove immediate action stuff
+    """
+    Represents a stochastic action, i.e. an action that has multiple possible deterministic actions as outcomes.
+    The outcome is chosen by the simulation engine according to a selection strategy that is usually
+    a categorical distribution which assigns a probability to each option.
+    """
+
     def __init__(self, name, parameters, outcomes, selection_strategy=None):
         """
-        Represents a stochastic action. Action instances are created when the declaration is read and
+        Creates a stochastic action. Action instances are created when the declaration is read and
         added to the world's action registry. The outcome and parameter distribution can then be set with the
         associated configuration.
 

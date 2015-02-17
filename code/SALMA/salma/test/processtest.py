@@ -70,12 +70,14 @@ class ProcessTest(BaseWorldTest):
         world = World.instance()
 
         proc1 = process.OneShotProcess([
+            Wait("not moving(self)"),
             Act("move_right", [Entity.SELF]),
             Wait("not moving(self)"),
             Act("move_right", [Entity.SELF]),
             Wait("not moving(self)")])
 
         proc2 = process.OneShotProcess([
+            Wait("not moving(self)"),
             Act("move_down", [Entity.SELF]),
             Wait("not moving(self)"),
             Act("move_down", [Entity.SELF]),
@@ -106,25 +108,27 @@ class ProcessTest(BaseWorldTest):
         self.assertEqual(proc1.execution_count, 1)
         self.assertEqual(proc1.introduction_time, 0)
         self.assertEqual(proc1.last_start_time, 0)
-        self.assertEqual(proc1.last_end_time, 10)
+        self.assertTrue(10 <= proc1.last_end_time <= 20)
         self.assertEqual(proc2.execution_count, 1)
         self.assertEqual(proc2.introduction_time, 0)
         self.assertEqual(proc2.last_start_time, 0)
-        self.assertEqual(proc2.last_end_time, 10)
+        self.assertTrue(10 <= proc2.last_end_time <= 20)
 
     @staticmethod
     def create_agent_with_periodic_processes():
         """
         :rtype: Agent, list of process.PeriodicProcess
         """
-        seq = Sequence()
-        seq.add_child(Act("move_right", [Entity.SELF]))
-        control_procedure = Procedure("main", [], seq)
+        control_procedure = Procedure([
+            Wait("not moving(self)"),
+            Act("move_right", [Entity.SELF]),
+            Wait("not moving(self)")])
         proc1 = process.PeriodicProcess(control_procedure, 10)
 
-        seq2 = Sequence()
-        seq2.add_child(Act("move_down", [Entity.SELF]))
-        control_procedure2 = Procedure("main", [], seq2)
+        control_procedure2 = Procedure([
+            Wait("not moving(self)"),
+            Act("move_down", [Entity.SELF]),
+            Wait("not moving(self)")])
         proc2 = process.PeriodicProcess(control_procedure2, 5)
 
         agent = Agent("rob1", "robot", [proc1, proc2])
@@ -132,17 +136,17 @@ class ProcessTest(BaseWorldTest):
 
     @withHeader()
     def test_periodic_process_lower(self):
+        self.__configure_events_default()
         world = World.instance()
 
         agent, processes = ProcessTest.create_agent_with_periodic_processes()
         world.addAgent(agent)
         world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 15)
-
+        self.initialize_robot("rob1", 10, 15, 0, 0)
         self.setNoOneCarriesAnything()
 
-        verdict, info = world.runUntilFinished(maxWorldTime=90)
+        experiment = Experiment(world)
+        experiment.run_until_finished(maxWorldTime=90)
         self.assertEqual(19, world.getFluentValue("xpos", ["rob1"]))
         self.assertEqual(33, world.getFluentValue("ypos", ["rob1"]))
         world.printState()

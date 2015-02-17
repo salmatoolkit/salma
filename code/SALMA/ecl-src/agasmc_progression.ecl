@@ -13,8 +13,9 @@
 
 % primitive_action(name, params=[name:sort,...])
 :- dynamic primitive_action/2.
-% declares that a primitive action is immediate
-:- dynamic immediate_action/1.
+% Declares that a primitive deterministic action is atomic, i.e. executed directly atomic
+% the point of execution instead of being interleaved. This is used for locking (see locking.ecl).
+:- dynamic atomic_action/1.
 :- dynamic stochastic_action/3.
 % exogenous_action(name, qualifying-params, augmenting-params)
 :- dynamic exogenous_action/3.
@@ -41,7 +42,6 @@
 % action declaration
 primitive_action(tick,[steps:integer]).
 primitive_action(nop,[]).
-immediate_action(nop).
 
 fluent(time,[], integer).
 untracked_fluent(time).
@@ -483,8 +483,14 @@ retract_constant(ConstantName, Params) :-
 	retractall(Head).
 	
 	
-get_declared_primitive_actions(Actions) :-
-	findall(pa(AName,Params),primitive_action(AName,Params),Actions).
+get_declared_primitive_actions(ActionDeclarations) :-
+	findall(pa(AName,Params),primitive_action(AName,Params), Actions),
+	(foreach(Action, Actions), foreach(ADecl, ActionDeclarations) do
+		Action = pa(AName,Params),
+		(atomic_action(AName) -> Atomic = true ; Atomic = false),
+		ADecl = pa(AName, Params, Atomic)
+	).
+	
 get_declared_stochastic_actions(Actions) :-
 	findall(pa(AName,Params,Outcomes),stochastic_action(AName,Params,Outcomes),Actions).
 	
@@ -517,7 +523,6 @@ get_declared_exogenous_action_choices(ChoiceDeclarations) :-
 		CDecl = eac(ChoiceName, Params, Options, EType, TimeDependent)
 	).
 		
-get_declared_immediate_actions(ImmediateActions) :-
-	findall(ia(AName), immediate_action(AName), ImmediateActions).
+
 
 	

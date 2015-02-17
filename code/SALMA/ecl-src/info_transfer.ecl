@@ -110,16 +110,14 @@ untracked_fluent(sensor_transmitted_value).
 
 
 primitive_action(requestTransfer, [m:message]).
-immediate_action(requestTransfer).
 
 primitive_action(clean_queue, [a:agent, c:channel, role:term]).
-immediate_action(clean_queue).
 
 % Updates the value map stored in the automatically introdcued 
 % remote sensor fluent. This reads and removes relevant 
 % messages in channel_in_queue
 primitive_action(update_remote_sensor, [a:agent, r:remoteSensor]).
-immediate_action(update_remote_sensor).
+
 
 exogenous_action(transferStarts, [m:message], [error:term]).
 exogenous_action(transferEnds, [m:message], [error:term]).

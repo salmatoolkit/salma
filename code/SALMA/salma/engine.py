@@ -1168,9 +1168,6 @@ class EclipseCLPEngine(Engine):
         exogenous_actions = self.__load_declaration('get_declared_exogenous_actions')
         exogenous_action_choices = self.__load_declaration("get_declared_exogenous_action_choices")
 
-        immediate_actions = list(map(lambda e: e[0],
-                                     self.__load_declaration('get_declared_immediate_actions')))
-
         channels = self.__load_declaration("get_declared_channels")
         sensors = self.__load_declaration("get_declared_sensors")
         remote_sensors = self.__load_declaration("get_declared_remote_sensors")
@@ -1182,7 +1179,6 @@ class EclipseCLPEngine(Engine):
                 'stochastic_actions': stochastic_actions,
                 'exogenous_actions': exogenous_actions,
                 'exogenous_action_choices': exogenous_action_choices,
-                'immediate_actions': immediate_actions,
                 'channels': channels,
                 'sensors': sensors,
                 'remote_sensors': remote_sensors}

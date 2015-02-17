@@ -381,7 +381,7 @@ class World(Entity, WorldDeclaration):
         for c in declarations['constants']:
             self.addConstant(Constant(c[0], c[2], c[1]))
         for pa in declarations['primitive_actions']:
-            self.addAction(DeterministicAction(pa[0], pa[1]))
+            self.addAction(DeterministicAction(pa[0], pa[1], pa[2]))
 
         self.__load_stochastic_action_declarations(declarations["stochastic_actions"])
 
@@ -998,9 +998,15 @@ class World(Entity, WorldDeclaration):
             for proc in active_processes:
                 action_execution = proc.step()
                 if action_execution is not None:
-                    act = self.__translate_action_execution(proc.current_evaluation_context, action_execution)
-                    actions.append(act)
-                    #TODO: handle atomic actions
+                    action, params, ec = self.__translate_action_execution(proc.current_evaluation_context,
+                                                                           action_execution)
+                    # if the action is atomic, don't interleave but progress now
+                    if isinstance(action, DeterministicAction) and action.atomic:
+                        pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, [(action, params, ec)])
+                        performed_actions.extend(pa)
+                        failed_actions.extend(fa)
+                    else:
+                        actions.append((action, params, ec))
 
             actions.extend(interleaved_events)
             pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, actions)

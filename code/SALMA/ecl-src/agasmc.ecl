@@ -13,6 +13,7 @@
 :- ['termutils'].
 :- ['sort_system'].
 :- ['agasmc_progression'].
+:- ['locking'].
 :- ['property_compiler'].
 :- ['property_evaluator'].
 :- ['info_transfer'].

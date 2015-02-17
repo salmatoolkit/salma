@@ -15,9 +15,13 @@ subsort(item, object).
 % MOTION
 
 primitive_action(move_right,[r:robot]).
+atomic_action(move_right).
 primitive_action(move_left, [r:robot]).
+atomic_action(move_left).
 primitive_action(move_down, [r:robot]).
+atomic_action(move_down).
 primitive_action(move_up, [r:robot]).
+atomic_action(move_up).
 
 primitive_action(land_on, [r:robot, x:integer, y:integer]).
 stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
