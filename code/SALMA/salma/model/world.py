@@ -995,6 +995,7 @@ class World(Entity, WorldDeclaration):
                 active_processes.extend(agent.update_schedule())
             random.shuffle(active_processes)
             actions = []
+            atomic_actions = []
             for proc in active_processes:
                 action_execution = proc.step()
                 if action_execution is not None:
@@ -1002,7 +1003,9 @@ class World(Entity, WorldDeclaration):
                                                                            action_execution)
                     # if the action is atomic, don't interleave but progress now
                     if isinstance(action, DeterministicAction) and action.atomic:
-                        pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, [(action, params, ec)])
+                        atomic_action = (action, params, ec)
+                        atomic_actions.append(atomic_action)
+                        pa, fa = self.__event_schedule.progress_interleaved(self.__evaluationContext, [atomic_action])
                         performed_actions.extend(pa)
                         failed_actions.extend(fa)
                     else:
@@ -1024,7 +1027,7 @@ class World(Entity, WorldDeclaration):
 
             # continue until no actions or events were performed during the iteration and
             # the no event is scheduled / possible / schedulable at the current point
-            if len(due_events) == 0 and len(actions) == 0:
+            if len(due_events) == 0 and len(actions) == 0 and len(atomic_actions) == 0:
                 # update the next stop time using all available information
                 next_stop_time = self.get_next_stop_time(consider_scanning_points=True)
                 if next_stop_time is None or next_stop_time > current_time:
@@ -1232,6 +1235,9 @@ class LocalEvaluationContext(EvaluationContext):
     def getFluentValue(self, fluent_name, *params):
         resolved_params = self.resolve(*params)
         return World.instance().getFluentValue(fluent_name, resolved_params)
+
+    def get_current_time(self):
+        return World.instance().getFluentValue("time", [])
 
     def set_fluent_value(self, fluent_name: str, params: list, value: object):
         """

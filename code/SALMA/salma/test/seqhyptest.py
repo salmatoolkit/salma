@@ -18,7 +18,7 @@ from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
-    Act, Procedure, While, Assign, ArbitraryAction, Variable
+    Act, Procedure, While, Assign, FunctionControlNode, Variable
 from salma.model.world import World
 import salma.model.world
 from salma.statistics import SequentialProbabilityRatioTest

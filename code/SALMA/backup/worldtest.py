@@ -18,7 +18,7 @@ from salma.model.distributions import UniformDistribution, \
     ExponentialDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
-    Act, Procedure, While, Assign, ArbitraryAction, Variable, \
+    Act, Procedure, While, Assign, FunctionControlNode, Variable, \
     Iterate, Select, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader

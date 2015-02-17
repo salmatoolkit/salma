@@ -25,7 +25,7 @@ class MyExperiment(Experiment):
 
     def create_entities(self):
         w = While("robotLeftFrom",
-                  [Entity.SELF, 100],
+                  [Entity.SELF, 100, "s0"],
                   [
                       Act("move_right", [Entity.SELF]),
                       Wait("not moving(self)")

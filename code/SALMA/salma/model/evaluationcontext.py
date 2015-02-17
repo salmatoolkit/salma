@@ -83,6 +83,13 @@ class EvaluationContext(object):
         """
         raise NotImplementedError()
 
+    def get_current_time(self):
+        """
+        Returns the current world time.
+        :rtype: int
+        """
+        raise NotImplementedError()
+
     def get_derived_fluent_value(self, fluent_name, params):
         """
         Returns the current value of the given derived fluent with the given parameters.

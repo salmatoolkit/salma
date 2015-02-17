@@ -285,12 +285,18 @@ class Experiment(object):
         Repeatedly runs World.step() until either the world's finished flag becomes true or
         either the step or time limit is reached. The properties are not evaluated.
 
+        :parameter bool check_verdict: whether properties are evaluated. default=True
+        :parameter int max_steps: maximum number of steps
+        :parameter float max_real_time: maximum real time
+        :parameter int max_world_time: maximum world time
+        :parameter int max_time_delta_per_step: the maximum time interval that a step is allowed to span
+        :return: (verdict, result-map)
         :rtype: (int, dict[str, object])
         """
         check_initialization = kwargs.get("check_initialization", True)
         if check_initialization:
             self.assure_consistent_initilization()
-
+        kwargs["check_verdict"] = False
         verdict, results = self.run_experiment(**kwargs)
         if verdict != CANCEL:
             verdict = OK if self.__world.is_finished() else NOT_OK

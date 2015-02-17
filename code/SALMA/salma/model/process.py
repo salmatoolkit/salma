@@ -149,9 +149,9 @@ class Process(object):
         if self.state == Process.RUNNING:
             return True
 
-        if (self.state in [Process.SLEEPING, Process.WAITING] and
+        if (self.state in (Process.SLEEPING, Process.WAITING) and
                 self.suspended_until is not None):
-            current_time = self.current_evaluation_context.getFluentValue('time')
+            current_time = self.current_evaluation_context.get_current_time()
             if current_time >= self.suspended_until:
                 self.__state = Process.RUNNING
                 self.__suspended_until = None
@@ -214,7 +214,7 @@ class Process(object):
         :type current_time: int
         :rtype: int
         """
-        if self.state == Process.SLEEPING:
+        if self.state in (Process.SLEEPING, Process.WAITING):
             if self.suspended_until is not None and self.suspended_until > current_time:
                 return self.suspended_until
             else:
@@ -279,6 +279,7 @@ class Process(object):
         status = ControlNode.CONTINUE
         current_node = self.__current_control_node
         current_context = self.__current_evaluation_context
+        # TODO: set current process field in evaluation context
         while status == ControlNode.CONTINUE and current_node is not None:
             status, next_node, next_context = current_node.execute_step(current_context,
                                                                         self.__agent.procedure_registry)

@@ -138,7 +138,8 @@ class ProcessTest(BaseWorldTest):
     def test_periodic_process_lower(self):
         self.__configure_events_default()
         world = World.instance()
-
+        world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
+            "integer", 1)
         agent, processes = ProcessTest.create_agent_with_periodic_processes()
         world.addAgent(agent)
         world.initialize(False)
@@ -146,45 +147,56 @@ class ProcessTest(BaseWorldTest):
         self.setNoOneCarriesAnything()
 
         experiment = Experiment(world)
-        experiment.run_until_finished(maxWorldTime=90)
+        experiment.run_until_finished(max_world_time=90)
         self.assertEqual(19, world.getFluentValue("xpos", ["rob1"]))
         self.assertEqual(33, world.getFluentValue("ypos", ["rob1"]))
         world.printState()
 
     @withHeader()
     def test_periodic_process_higher(self):
+        self.__configure_events_default()
         world = World.instance()
+        world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
+            "integer", 1)
         agent, processes = ProcessTest.create_agent_with_periodic_processes()
         world.addAgent(agent)
-
         world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 15)
+        self.initialize_robot("rob1", 10, 15, 0, 0)
         self.setNoOneCarriesAnything()
-        verdict, info = world.runUntilFinished(maxWorldTime=91)
+
+        experiment = Experiment(world)
+        experiment.run_until_finished(max_world_time=92)
         self.assertEqual(20, world.getFluentValue("xpos", ["rob1"]))
         self.assertEqual(34, world.getFluentValue("ypos", ["rob1"]))
         world.printState()
 
     @withHeader()
     def test_triggered_process(self):
+        self.__configure_events_default()
         world = World.instance()
+        world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
+            "integer", 1)
 
-        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom",
-                  [Entity.SELF, 50],
-                  Act("move_right", [Entity.SELF]))
-        proc1 = process.OneShotProcess(Procedure("main", [], w))
-        handler_seq = Sequence([
-            Act("move_down", [Entity.SELF])])
-        handler = process.TriggeredProcess(Procedure("handler", [], handler_seq),
-                                           "xpos(self) == 25", [])
-        agent = Agent("rob1", "robot", [proc1, handler])
+        proc1 = process.OneShotProcess(
+            While("robotLeftFrom", [Entity.SELF, 50, "s0"], [
+                Wait("not moving(self)"),
+                Act("move_right", [Entity.SELF]),
+                Wait("not moving(self)")]))
+
+        handler_procedure = Procedure([
+            Wait("not moving(self)"),
+            Act("move_down", [Entity.SELF]),
+            Wait("not moving(self)")])
+        proc2 = process.TriggeredProcess(handler_procedure, "xpos(self) == 25")
+        agent = Agent("rob1", "robot", [proc1, proc2])
         world.addAgent(agent)
         world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 10)
+        self.initialize_robot("rob1", 10, 10, 0, 0)
         self.setNoOneCarriesAnything()
-        verdict, info = world.runUntilFinished(maxWorldTime=50)
+
+        experiment = Experiment(world)
+        experiment.run_until_finished(max_world_time=50)
+
         world.printState()
         self.assertEqual(50, world.getFluentValue("xpos", ["rob1"]))
         self.assertEqual(11, world.getFluentValue("ypos", ["rob1"]))

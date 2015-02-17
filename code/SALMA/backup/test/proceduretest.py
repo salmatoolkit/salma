@@ -40,9 +40,9 @@ class Test(unittest.TestCase):
         ec = DummyEvaluationContext()
 
         seq = procedure.Sequence()
-        seq.add_child(procedure.ArbitraryAction(handler1))
-        seq.add_child(procedure.ArbitraryAction(handler2))
-        seq.add_child(procedure.ArbitraryAction(handler1))
+        seq.add_child(procedure.FunctionControlNode(handler1))
+        seq.add_child(procedure.FunctionControlNode(handler2))
+        seq.add_child(procedure.FunctionControlNode(handler1))
 
         handler1Count = handler2Count = handler3Count = 0
 
@@ -75,7 +75,7 @@ class Test(unittest.TestCase):
         global handler1Count
         handler1Count = 0
         ec = DummyEvaluationContext()
-        action = procedure.ArbitraryAction(handler1)
+        action = procedure.FunctionControlNode(handler1)
         print("id: ", action.id)
         (a, b) = action.execute_step(ec)
         self.assertEqual(a, ControlNode.CONTINUE)

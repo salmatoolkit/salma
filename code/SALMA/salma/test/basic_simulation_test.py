@@ -7,7 +7,7 @@ from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.distributions import BernoulliDistribution, ConstantDistribution, OptionalDistribution, \
     ExponentialDistribution
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, While, Act, Wait, Procedure, Sequence, Assign, ArbitraryAction, Variable
+from salma.model.procedure import ControlNode, While, Act, Wait, Procedure, Sequence, Assign, FunctionControlNode, Variable
 from salma.model.world import World
 from salma.test.world_test_base import BaseWorldTest
 
@@ -34,7 +34,7 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
             return self.options["land_on"]
 
 
-class WorldTest(BaseWorldTest):
+class BasicSimulationTest(BaseWorldTest):
     def __configure_events_default(self):
         world = World.instance()
         finish_step = world.get_exogenous_action("finish_step")
@@ -154,7 +154,7 @@ class WorldTest(BaseWorldTest):
         # run from (x,y) to (y,y)
         seq = Sequence([
             Assign("myY", "ypos", [Entity.SELF]),
-            ArbitraryAction(print_value, [Variable("myY")])
+            FunctionControlNode(print_value, [Variable("myY")])
         ])
         w = While("robotLeftFrom",
                   [Entity.SELF, Variable("myY"), "s0"],
@@ -162,7 +162,7 @@ class WorldTest(BaseWorldTest):
                       Act("move_right", [Entity.SELF]),
                       Wait("not moving(self)"),
                       Assign("myX", "xpos", [Entity.SELF]),
-                      ArbitraryAction(print_value, [Variable("myX")])
+                      FunctionControlNode(print_value, [Variable("myX")])
                   ])
         seq.add_child(w)
 

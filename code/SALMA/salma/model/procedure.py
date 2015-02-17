@@ -3,6 +3,7 @@ from salma.model.core import Entity
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.infotransfer import ReceivedMessage, Channel
 from salma.constants import *
+import inspect
 
 
 def is_control_node_sequence(thelist):
@@ -645,7 +646,7 @@ class Wait(ControlNode):
         else:
             if self.__timeout_expr is not None:
                 current_time = evaluation_context.getFluentValue('time')
-                self.__current_timeout = current_time + evaluation_context.resolve(self.__timeout_expr)
+                self.__current_timeout = current_time + evaluation_context.resolve(self.__timeout_expr)[0]
             return ControlNode.BLOCK, self, evaluation_context
 
     def reset(self, evaluation_context):
@@ -747,7 +748,7 @@ class Assign(ControlNode):
         pass
 
 
-class ArbitraryAction(ControlNode):
+class FunctionControlNode(ControlNode):
     """
     An action that executes a python function.
     """
@@ -766,8 +767,34 @@ class ArbitraryAction(ControlNode):
 
     def execute_step(self, evaluation_context, procedure_registry):
         ground_params = evaluation_context.resolve(*self.__params)
-        state, next_node = self.__handler(*ground_params)
-        return state, next_node, evaluation_context
+        aspec = inspect.getfullargspec(self.__handler)
+        kwargs = dict()
+        if aspec.varkw is not None or "agent" in aspec.kwonlyargs:
+            agent = evaluation_context.resolve(Entity.SELF)
+            kwargs["agent"] = agent
+        if aspec.varkw is not None or "evaluation_context" in aspec.kwonlyargs:
+            kwargs["evaluation_context"] = evaluation_context
+
+        if len(kwargs) > 0:
+            res = self.__handler(*ground_params, **kwargs)
+        else:
+            res = self.__handler(*ground_params)
+
+        if res is None:
+            state = ControlNode.CONTINUE
+            next_node = None
+            ec = evaluation_context
+        elif isinstance(res, (tuple, list)) and len(res) >= 2:
+            state = res[0]
+            next_node = res[1]
+            if len(res) >= 3:
+                ec = res[2]
+            else:
+                ec = evaluation_context
+        else:
+            raise SALMAException("Wrong return value of control node function: was {}, but expected either None or "
+                                 "(state, next_node, [evaluation_context]).".format(res))
+        return state, next_node, ec
 
     def reset(self, evaluation_context):
         pass

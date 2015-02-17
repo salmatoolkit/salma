@@ -12,7 +12,7 @@ import salma.model.process as prc
 from salma.model.distributions import UniformDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
-    Act, Procedure, While, Assign, ArbitraryAction, Variable
+    Act, Procedure, While, Assign, FunctionControlNode, Variable
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 
