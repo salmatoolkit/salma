@@ -13,7 +13,8 @@ from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.events import ExogenousAction
 from salma.model.agent import Agent
 from salma.model.distributions import UniformDistribution, \
-    ArgumentIdentityDistribution, BernoulliDistribution, Distribution, ConstantDistribution, Never, Zero
+    ArgumentIdentityDistribution, BernoulliDistribution, Distribution, ConstantDistribution, Never, Zero, \
+    OptionalDistribution, ExponentialDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, Sequence, \
     Act, Procedure, While, Assign, FunctionControlNode, Variable, \
@@ -23,6 +24,18 @@ from salma.test.testhelpers import withHeader
 
 
 class BaseWorldTest(unittest.TestCase):
+
+    def configure_events_default(self):
+        world = World.instance()
+        world.deactivate_info_transfer()
+        finish_step = world.get_exogenous_action("finish_step")
+        finish_step.config.occurrence_distribution = ConstantDistribution("integer", 5)
+        accidental_drop = world.get_exogenous_action("accidental_drop")
+        accidental_drop.config.occurrence_distribution = OptionalDistribution(0.0,
+                                                                              ExponentialDistribution("integer", 0.1))
+        collision = world.get_exogenous_action("collision")
+        collision.config.occurrence_distribution = BernoulliDistribution(1.0)
+        collision.config.set_param_distribution("severity", Zero())
 
     @classmethod
     def setUpClass(cls):
@@ -48,10 +61,7 @@ class BaseWorldTest(unittest.TestCase):
         world.load_declarations()
         world.setConstantValue("gravity", [], 9.81)
         world.register_clp_function("robotLeftFrom")
-        world.deactivate_info_transfer()
-        ea = world.get_exogenous_action("collision")
-        ea.config.occurrence_distribution = Never()
-        ea.config.set_param_distribution("severity", Zero())
+        self.configure_events_default()
 
     def create_right_moving_mobot(self, robotId):
         """

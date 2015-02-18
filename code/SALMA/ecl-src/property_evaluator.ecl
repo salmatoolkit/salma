@@ -364,7 +364,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				F = occur(ActionTerm),
 				% for occur, only the start time is relevant since only tick can occur
 				% during a time advance phase
-				evaluate_action_occured(ActionTerm, StartTime, Result),
+				evaluate_action_occurred(ActionTerm, StartTime, Result),
 				!
 				;
 				% is golog program possible?
@@ -539,15 +539,15 @@ evaluate_persistent_fluent_switched(Name, Time, Expected, Result) :-
 			Result = not_ok
 		).
 	
-evaluate_action_occured(ActionTerm, Time, Result) :-
+evaluate_action_occurred(ActionTerm, Time, Result) :-
 		ActionTerm =.. [Action | Params],
 		get_action_clock(Action, Params, T2),
 		(T2 is Time -> Result = ok ; Result = not_ok).
 
 		
-action_occured(ActionTerm, Sit) :-
+action_occurred(ActionTerm, Sit) :-
 	time(Time, Sit),
-	evaluate_action_occured(ActionTerm, Time, Result),
+	evaluate_action_occurred(ActionTerm, Time, Result),
 	Result = ok.
 
 

@@ -36,21 +36,11 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
 
 
 class BasicSimulationTest(BaseWorldTest):
-    def __configure_events_default(self):
-        world = World.instance()
-        finish_step = world.get_exogenous_action("finish_step")
-        finish_step.config.occurrence_distribution = ConstantDistribution("integer", 5)
-        accidental_drop = world.get_exogenous_action("accidental_drop")
-        accidental_drop.config.occurrence_distribution = OptionalDistribution(0.0,
-                                                                              ExponentialDistribution("integer", 0.1))
-        collision = world.get_exogenous_action("collision")
-        collision.config.occurrence_distribution = BernoulliDistribution(1.0)
 
     def test_world_step_explicit(self):
         world = World.instance()
         world.addAgent(self.create_right_moving_mobot('rob1'))
         world.initialize(False)
-        self.__configure_events_default()
         self.initialize_robot("rob1", 10, 10, 0, 0)
 
         print("\n\n----\n\n")
@@ -97,7 +87,6 @@ class BasicSimulationTest(BaseWorldTest):
         world = World.instance()
         world.addAgent(self.create_right_moving_mobot('rob1'))
         world.initialize(False)
-        self.__configure_events_default()
         self.initialize_robot("rob1", 10, 10, 0, 0)
 
         print("\n\n----\n\n")
@@ -131,7 +120,6 @@ class BasicSimulationTest(BaseWorldTest):
         agent = Agent("rob1", "robot", Procedure(w))
         world.addAgent(agent)
         world.initialize(False)
-        self.__configure_events_default()
         self.initialize_robot("rob1", 10, 10, 0, 0)
 
         world.printState()
@@ -173,7 +161,6 @@ class BasicSimulationTest(BaseWorldTest):
         world.initialize(False)
 
         self.initialize_robot("rob1", 10, 20, 0, 0)
-        self.__configure_events_default()
         experiment = Experiment(world)
         experiment.run_until_finished()
         self.assertEqual(proc1.current_evaluation_context.resolve(Variable('myY'))[0], 20)
@@ -202,7 +189,6 @@ class BasicSimulationTest(BaseWorldTest):
         world.addAgent(agent)
 
         world.initialize(False)
-        self.__configure_events_default()
         self.initialize_robot("rob1", 10, 15, 0, 0)
 
         world.printState()
@@ -245,7 +231,6 @@ class BasicSimulationTest(BaseWorldTest):
         world.addAgent(agent)
 
         world.initialize(False)
-        self.__configure_events_default()
         self.initialize_robot("rob1", 10, 15, 0, 0)
 
         world.printState()
@@ -284,7 +269,6 @@ class BasicSimulationTest(BaseWorldTest):
         world.addAgent(agent)
         world.initialize(False)
 
-        self.__configure_events_default()
         jump_action = world.get_stochastic_action("jump")
         self.generate_outcomes(jump_action)
         jump_action.selection_strategy = Uniform()
@@ -312,3 +296,10 @@ class BasicSimulationTest(BaseWorldTest):
         crash = jump_action.outcome("crash")
         crash.map_param("r", "r")
 
+    def test_failed_events_ignored(self):
+        # TODO: write test that failed events are just ignored
+        pass
+
+    def test_failed_intentional_actions_lead_to_cancel(self):
+        # TODO write test
+        pass

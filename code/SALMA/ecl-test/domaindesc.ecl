@@ -125,7 +125,9 @@ poss(grab(R,I), S) :- test_ad_hoc(
 poss(drop(R,I), S) :- carrying(R,I,S).
 
 schedulable(accidental_drop(R,I), S) :- 
-	carrying(R,I,S).
+	action_occurred(grab(R,I), S).
+	
+poss(accidental_drop(R,I), S) :- carrying(R,I,S).
 
 poss(collision(R1, R2, _), S) :- 
 	R1 \= R2, xpos(R1, X, S), xpos(R2, X, S), 

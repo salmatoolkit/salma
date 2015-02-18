@@ -247,7 +247,7 @@ compile_constraints_term(T, Out, Situation) :-
 				HandledSubterms = [MaxTime, P,Q],
 				Out =.. [until, MaxTime, P, Q], !						
 				;
-				% occur means action/exogenous action occured
+				% occur means action/exogenous action occurred
 				Functor = occur,
 				HandledSubterms = [Act],
 				Out =.. [occur, Act], !

@@ -14,20 +14,9 @@ from salma.model.evaluationcontext import EvaluationContext
 
 
 class ProcessTest(BaseWorldTest):
-    def __configure_events_default(self):
-        world = World.instance()
-        finish_step = world.get_exogenous_action("finish_step")
-        finish_step.config.occurrence_distribution = ConstantDistribution("integer", 5)
-        accidental_drop = world.get_exogenous_action("accidental_drop")
-        accidental_drop.config.occurrence_distribution = OptionalDistribution(0.0,
-                                                                              ExponentialDistribution("integer", 0.1))
-        collision = world.get_exogenous_action("collision")
-        collision.config.occurrence_distribution = BernoulliDistribution(1.0)
 
     def test_one_shot_process(self):
-        self.__configure_events_default()
         world = World.instance()
-        seq = Sequence()
         pmain = Procedure([
             Act("move_right", [Entity.SELF]),
             Wait("not moving(self)"),
@@ -66,7 +55,6 @@ class ProcessTest(BaseWorldTest):
         self.assertEqual(proc.last_end_time, 10)
 
     def test_two_one_shot_processes(self):
-        self.__configure_events_default()
         world = World.instance()
 
         proc1 = process.OneShotProcess([
@@ -136,7 +124,6 @@ class ProcessTest(BaseWorldTest):
 
     @withHeader()
     def test_periodic_process_lower(self):
-        self.__configure_events_default()
         world = World.instance()
         world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
             "integer", 1)
@@ -154,7 +141,6 @@ class ProcessTest(BaseWorldTest):
 
     @withHeader()
     def test_periodic_process_higher(self):
-        self.__configure_events_default()
         world = World.instance()
         world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
             "integer", 1)
@@ -172,7 +158,6 @@ class ProcessTest(BaseWorldTest):
 
     @withHeader()
     def test_triggered_process(self):
-        self.__configure_events_default()
         world = World.instance()
         world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
             "integer", 1)

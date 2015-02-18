@@ -346,7 +346,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				!
 				;
 				F = occur(ActionTerm),
-				evaluate_action_occured(ActionTerm, CurrentStep, StartTime, Result),
+				evaluate_action_occurred(ActionTerm, CurrentStep, StartTime, Result),
 				!
 				;
 				% is golog program possible?
@@ -494,7 +494,7 @@ evaluate_persistent_fluent_switched(Name, Time, Expected, Result) :-
 			Result = not_ok
 		).
 	
-evaluate_action_occured(ActionTerm, Time, Result) :-
+evaluate_action_occurred(ActionTerm, Time, Result) :-
 		ActionTerm =.. [Action | Params],
 		get_action_clock(Action, Params, T2),
 		(T2 is Time -> Result = ok ; Result = not_ok).

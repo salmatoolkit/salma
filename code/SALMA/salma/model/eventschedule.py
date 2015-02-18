@@ -239,9 +239,12 @@ class EventSchedule:
             fa = self.__logics_engine.progress(act_seq)
             failed.extend(fa)
             performed_actions.extend(act_seq)
+        # ignore failed events
+        failed_intentional_actions = [fa for fa in failed if fa[0] not in self.__exogenous_actions]
+
         if moduleLogger.isEnabledFor(logging.DEBUG):
-            moduleLogger.debug("  Progressed: %s, failed: %s", performed_actions, failed)
-        return performed_actions, failed
+            moduleLogger.debug("  Progressed: %s, failed: %s", performed_actions, failed_intentional_actions)
+        return performed_actions, failed_intentional_actions
 
     def __translate_event_instances_from_raw(self, raw_event_instances, schedule):
         """
@@ -354,8 +357,19 @@ class EventSchedule:
         :rtype: int
         """
         t1 = self.__event_schedule[0].time_point if len(self.__event_schedule) > 0 else None
-        t2 = self.__possible_event_schedule[0].time_point if len(self.__possible_event_schedule) > 0 else None
-        t3 = self.__schedulable_event_schedule[0].time_point if len(self.__schedulable_event_schedule) > 0 else None
+        t2 = None
+
+        for ev in self.__possible_event_schedule:
+            # it's enough to return the first unhandled entry since they're sorted by time
+            if ev not in self.__already_processed_events:
+                t2 = ev.time_point
+                break
+
+        t3 = None
+        for ev in self.__schedulable_event_schedule:
+            if ev not in self.__already_processed_events:
+                t3 = ev.time_point
+                break
         return min_robust([t1, t2, t3])
 
     def get_next_scheduled_event(self):
