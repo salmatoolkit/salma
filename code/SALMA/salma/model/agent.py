@@ -66,8 +66,8 @@ class Agent(Entity):
         """
         self.__evaluation_context = ctx
         if ctx is not None:
-            ctx.setAgent(self)
-            ctx.setProcedureCall(None)
+            ctx.set_agent(self)
+            ctx.set_procedure_call(None)
 
     @property
     def procedure_registry(self):

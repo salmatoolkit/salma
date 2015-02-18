@@ -8,6 +8,9 @@ ONE_SHOT_PROCESS = 0
 PERIODIC_PROCESS = 1
 TRIGGERED_PROCESS = 2
 
+PROCESS_TYPE_MAP = {ONE_SHOT_PROCESS: "ONE_SHOT_PROCESS", PERIODIC_PROCESS: "PERIODIC_PROCESS",
+                    TRIGGERED_PROCESS: "TRIGGERED_PROCESS"}
+
 
 class Process(object):
     """
@@ -17,15 +20,23 @@ class Process(object):
 
     IDLE, RUNNING, WAITING, SLEEPING, EXECUTING_ACTION = range(5)
 
-    def __init__(self, procedure, introduction_time=0):
+    NEXT_PID = 1
+
+    def __init__(self, procedure, introduction_time=0, name=None):
         """
-        Creates a process with the given procedure that is owned by the given agent.
+        Creates a process with the given procedure and an optional introduction time. Additionally,
+        a process name can be specified to identify the process later, e.g. in debugging.
         The status is initially set to IDLE.
         :type procedure: Procedure|ControlNode|list
         :type introduction_time: int
+        :type name: str
         """
         self.__agent = None
         self.__state = Process.IDLE
+        self.__interrupted = False
+        self.__pid = Process.NEXT_PID
+        Process.NEXT_PID += 1
+        self.__name = name
 
         self.__blocking_condition = None
         self.__suspended_until = None
@@ -37,12 +48,31 @@ class Process(object):
         else:
             raise SALMAException("Unsupported type for process procedure.")
         self.__current_control_node = self.__procedure.body
+        """:type : EvaluationContext"""
         self.__current_evaluation_context = None
+
         self.__introduction_time = introduction_time
         self.__last_start_time = None
+
         self.__last_end_time = None
         self.__terminated = False
         self.__execution_count = 0
+
+    @property
+    def pid(self):
+        """
+        The unique ID of the process.
+        :rtype: int
+        """
+        return self.__pid
+
+    @property
+    def name(self):
+        """
+        The name of the process, used mainly for debugging.
+        :rtype: str
+        """
+        return self.__name
 
     @property
     def process_type(self) -> int:
@@ -55,6 +85,14 @@ class Process(object):
         :rtype: int
         """
         return self.__state
+
+    @property
+    def interrupted(self):
+        """
+        A flag that is set when the process is intereuppted, e.g. due to a timeout.
+        :rtype: bool
+        """
+        return self.__interrupted
 
     @property
     def introduction_time(self) -> int:
@@ -99,7 +137,7 @@ class Process(object):
     @agent.setter
     def agent(self, agent: Entity):
         self.__agent = agent
-        self.__current_evaluation_context = self.__agent.evaluation_context
+        self.__current_evaluation_context = None
 
     @property
     def procedure(self) -> Procedure:
@@ -155,6 +193,7 @@ class Process(object):
             if current_time >= self.suspended_until:
                 self.__state = Process.RUNNING
                 self.__suspended_until = None
+                self.__interrupted = True
                 return True
 
         if self.state == Process.WAITING and self.blocking_condition is not None:
@@ -228,22 +267,22 @@ class Process(object):
         sets state=RUNNING.
         :return:
         """
-        self.__current_evaluation_context = self.agent.evaluation_context
+        self.__current_evaluation_context = self.agent.evaluation_context.create_child_context()
+        self.current_evaluation_context.set_process(self)
         self.procedure.restart(self.__current_evaluation_context)
         self.__current_control_node = self.procedure.body
-        self.__last_start_time = self.agent.evaluation_context.getFluentValue('time')
+        self.__last_start_time = self.agent.evaluation_context.get_current_time()
 
         self._on_start()
         self.__state = Process.RUNNING
 
     def __finish(self):
         """
-        Stops the process. Resets procedure and evaluation context, calls _on_finish() and
+        Stops the process. Resets the procedure, calls _on_finish() and
         sets state=IDLE.
         :return:
         """
         self.__current_control_node = None
-        self.__current_evaluation_context = self.agent.evaluation_context
         self._on_finish()
         self.__state = Process.IDLE
         if self.should_terminate():
@@ -279,18 +318,24 @@ class Process(object):
         status = ControlNode.CONTINUE
         current_node = self.__current_control_node
         current_context = self.__current_evaluation_context
-        # TODO: set current process field in evaluation context
+
         while status == ControlNode.CONTINUE and current_node is not None:
-            status, next_node, next_context = current_node.execute_step(current_context,
-                                                                        self.__agent.procedure_registry)
+            if self.interrupted:
+                status = ControlNode.CONTINUE
+                next_node = None
+                next_context = current_context
+                self.__interrupted = False
+            else:
+                status, next_node, next_context = current_node.execute_step(current_context,
+                                                                            self.__agent.procedure_registry)
 
             # : :type next_context: EvaluationContext
             if next_node is None:
                 if current_node.parent is None:
                     # this means we just left some procedure
-                    if next_context.getProcedureCall() is not None:
-                        next_node = next_context.getProcedureCall().parent
-                        next_context = next_context.getParent()
+                    if next_context.get_procedure_call() is not None:
+                        next_node = next_context.get_procedure_call().parent
+                        next_context = next_context.get_parent()
 
                 else:
                     next_node = current_node.parent
@@ -325,10 +370,14 @@ class Process(object):
 
         if self.__current_control_node is None:
             self.__execution_count += 1
-            self.__last_end_time = self.agent.evaluation_context.getFluentValue('time')
+            self.__last_end_time = self.agent.evaluation_context.get_current_time()
             self.__finish()
 
         return action
+
+    def __str__(self):
+        nametag = "(" + self.__name + ")" if self.__name is not None else ""
+        return "{}({}{}@{})".format(PROCESS_TYPE_MAP[self.process_type], self.pid, nametag, self.agent)
 
 
 class OneShotProcess(Process):
@@ -350,7 +399,7 @@ class OneShotProcess(Process):
         if self.execution_count > 0:
             return False
         if self.introduction_time is not None:
-            current_time = self.agent.evaluation_context.getFluentValue('time')
+            current_time = self.agent.evaluation_context.get_current_time()
             return current_time >= self.introduction_time
         return True
 
@@ -388,7 +437,7 @@ class PeriodicProcess(Process):
         :rtype (int, int, int)
         """
         min_time = self.introduction_time or 0
-        current_time = self.agent.evaluation_context.getFluentValue('time')
+        current_time = self.agent.evaluation_context.get_current_time()
         assert isinstance(current_time, Number)
         if current_time < min_time:
             return None
@@ -439,7 +488,7 @@ class TriggeredProcess(Process):
 
     def should_start(self):
         min_time = self.introduction_time or 0
-        current_time = self.agent.evaluation_context.getFluentValue('time')
+        current_time = self.agent.evaluation_context.get_current_time()
         if current_time < min_time:
             return False
         ectx = self.current_evaluation_context or self.agent.evaluation_context

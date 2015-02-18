@@ -27,29 +27,42 @@ class EvaluationContext(object):
         self.__parent = parent
         self.__procedureCall = None
         self.__agent = None
+        self.__process = None
 
-    def setProcedureCall(self, procedure_call):
+    def set_procedure_call(self, procedure_call):
         self.__procedureCall = procedure_call
         
-    def getProcedureCall(self):
+    def get_procedure_call(self):
         """
         :rtype ProcedureCall
         """
         return self.__procedureCall
     
-    def setAgent(self, agent):
+    def set_agent(self, agent):
         self.__agent = agent
         
-    def getAgent(self):
+    def get_agent(self):
         return self.__agent
 
-    def getParent(self):
+    def get_parent(self):
         """
         :rtype EvaluationContext
         """
         return self.__parent
+
+    def get_process(self):
+        """
+        :rtype: salma.model.process.Process
+        """
+        return self.__process
+
+    def set_process(self, p):
+        """
+        :param salma.model.process.Process p: process
+        """
+        self.__process = p
     
-    def createChildContext(self):
+    def create_child_context(self):
         """
         Creates a new evaluation context with the current one set as the parent.
         :rtype EvaluationContext

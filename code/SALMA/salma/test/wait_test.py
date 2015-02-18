@@ -33,12 +33,12 @@ class WaitTest(BaseWorldTest):
             "integer", 12)
         end_time = -1
 
-        def record_state(evaluation_context=None, **kwargs):
+        def record_state(ctx=None, **kwargs):
             """
             :param EvaluationContext evaluation_context: ec
             """
             nonlocal end_time
-            end_time = evaluation_context.get_current_time()
+            end_time = ctx.get_current_time()
 
         pmain = Procedure([
             Act("move_right", [Entity.SELF]),
@@ -75,14 +75,19 @@ class WaitTest(BaseWorldTest):
         world = World.instance()
         world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
             "integer", 12)
-        end_time = -1
 
-        def record_state(evaluation_context=None, **kwargs):
+        end_time = -1
+        moving_after_wait = None
+
+        def record_state(ctx=None, agent=None):
             """
-            :param EvaluationContext evaluation_context: ec
+            :param EvaluationContext ctx: ec
             """
-            nonlocal end_time
-            end_time = evaluation_context.get_current_time()
+            nonlocal end_time, moving_after_wait
+            end_time = ctx.get_current_time()
+
+            moving_after_wait = ctx.getFluentValue("moving", agent)
+            print("Recorded time: {} - moving: {}".format(end_time, moving_after_wait))
 
         pmain = Procedure([
             Act("move_right", [Entity.SELF]),
@@ -112,4 +117,6 @@ class WaitTest(BaseWorldTest):
         print("end_time: {}".format(end_time))
         self.assertEqual(5, end_time)
         self.assertEqual(11, world.getFluentValue("xpos", ["rob1"]))
-        self.assertTrue(world.getFluentValue("moving", ["rob1"]))
+        self.assertTrue(moving_after_wait)
+        # the event should have happended anyway!
+        self.assertFalse(world.getFluentValue("moving", ["rob1"]))

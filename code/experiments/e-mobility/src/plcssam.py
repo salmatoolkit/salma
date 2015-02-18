@@ -4,20 +4,21 @@ from salma.model.procedure import *
 from salma.model.process import TriggeredProcess
 from salma.model.infotransfer import ReceivedMessage
 from salma.constants import SELF
+from salma.model.evaluationcontext import EvaluationContext
 
 
 def create_plcssam_functions(world_map, mt):
-    def process_assignment_requests(agent=None, assignment_requests=None, freeSlotsR=None, **ctx):
+    def process_assignment_requests(agent=None, ctx=None,
+                                    assignment_requests=None, freeSlotsR=None, **kwargs):
         """
         :type agent: salma.model.agent.Agent
+        :type ctx: EvaluationContext
         :type assignment_requests: list[ReceivedMessage]
         :rtype: list[(str,str)]
         """
-        # : :type : EvaluationContext
-        ec = agent.evaluation_context
 
         # format: rreq(Vehicle, Alternatives, StartTime, PlannedDuration)
-        plcsdom = ec.getDomain("plcs")
+        plcsdom = ctx.getDomain("plcs")
 
         free_slot_map = dict()
         for plcs in plcsdom:

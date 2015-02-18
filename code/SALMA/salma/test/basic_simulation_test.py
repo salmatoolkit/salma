@@ -3,6 +3,7 @@ from salma import constants
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.experiment import Experiment
+from salma.model.process import OneShotProcess
 from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.distributions import BernoulliDistribution, ConstantDistribution, OptionalDistribution, \
     ExponentialDistribution
@@ -165,8 +166,8 @@ class BasicSimulationTest(BaseWorldTest):
                       FunctionControlNode(print_value, [Variable("myX")])
                   ])
         seq.add_child(w)
-
-        agent = Agent("rob1", "robot", Procedure(seq))
+        proc1 = OneShotProcess(Procedure(seq))
+        agent = Agent("rob1", "robot", [proc1])
         world.addAgent(agent)
 
         world.initialize(False)
@@ -175,14 +176,14 @@ class BasicSimulationTest(BaseWorldTest):
         self.__configure_events_default()
         experiment = Experiment(world)
         experiment.run_until_finished()
-        self.assertEqual(agent.evaluation_context.resolve(Variable('myY'))[0], 20)
-        self.assertEqual(agent.evaluation_context.resolve(Variable('myX'))[0], 20)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable('myY'))[0], 20)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable('myX'))[0], 20)
 
     def test_evaluate_python_expression(self):
         world = World.instance()
         world.add_additional_expression_context_global("math", math)
         # run from (x,y) to (y,y)
-        seq = Sequence([
+        proc1 = OneShotProcess([
             Assign("x", "6"),
             Assign("y", "x * 7 + params[0]", [3]),
             Assign("z", "0", []),
@@ -197,7 +198,7 @@ class BasicSimulationTest(BaseWorldTest):
                       Assign("z", "z + 1")])
         ])
 
-        agent = Agent("rob1", "robot", Procedure(seq))
+        agent = Agent("rob1", "robot", [proc1])
         world.addAgent(agent)
 
         world.initialize(False)
@@ -209,16 +210,16 @@ class BasicSimulationTest(BaseWorldTest):
         experiment = Experiment(world)
         experiment.run_until_finished()
 
-        self.assertEqual(agent.evaluation_context.resolve(Variable("x"))[0], 6)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("y"))[0], 45)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], 42)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], 25)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z3"))[0], 25)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z4"))[0], 3)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("x"))[0], 6)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("y"))[0], 45)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z"))[0], 42)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z2"))[0], 25)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z3"))[0], 25)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z4"))[0], 3)
 
-        v = agent.evaluation_context.resolve(Variable("z5"))[0]
+        v = proc1.current_evaluation_context.resolve(Variable("z5"))[0]
         self.assertAlmostEqual(98.1, v)
-        v2 = agent.evaluation_context.resolve(Variable("z6"))[0]
+        v2 = proc1.current_evaluation_context.resolve(Variable("z6"))[0]
         self.assertAlmostEqual(math.sqrt(10 * 10 + 15 * 15), v2)
 
     def test_evaluate_python_function(self):
@@ -233,14 +234,14 @@ class BasicSimulationTest(BaseWorldTest):
         def myfunc3(a, b, x=None, xpos=None, ypos=None, **ctx):
             return a * b * x * xpos("rob1") * ypos("rob1")
 
-        seq = Sequence([
+        proc1 = OneShotProcess([
             Assign("x", lambda i: i ** 2, [3]),
             Assign("y", myfunc1, [4, 6]),
             Assign("z", myfunc2, [-1, 2]),
             Assign("z2", myfunc3, [-1, 2])
         ])
 
-        agent = Agent("rob1", "robot", Procedure(seq))
+        agent = Agent("rob1", "robot", [proc1])
         world.addAgent(agent)
 
         world.initialize(False)
@@ -252,10 +253,10 @@ class BasicSimulationTest(BaseWorldTest):
         experiment = Experiment(world)
         experiment.run_until_finished()
 
-        self.assertEqual(agent.evaluation_context.resolve(Variable("x"))[0], 9)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("y"))[0], 24)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z"))[0], -1 * 2 * 9 * 10)
-        self.assertEqual(agent.evaluation_context.resolve(Variable("z2"))[0], -1 * 2 * 9 * 10 * 15)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("x"))[0], 9)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("y"))[0], 24)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z"))[0], -1 * 2 * 9 * 10)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z2"))[0], -1 * 2 * 9 * 10 * 15)
 
     def record_outcomes(self, world, actions=None, **ctx):
         for a in actions:

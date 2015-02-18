@@ -769,11 +769,11 @@ class FunctionControlNode(ControlNode):
         ground_params = evaluation_context.resolve(*self.__params)
         aspec = inspect.getfullargspec(self.__handler)
         kwargs = dict()
-        if aspec.varkw is not None or "agent" in aspec.kwonlyargs:
-            agent = evaluation_context.resolve(Entity.SELF)
+        if aspec.varkw is not None or "agent" in aspec.kwonlyargs or "agent" in aspec.args:
+            agent = evaluation_context.resolve(Entity.SELF)[0]
             kwargs["agent"] = agent
-        if aspec.varkw is not None or "evaluation_context" in aspec.kwonlyargs:
-            kwargs["evaluation_context"] = evaluation_context
+        if aspec.varkw is not None or "ctx" in aspec.kwonlyargs or "ctx" in aspec.args:
+            kwargs["ctx"] = evaluation_context
 
         if len(kwargs) > 0:
             res = self.__handler(*ground_params, **kwargs)
@@ -822,9 +822,9 @@ class ProcedureCall(ControlNode):
 
     def execute_step(self, evaluation_context, procedure_registry):
         ground_params = evaluation_context.resolve(*self.__procedure_parameters)
-        child_context = evaluation_context.createChildContext()
+        child_context = evaluation_context.create_child_context()
 
-        child_context.setProcedureCall(self)
+        child_context.set_procedure_call(self)
         procedure = procedure_registry.get_procedure(self.__procedure_name)
 
         if len(ground_params) != len(procedure.parameters):

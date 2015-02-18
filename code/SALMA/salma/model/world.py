@@ -1174,6 +1174,7 @@ class LocalEvaluationContext(EvaluationContext):
             ctx = World.instance().getExpressionContext().copy()
             ctx.update(self.__variable_bindings)
             ctx['agent'] = self.__context_entity  # don't call it self here to avoid confusion in function
+            ctx['ctx'] = self
             result = source(*resolved_params, **ctx)
         return result
 
@@ -1455,8 +1456,11 @@ class LocalEvaluationContext(EvaluationContext):
 
         return refinedPlan, refinedValues
 
-    def createChildContext(self):
-        return LocalEvaluationContext(self.__context_entity, self)
+    def create_child_context(self):
+        ec = LocalEvaluationContext(self.__context_entity, self)
+        ec.set_agent(self.get_agent())
+        ec.set_process(self.get_process())
+        return ec
 
     def getSorts(self):
         return World.instance().getSorts()
