@@ -215,14 +215,22 @@ class Experiment(object):
             should_continue = True
             break_reason = None
             for sl in self.step_listeners:
-                continue_from_listener, break_reason_from_listener = sl(self.__world,
-                                                                        verdict=verdict,
-                                                                        step=step_num, deltaT=delta_t,
-                                                                        actions=actions,
-                                                                        failedActions=failed_regular_actions,
-                                                                        toplevel_results=toplevel_results,
-                                                                        scheduled_results=scheduled_results,
-                                                                        pending_properties=scheduled_keys)
+                sl_res = sl(self.__world,
+                            verdict=verdict,
+                            step=step_num, deltaT=delta_t,
+                            actions=actions,
+                            failedActions=failed_regular_actions,
+                            toplevel_results=toplevel_results,
+                            scheduled_results=scheduled_results,
+                            pending_properties=scheduled_keys)
+                if sl_res is None:
+                    continue_from_listener = True
+                    break_reason_from_listener = None
+                elif isinstance(sl_res, tuple) and len(sl_res) == 2 and isinstance(sl_res[0], bool):
+                    continue_from_listener = sl_res[0]
+                    break_reason_from_listener = str(sl_res[1])
+                else:
+                    raise SALMAException("Invalid return value from step listener {}: {}".format(sl, sl_res))
                 should_continue &= continue_from_listener
                 if break_reason is None and not continue_from_listener:
                     break_reason = break_reason_from_listener
@@ -260,9 +268,9 @@ class Experiment(object):
             # However, this only holds if no invariants are pending. Otherwise, we will return NONDET
             else:
                 if ((self.__world.is_finished() or time_out is True) and
-                        len(self.property_collection.achieve_goals) == 0 and
-                        len(self.property_collection.achieve_and_sustain_goals) == 0 and
-                        len(scheduled_keys) == 0):
+                            len(self.property_collection.achieve_goals) == 0 and
+                            len(self.property_collection.achieve_and_sustain_goals) == 0 and
+                            len(scheduled_keys) == 0):
                     verdict = OK
 
         duration = datetime.timedelta(seconds=c2 - c1)
