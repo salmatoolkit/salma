@@ -1042,7 +1042,7 @@ class World(Entity, WorldDeclaration):
         assert isinstance(interval_end, int)
         # now we know that next_stop_time is set up correctly
         if evaluate_properties:
-            ie2 = max_robust([interval_end - 1, current_time])
+            ie2 = max_robust([interval_end, current_time])
             assert isinstance(ie2, int)
             toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
                 interval_end=ie2)
