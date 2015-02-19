@@ -113,7 +113,5 @@ class BaseWorldTest(unittest.TestCase):
 
         # : :type r: Agent
         for r in world.getDomain('robot'):
-            world.setFluentValue("xpos", [r.getId()], x)
-            world.setFluentValue("ypos", [r.getId()], y)
-            world.setFluentValue("active", [r.getId()], True)
+            self.initialize_robot(r.id, x, y, 0, 0)
             y += distance

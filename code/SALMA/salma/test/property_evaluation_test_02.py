@@ -2,9 +2,11 @@ import unittest
 
 from salma.model.agent import Agent
 from salma.model.core import Entity, Constant
+from salma.model.distributions import ConstantDistribution
+from salma.model.experiment import Experiment
 from salma.model.selectionstrategy import Stepwise
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, Act, Procedure, While
+from salma.model.procedure import ControlNode, Act, Procedure, While, Wait
 from salma.model.process import OneShotProcess, PeriodicProcess
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
@@ -13,252 +15,13 @@ from salma.constants import *
 from datetime import datetime, timedelta
 
 
-def printValue(value):
-    print("Val: ", value)
-    return (ControlNode.CONTINUE, None)
+class PropertyEvaluationTest02(BaseWorldTest):
 
-
-class WorldTest3(BaseWorldTest):
-    @withHeader()
-    def test_load_declaration_empty(self):
+    def setUp(self):
+        super().setUp()
         world = World.instance()
-        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
-                  Act("move_right", [Entity.SELF]))
-        proc = Procedure("main", [], w)
-
-        agent1 = Agent("rob1", "robot", proc)
-        world.addAgent(agent1)
-        world.addEntity(Entity("item1", "item"))
-        world.addEntity(Entity("item2", "item"))
-        world.initialize(False)
-        fl, const = world.check_fluent_initialization()
-        print(fl)
-        print(const)
-        self.assertEqual(len(fl), 2)
-        self.assertEqual(len(const), 2)
-        a, a2 = world.check_action_initialization()
-        print("---------")
-        for act in a:
-            print(str(act[0]) + " : " + str(act[1]))
-        for act in a2:
-            print(str(act[0]) + " : " + str(act[1]))
-        # self.assertEqual(len(a), 1)
-        # self.assertEqual(len(a2), 2)
-        print("----")
-        print(world.describe_actions())
-        self.assertEqual(len(list(world.getAllActions())), 16)
-
-    @withHeader()
-    def test_load_declaration_full(self):
-        world = World.instance()
-        w = While(EvaluationContext.TRANSIENT_FLUENT, "robotLeftFrom", [Entity.SELF, 120],
-                  Act("move_right", [Entity.SELF]))
-        proc = Procedure("main", [], w)
-
-        agent1 = Agent("rob1", "robot", proc)
-        world.addAgent(agent1)
-        world.addEntity(Entity("item1", "item"))
-        world.addEntity(Entity("item2", "item"))
-        world.initialize(False)
-        world.get_exogenous_action("accidental_drop").config.set_probability(0.7)
-        world.get_exogenous_action("collision").config.set_probability(0.02).normal_param("severity", 0.5, 0.2)
-        world.get_stochastic_action("jump").outcome(
-            "land_on").map_param("r", "r").uniform_param("x", (0, 1024)).uniform_param("y", (0, 768))
-
-        world.get_stochastic_action("jump").selection_strategy = Stepwise(land_on=0.7, crash=0.2)  # 0.2 is wrong here!
-        world.get_stochastic_action("jump").outcome("crash").map_param("r", "r")
-        print(world.describe_actions())
-        a, a2 = world.check_action_initialization()
-
-        print(a)
-        print(a2)
-
-    @withHeader(msg="Tests an until property that should fail.")
-    def test_property_1_fail(self):
-        world = World.instance()
-
-        proc = Procedure("main", [], [
-            Act("move_right", [Entity.SELF]),
-            Act("paint", [Entity.SELF, "item1"]),
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < 20", [], [
-                    Act("move_right", [Entity.SELF])
-                ])
-        ])
-        rob1 = Agent("rob1", "robot", proc)
-        world.addAgent(rob1)
-        world.addEntity(Entity("item1", "item"))
-        world.addEntity(Entity("item2", "item"))
-        world.initialize(False)
-        self.setNoOneCarriesAnything()
-        self.place_agents_in_column(x=10)
-
-        f_str = """
-forall([r,robot],
-    implies(
-        occur(paint(r,?)),
-        until(5,
-            true,
-            xpos(r) >= 25
-        )
-    )
-)
-"""
-        world.registerProperty("f", f_str, World.INVARIANT)
-        verdict, results = world.runExperiment()
-        print("Verdict: " + str(verdict))
-        print("Results: " + str(results))
-        world.printState()
-        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
-        self.assertEqual(verdict, NOT_OK)
-
-    @withHeader(msg="Tests an until property that should succeed.")
-    def test_property_1_OK(self):
-        world = World.instance()
-
-        proc = Procedure("main", [], [
-            Act("move_right", [Entity.SELF]),
-            Act("paint", [Entity.SELF, "item1"]),
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < 30", [], [
-                    Act("move_right", [Entity.SELF])
-                ])
-        ])
-        rob1 = Agent("rob1", "robot", proc)
-        world.addAgent(rob1)
-        world.addEntity(Entity("item1", "item"))
-        world.addEntity(Entity("item2", "item"))
-        world.initialize(False)
-        self.setNoOneCarriesAnything()
-        self.place_agents_in_column(x=23)
-
-        f_str = """
-forall([r,robot],
-    implies(
-        occur(paint(r,?)),
-        until(5,
-            true,
-            xpos(r) > 25
-        )
-    )
-)
-"""
-        world.registerProperty("f", f_str, World.INVARIANT)
-        verdict, results = world.runExperiment()
-        print("Verdict: " + str(verdict))
-        print("Results: " + str(results))
-        world.printState()
-        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
-        self.assertEqual(verdict, OK)
-
-    @withHeader(msg="Tests an until property that is undetermined.")
-    def test_property_1_nondet(self):
-        world = World.instance()
-
-        proc = Procedure("main", [], [
-            Act("move_right", [Entity.SELF]),
-            Act("paint", [Entity.SELF, "item1"]),
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < 30", [], [
-                    Act("move_right", [Entity.SELF])
-                ])
-        ])
-        rob1 = Agent("rob1", "robot", proc)
-        world.addAgent(rob1)
-        world.addEntity(Entity("item1", "item"))
-        world.addEntity(Entity("item2", "item"))
-        world.initialize(False)
-        self.setNoOneCarriesAnything()
-        self.place_agents_in_column(x=10)
-
-        f_str = """
-forall([r,robot],
-    implies(
-        occur(paint(r,?)),
-        until(50,
-            true,
-            xpos(r) > 50
-        )
-    )
-)
-"""
-        world.registerProperty("f", f_str, World.INVARIANT)
-        verdict, results = world.runExperiment()
-        print("Verdict: " + str(verdict))
-        print("Results: " + str(results))
-        world.printState()
-        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
-        self.assertEqual(verdict, NONDET)
-
-    def _test_property_2(self, agentstop1=20, agentstop2=20, agentstart1=10, agentstart2=10, timelimit=50, px=5,
-                         qx=19) -> (int, map):
-        world = World.instance()
-
-        proc1 = Procedure("main", [], [
-            Act("paint", [Entity.SELF, "item1"]),
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < {}".format(agentstop1), [], [
-                    Act("move_right", [Entity.SELF])
-                ])
-        ])
-        proc2 = Procedure("main", [], [
-            Act("paint", [Entity.SELF, "item1"]),
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < {}".format(agentstop2), [], [
-                    Act("move_right", [Entity.SELF])
-                ])
-        ])
-        rob1 = Agent("rob1", "robot", proc1)
-        rob2 = Agent("rob2", "robot", proc2)
-        world.addAgent(rob1)
-        world.addAgent(rob2)
-        world.addEntity(Entity("item1", "item"))
-        world.addEntity(Entity("item2", "item"))
-        world.initialize(False)
-        self.setNoOneCarriesAnything()
-
-        world.setFluentValue("xpos", ["rob1"], agentstart1)
-        world.setFluentValue("ypos", ["rob1"], 10)
-        world.setFluentValue("xpos", ["rob2"], agentstart2)
-        world.setFluentValue("ypos", ["rob2"], 10)
-
-        g_str = """
-forall([r,robot], until({}, xpos(r) > {}, xpos(r) > {}))
-""".format(timelimit, px, qx)
-        world.registerProperty("g", g_str, World.INVARIANT)
-        verdict, results = world.runExperiment()
-        print("Verdict: " + str(verdict))
-        print("Results: " + str(results))
-        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
-        return verdict, results
-
-    def test_property_2_ok(self):
-        verdict, results = self._test_property_2()
-        self.assertEqual(verdict, OK)
-
-    def test_property_2_nondet_rob1(self):
-        verdict, results = self._test_property_2(agentstop1=15)
-        self.assertEqual(verdict, NONDET)
-
-    def test_property_2_nondet_rob2(self):
-        verdict, results = self._test_property_2(agentstop2=15)
-        self.assertEqual(verdict, NONDET)
-
-    def test_property_2_not_ok_rob1_fails_p(self):
-        verdict, results = self._test_property_2(agentstart1=4)
-        self.assertEqual(verdict, NOT_OK)
-
-    def test_property_2_not_ok_rob2_fails_p(self):
-        verdict, results = self._test_property_2(agentstart2=4)
-        self.assertEqual(verdict, NOT_OK)
-
-    def test_property_2_not_ok_rob1_fails_q(self):
-        verdict, results = self._test_property_2(agentstart1=6, timelimit=6, qx=15)
-        self.assertEqual(verdict, NOT_OK)
-
-    def test_property_2_not_ok_rob2_fails_q(self):
-        verdict, results = self._test_property_2(agentstart2=6, timelimit=6, qx=15)
-        self.assertEqual(verdict, NOT_OK)
+        world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
+            "integer", 1)
 
     def test_property_3(self):
         world = World.instance()
@@ -465,7 +228,7 @@ forall(r : robot,
         world.registerProperty("f", f_str, World.INVARIANT)
         verdict, results = world.runExperiment(maxSteps=50)
         print("Verdict: " + str(verdict))
-        #print("Results: " + str(results))
+        # print("Results: " + str(results))
         print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         self.assertEqual(verdict, OK)
 
