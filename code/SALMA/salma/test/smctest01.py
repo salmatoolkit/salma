@@ -47,6 +47,7 @@ class SMCTest01(TestCase):
         samples = 20
         alpha = 0.05
         method = "agresti_coull"
+        estimation_tolerance = 0.1
 
         confidence_intervals = []
         all_successes = 0
@@ -76,7 +77,9 @@ class SMCTest01(TestCase):
         for cl, cu in confidence_intervals:
             if cl <= real_prob <= cu:
                 interval_hit += 1
+        interval_hit_ratio = interval_hit / len(confidence_intervals) * 100.0
         print("interval hits: {} of {} = {} %".format(interval_hit, len(confidence_intervals),
-                                                      interval_hit / len(confidence_intervals) * 100))
-        # self.assertAlmostEqual(real_prob, estimated_prob, delta=SMCTest01.ESTIMATION_TOLERANCE)
+                                                      interval_hit_ratio))
+        self.assertAlmostEqual(real_prob, estimated_prob, delta=estimation_tolerance)
+        self.assertTrue(interval_hit_ratio >= (1.0 - alpha))
 
