@@ -11,11 +11,11 @@ def hello():
 
 @app.route("/hello")
 def number():
-    resp = make_response("Hello Wrld!", 200)
+    resp = make_response("Hello World!", 200)
     resp.headers['Access-Control-Allow-Origin'] = '*'
     resp.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE'
     resp.headers['Access-Control-AllowHeaders'] = 'Content-Type'
     return resp
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0")
