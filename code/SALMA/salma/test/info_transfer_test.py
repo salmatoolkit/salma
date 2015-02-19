@@ -104,7 +104,5 @@ class InfoTransferTest(unittest.TestCase):
             self.assertTrue(c.sortName == "channel" or c.sortName == "remoteSensor")
 
 
-
-
 if __name__ == '__main__':
     unittest.main()

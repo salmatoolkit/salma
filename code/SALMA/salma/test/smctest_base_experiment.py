@@ -84,7 +84,6 @@ class SMCTestBaseExperiment(Experiment):
         self.__place_agents_in_column(0)
         self.world.setConstantValue("gravity", [], 9.81)
 
-
     def setup_properties(self):
         f_str = """
 forall(r:robot,

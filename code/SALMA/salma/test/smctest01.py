@@ -77,9 +77,9 @@ class SMCTest01(TestCase):
         for cl, cu in confidence_intervals:
             if cl <= real_prob <= cu:
                 interval_hit += 1
-        interval_hit_ratio = interval_hit / len(confidence_intervals) * 100.0
+        interval_hit_ratio = interval_hit / len(confidence_intervals)
         print("interval hits: {} of {} = {} %".format(interval_hit, len(confidence_intervals),
-                                                      interval_hit_ratio))
+                                                      interval_hit_ratio * 100.0))
         self.assertAlmostEqual(real_prob, estimated_prob, delta=estimation_tolerance)
         self.assertTrue(interval_hit_ratio >= (1.0 - alpha))
 

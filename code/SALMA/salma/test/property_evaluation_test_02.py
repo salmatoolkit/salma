@@ -6,7 +6,7 @@ from salma.model.distributions import ConstantDistribution
 from salma.model.experiment import Experiment
 from salma.model.selectionstrategy import Stepwise
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, Act, Procedure, While, Wait
+from salma.model.procedure import ControlNode, Act, Procedure, While, Wait, If
 from salma.model.process import OneShotProcess, PeriodicProcess
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
@@ -23,36 +23,46 @@ class PropertyEvaluationTest02(BaseWorldTest):
         world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
             "integer", 1)
 
-    def test_property_3(self):
+    def perform_property_3_test(self, item, pos_grab, min_pos, goal_pos):
         world = World.instance()
 
-        proc = Procedure("main", [], [
-            # Act("paint", [Entity.SELF, "item1"]),
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < 20", [], [
-                    Act("move_right", [Entity.SELF])
-                ])
+        p = OneShotProcess([
+            While("xpos(self) < 20", [
+                If("xpos(self) == 13", [pos_grab], Act("paint", [SELF, item])),
+                Act("move_right", [SELF]),
+                Wait("not moving(self)")
+            ])
         ])
-        rob1 = Agent("rob1", "robot", proc)
+        rob1 = Agent("rob1", "robot", [p])
         world.addAgent(rob1)
         world.addEntity(Entity("item1", "item"))
         world.addEntity(Entity("item2", "item"))
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
-        world.setFluentValue("xpos", ["rob1"], 5)
 
         g_str = """
-        implies(occur(paint(rob1,?)), xpos(rob1) > 200)
-"""
-        world.registerProperty("g", g_str, World.INVARIANT)
-        world.registerProperty("h", "xpos(rob1) >= 20", World.ACHIEVE)
-        verdict, results = world.runExperiment()
+        implies(occur(paint(rob1,?)), xpos(rob1) > {})
+""".format(min_pos)
+
+        def logger(world, **info):
+            print("X = {}".format(world.getFluentValue("xpos", ["rob1"])))
+
+        experiment = Experiment(world)
+        experiment.step_listeners.append(logger)
+        experiment.property_collection.register_property("g", g_str, INVARIANT)
+        experiment.property_collection.register_property("h", "xpos(rob1) >= {}".format(goal_pos), ACHIEVE)
+        verdict, results = experiment.run_experiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
-        # world.printState()
-        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
+        return verdict, results
+
+    def test_property_e_ok(self):
+        verdict, results = self.perform_property_3_test("item1", 13, 12, 20)
         self.assertEqual(verdict, OK)
+        world = World.instance()
+        world.printState()
+        self.assertTrue(world.getFluentValue("painted", ["item1"]))
 
     def create_periodic_agent(self, agent_id, item_id, target_x=40, start=0, period=6, delta=3):
         proc = Procedure("main", [], [

@@ -84,7 +84,7 @@ forall(r:robot,
         self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 30)
 
     def perform_property_2_test(self, agentstop1=20, agentstop2=20, agentstart1=10, agentstart2=10, timelimit=50, px=5,
-                                qx=19) -> (int, dict):
+                                qx=18) -> (int, dict):
         world = World.instance()
 
         p1 = OneShotProcess([

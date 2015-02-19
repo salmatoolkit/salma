@@ -56,7 +56,7 @@ class BaseWorldTest(unittest.TestCase):
 
     def setUp(self):
         print("setup")
-        World.create_new_world()
+        World.create_new_world(erase_properties=True)
         world = World.instance()
         world.load_declarations()
         world.setConstantValue("gravity", [], 9.81)
