@@ -58,7 +58,7 @@ class World(Entity, WorldDeclaration):
 
     __instance = None
 
-    def __init__(self):
+    def __init__(self, erase_properties=False):
         Entity.__init__(self, World.ENTITY_ID, World.SORT_NAME)
 
         # fluentName -> core.Fluent
@@ -109,7 +109,7 @@ class World(Entity, WorldDeclaration):
 
         if World.logic_engine() is None:
             raise SALMAException("Engine not set when creating world.")
-        World.logic_engine().reset()
+        World.logic_engine().reset(erase_properties=erase_properties)
         self.addFluent(Fluent("time", "integer", []))
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
@@ -153,12 +153,12 @@ class World(Entity, WorldDeclaration):
         self.__clp_functions.add(name)
 
     @staticmethod
-    def create_new_world():
+    def create_new_world(erase_properties=False):
         """
         Creates a new instance for the singleton World and returns it.
         :rtype: World
         """
-        World.__instance = World()
+        World.__instance = World(erase_properties=erase_properties)
         return World.__instance
 
     @property
@@ -429,7 +429,7 @@ class World(Entity, WorldDeclaration):
         2. Optionally sets ups the a new initial situation by creating samples for the fluent instance for
             each combination of parameter values.
         """
-        World.logic_engine().reset()
+        World.logic_engine().reset(erase_properties=False)
         self.__evaluationContext = LocalEvaluationContext(self, None)
 
         for sort in self.__domainMap.keys():

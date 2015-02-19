@@ -161,7 +161,7 @@ class Engine(object):
         """
         raise NotImplementedError()
 
-    def reset(self):
+    def reset(self, erase_properties=False):
         raise NotImplementedError()
 
     def defineDomain(self, sortName, objectIds):
@@ -442,10 +442,7 @@ class EclipseCLPEngine(Engine):
             # result, dummy = pyclp.resume()
         if result != pyclp.SUCCEED:
             raise (SALMAException("Can't compile Eclipse CLP progression module (msg = {})".format(msg)))
-
-        self.__callGoal("init_agasmc", erorMsg="Can't initialize main module.")
-        if self.__domain_init_function is not None:
-            self.__callGoal(self.__domain_init_function, erorMsg="Can't initialize domain description.")
+        self.reset(erase_properties=True)
 
     def printToplevelGoals(self):
         # v = pyclp.Var()
@@ -510,13 +507,16 @@ class EclipseCLPEngine(Engine):
                 errorMsg.format(goalName, readableParams, result, msg, stream_num)))
         return goal, result, msg
 
-    def reset(self):
+    def reset(self, erase_properties=False):
 
         self.__currentState = None
         self.__properties = dict()
         self.__constants = dict()
 
-        self.__callGoal("reset_agasmc", erorMsg="Can't reset main module.")
+        if erase_properties:
+            self.__callGoal("init_agasmc", erorMsg="Can't initialize main module.")
+        else:
+            self.__callGoal("reset_agasmc", erorMsg="Can't reset main module.")
 
         if self.__domain_init_function is not None:
             self.__callGoal(self.__domain_init_function, erorMsg="Can't initialize domain description.")

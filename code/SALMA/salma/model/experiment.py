@@ -89,7 +89,7 @@ class Experiment(object):
 
     def initialize(self):
         if self.world is None:
-            World.create_new_world()
+            World.create_new_world(erase_properties=False)
             self.__world = World.instance()
             self.world.load_declarations()
             self.augment_world_context()
