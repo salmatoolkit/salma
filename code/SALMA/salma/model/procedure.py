@@ -443,11 +443,14 @@ class If(ControlNode):
         result = evaluation_context.evaluateCondition(condition_type,
                                                       self.condition,
                                                       *self.condition_params)
-        evaluation_context.setCurrentSequenceIndex(self, 1)
 
         if result is True:
+            evaluation_context.setCurrentSequenceIndex(self, 1)
             return ControlNode.CONTINUE, self.then_body, evaluation_context
         else:
+            # Only wait for re-entering when we have an else body. Otherwise just skip.
+            if self.else_body is not None:
+                evaluation_context.setCurrentSequenceIndex(self, 1)
             return ControlNode.CONTINUE, self.else_body, evaluation_context
 
     def reset(self, evaluation_context):
