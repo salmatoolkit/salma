@@ -27,8 +27,8 @@ class PropertyEvaluationTest02(BaseWorldTest):
         world = World.instance()
 
         p = OneShotProcess([
-            While("xpos(self) < 20", [
-                If("xpos(self) == 13", [pos_grab], Act("paint", [SELF, item])),
+            While("xpos(self) < params[0]", [goal_pos], [
+                If("xpos(self) == params[0]", [pos_grab], Act("paint", [SELF, item])),
                 Act("move_right", [SELF]),
                 Wait("not moving(self)")
             ])
@@ -57,12 +57,21 @@ class PropertyEvaluationTest02(BaseWorldTest):
         print("Results: " + str(results))
         return verdict, results
 
-    def test_property_e_ok(self):
+    def test_property_3_ok(self):
         verdict, results = self.perform_property_3_test("item1", 13, 12, 20)
         self.assertEqual(verdict, OK)
         world = World.instance()
         world.printState()
         self.assertTrue(world.getFluentValue("painted", ["item1"]))
+        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 20)
+
+    def test_property_3_fail(self):
+        verdict, results = self.perform_property_3_test("item1", 13, 15, 20)
+        self.assertEqual(verdict, NOT_OK)
+        world = World.instance()
+        world.printState()
+        self.assertTrue(world.getFluentValue("painted", ["item1"]))
+        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 13)
 
     def create_periodic_agent(self, agent_id, item_id, target_x=40, start=0, period=6, delta=3):
         proc = Procedure("main", [], [
