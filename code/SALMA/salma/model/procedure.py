@@ -317,7 +317,7 @@ class While(ControlNode):
             body = args[1]
         else:
             raise SALMAException("Wrong number of arguments in While: expected 1 or 2 but "
-                                 "got {}".format(args))
+                                 "got {}".format(len(args)))
         self.__body = Sequence(body) if isinstance(body, (list, tuple)) else body
         self.__body.parent = self
 

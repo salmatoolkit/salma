@@ -1,64 +1,50 @@
-15 : [nondet : f] [nondet : sg(f, 0, 4, 1, 14), nondet : sg(f, 0, 9, 6, 14), nondet : sg(f, 0, 14, 11, 14), nondet : sg(f, 0, 7, 4, 14), nondet : sg(f, 0, 12, 9, 14), nondet : sg(f, 0, 17, 14, 14), nondet : sg(f, 0, 5, 2, 14), nondet : sg(f, 0, 10, 7, 14), nondet : sg(f, 0, 15, 12, 14), nondet : sg(f, 0, 3, 0, 14), nondet : sg(f, 0, 8, 5, 14), nondet : sg(f, 0, 13, 10, 14), nondet : sg(f, 0, 6, 3, 14), nondet : sg(f, 0, 11, 8, 14), nondet : sg(f, 0, 16, 13, 14)] [sg(f, 0, 4, 1, 15), sg(f, 0, 9, 6, 15), sg(f, 0, 14, 11, 15), sg(f, 0, 7, 4, 15), sg(f, 0, 12, 9, 15), sg(f, 0, 17, 14, 15), sg(f, 0, 5, 2, 15), sg(f, 0, 10, 7, 15), sg(f, 0, 15, 12, 15), sg(f, 0, 3, 0, 15), sg(f, 0, 8, 5, 15), sg(f, 0, 13, 10, 15), sg(f, 0, 6, 3, 15), sg(f, 0, 11, 8, 15), sg(f, 0, 16, 13, 15)] []
+15 : [nondet : f] [nondet : sg(f, 0, 4, 1, 15), nondet : sg(f, 0, 9, 6, 15), nondet : sg(f, 0, 14, 11, 15), nondet : sg(f, 0, 7, 4, 15), nondet : sg(f, 0, 12, 9, 15), nondet : sg(f, 0, 17, 14, 15), nondet : sg(f, 0, 5, 2, 15), nondet : sg(f, 0, 10, 7, 15), nondet : sg(f, 0, 15, 12, 15), nondet : sg(f, 0, 8, 5, 15), nondet : sg(f, 0, 13, 10, 15), nondet : sg(f, 0, 6, 3, 15), nondet : sg(f, 0, 11, 8, 15), nondet : sg(f, 0, 16, 13, 15)] [sg(f, 0, 4, 1, 16), sg(f, 0, 9, 6, 16), sg(f, 0, 14, 11, 16), sg(f, 0, 7, 4, 16), sg(f, 0, 12, 9, 16), sg(f, 0, 17, 14, 16), sg(f, 0, 5, 2, 16), sg(f, 0, 10, 7, 16), sg(f, 0, 15, 12, 16), sg(f, 0, 8, 5, 16), sg(f, 0, 13, 10, 16), sg(f, 0, 6, 3, 16), sg(f, 0, 11, 8, 16), sg(f, 0, 16, 13, 16)] []
 Scheduled Goals:
       Name       Time   End Time Level    Id     Params Term
 -------------------------------------------------------
          f          0          5     1     1 [] not_ok
+         f          0          5     0     3 [] not_ok
          f          0          5     1     2 [] not_ok
-         f          0         15     0     3 [p([0, 1, 1, 1, 1, 2]) : 1, p([0, 1, 2, 1, 2, 2]) : 2] cf(6)
-         f          1         15     0     4 [] cf(1)
+         f          1         16     0     4 [] cf(1)
          f          1          1     1     1 [] ok
+         f          1          2     1     1 [] ok
          f          1          1     1     2 [] ok
-         f          2         15     0     5 [] cf(1)
+         f          1          2     1     2 [] ok
+         f          2         16     0     5 [] cf(1)
          f          2          2     1     1 [] ok
+         f          2          3     1     1 [] ok
          f          2          2     1     2 [] ok
+         f          2          3     1     2 [] ok
          f          3          3     1     2 [] ok
+         f          3          4     1     2 [] ok
          f          3          3     1     1 [] ok
-         f          3         15     0     6 [] cf(1)
+         f          3          4     1     1 [] ok
+         f          3         16     0     6 [] cf(1)
          f          4          4     1     2 [] ok
-         f          4         15     0     7 [] cf(1)
+         f          4         16     0     7 [] cf(1)
          f          4          4     1     1 [] ok
+         f          4          5     1     1 [] ok
          f          5          5     1     1 [] ok
-         f          5          5     1     2 [] ok
-         f          5         15     0     8 [] cf(1)
-         f          6         15     0     9 [] cf(1)
-         f          6          6     1     1 [] ok
-         f          6          6     1     2 [] ok
-         f          7          7     1     1 [] ok
-         f          7         15     0    10 [] cf(1)
-         f          7          7     1     2 [] ok
-         f          8          8     1     1 [] ok
-         f          8          8     1     2 [] ok
-         f          8         15     0    11 [] cf(1)
-         f          9         15     0    12 [] cf(1)
-         f          9          9     1     1 [] ok
-         f          9          9     1     2 [] ok
-         f         10         10     1     2 [] ok
-         f         10         15     0    13 [] cf(1)
-         f         10         10     1     1 [] ok
-         f         11         11     1     1 [] ok
-         f         11         15     0    14 [] cf(1)
-         f         11         11     1     2 [] ok
-         f         12         12     1     1 [] ok
-         f         12         12     1     2 [] ok
-         f         12         15     0    15 [] cf(1)
-         f         13         13     1     1 [] ok
-         f         13         13     1     2 [] ok
-         f         13         15     0    16 [] cf(1)
-         f         14         15     0    17 [] cf(1)
-         f         14         14     1     1 [] ok
-         f         14         14     1     2 [] ok
-         f         15         15     1     1 [] ok
-         f         15         15     0    18 [] cf(1)
-         f         15         15     1     2 [] ok
+         f          5         16     0     8 [] cf(1)
+         f          6         16     0     9 [] cf(1)
+         f          7         16     0    10 [] cf(1)
+         f          8         16     0    11 [] cf(1)
+         f          9         16     0    12 [] cf(1)
+         f         10         16     0    13 [] cf(1)
+         f         11         16     0    14 [] cf(1)
+         f         12         16     0    15 [] cf(1)
+         f         13         16     0    16 [] cf(1)
+         f         14         16     0    17 [] cf(1)
+         f         15         16     0    18 [] cf(1)
 
 
 Formula Cache:
-         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), c_([xpos(rob1, _862005, s0), _862005 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), c_([xpos(rob1, _862051, s0), _862051 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), c_([xpos(rob2, _862101, s0), _862101 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), c_([xpos(rob2, _862147, s0), _862147 >= 29]))])])
+         1 all([all([until(20, one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))]), c_([xpos(rob1, _306983, s0), _306983 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), c_([xpos(rob1, _307029, s0), _307029 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), c_([xpos(rob2, _307079, s0), _307079 >= 29])), until(20, one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))]), c_([xpos(rob2, _307125, s0), _307125 >= 29]))])])
          2 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
          3 one([not2(occur(grab(rob1, item1))), until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
          4 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
          5 one([not2(occur(grab(rob2, item2))), until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
-         6 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _862287, cf(3)), c_([xpos(rob1, _862311, s0), _862311 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), c_([xpos(rob1, _862357, s0), _862357 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), c_([xpos(rob2, _862407, s0), _862407 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _862422, cf(5)), c_([xpos(rob2, _862446, s0), _862446 >= 29]))])])
+         6 all([all([until(20, sched(p([0, 1, 1, 1, 1, 2]), _307265, cf(3)), c_([xpos(rob1, _307289, s0), _307289 >= 29])), until(20, one([not2(occur(grab(rob1, item2))), until(5, carrying(rob1, item2, s0), not2(carrying(rob1, item2, s0)))]), c_([xpos(rob1, _307335, s0), _307335 >= 29]))]), all([until(20, one([not2(occur(grab(rob2, item1))), until(5, carrying(rob2, item1, s0), not2(carrying(rob2, item1, s0)))]), c_([xpos(rob2, _307385, s0), _307385 >= 29])), until(20, sched(p([0, 1, 2, 1, 2, 2]), _307400, cf(5)), c_([xpos(rob2, _307424, s0), _307424 >= 29]))])])
          7 one([not_ok, until(5, carrying(rob1, item1, s0), not2(carrying(rob1, item1, s0)))])
          8 one([not_ok, until(5, carrying(rob2, item2, s0), not2(carrying(rob2, item2, s0)))])
 
@@ -70,7 +56,7 @@ f(0, 1, 2, 1, 2, 2) [5, 4]
 
 
 Sate:
-[fl(domain, agent) - [rob1, rob2], fl(painted, item1) - false, fl(painted, item2) - false, fl(active, rob1) - false, fl(domain, channel) - [], fl(active, rob2) - false, fl(domain, robot) - [rob1, rob2], fl(domain, object) - [item1, item2, rob1, rob2], fl(domain, sensor) - [], fl(xpos, rob1) - 25, fl(domain, item) - [item1, item2], fl(time) - 15, fl(xpos, rob2) - 25, fl(carrying, rob1, item1) - false, fl(carrying, rob1, item2) - false, fl(carrying, rob2, item1) - false, fl(carrying, rob2, item2) - false, fl(domain, connector) - [], fl(domain, message) - [], fl(domain, remoteSensor) - [], fl(ypos, rob1) - 10, fl(domain, sort) - [agent, channel, connector, item, message, object, remoteSensor, robot, sensor, sort], fl(ypos, rob2) - 20]
+[fl(domain, agent) - [rob1, rob2], fl(painted, item1) - false, fl(painted, item2) - false, fl(active, rob1) - false, fl(domain, channel) - [], fl(active, rob2) - false, fl(domain, robot) - [rob1, rob2], fl(domain, object) - [item1, item2, rob1, rob2], fl(domain, sensor) - [], fl(vx, rob1) - 0, fl(vx, rob2) - 0, fl(xpos, rob1) - 25, fl(domain, item) - [item1, item2], fl(time) - 15, fl(xpos, rob2) - 25, fl(vy, rob1) - 0, fl(carrying, rob1, item1) - false, fl(vy, rob2) - 0, fl(carrying, rob1, item2) - false, fl(carrying, rob2, item1) - false, fl(carrying, rob2, item2) - false, fl(domain, connector) - [], fl(partner, rob1) - none, fl(partner, rob2) - none, fl(domain, message) - [], fl(domain, remoteSensor) - [], fl(ypos, rob1) - 10, fl(domain, sort) - [agent, channel, connector, item, lock, message, object, remoteSensor, robot, sensor, sort], fl(ypos, rob2) - 20, fl(domain, lock) - []]
 
 --------------------------------------------
 

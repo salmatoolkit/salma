@@ -284,7 +284,9 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
 				always, CurrentStep, StartTime, EndTime, P, Level, Result, ToSchedule2, ScheduleParams2, HasChanged2),
 			((Result = nondet) ->
-				ToSchedule = invariant(ToSchedule2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
+				ToSchedule = invariant(ToSchedule2), 
+				%ToSchedule = ToSchedule2, 
+				HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
 				ToSchedule = Result, HasChanged = true, ScheduleParams = []
 			), !
@@ -734,6 +736,7 @@ evaluate_toplevel(EndTime, Results) :-
 % Instantiates variables in sched - parts of F with schedule ids given in 
 % Params. The ids in Params are identified by the corresponding position (path) in F.
 apply_params(Params, F) :-
+	%printf("AP: %w | %w\n", [Params, F]),
 	(foreach(P, Params), param(F) do
 		P = p(Path) : SchedId,
 		get_subterm(F, Path, SubTerm),

@@ -16,7 +16,6 @@ from datetime import datetime, timedelta
 
 
 class PropertyEvaluationTest02(BaseWorldTest):
-
     def setUp(self):
         super().setUp()
         world = World.instance()
@@ -74,48 +73,48 @@ class PropertyEvaluationTest02(BaseWorldTest):
         self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 13)
 
     def create_periodic_agent(self, agent_id, item_id, target_x=40, start=0, period=6, delta=3):
-        proc = Procedure("main", [], [
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                  u"xpos(self) < {0:d}".format(target_x), [], [
-                    Act("move_right", [Entity.SELF])
-                ])
+        p1 = OneShotProcess([
+            While("xpos(self) < params[0]", [target_x], [
+                Act("move_right", [SELF]),
+                Wait("not moving(self)")])
         ])
-        p1 = OneShotProcess(proc)
-        proc2 = Procedure("main", [], [
-            Act("grab", [Entity.SELF, item_id])
+        proc2 = Procedure([
+            Act("grab", [SELF, item_id])
         ])
-        proc3 = Procedure("main", [], [
-            Act("drop", [Entity.SELF, item_id])
+        proc3 = Procedure([
+            Act("drop", [SELF, item_id])
         ])
         p2 = PeriodicProcess(proc2, period, introduction_time=start)
         p3 = PeriodicProcess(proc3, period, introduction_time=start + delta)
         rob = Agent(agent_id, "robot", [p1, p2, p3])
         return rob
 
-    def __test_nested_until(self, world: World) -> (int, dict):
+    def __test_nested_until(self, world: World, outer_time_limit=50, inner_time_limit=4,
+                            target_x_f=20, target_x_g=35) -> (int, dict):
         f_str = """
 forall(r:robot, forall(i:item,
-        until(50,
+        until({},
             implies(
                 occur(grab(r,i)),
-                until(4,
+                until({},
                     carrying(r,i),
                     not(carrying(r,i))
                 )
             ),
-            xpos(r) >= 20
+            xpos(r) >= {}
         )
 ))
-"""
+""".format(outer_time_limit, inner_time_limit, target_x_f)
 
         g_str = """
-forall([r, robot],
-   xpos(r) >=  35
+forall(r:robot,
+   xpos(r) >=  {}
 )
-"""
-        world.registerProperty("f", f_str, World.INVARIANT)
-        world.registerProperty("g", g_str, World.ACHIEVE)
-        verdict, results = world.runExperiment()
+""".format(target_x_g)
+        experiment = Experiment(world)
+        experiment.property_collection.register_property("f", f_str, INVARIANT)
+        experiment.property_collection.register_property("g", g_str, ACHIEVE)
+        verdict, results = experiment.run_experiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         # : :type: timedelta
@@ -123,8 +122,6 @@ forall([r, robot],
         print("time: {}".format(dt.total_seconds()))
 
         # world.printState()
-        print("\n\n" + ("-" * 50) + "\n")
-        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         return verdict, results
 
     @withHeader()
@@ -155,6 +152,22 @@ forall([r, robot],
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
+
+        verdict, results = self.__test_nested_until(world)
+        self.assertEqual(verdict, NOT_OK)
+
+    @withHeader()
+    def test_nested_until_fail_one_agent_outer(self):
+        world = World.instance()
+        rob1 = self.create_periodic_agent("rob1", "item1")
+        rob2 = self.create_periodic_agent("rob2", "item2", target_x=18)
+        world.addAgent(rob1)
+        world.addAgent(rob2)
+        world.addEntity(Entity("item1", "item"))
+        world.addEntity(Entity("item2", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=0)
 
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)

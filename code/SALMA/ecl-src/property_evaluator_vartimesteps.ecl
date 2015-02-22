@@ -236,6 +236,7 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 	% StartTime could be before the current time
 	% TODO: should we really distinguish StartTime from CurrentTime?
 	append(FormulaPath, [1], SubPathP),
+	%SubPathP = FormulaPath,
 	time(CurrentTime, do2(tick(StartStep), s0)),
 	TimeDiff is EndTime - CurrentTime,
 	(TimeDiff < 0 -> throw(end_time_before_current) ; true),
@@ -255,7 +256,8 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 		PSchedIdIn = -1,
 		PCacheId = -1		
 	),
-	evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
+	% use formula path 
+	evaluate_for_all_timesteps(ToplevelFormula, FormulaPath, 
 		Mode, StartStep, CurrentTime, StartTime, EndTime, SubP, NextLevel, Result1, 
 		PSchedIdIn, PCacheId,
 		PSchedId, ToScheduleP,

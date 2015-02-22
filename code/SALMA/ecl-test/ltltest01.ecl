@@ -244,7 +244,7 @@ test3 :-
 	
 test4 :-
 	init,
-	F = forall([r, robot], forall([i, item],
+	F = forall(r:robot, forall(i:item,
 			until(20,
 				implies(
 					occur(grab(r, i)),
@@ -275,8 +275,9 @@ test4 :-
 	progress([grab(rob1, item1)]),
 	progress([grab(rob2, item2)]),
 	(count(I,0,20) do
-				
-				evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+				current_time(CurrentTime),
+				NextTime is CurrentTime + 1,
+				evaluation_step(NextTime, ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 				sprintf(FName, "testlog/step_%d.log",[I]),
 				open(FName, write, SD2),
 				printf(SD2, "%d : %w %w %w %w\n",[I,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
@@ -334,7 +335,8 @@ test7 :-
 	
 evstep :-
 	current_time(T),
-	evaluation_step(ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
+	T2 is T + 1,
+	evaluation_step(T2, ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 	printf("%d : %w %w %w %w\n",[T,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
 	print_scheduled_goals(stdout,4),
 	print("\n-------\n"),
@@ -352,3 +354,58 @@ test8 :-
 	printf("F2: %w\n", [F2]),
 	evaluate_ad_hoc(F, Result),
 	Result = ok.
+	
+test_nested :-
+	init,
+	F = invariant(until(20,
+				implies(
+					occur(grab(rob1, item1)),
+					until(5,
+						carrying(rob1,item1),
+						not(carrying(rob1,item1))
+					)
+				),
+				xpos(rob1) >= 29
+			)),
+	register_property(f, F, _).
+
+test_nested2 :-
+	init,
+	F = until(20,
+				implies(
+					occur(grab(rob1, item1)),
+					until(5,
+						carrying(rob1,item1),
+						not(carrying(rob1,item1))
+					)
+				),
+				xpos(rob1) >= 29
+			),
+	register_property(f, F, _).
+	
+test_nested3 :-
+	init,
+	F = forall(r:robot, until(20,
+				implies(
+					occur(grab(r, item1)),
+					until(5,
+						carrying(r,item1),
+						not(carrying(r,item1))
+					)
+				),
+				xpos(r) >= 29
+			)),
+	register_property(f, F, _).
+	
+test_inv1 :-
+	init,
+	F = invariant(
+			implies(
+				occur(grab(rob1, item1)),
+				until(5,
+					carrying(rob1,item1),
+					not(carrying(rob1,item1))
+				)
+			)
+		),
+	register_property(f, F, _).
