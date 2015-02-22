@@ -1,4 +1,5 @@
 import unittest
+from unittest.case import skipIf
 
 from salma.model.agent import Agent
 from salma.model.core import Entity, Constant
@@ -13,6 +14,14 @@ from salma.test.testhelpers import withHeader
 from salma.test.world_test_base import BaseWorldTest
 from salma.constants import *
 from datetime import datetime, timedelta
+from enum import Enum
+
+
+class TestModes(Enum):
+    full = 1
+    quick = 2
+
+MODE = TestModes.quick
 
 
 class PropertyEvaluationTest02(BaseWorldTest):
@@ -156,7 +165,7 @@ forall(r:robot,
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    @withHeader()
+    @skipIf(MODE is TestModes.quick, "quick mode")
     def test_nested_until_fail_one_agent_outer(self):
         world = World.instance()
         rob1 = self.create_periodic_agent("rob1", "item1")
@@ -247,6 +256,11 @@ forall(r : robot,
             )
         )
 """
+        g_str = """
+forall(r:robot,
+   xpos(r) >=  50
+)
+"""
         world = World.instance()
         rob1 = self.create_periodic_agent("rob1", "item1", target_x=50)
         rob2 = self.create_periodic_agent("rob2", "item2", target_x=50)
@@ -257,11 +271,14 @@ forall(r : robot,
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
-        world.registerProperty("f", f_str, World.INVARIANT)
-        verdict, results = world.runExperiment(maxSteps=50)
+        experiment = Experiment(world)
+        experiment.property_collection.register_property("f", f_str, INVARIANT)
+        experiment.property_collection.register_property("g", g_str, ACHIEVE)
+        verdict, results = experiment.run_experiment()
         print("Verdict: " + str(verdict))
         # print("Results: " + str(results))
-        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
+        #print(world.logic_engine().format_failure_stack(results["failure_stack"]))
+        world.printState()
         self.assertEqual(verdict, OK)
 
     @withHeader()
