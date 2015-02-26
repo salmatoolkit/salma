@@ -181,18 +181,18 @@ forall(r:robot,
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    # @unittest.skip
     def test_property_4(self):
         world = World.instance()
 
-        proc = Procedure("main", [], [
-            # Act("paint", [Entity.SELF, "item1"]),
+        p1 = OneShotProcess([
+            While("xpos(self) < 20", [
+                Act("move_right", [SELF]),
+                Wait("not moving(self)"),
+                While("ypos(self) < 15", [
+                    Act("move_down", [SELF]),
+                    Wait("not moving(self)")
+                ]),
             While(EvaluationContext.PYTHON_EXPRESSION,
-                  "xpos(self) < 20", [], [
-                    Act("move_right", [Entity.SELF]),
-                    While(EvaluationContext.PYTHON_EXPRESSION,
-                          "ypos(self) < 15", [], Act("move_down", [Entity.SELF])),
-                    While(EvaluationContext.PYTHON_EXPRESSION,
                           "ypos(self) > 10", [], Act("move_up", [Entity.SELF]))
                 ])
         ])

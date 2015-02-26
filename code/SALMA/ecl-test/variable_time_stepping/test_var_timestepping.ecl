@@ -44,6 +44,21 @@ test1(Steps) :-
 	printf(" Result=%w\n ToSchedule=%w\n ScheduleParams=%w\n HasChanged=%w",
 		[Result, ToSchedule, ScheduleParams, HasChanged]).
 	
+test1_b :-
+	init,
+	F = forall(r1:robot,
+			forall(r2:robot,
+				implies(r1 \= r2, 
+					not(
+						and(
+							xpos(r1) =:= xpos(r2),
+							ypos(r1) =:= ypos(r2)
+						)
+					)
+				)
+			)
+		),
+	register_property(f, invariant(F), _).
 		
 test2(TimeDelta, MaxX) :-
 	init,
