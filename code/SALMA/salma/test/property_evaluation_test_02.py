@@ -181,6 +181,7 @@ forall(r:robot,
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
+    @skipIf(MODE is TestModes.quick, "quick mode")
     def test_property_4(self):
         world = World.instance()
 
@@ -192,12 +193,14 @@ forall(r:robot,
                     Act("move_down", [SELF]),
                     Wait("not moving(self)")
                 ]),
-            While(EvaluationContext.PYTHON_EXPRESSION,
-                          "ypos(self) > 10", [], Act("move_up", [Entity.SELF]))
+                While("ypos(self) > 10", [
+                    Act("move_up", [Entity.SELF]),
+                    Wait("not moving(self)")
                 ])
+            ])
         ])
 
-        rob1 = Agent("rob1", "robot", proc)
+        rob1 = Agent("rob1", "robot", [p1])
         world.addAgent(rob1)
         world.addEntity(Entity("item1", "item"))
         world.addEntity(Entity("item2", "item"))
@@ -207,7 +210,7 @@ forall(r:robot,
         world.setFluentValue("xpos", ["rob1"], 5)
 
         g_str = """
-forall([r,robot],
+forall(r:robot,
     until(200,
         implies(
             ypos(r) = 10,
@@ -217,9 +220,10 @@ forall([r,robot],
     )
 )
 """
-        world.registerProperty("g", g_str, World.INVARIANT)
-        world.registerProperty("h", "xpos(rob1) >= 20", World.ACHIEVE)
-        verdict, results = world.runExperiment()
+        experiment = Experiment(world)
+        experiment.property_collection.register_property("g", g_str, INVARIANT)
+        experiment.property_collection.register_property("h", "xpos(rob1) >= 20", ACHIEVE)
+        verdict, results = experiment.run_experiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         # : :type: timedelta
@@ -227,7 +231,6 @@ forall([r,robot],
         print("time: {}".format(dt.total_seconds()))
 
         # world.printState()
-        print(world.logic_engine().format_failure_stack(results["failure_stack"]))
         self.assertEqual(verdict, OK)
 
     @withHeader()
@@ -281,8 +284,7 @@ forall(r:robot,
         world.printState()
         self.assertEqual(verdict, OK)
 
-    @withHeader()
-    def test_variable_match_ok(self):
+    def _test_variable_match(self, m1=42, m2=100, m3=52, m4=110):
         f_str = """
 forall(r : robot,
     implies(
@@ -299,10 +301,10 @@ forall(r : robot,
 )
 """
         world = World.instance()
-        p1_1 = OneShotProcess(Act("mark", [Entity.SELF, "item1", 42]), introduction_time=0)
-        p2_1 = OneShotProcess(Act("mark", [Entity.SELF, "item2", 100]), introduction_time=5)
-        p1_2 = OneShotProcess(Act("mark", [Entity.SELF, "item1", 52]), introduction_time=15)
-        p2_2 = OneShotProcess(Act("mark", [Entity.SELF, "item2", 110]), introduction_time=20)
+        p1_1 = OneShotProcess(Act("mark", [SELF, "item1", m1]), introduction_time=0)
+        p2_1 = OneShotProcess(Act("mark", [SELF, "item2", m2]), introduction_time=5)
+        p1_2 = OneShotProcess(Act("mark", [SELF, "item1", m3]), introduction_time=15)
+        p2_2 = OneShotProcess(Act("mark", [SELF, "item2", m4]), introduction_time=20)
 
         rob1 = Agent("rob1", "robot", [p1_1, p1_2])
         rob2 = Agent("rob2", "robot", [p2_1, p2_2])
@@ -313,45 +315,21 @@ forall(r : robot,
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
-        world.registerProperty("f", f_str, World.INVARIANT)
-        verdict, results = world.runExperiment(maxSteps=25)
+
+        e = Experiment(world)
+        e.property_collection.register_property("f", f_str, INVARIANT)
+        verdict, results = e.run_experiment(maxSteps=25)
+        return verdict, results
+
+    @withHeader()
+    def test_variable_match_ok(self):
+        verdict, results = self._test_variable_match()
         print("Verdict: " + str(verdict))
         self.assertEqual(verdict, OK)
 
     @withHeader()
     def test_variable_match_not_ok(self):
-        f_str = """
-forall(r : robot,
-    implies(
-        occur(mark(r, ?, ?)),
-        match([i, m] : occur(mark(r, i, m)),
-            let(m2 : m + 10,
-                until(20,
-                    true,
-                    occur(mark(r, i, m2))
-                )
-            )
-        )
-    )
-)
-"""
-        world = World.instance()
-        p1_1 = OneShotProcess(Act("mark", [Entity.SELF, "item1", 42]), introduction_time=0)
-        p2_1 = OneShotProcess(Act("mark", [Entity.SELF, "item2", 100]), introduction_time=5)
-        p1_2 = OneShotProcess(Act("mark", [Entity.SELF, "item1", 53]), introduction_time=15)
-        p2_2 = OneShotProcess(Act("mark", [Entity.SELF, "item2", 110]), introduction_time=20)
-
-        rob1 = Agent("rob1", "robot", [p1_1, p1_2])
-        rob2 = Agent("rob2", "robot", [p2_1, p2_2])
-        world.addAgent(rob1)
-        world.addAgent(rob2)
-        world.addEntity(Entity("item1", "item"))
-        world.addEntity(Entity("item2", "item"))
-        world.initialize(False)
-        self.setNoOneCarriesAnything()
-        self.place_agents_in_column(x=10)
-        world.registerProperty("f", f_str, World.INVARIANT)
-        verdict, results = world.runExperiment(maxSteps=25)
+        verdict, results = self._test_variable_match(m1=42, m2=100, m3=53, m4=110)
         print("Verdict: " + str(verdict))
         self.assertEqual(verdict, NOT_OK)
 
