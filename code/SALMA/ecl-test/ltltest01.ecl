@@ -358,15 +358,15 @@ test8 :-
 test_nested :-
 	init,
 	F = invariant(until(20,
-				implies(
-					occur(grab(rob1, item1)),
-					until(5,
-						carrying(rob1,item1),
-						not(carrying(rob1,item1))
-					)
-				),
-				xpos(rob1) >= 29
-			)),
+			implies(
+				occur(grab(rob1, item1)),
+				until(5,
+					carrying(rob1,item1),
+					not(carrying(rob1,item1))
+				)
+			),
+			xpos(rob1) >= 29
+		)),
 	register_property(f, F, _).
 
 test_nested2 :-
@@ -408,4 +408,14 @@ test_inv1 :-
 				)
 			)
 		),
+	register_property(f, F, _).
+	
+test_inv2 :-
+	init,
+	F = invariant(until(50, xpos(rob1) >= 10, xpos(rob1) > 20)),
+	register_property(f, F, _).
+	
+test_plain_until :-
+	init,
+	F = until(50, xpos(rob1) >= 10, xpos(rob1) > 20),
 	register_property(f, F, _).
