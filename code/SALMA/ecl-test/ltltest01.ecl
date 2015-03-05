@@ -412,9 +412,9 @@ test_inv1 :-
 	
 test_inv2 :-
 	init,
-	F = invariant(until(50, xpos(rob1) >= 10, xpos(rob1) > 20)),
+	F = 
+	invariant(until(50, xpos(rob1) >= 10, xpos(rob1) > 20)),
 	register_property(f, F, _).
-	
 test_inv4 :-
 	init,
 	F = until(50, xpos(rob1) >= 10, xpos(rob1) > 20),
