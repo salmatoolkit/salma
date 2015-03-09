@@ -332,10 +332,12 @@ test7 :-
 	F = until(50, xpos(rob1) > 15, xpos(rob1) > 12),
 	register_property(f, F, _).
 	
-	
 evstep :-
+	evstep(1).
+	
+evstep(TimeDelta) :-
 	current_time(T),
-	T2 is T + 1,
+	T2 is T + TimeDelta,
 	evaluation_step(T2, ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 	printf("%d : %w %w %w %w\n",[T,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
 	print_scheduled_goals(stdout,4),
@@ -344,7 +346,7 @@ evstep :-
 	print("\n-------\n"),
 	print_cache_candidates(stdout),
 	moveAll,
-	progress([tick(1)]).
+	progress([tick(TimeDelta)]).
 
 test8 :-
 	init,

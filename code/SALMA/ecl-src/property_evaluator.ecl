@@ -11,6 +11,7 @@
 :- local store(original_properties).
 
 :- local store(scheduled_goals).
+:- local store(goal_id_map).
 :- local variable(next_scheduled_goal_id).
 :- local store(persistent_fluents).
 % structure: name - (current_value : last_changed)
@@ -30,6 +31,7 @@ init_smc :-
 	store_erase(toplevel_goals),
 	store_erase(original_properties),
 	store_erase(scheduled_goals),
+	store_erase(goal_id_map),
 	store_erase(persistent_fluents),
 	store_erase(persistent_fluent_states),
 	store_erase(formula_cache_candidates),
@@ -84,6 +86,7 @@ get_referenced_failures(Ref, Failures) :-
 
 reset_smc :-
 	store_erase(scheduled_goals),
+	store_erase(goal_id_map),
 	store_erase(persistent_fluent_states),
 	setval(negated, 0),
 	erase_failure_stack,	
