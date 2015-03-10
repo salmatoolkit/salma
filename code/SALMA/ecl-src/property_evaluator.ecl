@@ -11,7 +11,11 @@
 :- local store(original_properties).
 
 :- local store(scheduled_goals).
+% stores a map of cache id / param terms to schedule ids
 :- local store(goal_id_map).
+
+:- local store(scheduled_goal_descriptions).
+
 :- local variable(next_scheduled_goal_id).
 :- local store(persistent_fluents).
 % structure: name - (current_value : last_changed)
@@ -568,6 +572,8 @@ getMax(V1, V2, Result) :-
 	(V2 > V1 -> Result = V2 ; Result = V1).
 			
 
+			
+
 
 % Evaluates F at the current time. If an Id is given, the result is stored in the list associated with the id
 % and schedule params gathered during evaluation of F. 
@@ -587,17 +593,16 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndT
 			CacheId2 is CacheId, HasChanged2 = false
 		),	
 		(
-			(Result = nondet, 
-				(ScheduleIdIn is -1 ->	
-					incval(next_scheduled_goal_id),
-					getval(next_scheduled_goal_id, ScheduleIdOut)
-				;
-					ScheduleIdOut is ScheduleIdIn
-				),						
+			(Result = nondet,
 				ToSchedule2 = cf(CacheId2), 
 				ToScheduleOut = cf(CacheId2),
 				HasChanged3 = false,
-				!
+				(ScheduleIdIn is -1 ->	
+					get_goal_schedule_id(ToplevelFormula, ToSchedule2, ScheduleParams, 
+						ScheduleIdOut)
+				;
+					ScheduleIdOut is ScheduleIdIn
+				), !
 				; 
 			not(Result = nondet), not(ScheduleIdIn is -1), 
 				ToSchedule2 = Result, 
@@ -622,6 +627,25 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndT
 			HasChanged = false
 		).
 
+get_goal_schedule_id(ToplevelFormula, ToSchedule, ScheduleParams, Id) :-
+	store_get(goal_id_map, s(ToplevelFormula, ToSchedule, ScheduleParams), Id), !
+	;
+	incval(next_scheduled_goal_id),
+	getval(next_scheduled_goal_id, Id).
+	
+store_scheduled_goal(ScheduleId, StartTime, EndTime, ToSchedule, ScheduleParams) :-
+	% check whether StartTime is in (or on bounds of) existing interval
+	% --> extend interval or create new one
+	% --> calculate StartTime2 nad EndTime2
+	store_get(scheduled_goals,
+		ScheduleId,
+		ExistingIntervals),
+	append(ExistingIntervals, [s(StartTime2, EndTime2, ToSchedule, ScheduleParams)], 
+		Intervals2),
+	% TODO: handle interval extension 
+	store_set(scheduled_goals,
+		ScheduleId, Intervals2).
+		
 % Adds the given formula to formula_cache. Before actually adding a new entry to formula_cache,
 % we check if we've already have the same formula cached. To speed up search, we keep an extra 
 % storage formula_cache_candidates that stores a list of cache ids for each formula position (path).
