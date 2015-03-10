@@ -640,6 +640,19 @@ store_scheduled_goal(ScheduleId, StartTime, EndTime, ToSchedule, ScheduleParams)
 	store_get(scheduled_goals,
 		ScheduleId,
 		ExistingIntervals),
+	% sorting should not be due to construction scheme
+	(fromto(ExistingIntervals, In, Out, []), 
+		fromto([], In2, Out2, Intervals2), fromto(false, F1, F2, Found),
+		param(StartTime, EndTime, ToSchedule, ScheduleParams) do
+			In = [Goal | Rest],
+			Goal = s(IStartTime, IEndTime, IToSchedule, IScheduleParams),
+			(StartTime >= IStartTime, StartTime =< IEndTime ->
+				% extend this goal entry 
+				% insist on some sanity
+				( IToSchedule
+				
+				
+	),
 	append(ExistingIntervals, [s(StartTime2, EndTime2, ToSchedule, ScheduleParams)], 
 		Intervals2),
 	% TODO: handle interval extension 
