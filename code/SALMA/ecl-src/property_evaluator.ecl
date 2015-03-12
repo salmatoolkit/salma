@@ -627,37 +627,7 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndT
 			HasChanged = false
 		).
 
-get_goal_schedule_id(ToplevelFormula, ToSchedule, ScheduleParams, Id) :-
-	store_get(goal_id_map, s(ToplevelFormula, ToSchedule, ScheduleParams), Id), !
-	;
-	incval(next_scheduled_goal_id),
-	getval(next_scheduled_goal_id, Id).
-	
-store_scheduled_goal(ScheduleId, StartTime, EndTime, ToSchedule, ScheduleParams) :-
-	% check whether StartTime is in (or on bounds of) existing interval
-	% --> extend interval or create new one
-	% --> calculate StartTime2 nad EndTime2
-	store_get(scheduled_goals,
-		ScheduleId,
-		ExistingIntervals),
-	% sorting should not be due to construction scheme
-	(fromto(ExistingIntervals, In, Out, []), 
-		fromto([], In2, Out2, Intervals2), fromto(false, F1, F2, Found),
-		param(StartTime, EndTime, ToSchedule, ScheduleParams) do
-			In = [Goal | Rest],
-			Goal = s(IStartTime, IEndTime, IToSchedule, IScheduleParams),
-			(StartTime >= IStartTime, StartTime =< IEndTime ->
-				% extend this goal entry 
-				% insist on some sanity
-				( IToSchedule
-				
-				
-	),
-	append(ExistingIntervals, [s(StartTime2, EndTime2, ToSchedule, ScheduleParams)], 
-		Intervals2),
-	% TODO: handle interval extension 
-	store_set(scheduled_goals,
-		ScheduleId, Intervals2).
+
 		
 % Adds the given formula to formula_cache. Before actually adding a new entry to formula_cache,
 % we check if we've already have the same formula cached. To speed up search, we keep an extra 
