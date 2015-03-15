@@ -485,13 +485,64 @@ test_ad_hoc(F, Situation) :-
 test_ad_hoc(F) :-
 		test_ad_hoc(F, s0).
 
+
+and_resvector(R1, R2, RAnd, OverallResult) :-
+	(foreach(E1, R1), foreach(E2, R2), foreach(EAnd, RAnd),
+		fromto(none, OvResIn, OvResOut, OverallResult) do
+		E1 = Intv : State1,
+		(E2 = Intv : State2 -> 
+			(State1 = ok, State2 = ok, !,
+				EAnd = Intv : ok
+			; (State1 = not_ok, ! ; State2 = not_ok), !,
+				EAnd = Intv : not_ok
+			; EAnd = Intv : nondet
+			)
+		; % interval doesn't match
+			throw(different_intervals_and_resvector)
+		),
+		(OvResIn = none, !,
+			OvResOut = EAnd
+		; EAnd = nondet, !, 
+			OvResOut = nondet
+		; OvResIn = EAnd, !
+			OvResOut = OvResIn
+		; OvResOut = ambiguous
+		)	
+	).
+
+or_resvector(R1, R2, ROr, OverallResult) :-
+	(foreach(E1, R1), foreach(E2, R2), foreach(EOr, ROr),
+		fromto(none, OvResIn, OvResOut, OverallResult) do
+		E1 = Intv : State1,
+		(E2 = Intv : State2 -> 
+			(State1 = not_ok, State2 = not_ok, !,
+				EAnd = Intv : not_ok
+			; (State1 = ok, ! ; State2 = ok), !,
+				EAnd = Intv : ok
+			; EAnd = Intv : nondet
+			)
+		; % interval doesn't match
+			throw(different_intervals_and_resvector)
+		),
+		(OvResIn = none, !,
+			OvResOut = EAnd
+		; EAnd = nondet, !, 
+			OvResOut = nondet
+		; OvResIn = EAnd, !
+			OvResOut = OvResIn
+		; OvResOut = ambiguous
+		)		
+	).
+	
 evaluate_checkall(ToplevelFormula, FormulaPath, 
 	CurrentStep, StartTimes, EndTime, Subformulas, Level, 
 	Results, OverallResult, ToSchedule, ScheduleParams, HasChanged) :- 
 		%  check all subformulas. if result can be determined (ok, not_ok) only that result is stored 
 		% TODO: "vector" result
+		apply_unique_result(StartTimes, ok, ResInitial),
 		(fromto(Subformulas, SFIn, SFOut, []), 
-			foreach(F2, Handled), fromto(ok, ResIn, ResOut, Results), 
+			foreach(F2, Handled), fromto(ResInitial, ResIn, ResOut, Results), 
+			fromto(ok, OvResIn, OvResOut, OverallResult),
 			fromto(false, In2, Out2, HasChanged), 
 			fromto([], In3, Out3, ScheduleParams), count(I,1,_),
 			param(CurrentStep, StartTimes, EndTime, Level, ToplevelFormula, FormulaPath) do
@@ -499,25 +550,33 @@ evaluate_checkall(ToplevelFormula, FormulaPath,
 				SFIn = [F | SFRest],
 				append(FormulaPath, [1,I], SubPath),
 				evaluate_formula(ToplevelFormula, SubPath, 
-					CurrentStep, StartTime, EndTime, F, Level, Res2, Ts1, ScheduleParams2, HC1),
-				(Res2 = nondet, 
-					ResOut = nondet,
+					CurrentStep, StartTimes, EndTime, F, Level, 
+					Res2, _, Ts1, ScheduleParams2, HC1),
+				and_resvector(ResIn, Res2, ResOut, OvRes2), 
+				(OvRes2 = nondet, 
+					OvResOut = nondet,
 					SFOut = SFRest,
 					F2 = Ts1, 
 					HC2 = false,
 					append(In3, ScheduleParams2, Out3), !
-				; Res2 = ok,
-					ResOut = ResIn,
+				; OvRes2 = ok,
+					OvResOut = OvResIn,
 					SFOut = SFRest,		
 					F2 = ok, 
 					Out3 = In3,
 					HC2 = true, !
-				; % not_ok
-					ResOut = not_ok,
+				; OvRes2 = not_ok, !,
+					OvResOut = not_ok,
 					SFOut = [], % break iteration
 					F2 = not_ok,
 					Out3 = In3,
 					HC2 = true
+				; % ambiguous
+					OvResOut = ambiguous, !,
+					SFOut = SFRest,
+					F2 = Ts1, 
+					HC2 = false,
+					append(In3, ScheduleParams2, Out3)					
 				),
 		
 				% update changed flag
@@ -527,10 +586,14 @@ evaluate_checkall(ToplevelFormula, FormulaPath,
 			
 
 evaluate_checkone(ToplevelFormula, FormulaPath, 
-	CurrentStep, StartTime, EndTime, Subformulas, Level, Result, ToSchedule, ScheduleParams, HasChanged) :- 
+	CurrentStep, StartTimes, EndTime, Subformulas, Level, 
+	Results, OverallResult, ToSchedule, ScheduleParams, HasChanged) :- 
 		%  check all subformulas. if result can be determined (ok, not_ok) only that result is stored 
-
-		(fromto(Subformulas, SFIn, SFOut, []), foreach(F2, Handled), fromto(not_ok, ResIn, ResOut, Result), 
+		apply_unique_result(StartTimes, not_ok, ResInitial),
+		(fromto(Subformulas, SFIn, SFOut, []), 
+			foreach(F2, Handled), 
+			fromto(ResInitial, ResIn, ResOut, Results), 
+			fromto(not_ok, OvResIn, OvResOut, OverallResult),
 			fromto(false, In2, Out2, HasChanged), 
 			fromto([], In3, Out3, ScheduleParams), count(I,1,_),
 			param(CurrentStep, StartTime, EndTime, Level, ToplevelFormula, FormulaPath) do
@@ -538,25 +601,33 @@ evaluate_checkone(ToplevelFormula, FormulaPath,
 				SFIn = [F | SFRest],
 				append(FormulaPath, [1,I], SubPath),
 				evaluate_formula(ToplevelFormula, SubPath, 
-					CurrentStep, StartTime, EndTime, F, Level, Res2, Ts1, ScheduleParams2, HC1),
-				(Res2 = nondet, 
-					ResOut = nondet,
+					CurrentStep, StartTimes, EndTime, F, Level, 
+					Res2, _, Ts1, ScheduleParams2, HC1),
+				or_resvector(ResIn, Res2, ResOut, OvRes2),
+				(OvRes2 = nondet, 
+					OvResOut = nondet,
 					SFOut = SFRest,
 					F2 = Ts1, 
 					HC2 = false ,
 					append(In3, ScheduleParams2, Out3), !
-				; Res2 = not_ok,
-					ResOut = ResIn,
+				; OvRes2 = not_ok,
+					OvResOut = OvResIn,
 					SFOut = SFRest,
 					F2 = not_ok, 
 					HC2 = true,
 					Out3 = In3, !
-				; % ok
-					ResOut = ok,
+				; OvRest2 = ok, !,
+					OvResOut = ok,
 					SFOut = [], % break iteration
 					F2 = ok,
 					HC2 = true,
 					Out3 = In3
+				; % ambiguous
+					OvResOut = ambiguous, !,
+					SFOut = SFRest,
+					F2 = Ts1, 
+					HC2 = false,
+					append(In3, ScheduleParams2, Out3)			
 				),
 				((In2 = true, ! ; HC1 = true, ! ; HC2 = true, !) -> Out2 = true ; Out2 = false)
 		), 
