@@ -397,16 +397,17 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			shelf_create(orig/1, null, Shelf),
 			shelf_set(Shelf,1,F),
 			ScheduleParams = [],
-			ToSchedule = none,
 			( 
 				F = changed(P, Q, ExpectedNow),
 				% for now ignore ToSchedule output of changed
 				evaluate_changed(ToplevelFormula, FormulaPath, 
-					 StartTimes, P, Q, ExpectedNow, Level, Results),	
+					 StartTimes, EndTime, P, Q, ExpectedNow, 
+					 Level, Results),	
 				!
 				;
 				F = pfswitch(PFName, ExpectedNow),
-				evaluate_persistent_fluent_switched(PFName, StartTimes, ExpectedNow, Results),
+				evaluate_persistent_fluent_switched(PFName, StartTimes, EndTime, 
+					ExpectedNow, Results, ToSchedule),
 				!
 				;
 				F = occur(ActionTerm),
@@ -638,19 +639,32 @@ evaluate_checkone(ToplevelFormula, FormulaPath,
 % checks whether the result of Now differs from the result of Last and Now = ExpectedNow. 
 % - No until is allowed for Last and Now
 % - The result can't be nondet
-evaluate_changed(ToplevelFormula, FormulaPath, StartTime, Last, Now, ExpectedNow, Level, Result, ToSchedule) :-	
+evaluate_changed(ToplevelFormula, FormulaPath, 
+	StartTimes, EndTime, Last, Now, 
+	ExpectedNow, Level, Results) :-	
+		% for now: only support one single step
+		(
+			StartTimes = [s(Start, Start)], !
+			;
+			throw(no_intervals_allowed for evaluate_changed)
+		),
 		append(FormulaPath, [2], SubPathNow),
 		evaluate_formula(ToplevelFormula, SubPathNow, 0, 
-			StartTime, StartTime, Now, Level, ResNow, _, _, _),
-		(not ResNow = ExpectedNow ->
-			Result = not_ok
+			StartTimes, EndTime, Now, Level, 
+			_, OvResNow, _, _, _),
+		(not OvResNow = ExpectedNow ->
+			apply_unique_result(StartTimes, not_ok, Results)
 			;
 			append(FormulaPath, [1], SubPathLast),
 			evaluate_formula(ToplevelFormula, SubPathLast, 0, 
-				StartTime, StartTime, Last, Level, ResLast, _, _, _),
-			(ResNow \= ResLast -> Result = ok ; Result = not_ok)
-		),
-		ToSchedule = Result.
+				StartTimes, EndTime, Last, Level, _, OvResLast, _ , _, _),
+			(OvResNow \= OvResLast -> 
+				Res2 = ok
+				; 
+				Res2 = not_ok
+			),
+			apply_unique_result(StartTimes, Res2, Results)			
+		).
 		
 
 % checks whether a persistent fluent's value has changed at Time		
