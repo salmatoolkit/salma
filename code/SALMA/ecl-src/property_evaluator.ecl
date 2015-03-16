@@ -406,8 +406,8 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				!
 				;
 				F = pfswitch(PFName, ExpectedNow),
-				evaluate_persistent_fluent_switched(PFName, StartTimes, EndTime, 
-					ExpectedNow, Results, ToSchedule),
+				evaluate_persistent_fluent_switched(PFName, StartTimes, 
+					ExpectedNow, Results),
 				!
 				;
 				F = occur(ActionTerm),
@@ -439,6 +439,7 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			), !
 		),
 		get_unanimous_result(Results, OverallResult),
+		ToSchedule = OverallResult,
 		getval(negated, Negated),
 		(foreach(Entry, Results), param(Negated, CFS, MyFailures,
 			ToplevelFormula, FormulaPath, F, Level) do
@@ -646,7 +647,7 @@ evaluate_changed(ToplevelFormula, FormulaPath,
 		(
 			StartTimes = [s(Start, Start)], !
 			;
-			throw(no_intervals_allowed for evaluate_changed)
+			throw(no_intervals_allowed_for_evaluate_changed)
 		),
 		append(FormulaPath, [2], SubPathNow),
 		evaluate_formula(ToplevelFormula, SubPathNow, 0, 
@@ -668,18 +669,32 @@ evaluate_changed(ToplevelFormula, FormulaPath,
 		
 
 % checks whether a persistent fluent's value has changed at Time		
-evaluate_persistent_fluent_switched(Name, Time, Expected, Result) :-
-		query_persistent_fluent(Name, CurrentState, LastChanged),
-		((CurrentState = Expected, LastChanged =:= Time) ->
-			Result = ok
-			;
-			Result = not_ok
-		).
+evaluate_persistent_fluent_switched(Name, StartTimes, Expected, Results) :-
+	% for now: only support one single step
+	(
+		StartTimes = [s(Time, Time)], !
+		;
+		throw(no_intervals_allowed_for_evaluate_persistent_fluent_switched)
+	),
+	query_persistent_fluent(Name, CurrentState, LastChanged),
+	((CurrentState = Expected, LastChanged =:= Time) ->
+		Res = ok
+		;
+		Res = not_ok
+	),
+	apply_unique_result(StartTimes, Res, Results).
 	
-evaluate_action_occurred(ActionTerm, Time, Result) :-
-		ActionTerm =.. [Action | Params],
-		get_action_clock(Action, Params, T2),
-		(T2 is Time -> Result = ok ; Result = not_ok).
+evaluate_action_occurred(ActionTerm, StartTimes, Results) :-
+	% for now: only support one single step
+	(
+		StartTimes = [s(Time, Time)], !
+		;
+		throw(no_intervals_allowed_for_evaluate_action_occurred)
+	),
+	ActionTerm =.. [Action | Params],
+	get_action_clock(Action, Params, T2),
+	(T2 is Time -> Res = ok ; Res = not_ok),
+	apply_unique_result(StartTimes, Res, Results).
 
 		
 action_occurred(ActionTerm, Sit) :-
@@ -711,7 +726,7 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndT
 	F, CacheId, Level, 
 	ScheduleIdIn, Result, ToScheduleOut, ScheduleIdOut, HasChanged) :-
 		time(CurrentTime, do2(tick(CurrentStep), s0)),
-		StartTime = StartTime, % TODO: for now StartTime isn't used, this could change...
+		StartTimes = [s(StartTime, StartTime)], 
 		evaluate_formula(ToplevelFormula, FormulaPath, 
 			CurrentStep, CurrentTime, EndTime, F, Level, Result, ToSchedule1, ScheduleParams, HasChanged1),
 		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
