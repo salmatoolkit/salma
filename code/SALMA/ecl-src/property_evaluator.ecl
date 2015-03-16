@@ -728,15 +728,17 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndT
 		time(CurrentTime, do2(tick(CurrentStep), s0)),
 		StartTimes = [s(StartTime, StartTime)], 
 		evaluate_formula(ToplevelFormula, FormulaPath, 
-			CurrentStep, CurrentTime, EndTime, F, Level, Result, ToSchedule1, ScheduleParams, HasChanged1),
+			CurrentStep, StartTimes, EndTime, F, Level, Results, 
+			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
 		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
-		((CacheId is -1, Result = nondet, ! ; not(CacheId is -1), HasChanged1 = true) ->		
+		((CacheId is -1, OverallResult = nondet, ! ; not(CacheId is -1), HasChanged1 = true) ->		
 			cache_formula(ToplevelFormula, FormulaPath, ToSchedule1, CacheId2), HasChanged2 = true
 			; 
 			CacheId2 is CacheId, HasChanged2 = false
 		),	
 		(
-			(Result = nondet,
+		
+			(OverallResult = nondet,
 				ToSchedule2 = cf(CacheId2), 
 				ToScheduleOut = cf(CacheId2),
 				HasChanged3 = false,
@@ -747,13 +749,13 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndT
 					ScheduleIdOut is ScheduleIdIn
 				), !
 				; 
-			not(Result = nondet), not(ScheduleIdIn is -1), 
-				ToSchedule2 = Result, 
+			not(OverallResult = nondet), not(ScheduleIdIn is -1), % already scheduled
+				ToSchedule2 = OverallResult, 
 				ScheduleIdOut is ScheduleIdIn,
 				ToScheduleOut = ToSchedule2,
 				HasChanged3 = true,				
 				!
-			), 
+			),			
 			store_set(scheduled_goals, 
 						sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime, EndTime), 
 						app(ScheduleParams, ToSchedule2)

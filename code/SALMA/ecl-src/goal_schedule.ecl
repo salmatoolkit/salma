@@ -2,7 +2,8 @@ get_goal_schedule_id(ToplevelFormula, ToSchedule, ScheduleParams, Id) :-
 	store_get(goal_id_map, s(ToplevelFormula, ToSchedule, ScheduleParams), Id), !
 	;
 	incval(next_scheduled_goal_id),
-	getval(next_scheduled_goal_id, Id).
+	getval(next_scheduled_goal_id, Id),
+	store_set(goal_id_map, s(ToplevelFormula, ToSchedule, ScheduleParams), Id).
 
 	
 % precondition for merge_goals:
@@ -90,10 +91,12 @@ add_nondet_schedule_interval(ScheduleId, StartTime, EvalEndTime) :-
 	% Check whether the new start interval is contiguous 
 	% to an existing one. If so, extend the interval.
 	
-	store_get(scheduled_goals,
+	(store_get(scheduled_goals,
 		ScheduleId,
-		i(NondetIntervals, OkIntervals, NotOkIntervals, _)),
-	
+		i(NondetIntervals, OkIntervals, NotOkIntervals, _)), !
+	; % no entry found for id 
+	NondetIntervals = [], OkIntervals = [], NotOkIntervals = []
+	),	
 	% We assume that only nondet intervals can be updated	
 	
 	% sorting should not be necessary  due to construction scheme
