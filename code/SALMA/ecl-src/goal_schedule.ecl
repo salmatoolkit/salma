@@ -30,7 +30,7 @@ merge_goals_rec(First, [Second | Rest], MergedGoals) :-
 	).
 			
 	
-apply_interval_decision_ok(ScheduleId, Start, End, EvalEndTime) :-
+apply_interval_decision(ScheduleId, Start, End, EvalEndTime, Decision) :-
 	% A positive result for Q was found at time End for
 	% a formula that ranges from Start to End.
 	% Close all matching intervals and add them to the ok list
@@ -41,7 +41,7 @@ apply_interval_decision_ok(ScheduleId, Start, End, EvalEndTime) :-
 			_)),
 	(fromto(NondetIntervals, In, Out, []),
 		fromto([], NondetNewIn, NondetNewOut, NondetIntervalsNew),
-		fromto([], NewOkIntervalsIn, NewOkIntervalsOut, NewOkIntervals),
+		fromto([], NewIntervalsIn, NewIntervalsOut, NewIntervals),
 		param(Start, End) do
 		In = [Goal | Rest],
 		Out = Rest,
@@ -50,7 +50,7 @@ apply_interval_decision_ok(ScheduleId, Start, End, EvalEndTime) :-
 		((IStartTime2 < Start, ! ; IStartTime1 > End), !,
 			% interval not included
 			append(NondetNewIn, [Goal], NondetNewOut),
-			NewOkIntervalsOut = NewOkIntervalsIn
+			NewIntervalsOut = NewIntervalsIn
 		; IStartTime1 < Start, IStartTime2 >= Start, 
 			IStartTime2 =< End, !,
 			% right side is enclosed in [Start, End]
@@ -58,9 +58,9 @@ apply_interval_decision_ok(ScheduleId, Start, End, EvalEndTime) :-
 			append(NondetNewIn, 
 				[s(IStartTime1, IStartTime2New)],
 				NondetNewOut),
-			append(NewOkIntervalsIn, 
+			append(NewIntervalsIn, 
 				[s(Start, IStartTime2)],
-				NewOkIntervalsOut)
+				NewIntervalsOut)
 		; IStartTime1 < Start, IStartTime2 > End, !,
 			% interior part of interval enclosed
 			IStartTime2New is Start - 1,
@@ -69,21 +69,29 @@ apply_interval_decision_ok(ScheduleId, Start, End, EvalEndTime) :-
 				[s(IStartTime1, IStartTime2New),
 					s(IStartTime3, IStartTime2)],
 				NondetNewOut),
-			append(NewOkIntervalsIn,
+			append(NewIntervalsIn,
 				[s(Start, End)],
-				NewOkIntervalsOut)
+				NewIntervalsOut)
 		; IStartTime1 >= Start, IStartTime2 =< End, !,
 			% intervall fully enclosed
 			NondetNewOut = NondetNewIn,
-			append(NewOkIntervalsIn, [Goal], NewOkIntervalsOut)
+			append(NewIntervalsIn, [Goal], NewIntervalsOut)
 		)
 	),
-	append(OkIntervals, NewOkIntervals, OkIntervals2),
-	sort(0, =<, OkIntervals2, OkIntervals3),
-	merge_goals(OkIntervals3, OkIntervals4),	
+	(Decision = ok ->
+		append(OkIntervals, NewIntervals, OkIntervalsUnsorted),
+		sort(0, =<, OkIntervalsUnsorted, OkIntervalsUnmerged),
+		merge_goals(OkIntervalsUnmerged, OkIntervals2),
+		NotOkIntervals2 = NotOkIntervals
+		;
+		append(NotOkIntervals, NewIntervals, NotOkIntervalsUnsorted),
+		sort(0, =<, NotOkIntervalsUnsorted, NotOkIntervalsUnmerged),
+		merge_goals(NotOkIntervalsUnmerged, NotOkIntervals2),
+		OkIntervals2 = OkIntervals
+	),	
 	store_set(scheduled_goals,
-		ScheduleId, i(NondetIntervalsNew, OkIntervals4, 
-		NotOkIntervals, EvalEndTime)).
+		ScheduleId, i(NondetIntervalsNew, OkIntervals2, 
+		NotOkIntervals2, EvalEndTime)).
 			
 
 add_nondet_schedule_interval(ScheduleId, StartTime, EvalEndTime) :-

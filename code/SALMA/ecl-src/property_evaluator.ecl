@@ -736,30 +736,28 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndT
 			; 
 			CacheId2 is CacheId, HasChanged2 = false
 		),	
-		(
-		
-			(OverallResult = nondet,
-				ToSchedule2 = cf(CacheId2), 
-				ToScheduleOut = cf(CacheId2),
-				HasChanged3 = false,
-				(ScheduleIdIn is -1 ->	
-					get_goal_schedule_id(ToplevelFormula, ToSchedule2, ScheduleParams, 
-						ScheduleIdOut)
-				;
-					ScheduleIdOut is ScheduleIdIn
-				), !
-				; 
-			not(OverallResult = nondet), not(ScheduleIdIn is -1), % already scheduled
+		(OverallResult = nondet,
+			ToSchedule2 = cf(CacheId2), 
+			ToScheduleOut = cf(CacheId2),
+			HasChanged3 = false,
+			(ScheduleIdIn is -1 ->	
+				get_goal_schedule_id(ToplevelFormula, ToSchedule2, ScheduleParams, 
+					ScheduleIdOut)
+			;
+				ScheduleIdOut is ScheduleIdIn
+			), !
+			; 
+			not(OverallResult = nondet), not(ScheduleIdIn is -1), % already scheduled and determined now
 				ToSchedule2 = OverallResult, 
 				ScheduleIdOut is ScheduleIdIn,
 				ToScheduleOut = ToSchedule2,
 				HasChanged3 = true,				
 				!
 			),			
+			
 			store_set(scheduled_goals, 
 						sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime, EndTime), 
-						app(ScheduleParams, ToSchedule2)
-					), !
+						app(ScheduleParams, ToSchedule2)), !
 			
 			;		
 			ScheduleIdOut = -1,
