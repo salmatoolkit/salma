@@ -1,10 +1,16 @@
-get_goal_schedule_id(ToplevelFormula, ToSchedule, ScheduleParams, Id) :-
-	store_get(goal_id_map, s(ToplevelFormula, ToSchedule, ScheduleParams), Id), !
-	;
+get_goal_schedule_id(ToplevelFormula, Level, ToSchedule, ScheduleParams, Id) :-
+	store_get(goal_id_map, s(ToplevelFormula, Level, ToSchedule, ScheduleParams), Id), !
+	; % it's a new goal
 	incval(next_scheduled_goal_id),
 	getval(next_scheduled_goal_id, Id),
-	store_set(goal_id_map, s(ToplevelFormula, ToSchedule, ScheduleParams), Id).
+	Description = s(ToplevelFormula, Level, ToSchedule, ScheduleParams),
+	store_set(goal_id_map, Description, Id),
+	store_set(scheduled_goal_descriptions, Id, Description). 
 
+get_scheduled_goal_description(ScheduleId, Description) :-
+	store_get(scheduled_goal_descriptions, ScheduleId, Description)
+	;
+	throw(unregistered_scheduled_goal(ScheduleId)).
 	
 % precondition for merge_goals:
 % list sorted ascending
@@ -30,77 +36,108 @@ merge_goals_rec(First, [Second | Rest], MergedGoals) :-
 	).
 			
 	
-apply_interval_decision(ScheduleId, Start, End, EvalEndTime, Decision) :-
-	% A positive result for Q was found at time End for
+apply_one_interval_decision(NondetIntervals, OkIntervals, NotOkIntervals,
+	Start, End, Decision, 
+	NondetIntervals2, OkIntervals2, NotOkIntervals2) :-
+	(fromto(NondetIntervals, In, Out, []),
+		fromto([], NondetNewIn, NondetNewOut, NondetIntervals2),
+		fromto([], NewIntervalsIn, NewIntervalsOut, NewIntervals),
+		param(Start, End) do
+			In = [Goal | Rest],
+			Out = Rest,
+			Goal = s(IStartTime1, IStartTime2),
+			% TODO: are the first cases even possible?
+			((IStartTime2 < Start, ! ; IStartTime1 > End), !,
+				% interval not included
+				append(NondetNewIn, [Goal], NondetNewOut),
+				NewIntervalsOut = NewIntervalsIn
+			; IStartTime1 < Start, IStartTime2 >= Start, 
+				IStartTime2 =< End, !,
+				% right side is enclosed in [Start, End]
+				IStartTime2New is Start - 1,
+				append(NondetNewIn, 
+					[s(IStartTime1, IStartTime2New)],
+					NondetNewOut),
+				append(NewIntervalsIn, 
+					[s(Start, IStartTime2)],
+					NewIntervalsOut)
+			; IStartTime1 < Start, IStartTime2 > End, !,
+				% interior part of interval enclosed
+				IStartTime2New is Start - 1,
+				IStartTime3 is End + 1,
+				append(NondetNewIn,
+					[s(IStartTime1, IStartTime2New),
+						s(IStartTime3, IStartTime2)],
+					NondetNewOut),
+				append(NewIntervalsIn,
+					[s(Start, End)],
+					NewIntervalsOut)
+			; IStartTime1 >= Start, IStartTime2 =< End, !,
+				% intervall fully enclosed
+				NondetNewOut = NondetNewIn,
+				append(NewIntervalsIn, [Goal], NewIntervalsOut)
+			)
+	),
+	(Decision = ok ->
+		append(OkIntervals, NewIntervals, OkIntervals2),
+		NotOkIntervals2 = NotOkIntervals
+		;
+		append(NotOkIntervals, NewIntervals, NotOkIntervals2),
+		OkIntervals2 = OkIntervals
+	).	
+	
+	
+	
+apply_interval_decisions(ScheduleId, Level, Decisions, EvalEndTime) :-
+	% Decisions is a list of tuples s(Start, End) : Result
 	% a formula that ranges from Start to End.
 	% Close all matching intervals and add them to the ok list
 	
 	store_get(scheduled_goals,
-		ScheduleId,
-		i(NondetIntervals, OkIntervals, NotOkIntervals, 
-			_)),
-	(fromto(NondetIntervals, In, Out, []),
-		fromto([], NondetNewIn, NondetNewOut, NondetIntervalsNew),
-		fromto([], NewIntervalsIn, NewIntervalsOut, NewIntervals),
-		param(Start, End) do
-		In = [Goal | Rest],
-		Out = Rest,
-		Goal = s(IStartTime1, IStartTime2),
-		% TODO: are the first cases even possible?
-		((IStartTime2 < Start, ! ; IStartTime1 > End), !,
-			% interval not included
-			append(NondetNewIn, [Goal], NondetNewOut),
-			NewIntervalsOut = NewIntervalsIn
-		; IStartTime1 < Start, IStartTime2 >= Start, 
-			IStartTime2 =< End, !,
-			% right side is enclosed in [Start, End]
-			IStartTime2New is Start - 1,
-			append(NondetNewIn, 
-				[s(IStartTime1, IStartTime2New)],
-				NondetNewOut),
-			append(NewIntervalsIn, 
-				[s(Start, IStartTime2)],
-				NewIntervalsOut)
-		; IStartTime1 < Start, IStartTime2 > End, !,
-			% interior part of interval enclosed
-			IStartTime2New is Start - 1,
-			IStartTime3 is End + 1,
-			append(NondetNewIn,
-				[s(IStartTime1, IStartTime2New),
-					s(IStartTime3, IStartTime2)],
-				NondetNewOut),
-			append(NewIntervalsIn,
-				[s(Start, End)],
-				NewIntervalsOut)
-		; IStartTime1 >= Start, IStartTime2 =< End, !,
-			% intervall fully enclosed
-			NondetNewOut = NondetNewIn,
-			append(NewIntervalsIn, [Goal], NewIntervalsOut)
-		)
+		g(Level, ScheduleId),
+		i(NondetIntervals, OkIntervals, NotOkIntervals, _)),
+	(foreach(D, Decisions), 
+		fromto(NondetIntervals, In1, Out1, NondetIntervalsNew),
+		fromto(OkIntervals, In2, Out2, OkIntervalsUnsorted),
+		fromto(NotOkIntervals, In3, Out3, NotOkIntervalsUnsorted), 
+		fromto(false, OkChangedIn, OkChangedOut, OkChanged),
+		fromto(false, NotOkChangedIn, NotOkChangedOut, NotOkChanged) do
+			D = s(Start, End) : Res,
+			(Res = nondet -> % just go ahead for nondet
+				Out1 = In1, Out2 = In2, Out3 = In3,
+				OkChangedOut = OkChangedIn, NotOkChangedOut = NotOkChangedIn
+			; 				
+				apply_one_interval_decision(In1, In2, In3,
+					Start, End, Res, Out1, Out2, Out3),
+				(Res = ok -> OkChangedOut = true ; OkChangedOut = OkChangedIn),
+				(Res = not_ok -> NotOkChangedOut = true ; 
+									NotOkChangedOut = NotOkChangedIn)									
+			)
 	),
-	(Decision = ok ->
-		append(OkIntervals, NewIntervals, OkIntervalsUnsorted),
+	(OkChanged = true ->
 		sort(0, =<, OkIntervalsUnsorted, OkIntervalsUnmerged),
-		merge_goals(OkIntervalsUnmerged, OkIntervals2),
-		NotOkIntervals2 = NotOkIntervals
+		merge_goals(OkIntervalsUnmerged, OkIntervals2)
 		;
-		append(NotOkIntervals, NewIntervals, NotOkIntervalsUnsorted),
+		OkIntervals2 = OkIntervalsUnsorted
+	),
+	(NotOkChanged = true ->
 		sort(0, =<, NotOkIntervalsUnsorted, NotOkIntervalsUnmerged),
-		merge_goals(NotOkIntervalsUnmerged, NotOkIntervals2),
-		OkIntervals2 = OkIntervals
+		merge_goals(NotOkIntervalsUnmerged, NotOkIntervals2)
+		;
+		NotOkIntervals2 = NotOkIntervalsUnsorted		
 	),	
 	store_set(scheduled_goals,
-		ScheduleId, i(NondetIntervalsNew, OkIntervals2, 
+		g(Level, ScheduleId), i(NondetIntervalsNew, OkIntervals2, 
 		NotOkIntervals2, EvalEndTime)).
 			
 
-add_nondet_schedule_interval(ScheduleId, StartTime, EvalEndTime) :-
+add_nondet_schedule_interval(ScheduleId, Level, StartTime, EvalEndTime) :-
 	
 	% Check whether the new start interval is contiguous 
 	% to an existing one. If so, extend the interval.
 	
 	(store_get(scheduled_goals,
-		ScheduleId,
+		g(Level, ScheduleId),
 		i(NondetIntervals, OkIntervals, NotOkIntervals, _)), !
 	; % no entry found for id 
 	NondetIntervals = [], OkIntervals = [], NotOkIntervals = []
@@ -138,28 +175,35 @@ add_nondet_schedule_interval(ScheduleId, StartTime, EvalEndTime) :-
 			NondetIntervalsResult)
 	),
 	store_set(scheduled_goals,
-		ScheduleId, i(NondetIntervalsResult, OkIntervals, NotOkIntervals,
+		g(Level, ScheduleId), i(NondetIntervalsResult, OkIntervals, NotOkIntervals,
 						EvalEndTime)).
 
 
-check_state_filter(Content, StateFilter) :-
+check_state_filter(StateVector, StateFilter) :-
 	StateFilter = all, !
 	;
-	StateFilter = nondet, !,
-	Content \= ok, 
-	Content \= not_ok
-	; % ok / not_ok				
-	StateFilter = Content.		
+	StateVector = i(NondetIntervals, OkIntervals, NotOkIntervals, _),
+	(
+		StateFilter = nondet, !,
+		length(NondetIntervals) > 0
+		;
+		StateFilter = ok, !,
+		length(OkIntervals) > 0
+		;
+		StateFilter = not_ok, !,
+		length(NotOkIntervals) > 0
+	).
 		
 get_scheduled_goals(ScheduledGoals, StateFilter, LevelFilter) :-
 	stored_keys_and_values(scheduled_goals, L),
-	(foreach(Entry, L), fromto([], In, Out, ScheduledGoals), param(StateFilter, LevelFilter) do
-		Entry = Key - app(_, Content),
-		Key = sg(_, Level, _, _, _),
+	(foreach(Entry, L), fromto([], In, Out, ScheduledGoals), 
+	param(StateFilter, LevelFilter) do
+		Entry = Key - StateVector,
+		Key = g(Level, _),
 		(  
 			((LevelFilter = all, ! ; Level == LevelFilter),
-				check_state_filter(Content, StateFilter) ) ->			 
-				append(In, [Key], Out)
+				check_state_filter(StateVector, StateFilter) ) ->			 
+				append(In, [Entry], Out)
 				;
 				Out = In
 		)		
@@ -174,14 +218,18 @@ get_pending_toplevel_goals(PendingGoals) :-
 	
 % TODO: proper cleanup-procedure
 print_scheduled_goals(Stream, SortPositions) :-
-	stored_keys(scheduled_goals, Keys),
-	sort(SortPositions, =<, Keys, SortedKeys),
+	stored_keys_and_values(scheduled_goals, Goals),
+	(foreach(G, Goals), foreach(L, Lines) do
+		G = g(Level, ScheduleId) - State,
+		get_scheduled_goal_description(ScheduleId, Description),
+		Description = s(ToplevelFormula, _, ToSchedule, ScheduleParams),
+		L = l(Level, ToplevelFormula, ScheduleId, ToSchedule, ScheduleParams, State)
+	),	
+	sort(SortPositions, =<, Lines, SortedLines),
 	nl,
-	printf(Stream, "%10s %10s %10s %5s %5s %10s %s\n",["Name", "Time","End Time", "Level","Id","Params","Term"]),
+	printf(Stream, "%5s %10s %5s %10s %15s %s\n", ["Level", "Name", "Id", "Term", "Params", "State"]),
 	printf(Stream, "-------------------------------------------------------\n",[]),
-	(foreach(Key, SortedKeys), param(Stream) do
-		Key = sg(Name, Level, Id, T, EndTime),
-		store_get(scheduled_goals, Key, app(Params, F)),
-		
-		printf(Stream, "%10s %10d %10d %5d %5d %w %w\n",[Name, T, EndTime, Level, Id, Params, F])
+	(foreach(Line, SortedLines), param(Stream) do		
+		Line = l(Level, Name, Id, Term, Params, State)
+		printf(Stream, "%5d %10s %5d %10s %15s %s\n",[Level, Name, Id, Term, Params, State])
 	).

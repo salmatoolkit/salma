@@ -13,7 +13,8 @@
 :- local store(scheduled_goals).
 % stores a map of cache id / param terms to schedule ids
 :- local store(goal_id_map).
-
+% stored descriptors about schedule4d goals, including cache id reference
+% and parameters
 :- local store(scheduled_goal_descriptions).
 
 :- local variable(next_scheduled_goal_id).
@@ -37,6 +38,7 @@ init_smc :-
 	store_erase(original_properties),
 	store_erase(scheduled_goals),
 	store_erase(goal_id_map),
+	store_erase(scheduled_goal_descriptions),
 	store_erase(persistent_fluents),
 	store_erase(persistent_fluent_states),
 	store_erase(formula_cache_candidates),
@@ -92,6 +94,7 @@ get_referenced_failures(Ref, Failures) :-
 reset_smc :-
 	store_erase(scheduled_goals),
 	store_erase(goal_id_map),
+	store_erase(scheduled_goal_descriptions),
 	store_erase(persistent_fluent_states),
 	setval(negated, 0),
 	erase_failure_stack,	
@@ -724,11 +727,11 @@ getMax(V1, V2, Result) :-
 
 evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndTime,
 	F, CacheId, Level, 
-	ScheduleIdIn, Result, ToScheduleOut, ScheduleIdOut, HasChanged) :-
+	ScheduleIdIn, OverallResult, ToScheduleOut, ScheduleIdOut, HasChanged) :-
 		time(CurrentTime, do2(tick(CurrentStep), s0)),
 		StartTimes = [s(StartTime, StartTime)], 
 		evaluate_formula(ToplevelFormula, FormulaPath, 
-			CurrentStep, StartTimes, EndTime, F, Level, Results, 
+			CurrentStep, StartTimes, EndTime, F, Level, _, 
 			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
 		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
 		((CacheId is -1, OverallResult = nondet, ! ; not(CacheId is -1), HasChanged1 = true) ->		
@@ -736,30 +739,28 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndT
 			; 
 			CacheId2 is CacheId, HasChanged2 = false
 		),	
-		(OverallResult = nondet,
+		(OverallResult = nondet, !,
 			ToSchedule2 = cf(CacheId2), 
 			ToScheduleOut = cf(CacheId2),
 			HasChanged3 = false,
 			(ScheduleIdIn is -1 ->	
-				get_goal_schedule_id(ToplevelFormula, ToSchedule2, ScheduleParams, 
+				get_goal_schedule_id(ToplevelFormula, Level, ToSchedule2, ScheduleParams, 
 					ScheduleIdOut)
 			;
 				ScheduleIdOut is ScheduleIdIn
-			), !
-			; 
-			not(OverallResult = nondet), not(ScheduleIdIn is -1), % already scheduled and determined now
-				ToSchedule2 = OverallResult, 
-				ScheduleIdOut is ScheduleIdIn,
-				ToScheduleOut = ToSchedule2,
-				HasChanged3 = true,				
-				!
-			),			
-			
-			store_set(scheduled_goals, 
-						sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime, EndTime), 
-						app(ScheduleParams, ToSchedule2)), !
-			
-			;		
+			),
+			add_nondet_schedule_interval(ScheduleIdOut, Level,
+				StartTime, EndTime)			
+		; not(OverallResult = nondet), not(ScheduleIdIn is -1), !,
+			% already scheduled and determined now
+			ToSchedule2 = OverallResult, 
+			ScheduleIdOut is ScheduleIdIn,
+			ToScheduleOut = ToSchedule2,
+			HasChanged3 = true,
+			apply_interval_decisions(ScheduleIdOut, Level, 
+				[s(StartTime, StartTime) : OverallResult], 
+				EndTime)	
+		; % nothing to schedule here - go ahead
 			ScheduleIdOut = -1,
 			ToScheduleOut = ToSchedule1,
 			HasChanged3 = false		
@@ -897,35 +898,24 @@ apply_params(Params, F) :-
 		Var is SchedId		
 	).
 
-evaluate_scheduled(Key, EndTime, Result) :-
-	Key = sg(ToplevelFormula, Level, Id, StartTime, OrigEndTime),
-	store_get(scheduled_goals, Key, FRef),
-	FRef = app(Params, F2),
-	(F2 = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = F2),
+evaluate_scheduled(Goal, EndTime, Results) :-
+	Goal = Key - StateVector,
+	Key = g(Level, SchedId),
+	StateVector = i(NondetIntervals, _, 
+		_, _),
+	get_scheduled_goal_description(SchedId, Description),
+	Description = s(ToplevelFormula, _, Term, Params),
+	
+	(Term = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = Term, CacheId = -1),
 	apply_params(Params, F),
 	setval(negated, 0),
 	% CurrentStep = 0
 	evaluate_formula(ToplevelFormula, [0], 0,
-		StartTime, EndTime, F, Level, Result, ToSchedule, ScheduleParams2, HasChanged),
-	(Result = nondet ->
-		(HasChanged = true ->
-			% if something changed -> move the goal to another key
-			cache_formula(ToplevelFormula, [0], ToSchedule, CacheId2)
-			;
-			CacheId2 is CacheId
-		),
-		ToSchedule2 = cf(CacheId2)
-		;
-		ToSchedule2 = Result
-		% apply decision
-	),
-	(OrigEndTime =:= EndTime ->
-		Key2 = Key
-		;
-		Key2 = sg(ToplevelFormula, Level, Id, StartTime, EndTime),
-		store_delete(scheduled_goals, Key)
-	),
-	store_set(scheduled_goals, Key2, app(ScheduleParams2,ToSchedule2)).
+		NondetIntervals, EndTime, F, Level, Results, OverallResult,
+		ToSchedule, ScheduleParams, HasChanged),
+	apply_interval_decisions(SchedId, Level, 
+		Results, EndTime).
+	
 		
 
 	
