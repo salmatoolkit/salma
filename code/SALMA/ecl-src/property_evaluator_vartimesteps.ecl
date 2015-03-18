@@ -40,7 +40,7 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 				subst_in_term(s0, Sit, OrigP, P2, [until]), 	
 				%print(P2), nl,
 				% TODO: is 0 as level ok here?
-				% TODO: set StartTime to current step time
+				time(StepTime, Sit),
 				evaluate_and_schedule(ToplevelFormula, FormulaPath, Step, StartTime, EndTime, 
 					P2, -1, Level, SId1, Res, _, SId2, _),		
 				%print(Res), nl,

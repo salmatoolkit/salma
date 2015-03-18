@@ -898,7 +898,7 @@ apply_params(Params, F) :-
 		Var is SchedId		
 	).
 
-evaluate_scheduled(Goal, EndTime, Results) :-
+evaluate_scheduled(Goal, EndTime, Results, OverallResult) :-
 	Goal = Key - StateVector,
 	Key = g(Level, SchedId),
 	StateVector = i(NondetIntervals, _, 
@@ -912,7 +912,7 @@ evaluate_scheduled(Goal, EndTime, Results) :-
 	% CurrentStep = 0
 	evaluate_formula(ToplevelFormula, [0], 0,
 		NondetIntervals, EndTime, F, Level, Results, OverallResult,
-		ToSchedule, ScheduleParams, HasChanged),
+		_, _, _),
 	apply_interval_decisions(SchedId, Level, 
 		Results, EndTime).
 	
@@ -923,19 +923,20 @@ evaluate_scheduled(Goal, EndTime, Results) :-
 % This makes sure that dependencies are resolved.
 evaluate_all_scheduled(EndTime, Results) :-
 	getval(current_failure_stack, CFS),
-	get_pending_goals(PendingGoals, all),
-	% sort by  1st argument = level
-	sort(2, >=, PendingGoals, SortedKeys),
-	(fromto(SortedKeys, In, Out, []), fromto([], In2, Out2, Results), 
+	get_pending_goals(PendingGoals, all), % format: Entry = Key - StateVector, Key = g(Level, Id)
+	% sort by level
+	sort([1,1],, >=, PendingGoals, SortedGoals),
+	(fromto(SortedGoals, In, Out, []), fromto([], In2, Out2, Results), 
 		param(EndTime, CFS) do
-		In = [Key | Rest],
-		Key = sg(_, Level, _, _, _),
+		In = Key - _,
+		Key = g(Level, SchedId),
 		record_create(MyFailureStack),
 		setval(current_failure_stack, MyFailureStack),
-		evaluate_scheduled(Key, EndTime, R),
+		evaluate_scheduled(In, EndTime, _, OvR),
 		% only report properties with level 0
 		(Level == 0 ->
-			append(In2, [R : Key], Out2)
+			get_scheduled_goal_description(SchedId, s(ToplevelFormula, _, _, _)),
+			append(In2, r(ToplevelFormula, OvR), Out2)
 			;
 			% don't report
 			Out2 = In2
