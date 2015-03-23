@@ -121,9 +121,10 @@ clean_formula_cache :-
 	
 	stored_keys_and_values(scheduled_goals, L2),
 	(foreach(Entry, L2), fromto([], In, Out, EntriesToKeep2) do
-		Entry = _ - FRef,
-		FRef = app(_, F2),
-		(F2 = cf(CacheId) ->
+		Entry = g(_, ScheduleId) - _,
+		get_scheduled_goal_description(ScheduleId, Description),
+		Description = s(_, _, Term, _),
+		(Term = cf(CacheId) ->
 			append(In, [CacheId], Out)
 			;
 			Out = In

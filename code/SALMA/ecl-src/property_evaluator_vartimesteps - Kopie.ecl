@@ -107,6 +107,26 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	shelf_abolish(Shelf).
 	
 
+% Returns a sorted list of e(StartTime, EndTime, Goal) : Result entries for the 
+% given schedule id. The list is sorted by time.
+get_schedule_sequence(PSchedId, StartTime, EndTime, L) :-
+	stored_keys_and_values(scheduled_goals, List1),
+		
+	% select all for given PSchedId and T >= StartTime
+	(foreach(Entry, List1), fromto([], In, Out, List2), 
+		param(PSchedId, StartTime, EndTime) do
+		
+		% level can be ignored since we assume that each id is unique
+		% (Entry = sg(_,_, PSchedId, TS, TE) - Goal , 
+			% ( (TS >= StartTime, TS =< EndTime), ! ; (TE >= StartTime, TE =< EndTime))
+			% -> append(In, [e(TS,TE,Goal)], Out)
+			% ; Out = In
+		% )
+		(Entry = g(_, PSchedId) - State ->
+			
+	),
+	sort(List2, L).
+
 % checks the current states of the scheduled goals for the
 % given PSchedId to determine the definite and possible time markers. 
 % Note: only considers schedule, the actual time markers could differ
@@ -121,9 +141,92 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 %		- Result is not_ok if one timestep was not_ok
 %		- Result is ok if all timesteps were ok
 %		- Result is nondet if at least one timestep was nondet and all others were ok
-check_schedule_for_interval(PSchedId, Level, StartTime, EndTime, Mode, OverallResult, 
+check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result, 
 	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
-	
+	EndTime2 is EndTime + 1,
+	(StartTime < EndTime2 ->
+		(Mode = eventually ->
+			R0 = not_ok
+			;
+			R0 = ok
+		),
+		get_schedule_sequence(PSchedId, StartTime, EndTime, 
+			ScheduleSequence),		
+		(	fromto(ScheduleSequence, SeqIn, SeqOut, []),
+			fromto(R0, R1, R2, Result),
+			fromto(nondet, EDIn, EDOut, EarliestDefinite), 
+			fromto(nondet, EPIn, EPOut, EarliestPossible),
+			fromto(nondet, LDIn, LDOut, LatestDefinite), 
+			fromto(nondet, LPIn, LPOut, LatestPossible),
+			param(Mode) do
+			SeqIn = [SeqEntry | SeqTail],
+			SeqEntry = e(TS, TE, F),
+			(TS = nondet -> throw(ts_nondet) ; true),
+			(TE = nondet -> throw(te_nondet) ; true),
+			F = app(_, Res),
+			(Mode = eventually ->
+				(Res = ok,
+					R2 = ok,
+					SeqOut = [],
+					getMin(EDIn, TS, EDOut),
+					getMin(EPIn, TS, EPOut),
+					getMax(LDIn, TE, LDOut),			
+					getMax(LPIn, TE, LPOut), !
+				; Res = not_ok,
+					R2 = R1,
+					SeqOut = SeqTail,
+					EDOut = EDIn,
+					EPOut = EPIn,
+					LDOut = LDIn,			
+					LPOut = LPIn, !
+				; % nondet
+					R2 = nondet,
+					SeqOut = SeqTail,			
+					EDOut = EDIn,
+					getMin(EPIn, TS, EPOut),
+					LDOut = LDIn,			
+					getMax(LPIn, TE, LPOut)
+				)
+			; % always
+				(Res = not_ok,
+					R2 = not_ok,
+					SeqOut = [], 
+					EDOut = EDIn,
+					EPOut = EPIn,
+					LDOut = LDIn,			
+					LPOut = LPIn, !					
+					;
+				Res = ok,
+					R2 = R1,
+					SeqOut = SeqTail, 
+					getMin(EDIn, TS, EDOut),
+					getMin(EPIn, TS, EPOut),
+					(LDIn = nondet,		% we're at the start
+						LDOut = TE, !
+					; LDIn >= TS - 1,	% check whether there's a nondet-gap 
+						getMax(LDIn, TE, LDOut), !
+					; % gap
+						LDOut = LDIn
+					),
+					getMax(LPIn, TE, LPOut), !
+				; % nondet
+					R2 = nondet,
+					SeqOut = SeqTail,
+					EDOut = EDIn,
+					getMin(EPIn, TS, EPOut),
+					LDOut = LDIn,			
+					getMax(LPIn, TE, LPOut)
+				)
+			)		
+		)
+	; % StartTime > EndTime2
+		Result = not_ok,
+		EarliestDefinite = nondet,
+		LatestDefinite = nondet, 
+		EarliestPossible = nondet, 
+		LatestPossible = nondet
+	).
+		
 		
 	
 	
