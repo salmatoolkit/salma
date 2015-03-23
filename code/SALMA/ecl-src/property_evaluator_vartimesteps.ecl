@@ -121,16 +121,53 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 %		- Result is not_ok if one timestep was not_ok
 %		- Result is ok if all timesteps were ok
 %		- Result is nondet if at least one timestep was nondet and all others were ok
-check_schedule_for_interval(PSchedId, Level, StartTime, EndTime, Mode, OverallResult, 
+check_schedule_for_interval(PSchedId, Level, Start, End, Mode, OverallResult, 
 	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
-	
+	store_get(scheduled_goals, g(Level, PSchedId), 
+		i(NondetIntervals, OkIntervals, NotOkIntervals, GEndTime)),
+	EndTime2 is EndTime + 1,
+	(StartTime < EndTime2 ->
+		(Mode = eventually ->
+			(length(OkIntervals) > 0, !,
+				OkIntervals = [s(EarliestDefinite,_) | _],
+				% for eventually, last definite doesn't need to
+				% be connected continuously	
+				last_element(OkIntervals, s(_, LatestDefinite))
+			; % ok-intervals empty
+				EarliestDefinite = nondet,
+				LatestDefinite = nondet
+			),
+			(length(NondetIntervals) > 0, !,
+				NondetIntervals = [s(EP1, _)],
+				getMin(EP1, EarliestDefinite, EarliestPossible),
+				last_element(NondetIntervals, s(_, LP1)),
+				getMax(LP1, LatestDefinite, LatestPossible)
+			; % nondet-intervals empty
+				EarliestPossible = EarliestDefinite,
+				LatestPossible = LatestDefinite
+			)
+			; % always
+			
+		)
+			
+			(length(OkIntervals) > 0, !,
+				
+			; % ok-
+			
+				
+				
+			
+			)
+		
+		)
+				
 		
 	
 	
 % Evaluates F as part of eventually/always block for each step up to EndTime 
 %
 % StartTime: marks the start of the interval that is checked
-% CurrentStep: refers to the currently ealuated step relative to StartTime
+% CurrentStep: refers to the currently evaluated step relative to StartTime
 evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
 	Mode, StartStep, StartTime, EndTime, P, Level, 
 	Result, ToSchedule, ScheduleParams, HasChanged) :-

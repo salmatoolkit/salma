@@ -70,4 +70,11 @@ sublist([Head | Tail], Start, End, Sublist) :-
 	
 sublist([], _, _, Sublist) :-
 	Sublist = [].
+
+last_element(List, Last) :-
+	length(List, 0), Last = none, !
+	;
+	I is length(List) - 1,
+	sublist(List, I, I, L2),
+	L2 = [Last].
 	
