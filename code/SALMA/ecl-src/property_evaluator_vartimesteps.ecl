@@ -123,43 +123,45 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 %		- Result is nondet if at least one timestep was nondet and all others were ok
 check_schedule_for_interval(PSchedId, Level, Start, End, Mode, OverallResult, 
 	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
-	store_get(scheduled_goals, g(Level, PSchedId), 
-		i(NondetIntervals, OkIntervals, NotOkIntervals, GEndTime)),
-	EndTime2 is EndTime + 1,
-	(StartTime < EndTime2 ->
-		(Mode = eventually ->
-			(length(OkIntervals) > 0, !,
-				OkIntervals = [s(EarliestDefinite,_) | _],
-				% for eventually, last definite doesn't need to
-				% be connected continuously	
-				last_element(OkIntervals, s(_, LatestDefinite))
+	get_scheduled_intervals_within(PSchedId, Level,
+		Start, End, 
+		NondetIntervals, OkIntervals, NotOkIntervals),
+	
+	(Mode = eventually ->
+		(length(OkIntervals) > 0 ->
+			OkIntervals = [s(EarliestDefinite,_) | _],
+			% for eventually, last definite doesn't need to
+			% be connected continuously	
+			last_element(OkIntervals, s(_, LatestDefinite)),
+			Res1 = ok
 			; % ok-intervals empty
-				EarliestDefinite = nondet,
-				LatestDefinite = nondet
-			),
-			(length(NondetIntervals) > 0, !,
-				NondetIntervals = [s(EP1, _)],
-				getMin(EP1, EarliestDefinite, EarliestPossible),
-				last_element(NondetIntervals, s(_, LP1)),
-				getMax(LP1, LatestDefinite, LatestPossible)
+			EarliestDefinite = nondet,
+			LatestDefinite = nondet,
+			Res1 = not_ok
+		),
+		(length(NondetIntervals) > 0 ->
+			NondetIntervals = [s(EP1, _)],
+			getMin(EP1, EarliestDefinite, EarliestPossible),
+			last_element(NondetIntervals, s(_, LP1)),
+			getMax(LP1, LatestDefinite, LatestPossible),
+			Res2 = nondet
 			; % nondet-intervals empty
-				EarliestPossible = EarliestDefinite,
-				LatestPossible = LatestDefinite
-			)
-			; % always
+			EarliestPossible = EarliestDefinite,
+			LatestPossible = LatestDefinite,
+			(Ok1 = true -> OverallResult = ok ; OverallResult = nondet),
+			Res2 = not_ok
+		),
+		(Res1 = ok -> OverallResult = ok
+			; (Res2 = nondet -> OverallResult = nondet 
+				; OverallResult = not_ok))
+		; % always
+		% idea: merge goals and see if their continuous
+		(length(OkIntervals) > 0 ->
+			merge_goals(OkIntervals, MergedOkIntervals),
 			
-		)
+	)
 			
-			(length(OkIntervals) > 0, !,
-				
-			; % ok-
 			
-				
-				
-			
-			)
-		
-		)
 				
 		
 	

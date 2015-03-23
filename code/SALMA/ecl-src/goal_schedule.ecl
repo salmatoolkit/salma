@@ -15,7 +15,7 @@ get_scheduled_goal_description(ScheduleId, Description) :-
 % precondition for merge_goals:
 % list sorted ascending
 merge_goals([], []).
-merge_goals([Goal], [Goal]).
+merge_goals([Goal], [Goal]) :- true, !.
 merge_goals([First | Rest], MergedGoals) :-
 	merge_goals_rec(First, Rest, MergedGoals).
 	
@@ -34,7 +34,38 @@ merge_goals_rec(First, [Second | Rest], MergedGoals) :-
 		merge_goals_rec(Second, Rest, RestMergedGoals),
 		append([First], RestMergedGoals, MergedGoals)
 	).
-			
+	
+get_intervals_within(IntervalList, Start, End, Selection) :-
+	(foreach(I, IntervalList), fromto([], In, Out, Selection),
+		param(Start, End) do	
+			I = s(T1, T2),
+			(T2 < T1 -> throw(end_before_start(Start, End)) ; true),
+			(T1 < Start, T2 > Start, T2 =< End, !, % T2 > Start avoids 0-intervals 
+				append(In, [s(Start, T2)], Out)
+			; T1 >= Start, T2 =< End, !,
+				append(In, [I], Out)
+			; T1 >= Start, T1 < End, T2 > End, !,
+				append(In, [s(T1, End)], Out)
+			; % not included
+				Out = In			
+			)
+	).
+	
+get_scheduled_intervals_within(PSchedId, Level,
+	Start, End, 
+	NondetIntervals, OkIntervals, NotOkIntervals) :-
+	store_get(scheduled_goals, g(Level, PSchedId), 
+		i(NondetIntervalsAll, OkIntervalsAll, NotOkIntervalsAll, _)),
+	get_intervals_within(NondetIntervalsAll, 
+		Start, End, NondetIntervals),
+	get_intervals_within(OkIntervalsAll, 
+		Start, End, OkIntervals),
+	get_intervals_within(NotOkIntervalsAll, 
+		Start, End, NotOkIntervals).
+	
+		
+
+	
 	
 apply_one_interval_decision(NondetIntervals, OkIntervals, NotOkIntervals,
 	Start, End, Decision, 
@@ -148,7 +179,7 @@ add_nondet_schedule_interval(ScheduleId, Level, StartTime, EvalEndTime) :-
 	(fromto(NondetIntervals, In, Out, []), 
 		fromto([], NondetNewIn, NondetNewOut, NondetIntervalsNew),
 		fromto(false, _, F2, Found),
-		param(StartTime, EndTime) do
+		param(StartTime) do
 			In = [Goal | Rest],
 			Goal = s(IStartTime1, IStartTime2), % remember: it's a nondet interval
 			% check for interval order invariant
@@ -230,6 +261,6 @@ print_scheduled_goals(Stream, SortPositions) :-
 	printf(Stream, "%5s %10s %5s %10s %15s %s\n", ["Level", "Name", "Id", "Term", "Params", "State"]),
 	printf(Stream, "-------------------------------------------------------\n",[]),
 	(foreach(Line, SortedLines), param(Stream) do		
-		Line = l(Level, Name, Id, Term, Params, State)
+		Line = l(Level, Name, Id, Term, Params, State),
 		printf(Stream, "%5d %10s %5d %10s %15s %s\n",[Level, Name, Id, Term, Params, State])
 	).
