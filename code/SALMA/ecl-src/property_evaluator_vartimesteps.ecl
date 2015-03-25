@@ -125,8 +125,7 @@ check_schedule_for_interval(PSchedId, Level, Start, End, Mode, OverallResult,
 	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
 	get_scheduled_intervals_within(PSchedId, Level,
 		Start, End, 
-		NondetIntervals, OkIntervals, NotOkIntervals),
-	
+		NondetIntervals, OkIntervals, NotOkIntervals),	
 	(Mode = eventually ->
 		(length(OkIntervals) > 0 ->
 			OkIntervals = [s(EarliestDefinite,_) | _],
@@ -140,7 +139,7 @@ check_schedule_for_interval(PSchedId, Level, Start, End, Mode, OverallResult,
 			Res1 = not_ok
 		),
 		(length(NondetIntervals) > 0 ->
-			NondetIntervals = [s(EP1, _)],
+			NondetIntervals = [s(EP1, _) | _],
 			getMin(EP1, EarliestDefinite, EarliestPossible),
 			last_element(NondetIntervals, s(_, LP1)),
 			getMax(LP1, LatestDefinite, LatestPossible),
@@ -148,19 +147,48 @@ check_schedule_for_interval(PSchedId, Level, Start, End, Mode, OverallResult,
 			; % nondet-intervals empty
 			EarliestPossible = EarliestDefinite,
 			LatestPossible = LatestDefinite,
-			(Ok1 = true -> OverallResult = ok ; OverallResult = nondet),
 			Res2 = not_ok
 		),
-		(Res1 = ok -> OverallResult = ok
-			; (Res2 = nondet -> OverallResult = nondet 
-				; OverallResult = not_ok))
-		; % always
-		% idea: merge goals and see if their continuous
-		(length(OkIntervals) > 0 ->
-			merge_goals(OkIntervals, MergedOkIntervals),
-			
-	)
-			
+		(Res1 = ok, !, OverallResult = ok
+			; Res2 = nondet, !, OverallResult = nondet 
+			; OverallResult = not_ok)
+		; % MODE = always
+		(length(NotOkIntervals) > 0 ->
+			OverallResult = not_ok,
+			EarliestDefinite = nondet,
+			EarliestPossible = nondet,
+			LatestDefinite = nondet,
+			LatestPossible = nondet
+			;
+			% integrity check: there must not be a gap 
+			% without any result!
+			append(OkIntervals, NondetIntervals, NonNegativeIntervals),
+			(merge_goals(NonNegativeIntervals, s(Start, End)) ->
+				true ; throw(evaluation_gap(NonNegativeIntervals))),
+			EarliestPossible = Start,
+			LatestPossible = End,
+			(length(OkIntervals) > 0 ->
+				OkIntervals = [s(OkStartFirst, OkEndFirst) | _],
+				(OkStartFirst > Start ->
+					EarliestDefinite = nondet,
+					LatestDefinite = nondet,
+					% There's a gap between Start and the first ok. We know that
+					% there are no not_ok intervals and there's no unspecified gap ->
+					% there have to be nondet intervals at the start
+					OverallResult = nondet		
+					; 
+					EarliestDefinite = Start,
+					LatestDefinite = OkEndFirst,
+					(LatestDefinite < End ->
+						OverallResult = nondet ; OverallResult = ok)
+				)
+				; % all nondet
+				EarliestDefinite = nondet,
+				LatestDefinite = nondet,
+				OverallResult = nondet	
+			)
+		)
+	).		
 			
 				
 		
