@@ -114,88 +114,95 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	shelf_abolish(Shelf).
 	
 
-% checks the current states of the scheduled goals for the
-% given PSchedId to determine the definite and possible time markers. 
-% Note: only considers schedule, the actual time markers could differ
-% due to current results (evaluate_for_all_timesteps).
-%
-% Result:
-% - for eventually: 
-%		- Result is nondet if one of the timesteps was nondet
-%		- Result is not_ok if only not_oks were found
-% 		- Result is ok if one ok was found
-% - for always:
-%		- Result is not_ok if one timestep was not_ok
-%		- Result is ok if all timesteps were ok
-%		- Result is nondet if at least one timestep was nondet and all others were ok
-check_schedule_for_interval(PSchedId, Level, Start, End, Mode, OverallResult, 
-	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
-	get_scheduled_intervals_within(PSchedId, Level,
-		Start, End, 
-		NondetIntervals, OkIntervals, NotOkIntervals),	
+% attempts to find decisions for StartTimes based
+% on scheduled ok/not_ok entries for PSchedId
+% MaxTime could be inf
+check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
+	MaxTime, Results, OkDecisionPoints, NotOkDecisionPoints,
+	UnhandledStartTimes) :-
+	store_get(scheduled_goals, g(Level, PSchedId), 
+		i(_, OkIntervals, NotOkIntervals, _)),	
+	% for eventually:
+	% 1) for each ok-interval:
+	% - extend ok-interval by MaxTime, or to 0 for inf
+	% - apply ok to each intersection in StartTimes
+	% 2) for each not_ok-interval that is as least as 
+	%	 long as MaxTime
+	% - take as is, don't extend 
+    % - apply not_ok to each intersection in StartTimes
+    % for always: the other way around
+	% 1) for each not-ok-interval:
+	% - extend by MaxTime, or to 0 for inf
+	% - 
 	(Mode = eventually ->
-		(length(OkIntervals) > 0 ->
-			OkIntervals = [s(EarliestDefinite,_) | _],
-			% for eventually, last definite doesn't need to
-			% be connected continuously	
-			last_element(OkIntervals, s(_, LatestDefinite)),
-			Res1 = ok
-			; % ok-intervals empty
-			EarliestDefinite = nondet,
-			LatestDefinite = nondet,
-			Res1 = not_ok
+		(foreach(Int, OkIntervals), 
+			fromto(StartTimes, STIn, STOut, Unhandled1),
+			fromto([], Res1In, Res1Out, Res1),
+			fromto([], OkDec1In, OkDec1Out, OkDecisionPoints),
+			param(MaxTime) do
+				Int = s(Start, End),
+				(MaxTime = inf -> LeftBoundary = 0 ;
+					LeftBoundary is Start - MaxTime),
+				apply_result_within_interval(STIn, ok,
+					LeftBoundary, End, STOut, R),
+				append(Res1In, R, Res1Out),
+				append(OKDec1In, [Start : R], OkDec1Out)
 		),
-		(length(NondetIntervals) > 0 ->
-			NondetIntervals = [s(EP1, _) | _],
-			getMin(EP1, EarliestDefinite, EarliestPossible),
-			last_element(NondetIntervals, s(_, LP1)),
-			getMax(LP1, LatestDefinite, LatestPossible),
-			Res2 = nondet
-			; % nondet-intervals empty
-			EarliestPossible = EarliestDefinite,
-			LatestPossible = LatestDefinite,
-			Res2 = not_ok
-		),
-		(Res1 = ok, !, OverallResult = ok
-			; Res2 = nondet, !, OverallResult = nondet 
-			; OverallResult = not_ok)
-		; % MODE = always
-		(length(NotOkIntervals) > 0 ->
-			OverallResult = not_ok,
-			EarliestDefinite = nondet,
-			EarliestPossible = nondet,
-			LatestDefinite = nondet,
-			LatestPossible = nondet
-			;
-			% integrity check: there must not be a gap 
-			% without any result!
-			append(OkIntervals, NondetIntervals, NonNegativeIntervals),
-			(merge_goals(NonNegativeIntervals, s(Start, End)) ->
-				true ; throw(evaluation_gap(NonNegativeIntervals))),
-			EarliestPossible = Start,
-			LatestPossible = End,
-			(length(OkIntervals) > 0 ->
-				OkIntervals = [s(OkStartFirst, OkEndFirst) | _],
-				(OkStartFirst > Start ->
-					EarliestDefinite = nondet,
-					LatestDefinite = nondet,
-					% There's a gap between Start and the first ok. We know that
-					% there are no not_ok intervals and there's no unspecified gap ->
-					% there have to be nondet intervals at the start
-					OverallResult = nondet		
-					; 
-					EarliestDefinite = Start,
-					LatestDefinite = OkEndFirst,
-					(LatestDefinite < End ->
-						OverallResult = nondet ; OverallResult = ok)
+		(foreach(Int, NotOkIntervals), 
+			fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
+			fromto(Res1, Res2In, Res2Out, Results),
+			fromto([], NotOkDec1In, NotOkDec1Out, NotOkDecisionPoints),
+			param(MaxTime) do
+				Int = s(Start, End),
+				(End - Start >= MaxTime ->
+					apply_result_within_interval(STIn, not_ok,
+						Start, End, STOut, R),
+					append(Res2In, R, Res2Out),
+					append(NotOkDec1In, [Start : R], NotOkDec1Out)
+					;
+					STOut = STIn,
+					Res2Out = Res2In,
+					NotOkDec1Out = NotOkDec1In
 				)
-				; % all nondet
-				EarliestDefinite = nondet,
-				LatestDefinite = nondet,
-				OverallResult = nondet	
-			)
 		)
-	).		
+		; % always
+		(foreach(Int, NotOkIntervals), 
+			fromto(StartTimes, STIn, STOut, Unhandled1),
+			fromto([], Res1In, Res1Out, Res1),
+			fromto([], NotOkDec1In, NotOkDec1Out, NotOkDecisionPoints),
+			param(MaxTime) do
+				Int = s(Start, End),
+				(MaxTime = inf -> LeftBoundary = 0 ;
+					LeftBoundary is Start - MaxTime),
+				apply_result_within_interval(STIn, not_ok,
+					LeftBoundary, End, STOut, R),
+				append(Res1In, R, Res1Out),
+				append(NotOkDec1In, [Start : R])
+		),
+		(foreach(Int, OkIntervals), 
+			fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
+			fromto(Res1, Res2In, Res2Out, Results),
+			fromto([], OkDec1In, OkDec1Out, OkDecisionPoints),
+			param(MaxTime) do
+				Int = s(Start, End),
+				(End - Start >= MaxTime ->
+					apply_result_within_interval(STIn, ok,
+						Start, End, STOut, R),
+					append(Res2In, R, Res2Out),
+					append(NotOkDec1In, [Start : R])
+					;
+					STOut = STIn,
+					Res2Out = Res2In,
+					NotOkDec1Out = NotOkDec1In
+				)
+		)
+		
+		
+				
+			
+	
+	
+	
 			
 				
 		

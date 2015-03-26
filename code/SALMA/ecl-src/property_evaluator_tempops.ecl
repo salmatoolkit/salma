@@ -263,8 +263,10 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 		),
 		(length(UnhandledStartTimes) > 0 ->
 			(PSchedId >= 0 ->
-				check_schedule_for_interval(PSchedId, StartTime, IntervalEnd, 
-					Mode, Result2, _, _, _, _),
+				check_schedule_for_interval(PSchedId, 
+				NextLevel, 0, IntervalEnd, 
+					Mode, Result2, 
+					ED2, LD2, EP2, LP2),
 				(Result2 = not_ok, 
 					(Mode = always ->
 						Result3 = not_ok
