@@ -213,21 +213,20 @@ evaluate_until(ToplevelFormula, FormulaPath,
 % evaluates always(MaxTime, P) or eventually(MaxTime, P) depending on Mode
 % - the inspected interval is determined as min(StartTime + MaxTime, EndTime)
 evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
-	CurrentStep, Level, StartTime, EndTime, MaxTime, P, 
-				Result, ToSchedule, ScheduleParams, HasChanged) :-
+	CurrentStep, Level, StartTimes, EndTime, MaxTime, P, 
+				Results, OverallResult, ToSchedule, ScheduleParams, HasChanged) :-
 				
 		NextLevel is Level + 1,
-		Deadline is StartTime + MaxTime,
+		last_element(StartTimes, s(_, MaxStartTime)),
+		Deadline is MaxStartTime + MaxTime,
 		% the end of the interval that is to be inspected
 		IntervalEnd is min(Deadline, EndTime),
+		
 		time(CurrentTime, do2(tick(CurrentStep), s0)),
-		printlog("ALWAYS: CurrentTime=%d CurrentStep=%d, Level=%d, StartTime=%d, EndTime=%d, MaxTime=%d\n",
-			[CurrentTime, CurrentStep, Level, StartTime, EndTime, MaxTime]),
 		
 		shelf_create(orig/1, null, Shelf),
 		shelf_set(Shelf,1,P),
 		append(FormulaPath, [1], SubPathP),
-		NextLevel is Level + 1,
 		(P = sched(_, PSchedIdIn, PRefTerm) ->  
 			(PRefTerm = cf(PCacheId) ->
 				get_cached_formula(PCacheId, SubP)
@@ -241,10 +240,10 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 			PCacheId = -1		
 		),
 		evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
-			Mode, CurrentStep, CurrentTime, StartTime, IntervalEnd, SubP, NextLevel, Result1, 
+			Mode, CurrentStep, CurrentTime, IntervalEnd, SubP, NextLevel, Result1, 
 			PSchedIdIn, PCacheId,
 			PSchedId, ToScheduleP,
-			_, _, _, _),
+			EarliestDefinite, _, EarliestPossible, _),
 		
 		(Result1 = ok, Mode = eventually, !,
 			Result3 = ok

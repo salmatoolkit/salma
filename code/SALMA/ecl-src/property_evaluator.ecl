@@ -28,7 +28,9 @@
 :- lib(hash).
 :- lib(lists).
 :- dynamic properties_unsynced/0.
+:- [interval_utils].
 :- [goal_schedule].
+
 :- [property_evaluator_vartimesteps].
 :- [property_evaluator_tempops].
 
@@ -186,38 +188,6 @@ recompile_all :-
 		
 
 		
-
-% Returns the same result for all given start time intervals.
-apply_unique_result(StartTimes, Result, Results) :-
-	(foreach(Entry, StartTimes), foreach(R, Results),
-		param(Result) do
-		R = Entry : Result
-	).	
-
-negate_results(OrigResults, Results) :-
-	(foreach(Entry, OrigResults), foreach(R, Results) do
-		Entry = Interval : OldR,
-		(OldR = nondet, !, NewR = nondet
-		; OldR = ok, !, NewR = not_ok 
-		; OldR = not_ok, !, NewR = ok
-		),
-		R = Interval : NewR
-	).		
-		
-get_unanimous_result(OrigResults, Result) :-
-	(fromto(OrigResults, In, Out, []), fromto(none, R1, R2, Result) do
-		In = [First | Rest],
-		First = _ : Res,
-		(Res = nondet, !,
-			Out = [], R2 = nondet
-		; R1 = none, !,
-			Out = Rest, R2 = Res
-		; R1 = Res, !, 
-			Out = Rest, R2 = R1
-		; R1 \= none, R1 \= Res, !,
-			Out = [], R2 = ambiguous
-		)
-	).
 		
 
 % Evaluates the given (sub-)formula.		
@@ -726,13 +696,12 @@ getMax(V1, V2, Result) :-
 % and schedule params gathered during evaluation of F. 
 % No schedule parameters are returned from here as the gathered params are "consumed".
 
-evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndTime,
+evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTime,
 	F, CacheId, Level, 
 	ScheduleIdIn, OverallResult, ToScheduleOut, ScheduleIdOut, HasChanged) :-
-		time(CurrentTime, do2(tick(CurrentStep), s0)),
 		StartTimes = [s(StartTime, StartTime)], 
 		evaluate_formula(ToplevelFormula, FormulaPath, 
-			CurrentStep, StartTimes, EndTime, F, Level, _, 
+			StartStep, StartTimes, EndTime, F, Level, _, 
 			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
 		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
 		((CacheId is -1, OverallResult = nondet, ! ; not(CacheId is -1), HasChanged1 = true) ->		

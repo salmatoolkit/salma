@@ -9,7 +9,7 @@
 %		- Result is ok if all timesteps were ok
 %		- Result is nondet if at least one timestep was nondet and all others were ok
 evaluate_for_all_timesteps(ToplevelFormula, FormulaPath, 
-	Mode, StartStep, CurrentTime, StartTime, EndTime, P, Level, Result, 
+	Mode, StartStep, StartTime, EndTime, P, Level, Result, 
 	ScheduleIdIn, CacheIdIn,
 	ScheduleIdOut, ToSchedule,
 	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
@@ -22,9 +22,9 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 		;
 		ResStart = ok
 	),
-	(CurrentTime < EndTime2 ->
+	(StartTime < EndTime2 ->
 	
-		(fromto(CurrentTime, T, T2, EndTime2), fromto(StartStep, Step, NextStep, _), 
+		(fromto(StartTime, T, T2, EndTime2), fromto(StartStep, Step, NextStep, _), 
 			fromto(ResStart, ResIn, ResOut, Result), % start with ok, might be switched to nondet and stay that way
 			fromto(ScheduleIdIn, SId1, SId2, ScheduleIdOut), 
 			fromto(nondet, EDIn, EDOut, EarliestDefinite), 
@@ -41,7 +41,8 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 				%print(P2), nl,
 				% TODO: is 0 as level ok here?
 				time(StepTime, Sit),
-				evaluate_and_schedule(ToplevelFormula, FormulaPath, Step, StartTime, EndTime, 
+				evaluate_and_schedule(ToplevelFormula, FormulaPath, 
+				Step, StepTime, EndTime, 
 					P2, -1, Level, SId1, Res, _, SId2, _),		
 				%print(Res), nl,
 				% TODO: how to deal with ToSchedule2?
@@ -194,13 +195,11 @@ check_schedule_for_interval(PSchedId, Level, Start, End, Mode, OverallResult,
 		
 	
 	
-% Evaluates F as part of eventually/always block for each step up to EndTime 
+% Evaluates F as part of an invariant/goal block 
 %
-% StartTime: marks the start of the interval that is checked
-% CurrentStep: refers to the currently evaluated step relative to StartTime
 evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
-	Mode, StartStep, StartTime, EndTime, P, Level, 
-	Result, ToSchedule, ScheduleParams, HasChanged) :-
+	Mode, StartStep, StartTimes, EndTime, P, Level, 
+	Results, OverallResult, ToSchedule, ScheduleParams, HasChanged) :-
 	% StartTime could be before the current time
 	% TODO: should we really distinguish StartTime from CurrentTime?
 	append(FormulaPath, [1], SubPathP),
@@ -226,37 +225,39 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 	),
 	% use formula path 
 	evaluate_for_all_timesteps(ToplevelFormula, FormulaPath, 
-		Mode, StartStep, CurrentTime, StartTime, EndTime, SubP, NextLevel, Result1, 
+		Mode, StartStep, CurrentTime, EndTime, SubP, NextLevel, Result1, 
 		PSchedIdIn, PCacheId,
 		PSchedId, ToScheduleP,
 		_, _, _, _),
-	
+	% for interval/goal, we have unique results since no max time
+	% is given
 	(Result1 = ok, Mode = eventually, !,
-		Result = ok
+		OverallResult = ok
 	; Result1 = not_ok, Mode = always, !,
-		Result = not_ok
+		OverallResult = not_ok
 	; % not decided yet  
 		(PSchedId >= 0 ->
-			check_schedule_for_interval(PSchedId, StartTime, EndTime, Mode, Result2, 
+			check_schedule_for_interval(PSchedId, NextLevel, 
+				StartTime, EndTime, Mode, Result2, 
 				_, _, _, _),
 			(
 				Result1 = nondet,
 				(
 					Mode = eventually,
 					Result2 = ok,
-					Result = ok, !
+					OverallResult = ok, !
 					;
 					Mode = always,
 					Result2 = not_ok,
-					Result = not_ok, !
+					OverallResult = not_ok, !
 					;
-					Result = nondet
+					OverallResult = nondet
 				), !
 				;
-				Result = Result2				
+				OverallResult = Result2				
 			)
 			; % PSchedId = -1
-			Result = Result1
+			OverallResult = Result1
 		)
 
 	),	
@@ -265,7 +266,7 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 		;
 		HasChanged = false
 	),
-	(Result = nondet -> 
+	(OverallResult = nondet -> 
 		(PSchedId > -1 ->
 			KeyP =.. [p, SubPathP],
 			var(VarPSchedId),
@@ -277,11 +278,13 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 			ToSchedule = OrigP			
 		)		
 		;
-		ToSchedule = Result,
+		ToSchedule = OverallResult,
 		ScheduleParams= []
 		
 	),
-	shelf_abolish(Shelf).
+	shelf_abolish(Shelf),
+	apply_unique_result(StartTimes, OverallResult, Results).
+	
 	
 
 calculate_until_result(PLatestDefinite, PLatestPossible,

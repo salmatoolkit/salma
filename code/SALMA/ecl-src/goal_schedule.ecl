@@ -12,44 +12,6 @@ get_scheduled_goal_description(ScheduleId, Description) :-
 	;
 	throw(unregistered_scheduled_goal(ScheduleId)).
 	
-% precondition for merge_goals:
-% list sorted ascending
-merge_goals([], []).
-merge_goals([Goal], [Goal]) :- true, !.
-merge_goals([First | Rest], MergedGoals) :-
-	merge_goals_rec(First, Rest, MergedGoals).
-	
-merge_goals_rec(First, [], [First]).
-merge_goals_rec(First, [Second | Rest], MergedGoals) :-
-	First = s(Start1_1, Start1_2),
-	Second = s(Start2_1, Start2_2),
-	% remember: intervals are sorted
-	(Start2_1 =< Start1_2 + 1 ->
-		% found contiguous intervals -> merge
-		NewStart2 is max(Start1_2, Start2_2),
-		MergedInterval = s(Start1_1, NewStart2),
-		merge_goals_rec(MergedInterval, Rest, MergedGoals)
-	;
-		% not contiguous
-		merge_goals_rec(Second, Rest, RestMergedGoals),
-		append([First], RestMergedGoals, MergedGoals)
-	).
-	
-get_intervals_within(IntervalList, Start, End, Selection) :-
-	(foreach(I, IntervalList), fromto([], In, Out, Selection),
-		param(Start, End) do	
-			I = s(T1, T2),
-			(T2 < T1 -> throw(end_before_start(Start, End)) ; true),
-			(T1 < Start, T2 > Start, T2 =< End, !, % T2 > Start avoids 0-intervals 
-				append(In, [s(Start, T2)], Out)
-			; T1 >= Start, T2 =< End, !,
-				append(In, [I], Out)
-			; T1 >= Start, T1 < End, T2 > End, !,
-				append(In, [s(T1, End)], Out)
-			; % not included
-				Out = In			
-			)
-	).
 	
 get_scheduled_intervals_within(PSchedId, Level,
 	Start, End, 
