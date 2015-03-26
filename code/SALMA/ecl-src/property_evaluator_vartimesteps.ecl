@@ -70,18 +70,24 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 					), !
 				; 
 				Res = not_ok,
-					EDOut = EDIn,
-					EPOut = EPIn,
-					LDOut = LDIn,			
-					LPOut = LPIn,
 					(Mode = eventually ->
+						EDOut = EDIn,
+						EPOut is getMin(EPIn, T + 1),
+						LDOut = LDIn,			
+						LPOut = LPIn,
 						ResOut = ResIn,
 						T2 is T + 1
 						; % always
 						ResOut = not_ok,
-						T2 = EndTime2 % this stops the iteration
+						T2 = EndTime2, % this stops the iteration
+						EDOut = EDIn,
+						EPOut = EPIn,
+						LDOut = LDIn,
+						% we know that the previous step was the last
+						% where a positive result is event possible
+						LPOut is getMin(LPIn, T - 1) 						
 					), !
-				; throw(wrong_mode(Mode))		
+				; throw(wrong_result(Res))		
 				)			
 				
 		)

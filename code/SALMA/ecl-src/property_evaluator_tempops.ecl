@@ -246,10 +246,22 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 			EarliestDefinite, _, EarliestPossible, _),
 		
 		(Result1 = ok, Mode = eventually, !,
-			Result3 = ok
+			% we now can confirm every interval that is not longer than 
+			% MaxTime before the ok we found
+			LeftBoundary is EarliestDefinite - MaxTime,
+			apply_result_within_interval(StartTimes, ok,
+				LeftBoundary, inf, 
+				UnhandledStartTimes, ResultsWithoutSchedule)			
 		; Result1 = not_ok, Mode = always, !,
-			Result3 = not_ok
-		; % not decided yet  
+			LeftBoundary is EarliestDefinite - MaxTime,
+			apply_result_within_interval(StartTimes, not_ok,
+				LeftBoundary, inf, 
+				UnhandledStartTimes, ResultsWithoutSchedule)
+		; 
+			UnhandledStartTimes = StartTimes,
+			ResultsWithoutSchedule = []
+		),
+		(length(UnhandledStartTimes) > 0 ->
 			(PSchedId >= 0 ->
 				check_schedule_for_interval(PSchedId, StartTime, IntervalEnd, 
 					Mode, Result2, _, _, _, _),
