@@ -53,9 +53,14 @@ test2 :-
 	F = invariant(xpos(rob1) < 15),
 	register_property(f, F, _).
 
-test3 :-
+test3(TimeLimit, XMax) :-
 	init,
-	F = always(10, xpos(rob1) < 15),
+	F = always(TimeLimit, xpos(rob1) < XMax),
+	register_property(f, F, _).
+	
+test4(TimeLimit, Target) :-
+	init,
+	F = eventually(TimeLimit, xpos(rob1) =:= Target),
 	register_property(f, F, _).
 	
 evstep :-

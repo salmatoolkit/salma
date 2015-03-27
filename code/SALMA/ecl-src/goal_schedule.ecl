@@ -35,38 +35,14 @@ apply_one_interval_decision(NondetIntervals, OkIntervals, NotOkIntervals,
 		param(Start, End) do
 			In = [Goal | Rest],
 			Out = Rest,
-			Goal = s(IStartTime1, IStartTime2),
-			% TODO: are the first cases even possible?
-			((IStartTime2 < Start, ! ; IStartTime1 > End), !,
-				% interval not included
-				append(NondetNewIn, [Goal], NondetNewOut),
+			get_interval_intersection(Goal, Start, End,
+				Intersection, RestOfIntersection),
+			(Intersection \= none ->
+				append(NewIntervalsIn, [Intersection], NewIntervalsOut)
+				;
 				NewIntervalsOut = NewIntervalsIn
-			; IStartTime1 < Start, IStartTime2 >= Start, 
-				IStartTime2 =< End, !,
-				% right side is enclosed in [Start, End]
-				IStartTime2New is Start - 1,
-				append(NondetNewIn, 
-					[s(IStartTime1, IStartTime2New)],
-					NondetNewOut),
-				append(NewIntervalsIn, 
-					[s(Start, IStartTime2)],
-					NewIntervalsOut)
-			; IStartTime1 < Start, IStartTime2 > End, !,
-				% interior part of interval enclosed
-				IStartTime2New is Start - 1,
-				IStartTime3 is End + 1,
-				append(NondetNewIn,
-					[s(IStartTime1, IStartTime2New),
-						s(IStartTime3, IStartTime2)],
-					NondetNewOut),
-				append(NewIntervalsIn,
-					[s(Start, End)],
-					NewIntervalsOut)
-			; IStartTime1 >= Start, IStartTime2 =< End, !,
-				% intervall fully enclosed
-				NondetNewOut = NondetNewIn,
-				append(NewIntervalsIn, [Goal], NewIntervalsOut)
-			)
+			),
+			append(NondetNewIn, RestOfIntersection, NondetNewOut)
 	),
 	(Decision = ok ->
 		append(OkIntervals, NewIntervals, OkIntervals2),

@@ -693,7 +693,7 @@ getMax(V1, V2, Result) :-
 		(V2 = nondet -> Result = nondet ; Result is V2)
 	;
 	V2 = nondet, !,
-		(V1 = nondet -> REsult = nondet ; Result is V1)
+		(V1 = nondet -> Result = nondet ; Result is V1)
 	;
 	(V2 > V1 -> Result is V2 ; Result is V1).
 			

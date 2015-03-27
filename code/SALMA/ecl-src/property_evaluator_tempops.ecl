@@ -244,7 +244,8 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 			PSchedIdIn, PCacheId,
 			PSchedId, ToScheduleP,
 			EarliestDefinite, _, _, LastPossible, _),
-		
+		% apply current result
+
 		(Result1 = ok, Mode = eventually, !,
 			% we now can confirm every interval that is not longer than 
 			% MaxTime before the ok we found
@@ -257,7 +258,7 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 			apply_result_within_interval(StartTimes, not_ok,
 				LeftBoundary, inf, 
 				UnhandledStartTimes, ResultsWithoutSchedule)
-		; 
+		; 	
 			UnhandledStartTimes = StartTimes,
 			ResultsWithoutSchedule = []
 		),
@@ -271,8 +272,20 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 				append(RTemp, ResultsUnhandled, ResultsUnsorted),
 				sort([1,1], =<, ResultsUnsorted, Results)				
 				; % not scheduled before
-				apply_unique_result(UnhandledStartTimes, nondet, ResultsUnhandled),
-				append(ResultsWithoutSchedule, ResultsUnhandled, ResultsUnsorted),
+				% this means we have no temporal operator in SubP and we can assume
+				% that for all previous steps: (always -> ok) /\ (eventually -> not_ok) 
+				((Result1 = ok, Mode = always, ! ; Result1 = not_ok, Mode = eventually) ->	
+					RightBoundary is IntervalEnd - MaxTime,
+					apply_result_within_interval(UnhandledStartTimes, Result1,
+						inf, RightBoundary, 
+						UnhandledStartTimes2, ResultsByTimeout)
+				;
+					UnhandledStartTimes2 = UnhandledStartTimes,
+					ResultsByTimeout = []				
+				),
+				apply_unique_result(UnhandledStartTimes2, nondet, ResultsUnhandled),
+				append(ResultsWithoutSchedule, ResultsUnhandled, ResultsUnsorted1),
+				append(ResultsUnsorted1, ResultsByTimeout, ResultsUnsorted),
 				sort([1,1], =<, ResultsUnsorted, Results)
 			)
 			;
