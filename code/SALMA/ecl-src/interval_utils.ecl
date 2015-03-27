@@ -141,11 +141,6 @@ get_interval_intersection(Int, Start, End, Intersection, Rest) :-
 				R2Start is End + 1,
 				Rest = [s(T1, R1End), s(R2Start, T2)]
 				;
-				T1 >= Start, T2 > End, !,
-				Intersection = s(T1, End),
-				RStart is End + 1,
-				Rest = [s(RStart, T2)]
-				;
 				T1 >= Start, T2 =< End, !,
 				Intersection = s(T1, T2),
 				Rest = []
@@ -161,15 +156,18 @@ get_interval_intersection(Int, Start, End, Intersection, Rest) :-
 			)
 	).
 	
-get_intervals_within(IntervalList, Start, End, Selection) :-
+get_intervals_within(IntervalList, Start, End, Selection, 
+	Remaining) :-
 	(foreach(I, IntervalList), fromto([], In, Out, Selection),
+		fromto([], R1, R2, Remaining),
 		param(Start, End) do	
 			get_interval_intersection(I, Start, End,
-				Intersection, _),
+				Intersection, Rest),
 			(Intersection = none ->
 				Out = In
 				;
 				append(In, [Intersection], Out)
-			)
+			),
+			append(R1, Rest, R2)
 	).
 	

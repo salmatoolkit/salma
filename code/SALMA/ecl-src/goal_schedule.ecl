@@ -19,11 +19,11 @@ get_scheduled_intervals_within(PSchedId, Level,
 	store_get(scheduled_goals, g(Level, PSchedId), 
 		i(NondetIntervalsAll, OkIntervalsAll, NotOkIntervalsAll, _)),
 	get_intervals_within(NondetIntervalsAll, 
-		Start, End, NondetIntervals),
+		Start, End, NondetIntervals, _),
 	get_intervals_within(OkIntervalsAll, 
-		Start, End, OkIntervals),
+		Start, End, OkIntervals, _),
 	get_intervals_within(NotOkIntervalsAll, 
-		Start, End, NotOkIntervals).
+		Start, End, NotOkIntervals, _).
 	
 	
 apply_one_interval_decision(NondetIntervals, OkIntervals, NotOkIntervals,

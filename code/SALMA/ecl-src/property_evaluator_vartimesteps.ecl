@@ -133,10 +133,9 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 	%	 long as MaxTime
 	% - take as is, don't extend 
     % - apply not_ok to each intersection in StartTimes
-    % for always: the other way around
-	% 1) for each not-ok-interval:
-	% - extend by MaxTime, or to 0 for inf
-	% - 
+    % -------------------------------------
+	% for always: the other way around
+	%
 	(Mode = eventually ->
 		(foreach(Int, OkIntervals), 
 			fromto(StartTimes, STIn, STOut, Unhandled1),
