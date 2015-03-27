@@ -44,8 +44,8 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 				% TODO: is 0 as level ok here?
 				time(StepTime, Sit),
 				evaluate_and_schedule(ToplevelFormula, FormulaPath, 
-				Step, StepTime, EndTime, 
-					P2, -1, Level, SId1, Res, _, SId2, _),		
+					Step, StepTime, EndTime, 
+						P2, Sit, -1, Level, SId1, Res, _, SId2, _),		
 				%print(Res), nl,
 				% TODO: how to deal with ToSchedule2?
 				NextStep is Step + 1,

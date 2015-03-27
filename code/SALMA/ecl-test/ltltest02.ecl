@@ -63,6 +63,11 @@ test4(TimeLimit, Target) :-
 	F = eventually(TimeLimit, xpos(rob1) =:= Target),
 	register_property(f, F, _).
 	
+test5 :-
+	init,
+	F = always(50, eventually(5, (xpos(rob1) mod 5) =:= 0)),
+	register_property(f, F, _).
+	
 evstep :-
 	evstep(1).
 	

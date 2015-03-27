@@ -706,15 +706,16 @@ getMax(V1, V2, Result) :-
 % No schedule parameters are returned from here as the gathered params are "consumed".
 
 evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTime,
-	F, CacheId, Level, 
+	F, SitTerm, CacheId, Level, 
 	ScheduleIdIn, OverallResult, ToScheduleOut, ScheduleIdOut, HasChanged) :-
 		StartTimes = [s(StartTime, StartTime)], 
 		evaluate_formula(ToplevelFormula, FormulaPath, 
 			StartStep, StartTimes, EndTime, F, Level, _, 
 			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
 		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
-		((CacheId is -1, OverallResult = nondet, ! ; not(CacheId is -1), HasChanged1 = true) ->		
-			cache_formula(ToplevelFormula, FormulaPath, ToSchedule1, CacheId2), HasChanged2 = true
+		((CacheId is -1, OverallResult = nondet, ! ; not(CacheId is -1), HasChanged1 = true) ->	
+			subst_in_term(SitTerm, s0, ToSchedule1, ToCache, [until]),
+			cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheId2), HasChanged2 = true
 			; 
 			CacheId2 is CacheId, HasChanged2 = false
 		),	
@@ -797,7 +798,7 @@ evaluate_toplevel(EndTime, Results) :-
 			% CurrentStep = 0
 			% StartTime = CurrentTime
 			evaluate_and_schedule(Name, [0], 0, CurrentTime, EndTime,			
-				F, CacheId, 0, -1, R, _, _, _),
+				F, s0, CacheId, 0, -1, R, _, _, _),
 			(
 				R = ok, append(In2, [ok : Name], Out2), !
 				;
