@@ -226,7 +226,7 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 		
 		shelf_create(orig/1, null, Shelf),
 		shelf_set(Shelf,1,P),
-		append(FormulaPath, [1], SubPathP),
+		append(FormulaPath, [2], SubPathP),
 		(P = sched(_, PSchedIdIn, PRefTerm) ->  
 			(PRefTerm = cf(PCacheId) ->
 				get_cached_formula(PCacheId, SubP)
