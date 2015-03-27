@@ -170,6 +170,27 @@ get_intervals_within(IntervalList, Start, End, Selection,
 			),
 			append(R1, Rest, R2)
 	).
+
+get_first_interval_within(IntervalList, Start, End, Selection, 
+	Remaining) :-
+	(fromto(IntervalList, IntIn, IntOut, []), 
+		fromto(none, _, SelOut, Selection),
+		fromto([], R1, R2, Remaining),
+		param(Start, End) do	
+			IntIn = [I | Tail],
+			get_interval_intersection(I, Start, End,
+				SelOut, Rest),
+			(SelOut = none ->
+				IntOut = Tail,
+				append(R1, [I], R2)
+				;
+				IntOut = [],
+				append(R1, Rest, RTemp),
+				append(RTemp, Tail, R2)
+			)			
+	).
+
+	
 	
 get_right_bound_continuous_intersection(IntervalList, 
 	RightBoundary, Intersection) :-

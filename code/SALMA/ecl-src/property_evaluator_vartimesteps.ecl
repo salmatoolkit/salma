@@ -210,39 +210,72 @@ check_schedule_for_interval_until(PSchedId, QSchedId, Level, StartTimes,
 	% assumptions:
 	% - interval lists sorted in ascending order
 	(foreach(Int, QOkIntervals), 
-			fromto(StartTimes, STIn, STOut, Unhandled1),
+			fromto(StartTimes, STIn, STOut, Unhandled2),
 			fromto([], Res1In, Res1Out, Res1),
-			param(MaxTime, POkIntervals) do
+			param(MaxTime, POkIntervals, PNotOkIntervals) do
 				Int = s(QStart, QEnd),
 				(MaxTime = inf -> LeftBoundary = 0 ;
 					LeftBoundary is QStart - MaxTime),
-				get_intervals_within(STIn, LeftBoundary, End, Candidates, 
-					Remaining1),
-				% Selection now contains candidates that could
-				% be ok if P is ok until QStart
-				(length(Candidates) > 0 ->
-					get_right_bound_continuous_intersection(POkIntervals, 
-						QStart, POkSpan),
-					(POkSpan \= none ->
-						POkSpan = s(POkStart, POkEnd),
-						get_intervals_within(Candidates, POkStart, POkEnd, 
-							Confirmed, Remaining2)
-						;
-						Confirmed = [],
-						Remaining2 = Candidates
-					)
-					; % no candidates
-					Confirmed = [],
-					Remaining2 = []
-				),
-				apply_unique_result(Confirmed,
-					ok, R),					
-				append(Remaining1, Remaining2, Remaining)
+				
+				confirm_scheduled_until_goals(Int, MaxTime, STIn, 
+					POkIntervals, ResConfirmed, Unhandled1),
+					
+				reject_scheduled_until_goals(Unhandled1, QStart, MaxTime,
+					PNotOkIntervals, ResReject, Unhandled2),
+				
 				
 				
 		),
 	
-
+reject_scheduled_until_goals(StartTimes, EarliestOk, MaxTime, 
+	PNotOkIntervals, Results, UnhandledStartTimes) :-
+	(MaxTime = inf -> LeftBoundary = 0 ;
+		LeftBoundary is EarliestOk - MaxTime), 
+	get_intervals_within(PNotOkIntervals, 
+		LeftBoundary, EarliestOk, Critical, _),
+	(foreach(Int, Critical), 
+		fromto([], R1, R2, Results),
+		fromto(StartTimes, UnhandledIn, UnhandledOut,
+			UnhandledStartTimes),
+		param(LeftBoundary, EarliestOk) do
+			Int = s(_, End),
+			get_intervals_within(UnhandledIn, 
+				LeftBoundary, End, ToReject, UnhandledOut),
+			apply_unique_result(ToReject, not_ok,
+				R),
+			append(R1, R, R2)
+	).
+	
+confirm_scheduled_until_goals(QOkInterval, MaxTime, StartTimes, POkIntervals,
+	Results, UnhandledStartTimes) :-
+		QOkInterval = s(QStart, QEnd),
+		(MaxTime = inf -> LeftBoundary = 0 ;
+					LeftBoundary is QStart - MaxTime),
+		get_intervals_within(StartTimes, LeftBoundary, QEnd, Candidates, 
+			Remaining1),
+		% Selection now contains candidates that could
+		% be ok if P is ok until QStart
+		(length(Candidates) > 0 ->
+			get_right_bound_continuous_intersection(POkIntervals, 
+				QStart, POkSpan),
+			(POkSpan \= none ->
+				POkSpan = s(POkStart, POkEnd),
+				get_intervals_within(Candidates, POkStart, POkEnd, 
+					ToConfirm, Remaining2)
+				;
+				ToConfirm = [],
+				Remaining2 = Candidates
+			)
+			
+			; % no candidates
+			ToConfirm = [],
+			Remaining2 = []
+		),
+		apply_unique_result(ToConfirm, ok, Results),
+		append(Remaining1, Remaining2, RemainingUnsorted),
+		sort(0, =<, RemainingUnsorted, RemainingUnmerged)
+		merge_goals(RemainingUnmerged, UnhandledStartTimes).
+	
 	
 % Evaluates F as part of an invariant/goal block 
 %
