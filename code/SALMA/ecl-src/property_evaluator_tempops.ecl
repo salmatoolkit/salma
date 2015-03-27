@@ -59,8 +59,6 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			get_intervals_within(StartTimes, 
 				LeftBoundary, inf, Selection, 
 				Remaining)
-			
-		
 		)
 		
 		
