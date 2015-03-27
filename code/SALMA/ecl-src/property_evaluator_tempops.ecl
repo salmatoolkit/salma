@@ -243,7 +243,7 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 			Mode, CurrentStep, CurrentTime, IntervalEnd, SubP, NextLevel, Result1, 
 			PSchedIdIn, PCacheId,
 			PSchedId, ToScheduleP,
-			EarliestDefinite, _, EarliestPossible, _),
+			EarliestDefinite, _, _, LastPossible, _),
 		
 		(Result1 = ok, Mode = eventually, !,
 			% we now can confirm every interval that is not longer than 
@@ -253,7 +253,7 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 				LeftBoundary, inf, 
 				UnhandledStartTimes, ResultsWithoutSchedule)			
 		; Result1 = not_ok, Mode = always, !,
-			LeftBoundary is EarliestDefinite - MaxTime,
+			LeftBoundary is LastPossible - MaxTime,
 			apply_result_within_interval(StartTimes, not_ok,
 				LeftBoundary, inf, 
 				UnhandledStartTimes, ResultsWithoutSchedule)
@@ -263,61 +263,28 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 		),
 		(length(UnhandledStartTimes) > 0 ->
 			(PSchedId >= 0 ->
-				check_schedule_for_interval(PSchedId, 
-				NextLevel, 0, IntervalEnd, 
-					Mode, Result2, 
-					ED2, LD2, EP2, LP2),
-				(Result2 = not_ok, 
-					(Mode = always ->
-						Result3 = not_ok
-						;
-						Result3 = Result1
-					), !
-				; Result2 = ok,
-					(Mode = eventually ->
-						Result3 = ok
-						;
-						Result3 = Result1
-					), !
-				; % Result2 = nondet
-					Result3 = nondet
-				)
+				check_schedule_for_interval(PSchedId, NextLevel, UnhandledStartTimes, Mode,
+					MaxTime, ResultsFromSchedule, _, _,
+					UnhandledStartTimes2),
+				apply_unique_result(UnhandledStartTimes2, nondet, ResultsUnhandled),
+				append(ResultsWithoutSchedule, ResultsFromSchedule, RTemp),
+				append(RTemp, ResultsUnhandled, ResultsUnsorted),
+				sort([1,1], =<, ResultsUnsorted, Results)				
 				; % not scheduled before
-				Result3 = Result1
+				apply_unique_result(UnhandledStartTimes, nondet, ResultsUnhandled),
+				append(ResultsWithoutSchedule, ResultsUnhandled, ResultsUnsorted),
+				sort([1,1], =<, ResultsUnsorted, Results)
 			)
-		),
-		
-		(Result3 = nondet ->
-			Result = nondet
 			;
-			(Mode = eventually ->
-				(Result3 = ok ->
-					Result = ok
-					; % not_ok,
-					(Deadline > IntervalEnd ->
-						Result = nondet
-						;
-						Result = not_ok
-					)
-				)
-				; % always
-				(Result3 = not_ok ->
-					Result = not_ok
-					; % ok
-					(Deadline > IntervalEnd ->
-						Result = nondet
-						;
-						Result = ok
-					)
-				)
-			)
-		),		
+			Results = ResultsWithoutSchedule
+		),
+		get_unanimous_result(Results, OverallResult),		
 		(PSchedIdIn =\= PSchedId ->
 			HasChanged = true
 			;
 			HasChanged = false
 		),		
-		(Result = nondet -> 
+		(OverallResult = nondet -> 
 			(PSchedId > -1 ->
 				KeyP =.. [p, SubPathP],
 				var(VarPSchedId),
@@ -329,7 +296,7 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 				ToSchedule = OrigP			
 			)		
 			;
-			ToSchedule = Result,
+			ToSchedule = OverallResult,
 			ScheduleParams= []		
 		),
 		shelf_abolish(Shelf).	

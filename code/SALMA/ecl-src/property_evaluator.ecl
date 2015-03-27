@@ -30,7 +30,8 @@
 :- dynamic properties_unsynced/0.
 :- [interval_utils].
 :- [goal_schedule].
-
+:- [formula_cache].
+:- [persistent_fluents].
 :- [property_evaluator_vartimesteps].
 :- [property_evaluator_tempops].
 
@@ -410,14 +411,14 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				;		
 				% otherwise it's a function so call it to bind variables but don't use in schedule term
 				call(F), apply_unique_result(StartTimes, ok, Results), !
-			), !
+			), !,
+			get_unanimous_result(Results, OverallResult),
+			ToSchedule = OverallResult
 		),
-		get_unanimous_result(Results, OverallResult),
-		ToSchedule = OverallResult,
 		getval(negated, Negated),
 		(foreach(Entry, Results), param(Negated, CFS, MyFailures,
 			ToplevelFormula, FormulaPath, F, Level) do
-			Entry = S(IStart, _) : R,
+			Entry = s(IStart, _) : R,
 			((Negated = 0, R = not_ok ; Negated = 1, R = ok) ->
 				record(CFS, ref(MyFailures)),
 				record(CFS, failure(R, ToplevelFormula, FormulaPath, IStart, F, Level))
@@ -477,10 +478,10 @@ and_resvector(R1, R2, RAnd, OverallResult) :-
 			throw(different_intervals_and_resvector)
 		),
 		(OvResIn = none, !,
-			OvResOut = EAnd
-		; EAnd = nondet, !, 
+			EAnd = _ : OvResOut
+		; EAnd = _ : nondet, !, 
 			OvResOut = nondet
-		; OvResIn = EAnd, !
+		; EAnd = _ : OvResIn, !,
 			OvResOut = OvResIn
 		; OvResOut = ambiguous
 		)	
@@ -492,19 +493,19 @@ or_resvector(R1, R2, ROr, OverallResult) :-
 		E1 = Intv : State1,
 		(E2 = Intv : State2 -> 
 			(State1 = not_ok, State2 = not_ok, !,
-				EAnd = Intv : not_ok
+				EOr = Intv : not_ok
 			; (State1 = ok, ! ; State2 = ok), !,
-				EAnd = Intv : ok
-			; EAnd = Intv : nondet
+				EOr = Intv : ok
+			; EOr = Intv : nondet
 			)
 		; % interval doesn't match
 			throw(different_intervals_and_resvector)
 		),
 		(OvResIn = none, !,
-			OvResOut = EAnd
-		; EAnd = nondet, !, 
+			EOr = _ : OvResOut
+		; EOr = _ : nondet, !, 
 			OvResOut = nondet
-		; OvResIn = EAnd, !
+		; EOr = _ : OvResIn, !,
 			OvResOut = OvResIn
 		; OvResOut = ambiguous
 		)		
@@ -572,7 +573,7 @@ evaluate_checkone(ToplevelFormula, FormulaPath,
 			fromto(not_ok, OvResIn, OvResOut, OverallResult),
 			fromto(false, In2, Out2, HasChanged), 
 			fromto([], In3, Out3, ScheduleParams), count(I,1,_),
-			param(CurrentStep, StartTime, EndTime, Level, ToplevelFormula, FormulaPath) do
+			param(CurrentStep, StartTimes, EndTime, Level, ToplevelFormula, FormulaPath) do
 				% handle cases
 				SFIn = [F | SFRest],
 				append(FormulaPath, [1,I], SubPath),
@@ -592,7 +593,7 @@ evaluate_checkone(ToplevelFormula, FormulaPath,
 					F2 = not_ok, 
 					HC2 = true,
 					Out3 = In3, !
-				; OvRest2 = ok, !,
+				; OvRes2 = ok, !,
 					OvResOut = ok,
 					SFOut = [], % break iteration
 					F2 = ok,
@@ -679,14 +680,22 @@ action_occurred(ActionTerm, Sit) :-
 
 % Calculates the minimum among V1 and V2. Handles nondet.
 getMin(V1, V2, Result) :-
-	V1 = nondet, Result = V2, ! ;
-	V2 = nondet, Result = V1, ! ;
-	(V2 < V1 -> Result = V2 ; Result = V1).
+	V1 = nondet, !,
+		(V2 = nondet -> Result = nondet ; Result is V2)
+	;
+	V2 = nondet, !,
+		(V1 = nondet -> Result = nondet ; Result is V1)
+	;
+	(V2 < V1 -> Result is V2 ; Result is V1).
 
 getMax(V1, V2, Result) :-
-	V1 = nondet, Result = V2, ! ;
-	V2 = nondet, Result = V1, ! ;
-	(V2 > V1 -> Result = V2 ; Result = V1).
+	V1 = nondet, !,
+		(V2 = nondet -> Result = nondet ; Result is V2)
+	;
+	V2 = nondet, !,
+		(V1 = nondet -> REsult = nondet ; Result is V1)
+	;
+	(V2 > V1 -> Result is V2 ; Result is V1).
 			
 
 			
@@ -743,42 +752,7 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTim
 
 
 		
-% Adds the given formula to formula_cache. Before actually adding a new entry to formula_cache,
-% we check if we've already have the same formula cached. To speed up search, we keep an extra 
-% storage formula_cache_candidates that stores a list of cache ids for each formula position (path).
-cache_formula(ToplevelFormula, FormulaPath, F, Id) :-
-		(not ToplevelFormula = null ->
-			Key =.. [ToplevelFormula | FormulaPath],
-			(store_get(formula_cache_candidates, Key, Candidates), ! ; Candidates = []),
-			(fromto(Candidates, In, Out1, []), fromto(-1, _, Out2, MatchingKey), param(F) do
-				In = [CId | Rest],
-				get_cached_formula(CId, CachedF),
-				(CachedF = F -> 
-					Out1 = [], 
-					Out2 is CId
-					;
-					Out1 = Rest,
-					Out2 is -1
-				)
-			)
-			;
-			MatchingKey is -1
-		),
-		(MatchingKey is -1 ->				
-			incval(next_formula_cache_id),
-			getval(next_formula_cache_id, Id),
-			store_set(formula_cache, Id, F),
-			(not ToplevelFormula = null ->
-				Candidates2 = [Id | Candidates],
-				store_set(formula_cache_candidates, Key, Candidates2)
-				; true
-			)
-			;
-			Id is MatchingKey
-		).
 
-get_cached_formula(Id, F) :-
-		store_get(formula_cache, Id, F).
 
 	
 add_toplevel_goal(Name, F) :-
@@ -804,21 +778,6 @@ print_toplevel_goals(Stream) :-
 			printf(Stream, "%10s %10d %w\n",[Name, CacheId, F])
 		).
 
-
-		
-print_formula_cache(Stream) :-
-		stored_keys_and_values(formula_cache, L),
-		(foreach(Entry, L), param(Stream) do
-			Entry = Id - F,
-			printf(Stream, "%10d %w\n",[Id, F])
-		).
-
-print_cache_candidates(Stream):-
-		stored_keys_and_values(formula_cache_candidates, L),
-		(foreach(Entry, L), param(Stream) do
-			Entry = Key - IdList,
-			printf(Stream, "%w %w\n",[Key, IdList])
-		).
 		
 % Evaluates all registered toplevel goals. 
 % Results: list of Term with schema Name - Result
@@ -876,7 +835,9 @@ evaluate_scheduled(Goal, EndTime, Results, OverallResult) :-
 	get_scheduled_goal_description(SchedId, Description),
 	Description = s(ToplevelFormula, _, Term, Params),
 	
-	(Term = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = Term, CacheId = -1),
+	(Term = cf(CacheId) -> 
+		get_cached_formula(CacheId, F)
+		; F = Term),
 	apply_params(Params, F),
 	setval(negated, 0),
 	% CurrentStep = 0
@@ -886,8 +847,6 @@ evaluate_scheduled(Goal, EndTime, Results, OverallResult) :-
 	apply_interval_decisions(SchedId, Level, 
 		Results, EndTime).
 	
-		
-
 	
 % claim schedule ids when entering evaluation --> from outside to inside. in evaluation first sort and then evaluate in descending order.
 % This makes sure that dependencies are resolved.
@@ -895,79 +854,30 @@ evaluate_all_scheduled(EndTime, Results) :-
 	getval(current_failure_stack, CFS),
 	get_pending_goals(PendingGoals, all), % format: Entry = Key - StateVector, Key = g(Level, Id)
 	% sort by level
-	sort([1,1],, >=, PendingGoals, SortedGoals),
-	(fromto(SortedGoals, In, Out, []), fromto([], In2, Out2, Results), 
+	sort([1,1], >=, PendingGoals, SortedGoals),
+	(foreach(Goal, SortedGoals), fromto([], RIn, ROut, Results), 
 		param(EndTime, CFS) do
-		In = Key - _,
+		Goal = Key - _,
 		Key = g(Level, SchedId),
 		record_create(MyFailureStack),
 		setval(current_failure_stack, MyFailureStack),
-		evaluate_scheduled(In, EndTime, _, OvR),
+		evaluate_scheduled(Goal, EndTime, _, OvR),
 		% only report properties with level 0
 		(Level == 0 ->
 			get_scheduled_goal_description(SchedId, s(ToplevelFormula, _, _, _)),
-			append(In2, r(ToplevelFormula, OvR), Out2)
+			append(RIn, r(ToplevelFormula, OvR), ROut)
 			;
 			% don't report
-			Out2 = In2
+			ROut = RIn
 		),
 		recorded_list(MyFailureStack, MyFSList),
 		(foreach(FSL, MyFSList), param(CFS) do 
 			record(CFS, FSL)
 		),
-		erase_all(MyFailureStack),
-		Out = Rest	
+		erase_all(MyFailureStack)
 	),
 	setval(current_failure_stack, CFS).
 	
-
-compile_persistent_fluents :-
-	findall((N - F),persistent_fluent(N,F), L),
-	(foreach(Entry, L) do
-		Entry = Name - Formula,
-		compile_formula(Formula, CompiledFormula),
-		store_set(persistent_fluents, Name, CompiledFormula)
-	).
-	
-% TODO: rename to persistent_property
-query_persistent_fluent(Name, CurrentState, LastChanged) :-
-	(state_dirty -> update_persistent_fluents ; true),
-	internal_query_persistent_fluent(Name, CurrentState, LastChanged).
-	
-internal_query_persistent_fluent(Name, CurrentState, LastChanged) :-
-	(store_get(persistent_fluent_states, Name, S) ->
-		S = CurrentState : LastChanged 
-		;
-		CurrentState = nondet,
-		LastChanged = -1
-	).
-update_persistent_fluents :-
-	stored_keys_and_values(persistent_fluents, L),
-	current_time(CurrentTime),		
-	(foreach(Entry, L), param(CurrentTime) do
-		Entry = Name - Formula,
-		internal_query_persistent_fluent(Name, CurrentState, _),
-		evaluate_formula(null, [0], 0,
-			CurrentTime, CurrentTime, Formula, 0, Result, _, _, _),
-		(Result \= CurrentState ->
-			store_set(persistent_fluent_states, Name, Result : CurrentTime)
-			;
-			true
-		)
-	),
-	set_state_dirty(false).
-
-print_persistent_fluents :-
-	findall((N - F),persistent_fluent(N,F), L),
-
-	(foreach(Entry, L) do
-		Entry = Name - Formula,
-		query_persistent_fluent(Name, CurrentState, LastChanged),
-		store_get(persistent_fluents, Name, CF),
-		printf("%s = %8s (%10d)\nFormula: %w\n Compiled: %w\n\n",[Name, CurrentState, LastChanged, Formula, CF])
-	).
-	
-		
 		
 evaluate_condition(GoalName, Params) :-
 	(foreach(P, Params), foreach(P2, Params2) do

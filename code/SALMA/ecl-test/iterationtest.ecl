@@ -77,4 +77,19 @@ fromtotest(End, Start, Stop, Result) :-
 		O2 is I2 + 1,
 		(I = Stop -> O = End ; O is I +1)
 	).
-
+fromtotest2 :-
+	OkIntervals = [s(5,10), s(15,20), s(25,30)],
+	StartTimes = [s(1,10)],
+	MaxTime = 10,
+	(foreach(Int, OkIntervals), 
+			fromto(StartTimes, STIn, STOut, Unhandled1),
+			fromto([], Res1In, Res1Out, Res1),
+			fromto([], OkDecIn, OkDecOut, OkDecisionPoints),
+			param(MaxTime) do
+			print(Int), nl, print(MaxTime), nl,
+			STOut = STIn,
+			append(Res1In, [Int : ok], Res1Out),
+			append(OkDecIn, [Int : ok], OkDecOut)
+	),
+	printf("%w - %w - %w\n", [Unhandled1, Res1, OkDecisionPoints]).
+			

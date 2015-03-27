@@ -12,7 +12,8 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	Mode, StartStep, StartTime, EndTime, P, Level, Result, 
 	ScheduleIdIn, CacheIdIn,
 	ScheduleIdOut, ToSchedule,
-	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible) :-
+	EarliestDefinite, LatestDefinite, EarliestPossible, LatestPossible,
+	EarliestNondet) :-
 	% make sure that interval [T-T] includes the current step
 	EndTime2 is EndTime + 1,
 	shelf_create(orig/1, null, Shelf),
@@ -31,7 +32,8 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 			fromto(nondet, EPIn, EPOut, EarliestPossible),
 			fromto(nondet, LDIn, LDOut, LatestDefinite), 
 			fromto(nondet, LPIn, LPOut, LatestPossible),
-			param(Shelf, ToplevelFormula, FormulaPath, Mode, StartTime, EndTime, EndTime2, Level) do
+			fromto(nondet, ENondetIn, ENondetOut, EarliestNondet),
+			param(Shelf, ToplevelFormula, FormulaPath, Mode, EndTime, EndTime2, Level) do
 				shelf_get(Shelf, 1, OrigP),
 				Sit = do2(tick(Step), s0),
 				%print(Sit), nl,
@@ -51,7 +53,8 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 					ResOut = nondet, 
 					T2 is T + 1, 
 					EDOut = EDIn,
-					EPOut = getMin(EPIn, T),
+					EPOut is getMin(EPIn, T),
+					ENondetOut is getMin(ENondetIn, T),
 					LDOut = LDIn,			
 					LPOut = T,
 					!
@@ -138,7 +141,7 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 		(foreach(Int, OkIntervals), 
 			fromto(StartTimes, STIn, STOut, Unhandled1),
 			fromto([], Res1In, Res1Out, Res1),
-			fromto([], OkDec1In, OkDec1Out, OkDecisionPoints),
+			fromto([], OkDecIn, OkDecOut, OkDecisionPoints),
 			param(MaxTime) do
 				Int = s(Start, End),
 				(MaxTime = inf -> LeftBoundary = 0 ;
@@ -146,7 +149,7 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 				apply_result_within_interval(STIn, ok,
 					LeftBoundary, End, STOut, R),
 				append(Res1In, R, Res1Out),
-				append(OKDec1In, [Start : R], OkDec1Out)
+				append(OkDecIn, [Start : R], OkDecOut)
 		),
 		(foreach(Int, NotOkIntervals), 
 			fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
@@ -177,7 +180,7 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 				apply_result_within_interval(STIn, not_ok,
 					LeftBoundary, End, STOut, R),
 				append(Res1In, R, Res1Out),
-				append(NotOkDec1In, [Start : R])
+				append(NotOkDec1In, [Start : R], NotOkDec1Out)
 		),
 		(foreach(Int, OkIntervals), 
 			fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
@@ -189,23 +192,15 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 					apply_result_within_interval(STIn, ok,
 						Start, End, STOut, R),
 					append(Res2In, R, Res2Out),
-					append(NotOkDec1In, [Start : R])
+					append(OkDec1In, [Start : R], OkDec1Out)
 					;
 					STOut = STIn,
 					Res2Out = Res2In,
-					NotOkDec1Out = NotOkDec1In
+					OkDec1Out = OkDec1In
 				)
 		)
-		
-		
-				
-			
+	).	
 	
-	
-	
-			
-				
-		
 	
 	
 % Evaluates F as part of an invariant/goal block 
@@ -213,8 +208,6 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
 	Mode, StartStep, StartTimes, EndTime, P, Level, 
 	Results, OverallResult, ToSchedule, ScheduleParams, HasChanged) :-
-	% StartTime could be before the current time
-	% TODO: should we really distinguish StartTime from CurrentTime?
 	append(FormulaPath, [1], SubPathP),
 	%SubPathP = FormulaPath,
 	time(CurrentTime, do2(tick(StartStep), s0)),
@@ -241,39 +234,35 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 		Mode, StartStep, CurrentTime, EndTime, SubP, NextLevel, Result1, 
 		PSchedIdIn, PCacheId,
 		PSchedId, ToScheduleP,
-		_, _, _, _),
+		_, _, _, _, _),
 	% for interval/goal, we have unique results since no max time
 	% is given
 	(Result1 = ok, Mode = eventually, !,
-		OverallResult = ok
+		OverallResult = ok,
+		apply_unique_result(StartTimes, ok, Results)
 	; Result1 = not_ok, Mode = always, !,
-		OverallResult = not_ok
+		OverallResult = not_ok,
+		apply_unique_result(StartTimes, not_ok, Results)
 	; % not decided yet  
 		(PSchedId >= 0 ->
-			check_schedule_for_interval(PSchedId, NextLevel, 
-				StartTime, EndTime, Mode, Result2, 
-				_, _, _, _),
-			(
-				Result1 = nondet,
-				(
-					Mode = eventually,
-					Result2 = ok,
-					OverallResult = ok, !
-					;
-					Mode = always,
-					Result2 = not_ok,
-					OverallResult = not_ok, !
-					;
-					OverallResult = nondet
-				), !
+			check_schedule_for_interval(PSchedId, NextLevel, StartTimes, Mode,
+				inf, ResultsPre, _, _,
+				UnhandledStartTimes),
+			% unhandled means nondet here
+			(length(UnhandledStartTimes) > 0 ->
+				apply_unique_result(UnhandledStartTimes, nondet, 
+					ResultsUnhandled),
+				append(ResultsPre, ResultsUnhandled, ResultsUnsorted),
+				sort([1,1], =<, ResultsUnsorted, Results)
 				;
-				OverallResult = Result2				
-			)
+				Results = ResultsPre
+			),
+			get_unanimous_result(Results, OverallResult)
 			; % PSchedId = -1
-			OverallResult = Result1
+			OverallResult = Result1,
+			apply_unique_result(StartTimes, OverallResult, Results)			
 		)
-
-	),	
+	),
 	(PSchedIdIn =\= PSchedId ->
 		HasChanged = true
 		;
@@ -295,9 +284,7 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 		ScheduleParams= []
 		
 	),
-	shelf_abolish(Shelf),
-	apply_unique_result(StartTimes, OverallResult, Results).
-	
+	shelf_abolish(Shelf).
 	
 
 calculate_until_result(PLatestDefinite, PLatestPossible,

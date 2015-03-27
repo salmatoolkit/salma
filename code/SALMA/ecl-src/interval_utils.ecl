@@ -42,6 +42,7 @@ get_unanimous_result(OrigResults, Result) :-
 	(fromto(OrigResults, In, Out, []), fromto(none, R1, R2, Result) do
 		In = [First | Rest],
 		First = _ : Res,
+		
 		(Res = nondet, !,
 			Out = [], R2 = nondet
 		; R1 = none, !,
@@ -49,7 +50,7 @@ get_unanimous_result(OrigResults, Result) :-
 		; R1 = Res, !, 
 			Out = Rest, R2 = R1
 		; R1 \= none, R1 \= Res, !,
-			Out = [], R2 = ambiguous
+			Out = Rest, R2 = ambiguous  % nondet has precedence so don't break loop here!
 		)
 	).
 

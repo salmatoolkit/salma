@@ -8,7 +8,7 @@ get_goal_schedule_id(ToplevelFormula, Level, ToSchedule, ScheduleParams, Id) :-
 	store_set(scheduled_goal_descriptions, Id, Description). 
 
 get_scheduled_goal_description(ScheduleId, Description) :-
-	store_get(scheduled_goal_descriptions, ScheduleId, Description)
+	store_get(scheduled_goal_descriptions, ScheduleId, Description), !
 	;
 	throw(unregistered_scheduled_goal(ScheduleId)).
 	
@@ -24,9 +24,6 @@ get_scheduled_intervals_within(PSchedId, Level,
 		Start, End, OkIntervals),
 	get_intervals_within(NotOkIntervalsAll, 
 		Start, End, NotOkIntervals).
-	
-		
-
 	
 	
 apply_one_interval_decision(NondetIntervals, OkIntervals, NotOkIntervals,
@@ -224,5 +221,5 @@ print_scheduled_goals(Stream, SortPositions) :-
 	printf(Stream, "-------------------------------------------------------\n",[]),
 	(foreach(Line, SortedLines), param(Stream) do		
 		Line = l(Level, Name, Id, Term, Params, State),
-		printf(Stream, "%5d %10s %5d %10s %15s %s\n",[Level, Name, Id, Term, Params, State])
+		printf(Stream, "%5d %10s %5d %10w %15w %w\n",[Level, Name, Id, Term, Params, State])
 	).
