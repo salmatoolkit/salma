@@ -201,6 +201,42 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 	).	
 	
 	
+check_schedule_for_interval_until(PSchedId, QSchedId, Level, StartTimes,
+	MaxTime, Results, UnhandledStartTimes) :-
+	store_get(scheduled_goals, g(Level, PSchedId), 
+		i(_, POkIntervals, PNotOkIntervals, _)),	
+	store_get(scheduled_goals, g(Level, QSchedId), 
+		i(_, QOkIntervals, QNotOkIntervals, _)),
+	% assumptions:
+	% - interval lists sorted in ascending order
+	(foreach(Int, QOkIntervals), 
+			fromto(StartTimes, STIn, STOut, Unhandled1),
+			fromto([], Res1In, Res1Out, Res1),
+			param(MaxTime, POkIntervals) do
+				Int = s(QStart, QEnd),
+				(MaxTime = inf -> LeftBoundary = 0 ;
+					LeftBoundary is QStart - MaxTime),
+				get_intervals_within(STIn, LeftBoundary, End, Selection, 
+					Remaining),
+				
+				(foreach(SelInt, Selection),
+					fromto([], )
+					param()) do
+						SelInt = s(T1, T2),
+						% TODO: check for continuous intervals in POK that
+						% has no gaps and spans up to QStart
+						get_intervals_within(POkIntervals,
+							T1, QStart, Selection2, Remaining2),
+						
+						
+				
+				)
+					
+				append(Res1In, R, Res1Out),
+				append(OkDecIn, [Start : R], OkDecOut)
+		),
+	
+
 	
 % Evaluates F as part of an invariant/goal block 
 %
