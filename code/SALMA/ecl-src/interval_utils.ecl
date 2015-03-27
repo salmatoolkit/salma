@@ -171,3 +171,21 @@ get_intervals_within(IntervalList, Start, End, Selection,
 			append(R1, Rest, R2)
 	).
 	
+get_right_bound_continuous_intersection(IntervalList, 
+	RightBoundary, Intersection) :-
+	% assume: 
+	% - IntervalList sorted in ascending order
+	% - contiguous intervals have been merged
+	(fromto(IntervalList, ILLast, ILNext, []),
+		fromto(none, _, IntOut, Intersection),
+		param(RightBoundary) do
+			ILLast = [Interval | Tail],
+			Interval = s(Start, End),
+			(Start =< RightBoundary, End >= RightBoundary ->
+				IntOut = s(Start, RightBoundary),
+				ILNext = []
+				;
+				IntOut = none,
+				ILNext = Tail
+			)	
+	).

@@ -216,24 +216,30 @@ check_schedule_for_interval_until(PSchedId, QSchedId, Level, StartTimes,
 				Int = s(QStart, QEnd),
 				(MaxTime = inf -> LeftBoundary = 0 ;
 					LeftBoundary is QStart - MaxTime),
-				get_intervals_within(STIn, LeftBoundary, End, Selection, 
-					Remaining),
+				get_intervals_within(STIn, LeftBoundary, End, Candidates, 
+					Remaining1),
+				% Selection now contains candidates that could
+				% be ok if P is ok until QStart
+				(length(Candidates) > 0 ->
+					get_right_bound_continuous_intersection(POkIntervals, 
+						QStart, POkSpan),
+					(POkSpan \= none ->
+						POkSpan = s(POkStart, POkEnd),
+						get_intervals_within(Candidates, POkStart, POkEnd, 
+							Confirmed, Remaining2)
+						;
+						Confirmed = [],
+						Remaining2 = Candidates
+					)
+					; % no candidates
+					Confirmed = [],
+					Remaining2 = []
+				),
+				apply_unique_result(Confirmed,
+					ok, R),					
+				append(Remaining1, Remaining2, Remaining)
 				
-				(foreach(SelInt, Selection),
-					fromto([], )
-					param()) do
-						SelInt = s(T1, T2),
-						% TODO: check for continuous intervals in POK that
-						% has no gaps and spans up to QStart
-						get_intervals_within(POkIntervals,
-							T1, QStart, Selection2, Remaining2),
-						
-						
 				
-				)
-					
-				append(Res1In, R, Res1Out),
-				append(OkDecIn, [Start : R], OkDecOut)
 		),
 	
 
