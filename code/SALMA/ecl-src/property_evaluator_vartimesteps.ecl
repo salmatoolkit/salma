@@ -150,6 +150,7 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 				append(Res1In, R, Res1Out),
 				append(OkDecIn, [Start : R], OkDecOut)
 		),
+		% handle time-out
 		(foreach(Int, NotOkIntervals), 
 			fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
 			fromto(Res1, Res2In, Res2Out, Results),
@@ -157,8 +158,9 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 			param(MaxTime) do
 				Int = s(Start, End),
 				(End - Start >= MaxTime ->
+					LastTimeout is Start + End - Start - MaxTime,
 					apply_result_within_interval(STIn, not_ok,
-						Start, End, STOut, R),
+						Start, LastTimeout, STOut, R),
 					append(Res2In, R, Res2Out),
 					append(NotOkDec1In, [Start : R], NotOkDec1Out)
 					;
@@ -181,6 +183,7 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 				append(Res1In, R, Res1Out),
 				append(NotOkDec1In, [Start : R], NotOkDec1Out)
 		),
+		% confirm
 		(foreach(Int, OkIntervals), 
 			fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
 			fromto(Res1, Res2In, Res2Out, Results),
@@ -188,8 +191,9 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 			param(MaxTime) do
 				Int = s(Start, End),
 				(End - Start >= MaxTime ->
+					LastConfirmable is Start + End - Start - MaxTime,
 					apply_result_within_interval(STIn, ok,
-						Start, End, STOut, R),
+						Start, LastConfirmable, STOut, R),
 					append(Res2In, R, Res2Out),
 					append(OkDec1In, [Start : R], OkDec1Out)
 					;
@@ -221,30 +225,52 @@ check_schedule_for_interval_until(PSchedId, QSchedId, Level, StartTimes,
 					POkIntervals, ResConfirmed, Unhandled1),
 					
 				reject_scheduled_until_goals(Unhandled1, QStart, MaxTime,
-					PNotOkIntervals, ResReject, Unhandled2),
+					PNotOkIntervals, ResReject, STOut),				
+	),
+	apply_until_timeout(QNotOkIntervals, MaxTime, StartTimes, 
+		Results, UnhandledStartTimes)
 				
-				
-				
-		),
 	
-reject_scheduled_until_goals(StartTimes, EarliestOk, MaxTime, 
-	PNotOkIntervals, Results, UnhandledStartTimes) :-
-	(MaxTime = inf -> LeftBoundary = 0 ;
-		LeftBoundary is EarliestOk - MaxTime), 
-	get_intervals_within(PNotOkIntervals, 
-		LeftBoundary, EarliestOk, Critical, _),
-	(foreach(Int, Critical), 
-		fromto([], R1, R2, Results),
+reject_scheduled_until_goals(StartTimes, 
+	PNotOkIntervals, QNotOkIntervals, Results, UnhandledStartTimes) :-
+		
+	% reject all start points that lie within a Not-P-Interval
+	(foreach(Int, PNotOkIntervals), 
+		fromto([], R1, R2, Results1),
 		fromto(StartTimes, UnhandledIn, UnhandledOut,
-			UnhandledStartTimes),
-		param(LeftBoundary, EarliestOk) do
-			Int = s(_, End),
-			get_intervals_within(UnhandledIn, 
-				LeftBoundary, End, ToReject, UnhandledOut),
-			apply_unique_result(ToReject, not_ok,
-				R),
+			Unhandled1) do
+			Int = s(T1, T2),
+			apply_result_within_interval(UnhandledIn, not_ok,
+				T1, T2, UnhandledOut, R),
 			append(R1, R, R2)
-	).
+	),
+	% For the remaining start points:
+	% -	look for Not-Q-Intervals that contain a Not-P-Point.
+	% - reject all start points that lie within the resulting left segment
+	
+	
+	
+	.
+
+apply_until_timeout(QNotOkIntervals, MaxTime, StartTimes, 
+	Results, UnhandledStartTimes) :-
+		% handle time-out
+		(foreach(Int, QNotOkIntervals), 
+			fromto(StartTimes, STIn, STOut, UnhandledStartTimes),
+			fromto([], ResIn, ResOut, Results),
+			param(MaxTime) do
+				Int = s(Start, End),
+				(End - Start >= MaxTime ->
+					LastTimeout is Start + End - Start - MaxTime,
+					apply_result_within_interval(STIn, not_ok,
+						Start, LastTimeout, STOut, R),
+					append(ResIn, R, ResOut)
+					;
+					ResOut = ResIn,
+					STOut = STIn
+				)
+		).
+
 	
 confirm_scheduled_until_goals(QOkInterval, MaxTime, StartTimes, POkIntervals,
 	Results, UnhandledStartTimes) :-
