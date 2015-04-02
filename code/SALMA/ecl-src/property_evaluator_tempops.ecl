@@ -7,7 +7,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		last_element(StartTimes, s(_, MaxStartTime)),
 		Deadline is MaxStartTime + MaxTime,
 		% the end of the interval that is to be inspected
-		IntervalEnd is min(Deadline, EndTime),
+	
 		time(CurrentTime, do2(tick(CurrentStep), s0)),
 		
 		getval(current_failure_stack, CFS),
@@ -22,7 +22,6 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		shelf_set(Shelf, 4, false),
 		%schedule params
 		shelf_set(Shelf, 5, []),
-		% also evaluate history: schedule for each time step and store in list. 
 		
 		append(FormulaPath, [2], SubPathP), % start with subterm 2 since first is max time
 		append(FormulaPath, [3], SubPathQ),
@@ -36,31 +35,55 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			)
 			;
 			SubQ = Q,
-			QSchedIdIn = -1,
-			QCacheId = -1
-		),				
+			QSchedIdIn = new,
+			QCacheId = new
+		),
+		(P = sched(_, PSchedIdIn, PRefTerm) -> 
+			(PRefTerm = cf(PCacheId) ->
+				get_cached_formula(PCacheId, SubP)
+				;
+				SubP = PRefTerm,
+				PCacheId = -1
+			)
+			;
+			SubP = P,
+			PSchedIdIn = new,
+			PCacheId = new
+		),	
+
+		
 		% check from current time to end of interval
 		% ignore result for now since it will be examined later together with previously
 		% scheduled results
 
+		IntervalEnd is min(Deadline, EndTime),
+		
 		evaluate_for_all_timesteps(ToplevelFormula, SubPathQ, 
-			eventually, CurrentStep, CurrentTime, IntervalEnd, SubQ, NextLevel, Result1, 
+			eventually, CurrentStep, CurrentTime, IntervalEnd, SubQ, NextLevel, _, 
 			QSchedIdIn, QCacheId,
 			QSchedId, ToScheduleQ,
-			QEarliestDefinite1, _, QEarliestPossible1, _, _),	
+			QEarliestDefinite, _, _, _, _),	
 		
-		% cases: 
-		% 1) Result1 = ok :
-		%    - select start times in range QEarliestDefinite1 - MaxTime
-		%      they become candidates for ok
-		% 
-		(Result1 = ok, !,
-			LeftBoundary is QEarliestDefinite1 - MaxTime,
-			get_intervals_within(StartTimes, 
-				LeftBoundary, inf, Selection, 
-				Remaining)
-		)
+		% if we found an ok, we only have to check P up to that point
+		PIntervalEnd is getMin(QEarliestDefinite, IntervalEnd),
 		
+		evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
+			always, CurrentStep, CurrentTime, PIntervalEnd, SubP, NextLevel, _, 
+			PSchedIdIn, PCacheId,
+			PSchedId, ToScheduleP,
+			_, _, _, _, _),	
+		
+		% now all referent results have been gathered in the schedule
+		check_schedule_for_interval_until(PSchedId, QSchedId, NextLevel, StartTimes,
+			MaxTime, Results1, UnhandledStartTimes),
+			
+		apply_unique_result(UnhandledStartTimes, nondet, Results2),
+		append(Results1, Results2, UnsortedResults),
+		sort([1, 1], =<, UnsortedResults, Results),
+		
+		get_unanimous_result(Results, OvRes),
+		
+		shelf_set(Shelf, 3, OvRes),		
 		
 		(not PSchedId =:= -1 ->
 			KeyP =.. [p, SubPathP],
@@ -83,10 +106,10 @@ evaluate_until(ToplevelFormula, FormulaPath,
 				shelf_set(Shelf, 4, true) ; true),
 		shelf_set(Shelf, 5, SParams2),
 		% retrieve all output values from shelf
-		shelf_get(Shelf, 0, pqres(NewP, NewQ, Result, HasChanged, ScheduleParams)),
+		shelf_get(Shelf, 0, pqres(NewP, NewQ, OverallResult, HasChanged, ScheduleParams)),
 		shelf_abolish(Shelf),
 		getval(negated, Negated),
-		((Negated = 0, Result = not_ok ; Negated = 1, Result = ok) ->
+		((Negated = 0, OverallResult = not_ok ; Negated = 1, OverallResult = ok) ->
 			recorded_list(MyFailures, MFs),
 			(foreach(MF, MFs), param(CFS) do
 				record(CFS, MF)

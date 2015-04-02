@@ -67,6 +67,12 @@ test5 :-
 	init,
 	F = always(50, eventually(5, (xpos(rob1) mod 5) =:= 0)),
 	register_property(f, F, _).
+
+test6 :-
+	init,
+	F = until(50, xpos(rob1) > 5, xpos(rob1) =:= 15),
+	register_property(f, F, _).
+
 	
 evstep :-
 	evstep(1).

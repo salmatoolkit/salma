@@ -213,46 +213,67 @@ check_schedule_for_interval_until(PSchedId, QSchedId, Level, StartTimes,
 		i(_, QOkIntervals, QNotOkIntervals, _)),
 	% assumptions:
 	% - interval lists sorted in ascending order
-	(foreach(Int, QOkIntervals), 
-			fromto(StartTimes, STIn, STOut, Unhandled2),
-			fromto([], Res1In, Res1Out, Res1),
-			param(MaxTime, POkIntervals, PNotOkIntervals) do
-				Int = s(QStart, QEnd),
-				(MaxTime = inf -> LeftBoundary = 0 ;
-					LeftBoundary is QStart - MaxTime),
-				
-				confirm_scheduled_until_goals(Int, MaxTime, STIn, 
-					POkIntervals, ResConfirmed, Unhandled1),
-					
-				reject_scheduled_until_goals(Unhandled1, QStart, MaxTime,
-					PNotOkIntervals, ResReject, STOut),				
-	),
-	apply_until_timeout(QNotOkIntervals, MaxTime, StartTimes, 
-		Results, UnhandledStartTimes)
-				
 	
-reject_scheduled_until_goals(StartTimes, 
-	PNotOkIntervals, QNotOkIntervals, Results, UnhandledStartTimes) :-
+	% precedence of confirm: points that are both P and not(Q) will 
+	% be confirmed
+	confirm_scheduled_until_goals(StartTimes, POkIntervals, QOkIntervals, MaxTime, 
+		Results1, Unhandled1),
 		
-	% reject all start points that lie within a Not-P-Interval
-	(foreach(Int, PNotOkIntervals), 
-		fromto([], R1, R2, Results1),
-		fromto(StartTimes, UnhandledIn, UnhandledOut,
-			Unhandled1) do
-			Int = s(T1, T2),
-			apply_result_within_interval(UnhandledIn, not_ok,
-				T1, T2, UnhandledOut, R),
-			append(R1, R, R2)
-	),
-	% For the remaining start points:
-	% -	look for Not-Q-Intervals that contain a Not-P-Point.
-	% - reject all start points that lie within the resulting left segment
-	
-	
-	
-	.
+	reject_until_goals_within_not_ok_interval(Unhandled1, 
+		PNotOkIntervals, Results2, Unhandled2),		
 
-apply_until_timeout(QNotOkIntervals, MaxTime, StartTimes, 
+	reject_until_goals_within_terminated_interval(Unhandled2, 
+		PNotOkIntervals, QNotOkIntervals, Results3, Unhandled3),
+	
+	apply_until_timeout(Unhandled3, QNotOkIntervals, MaxTime, 
+		Results4, UnhandledStartTimes),
+		
+	flatten([Results1, Results2, Results3, Results4], UnsortedResults),
+	sort([1,1], =<, UnsortedResults, Results).
+	
+
+% reject all start points that lie within a Not-P-Interval
+reject_until_goals_within_not_ok_interval(StartTimes, 
+	PNotOkIntervals, Results, UnhandledStartTimes) :-	
+		(foreach(Int, PNotOkIntervals), 
+			fromto([], R1, R2, Results),
+			fromto(StartTimes, UnhandledIn, UnhandledOut, UnhandledStartTimes) do
+				Int = s(T1, T2),
+				apply_result_within_interval(UnhandledIn, not_ok,
+					T1, T2, UnhandledOut, R),
+				append(R1, R, R2)
+		).
+
+
+% -	look for Not-Q-Intervals that contain a Not-P-Point.
+% - reject all start points that lie within the left segment
+%   formed by the start of the interval and the highest such Not-P points.		
+reject_until_goals_within_terminated_interval(StartTimes, 
+	PNotOkIntervals, QNotOkIntervals, Results, UnhandledStartTimes) :-
+
+		(fromto(QNotOkIntervals, ListIn, ListOut, []),
+			fromto([], ResIn, ResOut, Results),
+			fromto(StartTimes, UnhandledIn, UnhandledOut, UnhandledStartTimes), 
+			param(PNotOkIntervals) do
+				(length(UnhandledIn) > 0 ->
+					ListIn = [s(T1, T2) | ListOut],
+					get_max_interval_point_within(PNotOkIntervals, T1, T2, Max),
+					(Max \= none -> 
+						apply_result_within_interval(UnhandledIn, not_ok,
+							T1, Max, UnhandledOut, R),
+						append(ResIn, R, ResOut)
+						;
+						UnhandledOut = UnhandledIn,
+						ResOut = ResIn
+					)
+					; % no more unhandled start intervals -> stop
+					ListOut = [],
+					ResOut = ResIn,
+					UnhandledOut = []
+				)
+		).
+
+apply_until_timeout(StartTimes, QNotOkIntervals, MaxTime, 
 	Results, UnhandledStartTimes) :-
 		% handle time-out
 		(foreach(Int, QNotOkIntervals), 
@@ -272,35 +293,49 @@ apply_until_timeout(QNotOkIntervals, MaxTime, StartTimes,
 		).
 
 	
-confirm_scheduled_until_goals(QOkInterval, MaxTime, StartTimes, POkIntervals,
+confirm_scheduled_until_goals(StartTimes, POkIntervals, QOkIntervals, MaxTime, 
 	Results, UnhandledStartTimes) :-
-		QOkInterval = s(QStart, QEnd),
-		(MaxTime = inf -> LeftBoundary = 0 ;
-					LeftBoundary is QStart - MaxTime),
-		get_intervals_within(StartTimes, LeftBoundary, QEnd, Candidates, 
-			Remaining1),
-		% Selection now contains candidates that could
-		% be ok if P is ok until QStart
-		(length(Candidates) > 0 ->
-			get_right_bound_continuous_intersection(POkIntervals, 
-				QStart, POkSpan),
-			(POkSpan \= none ->
-				POkSpan = s(POkStart, POkEnd),
-				get_intervals_within(Candidates, POkStart, POkEnd, 
-					ToConfirm, Remaining2)
-				;
-				ToConfirm = [],
-				Remaining2 = Candidates
-			)
-			
-			; % no candidates
-			ToConfirm = [],
-			Remaining2 = []
-		),
-		apply_unique_result(ToConfirm, ok, Results),
-		append(Remaining1, Remaining2, RemainingUnsorted),
-		sort(0, =<, RemainingUnsorted, RemainingUnmerged)
-		merge_goals(RemainingUnmerged, UnhandledStartTimes).
+		(foreach(QOkInterval, QOkIntervals),
+			fromto(StartTimes, UnhandledIn, UnhandledOut, UnhandledStartTimes),
+			fromto([], ResIn, ResOut, Results),
+			param(POkIntervals, MaxTime) do
+		
+				QOkInterval = s(QStart, QEnd),
+				
+				% first confirm all starting points where Q is true at once
+				apply_result_within_interval(UnhandledIn, ok, QStart, QEnd,
+					U1, Confirmed1),
+					
+				(MaxTime = inf -> LeftBoundary = 0 ;
+							LeftBoundary is QStart - MaxTime),
+				get_intervals_within(U1, LeftBoundary, QEnd, Candidates, 
+					Remaining1),
+				% Selection now contains candidates that could
+				% be ok if P is ok until QStart
+				(length(Candidates) > 0 ->
+					get_right_bound_continuous_intersection(POkIntervals, 
+						QStart, POkSpan),
+					(POkSpan \= none ->
+						POkSpan = s(POkStart, POkEnd),
+						get_intervals_within(Candidates, POkStart, POkEnd, 
+							ToConfirm, Remaining2)
+						;
+						ToConfirm = [],
+						Remaining2 = Candidates
+					)
+					
+					; % no candidates
+					ToConfirm = [],
+					Remaining2 = []
+				),
+				apply_unique_result(ToConfirm, ok, Confirmed2),
+				append(ResIn, Confirmed1, ResOutPre),
+				append(ResOutPre, Confirmed2, ResOut), 
+				
+				append(Remaining1, Remaining2, RemainingUnsorted),
+				sort(0, =<, RemainingUnsorted, RemainingUnmerged),
+				merge_goals(RemainingUnmerged, UnhandledOut)
+		).
 	
 	
 % Evaluates F as part of an invariant/goal block 
@@ -387,54 +422,54 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 	shelf_abolish(Shelf).
 	
 
-calculate_until_result(PLatestDefinite, PLatestPossible,
-	QEarliestDefinite, QEarliestPossible,
-	EndTime, Deadline, Result, FailureTerm) :-
-	IntervalEnd is min(Deadline, EndTime),
-	(QEarliestPossible = nondet ->
-		(Deadline =< EndTime ->
-			Result = not_ok,
-			FailureTerm = until_q_timeout
-			;
-			% Q could still happen in next interval
-			% make sure that P is possible for the
-			% whole interval
-			(PLatestPossible = nondet,
-				Result = not_ok, 
-				FailureTerm = until_p_failed, !
-			; PLatestPossible < IntervalEnd - 1,
-				Result = not_ok, 
-				FailureTerm = until_p_timeout, !
-			; % PLatestPossible > IntervalEnd
-				Result = nondet,
-				FailureTerm = none			
-			)
-		)
-		; % QEarliestPossible not nondet	
-		(QEarliestPossible > Deadline ->
-			Result = not_ok,
-			FailureTerm = until_q_timeout
-			; %QEarliestPossible <= Deadline
-			(PLatestPossible = nondet,
-				Result = not_ok, 
-				FailureTerm = until_p_failed, !
-			; PLatestPossible < QEarliestPossible - 1,
-				Result = not_ok,
-				FailureTerm = until_p_failed, !
-			; % PLatestPossible >= QEarliestPossible - 1
-			  % -> at least nondet
-				( % check for OK
-					PLatestDefinite \= nondet, 
-					QEarliestDefinite \= nondet,
-					PLatestDefinite >= QEarliestDefinite - 1,
-					Result = ok, !
-					;
-					Result = nondet
-				),
-				FailureTerm = none
-			)
-		)
-	).				
+% calculate_until_result(PLatestDefinite, PLatestPossible,
+	% QEarliestDefinite, QEarliestPossible,
+	% EndTime, Deadline, Result, FailureTerm) :-
+	% IntervalEnd is min(Deadline, EndTime),
+	% (QEarliestPossible = nondet ->
+		% (Deadline =< EndTime ->
+			% Result = not_ok,
+			% FailureTerm = until_q_timeout
+			% ;
+			% % Q could still happen in next interval
+			% % make sure that P is possible for the
+			% % whole interval
+			% (PLatestPossible = nondet,
+				% Result = not_ok, 
+				% FailureTerm = until_p_failed, !
+			% ; PLatestPossible < IntervalEnd - 1,
+				% Result = not_ok, 
+				% FailureTerm = until_p_timeout, !
+			% ; % PLatestPossible > IntervalEnd
+				% Result = nondet,
+				% FailureTerm = none			
+			% )
+		% )
+		% ; % QEarliestPossible not nondet	
+		% (QEarliestPossible > Deadline ->
+			% Result = not_ok,
+			% FailureTerm = until_q_timeout
+			% ; %QEarliestPossible <= Deadline
+			% (PLatestPossible = nondet,
+				% Result = not_ok, 
+				% FailureTerm = until_p_failed, !
+			% ; PLatestPossible < QEarliestPossible - 1,
+				% Result = not_ok,
+				% FailureTerm = until_p_failed, !
+			% ; % PLatestPossible >= QEarliestPossible - 1
+			  % % -> at least nondet
+				% ( % check for OK
+					% PLatestDefinite \= nondet, 
+					% QEarliestDefinite \= nondet,
+					% PLatestDefinite >= QEarliestDefinite - 1,
+					% Result = ok, !
+					% ;
+					% Result = nondet
+				% ),
+				% FailureTerm = none
+			% )
+		% )
+	% ).				
 				
 					
 					

@@ -678,28 +678,6 @@ action_occurred(ActionTerm, Sit) :-
 	Result = ok.
 
 
-% Calculates the minimum among V1 and V2. Handles nondet.
-getMin(V1, V2, Result) :-
-	V1 = nondet, !,
-		(V2 = nondet -> Result = nondet ; Result is V2)
-	;
-	V2 = nondet, !,
-		(V1 = nondet -> Result = nondet ; Result is V1)
-	;
-	(V2 < V1 -> Result is V2 ; Result is V1).
-
-getMax(V1, V2, Result) :-
-	V1 = nondet, !,
-		(V2 = nondet -> Result = nondet ; Result is V2)
-	;
-	V2 = nondet, !,
-		(V1 = nondet -> Result = nondet ; Result is V1)
-	;
-	(V2 > V1 -> Result is V2 ; Result is V1).
-			
-
-			
-
 
 % Evaluates F at the current time. If an Id is given, the result is stored in the list associated with the id
 % and schedule params gathered during evaluation of F. 
@@ -713,46 +691,52 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTim
 			StartStep, StartTimes, EndTime, F, Level, _, 
 			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
 		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
-		((CacheId is -1, OverallResult = nondet, ! ; not(CacheId is -1), HasChanged1 = true) ->	
-			subst_in_term(SitTerm, s0, ToSchedule1, ToCache, [until]),
-			cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheId2), HasChanged2 = true
-			; 
-			CacheId2 is CacheId, HasChanged2 = false
+		
+		
+		(
+			(CacheId = new, !
+			; CacheId is -1, OverallResult = nondet, ! 
+			; not(CacheId is -1), HasChanged1 = true) ->	
+				
+				subst_in_term(SitTerm, s0, ToSchedule1, ToCache, [until]),
+				cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheId2), 
+				HasChanged2 = true
+				; 
+				CacheId2 is CacheId, HasChanged2 = false
 		),	
-		(OverallResult = nondet, !,
-			ToSchedule2 = cf(CacheId2), 
-			ToScheduleOut = cf(CacheId2),
-			HasChanged3 = false,
-			(ScheduleIdIn is -1 ->	
-				get_goal_schedule_id(ToplevelFormula, Level, ToSchedule2, ScheduleParams, 
-					ScheduleIdOut)
+		(CacheId2 \= -1 ->
+			ToScheduleOut = cf(CacheId2)
 			;
-				ScheduleIdOut is ScheduleIdIn
-			),
-			add_nondet_schedule_interval(ScheduleIdOut, Level,
-				StartTime, EndTime)			
-		; not(OverallResult = nondet), not(ScheduleIdIn is -1), !,
-			% already scheduled and determined now
-			ToSchedule2 = OverallResult, 
-			ScheduleIdOut is ScheduleIdIn,
-			ToScheduleOut = ToSchedule2,
-			HasChanged3 = true,
-			apply_interval_decisions(ScheduleIdOut, Level, 
-				[s(StartTime, StartTime) : OverallResult], 
-				EndTime)	
-		; % nothing to schedule here - go ahead
-			ScheduleIdOut = -1,
-			ToScheduleOut = ToSchedule1,
-			HasChanged3 = false		
+			ToScheduleOut = OverallResult
+		),
+		% create a new schedule entry if nondet or forced
+		( 
+			(ScheduleIdIn = new, ! 
+			; ScheduleIdIn = -1, OverallResult = nondet, !) ->		
+				HasChanged3 = true,
+				get_goal_schedule_id(ToplevelFormula, Level, ToScheduleOut, ScheduleParams, 
+					ScheduleIdOut)
+				;
+				HasChanged3 = false,
+				ScheduleIdOut = ScheduleIdIn
+		),
+		(ScheduleIdOut \= -1 ->
+			(OverallResult = nondet ->
+				add_nondet_schedule_interval(ScheduleIdOut, Level,
+					StartTime, EndTime)
+				;		
+				apply_interval_decisions(ScheduleIdOut, Level, 
+					[s(StartTime, StartTime) : OverallResult], EndTime)
+			)
+			
+			; % nothing to schedule here - go ahead
+			true
 		),
 		((HasChanged1 = true, !; HasChanged2 = true, ! ; HasChanged3 = true) -> 
-				HasChanged = true, !
+				HasChanged = true
 				;
-			HasChanged = false
+				HasChanged = false
 		).
-
-
-		
 
 
 	

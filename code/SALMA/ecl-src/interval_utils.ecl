@@ -210,3 +210,33 @@ get_right_bound_continuous_intersection(IntervalList,
 				ILNext = Tail
 			)	
 	).
+
+% Returns the highest point that is included in an interval from IntervalList
+% and within the given bounds. If no interval intersects the bounds then "none" is returned.
+get_max_interval_point_within(IntervalList, 
+	LeftBoundary, RightBoundary, Max) :-
+		% assumption: IntervalList sorted in ascending order
+		(fromto(IntervalList, ListIn, ListOut, []),
+			fromto(none, MaxIn, MaxOut, Max),
+			param(LeftBoundary, RightBoundary) do
+				ListIn =  [s(T1, T2) | Tail],
+				(T2 < LeftBoundary, !,
+					% interval left from bounds
+					ListOut = Tail,
+					MaxOut = MaxIn
+				; T2 >= LeftBoundary, T1 =< RightBoundary, !,
+					MaxOut is min(RightBoundary, T2),
+					% there could be other intervals within the bounds so go on
+					ListOut = Tail
+				; T1 > RightBoundary, !,
+					% since the list is sorted in ascending order, we're done
+					MaxOut = MaxIn,
+					ListOut = []
+				)
+		).
+					
+					
+					
+					
+				
+	
