@@ -150,23 +150,29 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 				append(OkDecIn, [Start : R], OkDecOut)
 		),
 		% handle time-out
-		(foreach(Int, NotOkIntervals), 
-			fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
-			fromto(Res1, Res2In, Res2Out, Results),
-			fromto([], NotOkDec1In, NotOkDec1Out, NotOkDecisionPoints),
-			param(MaxTime) do
-				Int = s(Start, End),
-				(End - Start >= MaxTime ->
-					LastTimeout is Start + End - Start - MaxTime,
-					apply_result_within_interval(STIn, not_ok,
-						Start, LastTimeout, STOut, R),
-					append(Res2In, R, Res2Out),
-					append(NotOkDec1In, [Start : R], NotOkDec1Out)
-					;
-					STOut = STIn,
-					Res2Out = Res2In,
-					NotOkDec1Out = NotOkDec1In
-				)
+		(MaxTime \= inf ->
+			(foreach(Int, NotOkIntervals), 
+				fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
+				fromto(Res1, Res2In, Res2Out, Results),
+				fromto([], NotOkDec1In, NotOkDec1Out, NotOkDecisionPoints),
+				param(MaxTime) do
+					Int = s(Start, End),
+					(End - Start >= MaxTime ->
+						LastTimeout is Start + End - Start - MaxTime,
+						apply_result_within_interval(STIn, not_ok,
+							Start, LastTimeout, STOut, R),
+						append(Res2In, R, Res2Out),
+						append(NotOkDec1In, [Start : R], NotOkDec1Out)
+						;
+						STOut = STIn,
+						Res2Out = Res2In,
+						NotOkDec1Out = NotOkDec1In
+					)
+			)
+			; 
+			UnhandledStartTimes = Unhandled1,
+			Results = Res1,
+			NotOkDecisionPoints = []
 		)
 		; % always
 		(foreach(Int, NotOkIntervals), 
@@ -182,24 +188,30 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 				append(Res1In, R, Res1Out),
 				append(NotOkDec1In, [Start : R], NotOkDec1Out)
 		),
-		% confirm
-		(foreach(Int, OkIntervals), 
-			fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
-			fromto(Res1, Res2In, Res2Out, Results),
-			fromto([], OkDec1In, OkDec1Out, OkDecisionPoints),
-			param(MaxTime) do
-				Int = s(Start, End),
-				(End - Start >= MaxTime ->
-					LastConfirmable is Start + End - Start - MaxTime,
-					apply_result_within_interval(STIn, ok,
-						Start, LastConfirmable, STOut, R),
-					append(Res2In, R, Res2Out),
-					append(OkDec1In, [Start : R], OkDec1Out)
-					;
-					STOut = STIn,
-					Res2Out = Res2In,
-					OkDec1Out = OkDec1In
-				)
+		% confirm if MaxTime is given
+		(MaxTime \= inf ->
+			(foreach(Int, OkIntervals), 
+				fromto(Unhandled1, STIn, STOut, UnhandledStartTimes),
+				fromto(Res1, Res2In, Res2Out, Results),
+				fromto([], OkDec1In, OkDec1Out, OkDecisionPoints),
+				param(MaxTime) do
+					Int = s(Start, End),
+					(End - Start >= MaxTime ->
+						LastConfirmable is Start + End - Start - MaxTime,
+						apply_result_within_interval(STIn, ok,
+							Start, LastConfirmable, STOut, R),
+						append(Res2In, R, Res2Out),
+						append(OkDec1In, [Start : R], OkDec1Out)
+						;
+						STOut = STIn,
+						Res2Out = Res2In,
+						OkDec1Out = OkDec1In
+					)
+			)
+			;
+			UnhandledStartTimes = Unhandled1,
+			Results = Res1,
+			OkDecisionPoints = []
 		)
 	).	
 	
