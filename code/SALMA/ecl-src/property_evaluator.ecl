@@ -1,6 +1,3 @@
-% signature changes:
-% -- evaluate_until
-% -- evaluate_and_schedule
 :- local store(formula_cache).
 :- local variable(next_formula_cache_id).
 % stores results of evaluate_toplevel 
@@ -684,37 +681,44 @@ action_occurred(ActionTerm, Sit) :-
 % No schedule parameters are returned from here as the gathered params are "consumed".
 
 evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTime,
-	F, SitTerm, CacheId, Level, 
-	ScheduleIdIn, OverallResult, ToScheduleOut, ScheduleIdOut, HasChanged) :-
+	F, SitTerm, Level, ScheduleIdIn, CacheIdIn,
+	OverallResult, ScheduleIdOut, CacheIdOut, HasChanged) :-
+	
+		shelf_create(orig/1, null, Shelf),
+		shelf_set(Shelf,1,F),
+	
 		StartTimes = [s(StartTime, StartTime)], 
 		evaluate_formula(ToplevelFormula, FormulaPath, 
 			StartStep, StartTimes, EndTime, F, Level, _, 
 			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
 		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
-		
-		
-		(
-			(CacheId = new, !
-			; CacheId is -1, OverallResult = nondet, ! 
-			; not(CacheId is -1), HasChanged1 = true) ->	
-				
-				subst_in_term(SitTerm, s0, ToSchedule1, ToCache, [until]),
-				cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheId2), 
+			
+		(CacheIdIn = new, !,
+			shelf_get(Shelf, 1, ToCacheRaw)
+		; OverallResult = nondet, (CacheIdIn is -1, ! ; HasChanged1 = true), !,
+			ToCacheRaw = ToSchedule1
+		;
+			ToCacheRaw = none
+		),
+		(ToCacheRaw \= none ->
+				% roll back situation replacement done in evaluate_for_all_timesteps
+				subst_in_term(SitTerm, s0, ToCacheRaw, ToCache, [until]),
+				cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheIdOut), 
 				HasChanged2 = true
 				; 
-				CacheId2 is CacheId, HasChanged2 = false
-		),	
-		(CacheId2 \= -1 ->
-			ToScheduleOut = cf(CacheId2)
+				CacheIdOut is CacheIdIn, HasChanged2 = false
+		),		
+		(CacheIdOut \= -1 ->
+			RefTerm = cf(CacheIdOut)
 			;
-			ToScheduleOut = OverallResult
+			RefTerm = OverallResult
 		),
 		% create a new schedule entry if nondet or forced
 		( 
 			(ScheduleIdIn = new, ! 
 			; ScheduleIdIn = -1, OverallResult = nondet, !) ->		
 				HasChanged3 = true,
-				get_goal_schedule_id(ToplevelFormula, Level, ToScheduleOut, ScheduleParams, 
+				get_goal_schedule_id(ToplevelFormula, Level, RefTerm, ScheduleParams, 
 					ScheduleIdOut)
 				;
 				HasChanged3 = false,
@@ -782,7 +786,8 @@ evaluate_toplevel(EndTime, Results) :-
 			% CurrentStep = 0
 			% StartTime = CurrentTime
 			evaluate_and_schedule(Name, [0], 0, CurrentTime, EndTime,			
-				F, s0, CacheId, 0, -1, R, _, _, _),
+				F, s0, 0, -1, CacheId, 
+				R, _, _, _),
 			(
 				R = ok, append(In2, [ok : Name], Out2), !
 				;

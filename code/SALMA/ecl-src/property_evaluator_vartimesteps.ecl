@@ -26,7 +26,8 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	(StartTime < EndTime2 ->
 	
 		(fromto(StartTime, T, T2, EndTime2), fromto(StartStep, Step, NextStep, _), 
-			fromto(ResStart, ResIn, ResOut, Result), % start with ok, might be switched to nondet and stay that way
+			fromto(ResStart, ResIn, ResOut, Result), 
+			fromto(CacheIdIn, CId1, CId2, CacheIdOut),
 			fromto(ScheduleIdIn, SId1, SId2, ScheduleIdOut), 
 			fromto(nondet, EDIn, EDOut, EarliestDefinite), 
 			fromto(nondet, EPIn, EPOut, EarliestPossible),
@@ -38,14 +39,14 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 				Sit = do2(tick(Step), s0),
 				%print(Sit), nl,
 				% idea: only substitute until reaching until block
-				
 				subst_in_term(s0, Sit, OrigP, P2, [until]), 	
 				%print(P2), nl,
-				% TODO: is 0 as level ok here?
+				
 				time(StepTime, Sit),
 				evaluate_and_schedule(ToplevelFormula, FormulaPath, 
 					Step, StepTime, EndTime, 
-						P2, Sit, -1, Level, SId1, Res, _, SId2, _),		
+					P2, Sit, Level,	SId1, CId1, 
+					Res, SId2, CId2, _),		
 				%print(Res), nl,
 				% TODO: how to deal with ToSchedule2?
 				NextStep is Step + 1,
@@ -97,22 +98,20 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 	; % CurrentTime > EndTime2
 		Result = not_ok,
 		ScheduleIdOut = ScheduleIdIn,
+		CacheIdOut = CacheIdIn,
 		EarliestDefinite = nondet,
 		LatestDefinite = nondet, 
 		EarliestPossible = nondet, 
 		LatestPossible = nondet
 	),
-	((Result = nondet, ! ; ScheduleIdIn > -1) -> % schedule original if nondet or O had been scheduled before
-		% cache original formula if necessary
-		(CacheIdIn = -1 ->
-			shelf_get(Shelf, 1, OrigP),
-			cache_formula(ToplevelFormula, FormulaPath, OrigP, CacheId)
-			;
-			CacheId = CacheIdIn
-		),
-		ToSchedule = cf(CacheId)
+	(CacheIdOut \= -1 ->
+		ToSchedule = cf(CacheIdOut)
 		;
-		ToSchedule = Result
+		(Result = nondet -> % if nondet: retrieve original formula
+			shelf_get(Shelf, 1, ToSchedule)
+			;
+			ToSchedule = Result
+		)
 	),
 	shelf_abolish(Shelf).
 	

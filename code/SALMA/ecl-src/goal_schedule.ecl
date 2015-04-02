@@ -5,7 +5,9 @@ get_goal_schedule_id(ToplevelFormula, Level, ToSchedule, ScheduleParams, Id) :-
 	getval(next_scheduled_goal_id, Id),
 	Description = s(ToplevelFormula, Level, ToSchedule, ScheduleParams),
 	store_set(goal_id_map, Description, Id),
-	store_set(scheduled_goal_descriptions, Id, Description). 
+	store_set(scheduled_goal_descriptions, Id, Description),
+	store_set(scheduled_goals,
+		g(Level, Id), i([], [], [], -1)). 
 
 get_scheduled_goal_description(ScheduleId, Description) :-
 	store_get(scheduled_goal_descriptions, ScheduleId, Description), !
@@ -16,8 +18,10 @@ get_scheduled_goal_description(ScheduleId, Description) :-
 get_scheduled_intervals_within(PSchedId, Level,
 	Start, End, 
 	NondetIntervals, OkIntervals, NotOkIntervals) :-
-	store_get(scheduled_goals, g(Level, PSchedId), 
-		i(NondetIntervalsAll, OkIntervalsAll, NotOkIntervalsAll, _)),
+	(store_get(scheduled_goals, g(Level, PSchedId), 
+		i(NondetIntervalsAll, OkIntervalsAll, NotOkIntervalsAll, _)), !
+		; throw(unregistered_scheduled_goal(PSchedId))),
+		
 	get_intervals_within(NondetIntervalsAll, 
 		Start, End, NondetIntervals, _),
 	get_intervals_within(OkIntervalsAll, 
@@ -25,30 +29,25 @@ get_scheduled_intervals_within(PSchedId, Level,
 	get_intervals_within(NotOkIntervalsAll, 
 		Start, End, NotOkIntervals, _).
 	
-	
+
+% adds a decision interval to the corresponding OK/NOT_OK interval list and
+% subtracts the corresponding intersection from the NONET list
 apply_one_interval_decision(NondetIntervals, OkIntervals, NotOkIntervals,
 	Start, End, Decision, 
 	NondetIntervals2, OkIntervals2, NotOkIntervals2) :-
 	(fromto(NondetIntervals, In, Out, []),
 		fromto([], NondetNewIn, NondetNewOut, NondetIntervals2),
-		fromto([], NewIntervalsIn, NewIntervalsOut, NewIntervals),
 		param(Start, End) do
-			In = [Goal | Rest],
-			Out = Rest,
+			In = [Goal | Out],
 			get_interval_intersection(Goal, Start, End,
-				Intersection, RestOfIntersection),
-			(Intersection \= none ->
-				append(NewIntervalsIn, [Intersection], NewIntervalsOut)
-				;
-				NewIntervalsOut = NewIntervalsIn
-			),
+				_, RestOfIntersection),
 			append(NondetNewIn, RestOfIntersection, NondetNewOut)
 	),
 	(Decision = ok ->
-		append(OkIntervals, NewIntervals, OkIntervals2),
+		append(OkIntervals, [s(Start, End)], OkIntervals2),
 		NotOkIntervals2 = NotOkIntervals
 		;
-		append(NotOkIntervals, NewIntervals, NotOkIntervals2),
+		append(NotOkIntervals,  [s(Start, End)], NotOkIntervals2),
 		OkIntervals2 = OkIntervals
 	).	
 	
@@ -59,9 +58,10 @@ apply_interval_decisions(ScheduleId, Level, Decisions, EvalEndTime) :-
 	% a formula that ranges from Start to End.
 	% Close all matching intervals and add them to the ok list
 	
-	store_get(scheduled_goals,
+	(store_get(scheduled_goals,
 		g(Level, ScheduleId),
-		i(NondetIntervals, OkIntervals, NotOkIntervals, _)),
+		i(NondetIntervals, OkIntervals, NotOkIntervals, _)) , !
+	; throw(unregistered_scheduled_goal(ScheduleId))),
 	(foreach(D, Decisions), 
 		fromto(NondetIntervals, In1, Out1, NondetIntervalsNew),
 		fromto(OkIntervals, In2, Out2, OkIntervalsUnsorted),
@@ -106,8 +106,7 @@ add_nondet_schedule_interval(ScheduleId, Level, StartTime, EvalEndTime) :-
 		g(Level, ScheduleId),
 		i(NondetIntervals, OkIntervals, NotOkIntervals, _)), !
 	; % no entry found for id 
-	NondetIntervals = [], OkIntervals = [], NotOkIntervals = []
-	),	
+		throw(unregistered_scheduled_goal(add_nondet_schedule_interval, ScheduleId))),	
 	% We assume that only nondet intervals can be updated	
 	
 	% sorting should not be necessary  due to construction scheme

@@ -85,7 +85,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		
 		shelf_set(Shelf, 3, OvRes),		
 		
-		(not PSchedId =:= -1 ->
+		(PSchedId \= -1 ->
 			KeyP =.. [p, SubPathP],
 			var(VarPSchedId),
 			SParams1 = [KeyP : PSchedId],
@@ -93,7 +93,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			; 
 			SParams1 = []
 		),
-		(not QSchedId =:= -1 ->
+		(QSchedId \= -1 ->
 			KeyQ =.. [p, SubPathQ],
 			var(VarQSchedId),
 			append(SParams1, [KeyQ : QSchedId], SParams2),
@@ -101,9 +101,9 @@ evaluate_until(ToplevelFormula, FormulaPath,
 			; 
 			SParams2 = SParams1
 		),
-		(QSchedIdIn =\= QSchedId, !
-			; PSchedIdIn =\= PSchedId -> 
-				shelf_set(Shelf, 4, true) ; true),
+		( (QSchedIdIn \= QSchedId, !
+			; PSchedIdIn \= PSchedId) -> 
+				shelf_set(Shelf, 4, true) ; true), % has changed
 		shelf_set(Shelf, 5, SParams2),
 		% retrieve all output values from shelf
 		shelf_get(Shelf, 0, pqres(NewP, NewQ, OverallResult, HasChanged, ScheduleParams)),
