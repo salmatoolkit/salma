@@ -34,6 +34,8 @@ evaluation_step(EndTime, ToplevelResults, ScheduledResults, PendingGoals, Failur
 	update_persistent_fluents,
 	evaluate_all_scheduled(EndTime, ScheduledResults), 
 	get_pending_toplevel_goals(PendingGoals),
+	% todo: return list of form fname : list-of-nondet-interval)
+	
 	evaluate_toplevel(EndTime, ToplevelResults),
 	get_merged_failures(FailureStack).
 	%,clean_formula_cache.

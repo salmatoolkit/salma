@@ -136,20 +136,20 @@ get_all_caused_exogenous_action_instances(Actions, CausedEvents) :-
 % -------------------
 
 
-schedulable_action_instance(ActionName, Situation, Time, CurrentScheduleHash, HandledHash,
-	PossibleInstanceArgs) :-
-	select_action_instance(ActionName, PossibleInstanceArgs, ActionTerm),
-	not hash_contains(CurrentScheduleHash, (ActionName, PossibleInstanceArgs)),
-	% skip this instance if it has already been handled in this same step (situation)
-	(
-		hash_get(HandledHash, (ActionName, PossibleInstanceArgs), Times), 
-		!,
-		not member(Time, Times)
-		;
-		true
-	),		
-	not alternative_in_hash(ActionName, PossibleInstanceArgs, CurrentScheduleHash),
-	schedulable(ActionTerm, Situation).
+schedulable_action_instance(ActionName, Situation, Time, 
+	CurrentScheduleHash, HandledHash, PossibleInstanceArgs) :-
+		select_action_instance(ActionName, PossibleInstanceArgs, ActionTerm),
+		not hash_contains(CurrentScheduleHash, (ActionName, PossibleInstanceArgs)),
+		% skip this instance if it has already been handled in this same step (situation)
+		(
+			hash_get(HandledHash, (ActionName, PossibleInstanceArgs), Times), 
+			!,
+			not member(Time, Times)
+			;
+			true
+		),		
+		not alternative_in_hash(ActionName, PossibleInstanceArgs, CurrentScheduleHash),
+		schedulable(ActionTerm, Situation).
 	
 get_schedulable_exogenous_action_instances(ActionName, Situation, Time, CurrentScheduleHash, 
 	HandledHash, Candidates) :-
@@ -223,8 +223,8 @@ get_next_schedulable_events(Start, TimeLimit, CurrentSchedule, HandledInStep,
 			param(Limit, CurrentScheduleHash, HandledHash, TimeDependentActionNames) do 
 				Sit = do2(tick(CurrentDelta), s0),
 				get_all_schedulable_event_instances_internal(
-				TimeDependentActionNames, Sit, CurrentScheduleHash, 
-					HandledHash, Candidates),
+					TimeDependentActionNames, Sit, CurrentScheduleHash, 
+						HandledHash, Candidates),
 				(length(Candidates) > 0 ->
 					EvOut = Candidates,
 					NextDelta = Limit,

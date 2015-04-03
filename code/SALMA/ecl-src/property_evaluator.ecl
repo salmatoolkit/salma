@@ -438,14 +438,16 @@ test_reifiable(F, Result) :-
 	
 % compiles and evaluates a formula ad hoc, i.e. without caching it		
 evaluate_ad_hoc(F, Result) :-
-		evaluate_ad_hoc(F, Result, s0).
+	evaluate_ad_hoc(F, Result, s0).
 		
 evaluate_ad_hoc(F, Result, Situation) :-
-		current_time(T),
-		compile_formula(F, F2, Situation),
-		erase_failure_stack,
-		setval(negated, 0),
-		evaluate_formula(null, [0], 0, T, T, F2, 0, Result, _, _, _).
+	current_time(T),
+	compile_formula(F, F2, Situation),
+	erase_failure_stack,
+	setval(negated, 0),
+	evaluate_formula(null, [0], 0, 
+		[s(T, T)], T, F2, 0, _, Result,
+		_, _, _).
 
 evaluate_ad_hoc_str(FStr, Result, Situation) :-
 	term_string(F, FStr),
@@ -669,10 +671,14 @@ evaluate_action_occurred(ActionTerm, StartTimes, Results) :-
 	apply_unique_result(StartTimes, Res, Results).
 
 		
+% tests whether the given action has occurred in this
+% situation
 action_occurred(ActionTerm, Sit) :-
 	time(Time, Sit),
-	evaluate_action_occurred(ActionTerm, Time, Result),
-	Result = ok.
+	evaluate_action_occurred(ActionTerm, 
+		[s(Time, Time)], Results),
+	get_unanimous_result(Results, ok).
+
 
 
 
@@ -851,11 +857,11 @@ evaluate_all_scheduled(EndTime, Results) :-
 		Key = g(Level, SchedId),
 		record_create(MyFailureStack),
 		setval(current_failure_stack, MyFailureStack),
-		evaluate_scheduled(Goal, EndTime, _, OvR),
+		evaluate_scheduled(Goal, EndTime, R, OvR),
 		% only report properties with level 0
 		(Level == 0 ->
 			get_scheduled_goal_description(SchedId, s(ToplevelFormula, _, _, _)),
-			append(RIn, [r(ToplevelFormula, OvR)], ROut)
+			append(RIn, [r(ToplevelFormula, R, OvR)], ROut)
 			;
 			% don't report
 			ROut = RIn

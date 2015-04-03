@@ -982,10 +982,10 @@ class EclipseCLPEngine(Engine):
         result_dict = dict()
 
         for r in result:
-            # not_ok : sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime,_)
-            verdict = EclipseCLPEngine.__verdictMapping[str(r[0])]
-            key = r[1]
-            pname = str(key[0])
+            # format: r(ToplevelFormula, OverallResult)
+            verdict = EclipseCLPEngine.__verdictMapping[str(r[1])]
+            key = r[0]
+
             time = key[3]
             if pname in result_dict:
                 result_dict[pname].append((time, verdict))

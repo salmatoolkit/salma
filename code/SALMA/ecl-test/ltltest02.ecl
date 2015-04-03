@@ -78,7 +78,10 @@ test6 :-
 	F = until(50, xpos(rob1) > 5, xpos(rob1) =:= 15),
 	register_property(f, F, _).
 
-
+test7 :-
+	init,
+	F = until(50, xpos(rob1) > 5, occur(grab(rob1, item1))),
+	register_property(f, F, _).
 	
 evstep :-
 	evstep(1).
