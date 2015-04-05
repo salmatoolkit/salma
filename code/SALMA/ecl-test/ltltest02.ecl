@@ -82,6 +82,33 @@ test7 :-
 	init,
 	F = until(50, xpos(rob1) > 5, occur(grab(rob1, item1))),
 	register_property(f, F, _).
+
+test8 :-
+	init,
+	F = forall(r:robot,
+			implies(
+				occur(paint(r,?)),
+				until(40,
+					true,
+					xpos(r) >= 15
+				)
+			)
+		),
+	register_property(f, F, _).
+
+test9 :-
+	init,
+	F = invariant(forall(r:robot,
+			implies(
+				occur(paint(r,?)),
+				until(40,
+					true,
+					xpos(r) >= 15
+				)
+			)
+		)),
+	register_property(f, F, _).	
+	
 	
 evstep :-
 	evstep(1).

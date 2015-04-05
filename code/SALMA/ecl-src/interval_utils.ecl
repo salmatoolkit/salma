@@ -234,8 +234,105 @@ get_max_interval_point_within(IntervalList,
 					ListOut = []
 				)
 		).
-					
-					
+
+disect_results(Results, NDList, OkList, NOkList) :-
+	(foreach(E, Results), 
+		fromto([], NDIn, NDOut, NDList),
+		fromto([], OkIn, OkOut, OkList),
+		fromto([], NOkIn, NOkOut, NOkList) do
+		E = I : Res,
+		(Res = nondet, !, 
+			append(NDIn, [I], NDOut),
+			OkOut = OkIn,
+			NOkOut = NOkIn
+		; Res = ok, !,
+			append(OkIn, [I], OkOut),
+			NDOut = NDIn,
+			NOkOut = NOkIn
+		; Res = not_ok, !,
+			append(NOkIn, [I], NOkOut),
+			NDOut = NDIn,
+			OkOut = OkIn
+		)
+	).
+		
+		
+and_resvector(R1, R2, RAnd, OverallResult) :-
+	% idea:
+	% - distribute results to interval lists for ok, not_ok,
+	%   and nondet
+	% - not_ok intervals are known to be not_ok after and
+	% - for each not_ok interval:
+	%      * use get_intervals_within to subtract intersections
+	%        from ok and nondet lists 
+	% - the remaining intervals in the nondet list stay nondet
+	% - for each nondet interval:
+	%      * use get_intervals_within to subtract intersections
+	%        from remaining ok list
+	disect_results(R1, NDList1, OkList1, NOkList1),
+	disect_results(R2, NDList2, OkList2, NOkList2),
+	append(NDList1, NDList2, NDList3),
+	sort(1, =<, NDList3, NDList4),
+	append(OkList1, OkList2, OkList3),
+	sort(1, =<, OkList3, OkList4),
+	append(NOkList1, NOkList2, NOkList3),
+	sort(1, =<, NOkList3, NOkList4),
+	
+	(foreach(NOk, NOkList4),
+		fromto(OkList4, OkIn, OkOut, OkList5),
+		fromto(NDList4, NDIn, NDOut, NDList5) do
+			NOk = s(Start, End),
+			get_intervals_within(OkIn, Start, End, _, OkOut),
+			get_intervals_within(NDIn, Start, End, _, NDOut)			
+	),
+	(foreach(ND, NDList5),
+		fromto(OkList5, OkIn, OkOut, OkList6) do
+			ND = s(Start, End),
+			get_intervals_within(OkIn, Start, End, _, OkOut)		
+	),
+	merge_goals(NDList5, NDList6),
+	merge_goals(OkList6, OkList7),
+	merge_goals(NOkList4, NOkList5),
+	apply_unique_result(NDList6, nondet, Results1),
+	apply_unique_result(OkList7, ok, Results2),
+	apply_unique_result(NOkList5, not_ok, Results3),
+	flatten([Results1, Results2, Results3], ResultsUnsorted),
+	sort([1,1], =<, ResultsUnsorted, RAnd),
+	get_unanimous_result(RAnd, OverallResult).
+	
+
+or_resvector(R1, R2, ROr, OverallResult) :-
+	disect_results(R1, NDList1, OkList1, NOkList1),
+	disect_results(R2, NDList2, OkList2, NOkList2),
+	append(NDList1, NDList2, NDList3),
+	sort(1, =<, NDList3, NDList4),
+	append(OkList1, OkList2, OkList3),
+	sort(1, =<, OkList3, OkList4),
+	append(NOkList1, NOkList2, NOkList3),
+	sort(1, =<, NOkList3, NOkList4),
+	
+	(foreach(Ok, OkList4),
+		fromto(NOkList4, NOkIn, NOkOut, NOkList5),
+		fromto(NDList4, NDIn, NDOut, NDList5) do
+			Ok = s(Start, End),
+			get_intervals_within(NOkIn, Start, End, _, NOkOut),
+			get_intervals_within(NDIn, Start, End, _, NDOut)			
+	),
+	(foreach(ND, NDList5),
+		fromto(NOkList5, NOkIn, NOkOut, NOkList6) do
+			ND = s(Start, End),
+			get_intervals_within(NOkIn, Start, End, _, NOkOut)		
+	),
+	merge_goals(NDList5, NDList6),
+	merge_goals(OkList4, OkList5),
+	merge_goals(NOkList6, NOkList7),
+	apply_unique_result(NDList6, nondet, Results1),
+	apply_unique_result(OkList5, ok, Results2),
+	apply_unique_result(NOkList7, not_ok, Results3),
+	flatten([Results1, Results2, Results3], ResultsUnsorted),
+	sort([1,1], =<, ResultsUnsorted, ROr),
+	get_unanimous_result(ROr, OverallResult).
+						
 					
 					
 				

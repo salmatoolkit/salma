@@ -462,54 +462,7 @@ test_ad_hoc(F) :-
 		test_ad_hoc(F, s0).
 
 
-and_resvector(R1, R2, RAnd, OverallResult) :-
-	(foreach(E1, R1), foreach(E2, R2), foreach(EAnd, RAnd),
-		fromto(none, OvResIn, OvResOut, OverallResult) do
-		E1 = Intv : State1,
-		(E2 = Intv : State2 -> 
-			(State1 = ok, State2 = ok, !,
-				EAnd = Intv : ok
-			; (State1 = not_ok, ! ; State2 = not_ok), !,
-				EAnd = Intv : not_ok
-			; EAnd = Intv : nondet
-			)
-		; % interval doesn't match
-			throw(different_intervals_and_resvector)
-		),
-		(OvResIn = none, !,
-			EAnd = _ : OvResOut
-		; EAnd = _ : nondet, !, 
-			OvResOut = nondet
-		; EAnd = _ : OvResIn, !,
-			OvResOut = OvResIn
-		; OvResOut = ambiguous
-		)	
-	).
 
-or_resvector(R1, R2, ROr, OverallResult) :-
-	(foreach(E1, R1), foreach(E2, R2), foreach(EOr, ROr),
-		fromto(none, OvResIn, OvResOut, OverallResult) do
-		E1 = Intv : State1,
-		(E2 = Intv : State2 -> 
-			(State1 = not_ok, State2 = not_ok, !,
-				EOr = Intv : not_ok
-			; (State1 = ok, ! ; State2 = ok), !,
-				EOr = Intv : ok
-			; EOr = Intv : nondet
-			)
-		; % interval doesn't match
-			throw(different_intervals_and_resvector)
-		),
-		(OvResIn = none, !,
-			EOr = _ : OvResOut
-		; EOr = _ : nondet, !, 
-			OvResOut = nondet
-		; EOr = _ : OvResIn, !,
-			OvResOut = OvResIn
-		; OvResOut = ambiguous
-		)		
-	).
-	
 evaluate_checkall(ToplevelFormula, FormulaPath, 
 	CurrentStep, StartTimes, EndTime, Subformulas, Level, 
 	Results, OverallResult, ToSchedule, ScheduleParams, HasChanged) :- 

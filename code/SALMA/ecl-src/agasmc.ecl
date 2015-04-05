@@ -33,9 +33,14 @@ evaluation_step(EndTime, ToplevelResults, ScheduledResults, PendingGoals, Failur
 	erase_failure_stack,
 	update_persistent_fluents,
 	evaluate_all_scheduled(EndTime, ScheduledResults), 
-	get_pending_toplevel_goals(PendingGoals),
+	get_pending_toplevel_goals(PendingGoalsRaw),
 	% todo: return list of form fname : list-of-nondet-interval)
-	
+	(foreach(PgRaw, PendingGoalsRaw),
+		foreach(Pg, PendingGoals) do
+			PgRaw = g(_, Id) - i(NondetList, _, _, _),
+			get_scheduled_goal_description(Id, s(ToplevelFormula, _, _, _)),
+			Pg = p(ToplevelFormula, NondetList)	
+	),
 	evaluate_toplevel(EndTime, ToplevelResults),
 	get_merged_failures(FailureStack).
 	%,clean_formula_cache.
