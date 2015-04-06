@@ -59,7 +59,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 
 		IntervalEnd is min(Deadline, EndTime),
 		
-		evaluate_for_all_timesteps(ToplevelFormula, SubPathQ, 
+		evaluate_for_all_timesteps(ToplevelFormula, [0], 
 			eventually, CurrentStep, CurrentTime, IntervalEnd, SubQ, NextLevel, _, 
 			QSchedIdIn, QCacheId,
 			QSchedId, ToScheduleQ,
@@ -68,7 +68,7 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		% if we found an ok, we only have to check P up to that point
 		PIntervalEnd is getMin(QEarliestDefinite, IntervalEnd),
 		
-		evaluate_for_all_timesteps(ToplevelFormula, SubPathP, 
+		evaluate_for_all_timesteps(ToplevelFormula, [0], 
 			always, CurrentStep, CurrentTime, PIntervalEnd, SubP, NextLevel, _, 
 			PSchedIdIn, PCacheId,
 			PSchedId, ToScheduleP,

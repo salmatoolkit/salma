@@ -362,8 +362,8 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 	shelf_create(orig/1, null, Shelf),
 	shelf_set(Shelf,1,P),
 	
-	NextLevel is Level + 1,
-	%NextLevel is Level,
+	%NextLevel is Level + 1,
+	NextLevel is Level,
 	(P = sched(_, PSchedIdIn, PRefTerm) ->  
 		(PRefTerm = cf(PCacheId) ->
 			get_cached_formula(PCacheId, SubP)

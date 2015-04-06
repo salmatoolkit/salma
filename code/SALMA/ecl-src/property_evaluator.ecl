@@ -654,7 +654,7 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTim
 			% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
 				
 			(CacheIdIn = new, !,
-				(HasChanged1 \= true ->
+				(OverallResult \= nondet ->
 					shelf_get(Shelf, 1, ToCacheRaw)
 					;
 					ToCacheRaw = ToSchedule1)

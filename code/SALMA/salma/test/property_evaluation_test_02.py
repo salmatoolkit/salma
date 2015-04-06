@@ -165,7 +165,6 @@ forall(r:robot,
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    @skipIf(MODE is TestModes.quick, "quick mode")
     def test_nested_until_fail_one_agent_outer(self):
         world = World.instance()
         rob1 = self.create_periodic_agent("rob1", "item1")
@@ -181,7 +180,6 @@ forall(r:robot,
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    #@skipIf(MODE is TestModes.quick, "quick mode")
     def test_property_4(self):
         world = World.instance()
 
