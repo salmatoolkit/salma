@@ -399,6 +399,18 @@ test_nested3 :-
 			)),
 	register_property(f, F, _).
 	
+test_nested4 :-
+	init,
+	F = until(20,
+			until(5,
+				not(carrying(rob1,item1)),
+				carrying(rob1,item1)
+			),
+			xpos(rob1) >= 29
+		),
+	register_property(f, F, _).
+	
+	
 test_inv1 :-
 	init,
 	F = invariant(

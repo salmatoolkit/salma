@@ -650,55 +650,62 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTim
 		evaluate_formula(ToplevelFormula, FormulaPath, 
 			StartStep, StartTimes, EndTime, F, Level, _, 
 			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
-		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
-			
-		(CacheIdIn = new, !,
-			shelf_get(Shelf, 1, ToCacheRaw)
-		; OverallResult = nondet, (CacheIdIn is -1, ! ; HasChanged1 = true), !,
-			ToCacheRaw = ToSchedule1
-		;
-			ToCacheRaw = none
-		),
-		(ToCacheRaw \= none ->
-				% roll back situation replacement done in evaluate_for_all_timesteps
-				subst_in_term(SitTerm, s0, ToCacheRaw, ToCache, [until]),
-				cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheIdOut), 
-				HasChanged2 = true
-				; 
-				CacheIdOut is CacheIdIn, HasChanged2 = false
-		),		
-		(CacheIdOut \= -1 ->
-			RefTerm = cf(CacheIdOut)
+		(ToSchedule1 \= invariant(_), ToSchedule1 \= goal(_), !,
+			% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
+				
+			(CacheIdIn = new, !,
+				(HasChanged1 \= true ->
+					shelf_get(Shelf, 1, ToCacheRaw)
+					;
+					ToCacheRaw = ToSchedule1)
+			; OverallResult = nondet, (CacheIdIn = -1, ! ; HasChanged1 = true), !,
+				ToCacheRaw = ToSchedule1
 			;
-			RefTerm = OverallResult
-		),
-		% create a new schedule entry if nondet or forced
-		( 
-			(ScheduleIdIn = new, ! 
-			; ScheduleIdIn = -1, OverallResult = nondet, !) ->		
-				HasChanged3 = true,
-				get_goal_schedule_id(ToplevelFormula, Level, RefTerm, ScheduleParams, 
-					ScheduleIdOut)
+				ToCacheRaw = none
+			),
+			(ToCacheRaw \= none ->
+					% roll back situation replacement done in evaluate_for_all_timesteps
+					subst_in_term(SitTerm, s0, ToCacheRaw, ToCache, [until]),
+					cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheIdOut), 
+					HasChanged2 = true
+					; 
+					CacheIdOut = CacheIdIn, HasChanged2 = false
+			),		
+			(CacheIdOut \= -1 ->
+				RefTerm = cf(CacheIdOut)
 				;
-				HasChanged3 = false,
-				ScheduleIdOut = ScheduleIdIn
-		),
-		(ScheduleIdOut \= -1 ->
-			(OverallResult = nondet ->
-				add_nondet_schedule_interval(ScheduleIdOut, Level,
-					StartTime, EndTime)
-				;		
-				apply_interval_decisions(ScheduleIdOut, Level, 
-					[s(StartTime, StartTime) : OverallResult], EndTime)
+				RefTerm = OverallResult
+			),
+			% create a new schedule entry if nondet or forced
+			( 
+				(ScheduleIdIn = new, ! 
+				; ScheduleIdIn = -1, OverallResult = nondet, !) ->		
+					HasChanged3 = true,
+					get_goal_schedule_id(ToplevelFormula, Level, RefTerm, ScheduleParams, 
+						ScheduleIdOut)
+					;
+					HasChanged3 = false,
+					ScheduleIdOut = ScheduleIdIn
+			),
+			(ScheduleIdOut \= -1 ->
+				(OverallResult = nondet ->
+					add_nondet_schedule_interval(ScheduleIdOut, Level,
+						StartTime, EndTime)
+					;		
+					apply_interval_decisions(ScheduleIdOut, Level, 
+						[s(StartTime, StartTime) : OverallResult], EndTime)
+				)
+				
+				; % nothing to schedule here - go ahead
+				true
+			),
+			((HasChanged1 = true, !; HasChanged2 = true, ! ; HasChanged3 = true) -> 
+					HasChanged = true
+					;
+					HasChanged = false
 			)
-			
-			; % nothing to schedule here - go ahead
-			true
-		),
-		((HasChanged1 = true, !; HasChanged2 = true, ! ; HasChanged3 = true) -> 
-				HasChanged = true
-				;
-				HasChanged = false
+		; % don't schedule anything for invariant or goal 
+		true
 		).
 
 

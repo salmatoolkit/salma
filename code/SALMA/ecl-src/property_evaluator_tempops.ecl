@@ -25,7 +25,8 @@ evaluate_until(ToplevelFormula, FormulaPath,
 		
 		append(FormulaPath, [2], SubPathP), % start with subterm 2 since first is max time
 		append(FormulaPath, [3], SubPathQ),
-		
+		%SubPathP = [0, 2],
+		%SubPathQ = [0, 3],
 		(Q = sched(_, QSchedIdIn, QRefTerm) -> 
 			(QRefTerm = cf(QCacheId) ->
 				get_cached_formula(QCacheId, SubQ)

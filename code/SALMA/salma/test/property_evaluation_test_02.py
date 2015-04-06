@@ -181,7 +181,7 @@ forall(r:robot,
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    @skipIf(MODE is TestModes.quick, "quick mode")
+    #@skipIf(MODE is TestModes.quick, "quick mode")
     def test_property_4(self):
         world = World.instance()
 
