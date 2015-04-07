@@ -184,7 +184,7 @@ forall(r:robot,
         world = World.instance()
 
         p1 = OneShotProcess([
-            While("xpos(self) < 20", [
+            While("xpos(self) < 110", [
                 Act("move_right", [SELF]),
                 Wait("not moving(self)"),
                 While("ypos(self) < 15", [
@@ -209,25 +209,25 @@ forall(r:robot,
 
         g_str = """
 forall(r:robot,
-    until(200,
+    until(2000,
         implies(
             ypos(r) = 10,
             until(10, true, ypos(r) = 15)
         ),
-        xpos(r) >= 20
+        xpos(r) >= 100
     )
 )
 """
         experiment = Experiment(world)
         experiment.property_collection.register_property("g", g_str, INVARIANT)
-        experiment.property_collection.register_property("h", "xpos(rob1) >= 20", ACHIEVE)
+        experiment.property_collection.register_property("h", "xpos(rob1) >= 120", ACHIEVE)
         verdict, results = experiment.run_experiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         # : :type: timedelta
         dt = results["time"]
         print("time: {}".format(dt.total_seconds()))
-
+        world.printState()
         # world.printState()
         self.assertEqual(verdict, OK)
 
