@@ -399,6 +399,21 @@ test_nested3 :-
 			)),
 	register_property(f, F, _).
 	
+test_nested3b :-
+	init,
+	F = invariant(forall(r:robot, until(20,
+				implies(
+					occur(grab(r, item1)),
+					until(5,
+						carrying(r,item1),
+						not(carrying(r,item1))
+					)
+				),
+				xpos(r) >= 29
+			))),
+	register_property(f, F, _).
+	
+	
 test_nested4 :-
 	init,
 	F = until(20,
