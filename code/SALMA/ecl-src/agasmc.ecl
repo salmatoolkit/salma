@@ -39,7 +39,7 @@ evaluation_step(EndTime, ToplevelResults, ScheduledResults, PendingGoals, Failur
 		foreach(Pg, PendingGoals) do
 			PgRaw = g(_, Id) - i(NondetList, _, _, _),
 			get_scheduled_goal_description(Id, s(ToplevelFormula, _, _, _)),
-			Pg = p(ToplevelFormula, NondetList)	
+			Pg = p(ToplevelFormula, Id, NondetList)	
 	),
 	evaluate_toplevel(EndTime, ToplevelResults),
 	get_merged_failures(FailureStack).

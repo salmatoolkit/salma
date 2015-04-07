@@ -982,15 +982,15 @@ class EclipseCLPEngine(Engine):
         result_dict = dict()
 
         for r in result:
-            # format: r(ToplevelFormula, [s(Start, End) : Result, ...], OverallResult)
-            overall_verdict = EclipseCLPEngine.__verdictMapping[str(r[2])]
+            # format: r(ToplevelFormula, Id, [s(Start, End) : Result, ...], OverallResult)
+            overall_verdict = EclipseCLPEngine.__verdictMapping[str(r[3])]
             pname = str(r[0])
-
+            pid = r[1]
             res_intervals = []
-            for ri in r[1]:
+            for ri in r[2]:
                 start, end = ri[0]
                 verdict_raw = ri[1]
-                res_intervals.append((start, end, EclipseCLPEngine.__verdictMapping[str(verdict_raw)]))
+                res_intervals.append((start, end, EclipseCLPEngine.__verdictMapping[str(verdict_raw)], pid))
 
             if pname in result_dict:
                 result_dict[pname].extend(res_intervals)
@@ -1010,12 +1010,13 @@ class EclipseCLPEngine(Engine):
         # : :type: dict[str, list[int]]
         result_dict = dict()
         for prop in props:
-            #  [p(f, [s(0, 1)])]
+            #  [p(f, id, [s(0, 1), ...])]
             pname = str(prop[0])
+            pid = prop[1]
             intervals = []
-            for i in prop[1]:
+            for i in prop[2]:
                 start, end = i
-                intervals.append((start, end))
+                intervals.append((start, end, pid))
 
             if pname in result_dict:
                 result_dict[pname].extend(intervals)

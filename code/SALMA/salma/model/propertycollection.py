@@ -38,7 +38,7 @@ class PropertyCollection:
         if toplevel_results[pname] == NOT_OK:
             return True
         if pname in scheduled_results:
-            for start, end, v in scheduled_results[pname]:
+            for start, end, v, _ in scheduled_results[pname]:
                 if v == NOT_OK:
                     return True
 

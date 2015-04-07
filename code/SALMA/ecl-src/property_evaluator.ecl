@@ -821,7 +821,7 @@ evaluate_all_scheduled(EndTime, Results) :-
 		% only report properties with level 0
 		(Level == 0 ->
 			get_scheduled_goal_description(SchedId, s(ToplevelFormula, _, _, _)),
-			append(RIn, [r(ToplevelFormula, R, OvR)], ROut)
+			append(RIn, [r(ToplevelFormula, SchedId, R, OvR)], ROut)
 			;
 			% don't report
 			ROut = RIn
