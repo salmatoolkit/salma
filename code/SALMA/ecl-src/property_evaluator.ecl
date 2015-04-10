@@ -650,6 +650,8 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTim
 		evaluate_formula(ToplevelFormula, FormulaPath, 
 			StartStep, StartTimes, EndTime, F, Level, _, 
 			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
+			
+		% don't schedule invariants or goals
 		(ToSchedule1 \= invariant(_), ToSchedule1 \= goal(_), !,
 			% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
 				
