@@ -108,6 +108,28 @@ test9 :-
 			)
 		)),
 	register_property(f, F, _).	
+
+test10 :-
+	init,
+	F = until(40,
+			implies(
+				occur(paint(rob1,item1)),
+				until(10,
+					true,
+					occur(paint(rob2, item2)))),
+			occur(paint(rob1, item2))),
+	register_property(f, F, _).	
+
+test11 :-
+	init,
+	F = until(40,
+			implies(
+				occur(paint(rob1,item1)),
+				let(x1 : xpos(rob1),
+					eventually(10, xpos(rob1) > x1))
+			),			
+			occur(paint(rob1, item2))),
+	register_property(f, F, _).
 	
 	
 evstep :-
