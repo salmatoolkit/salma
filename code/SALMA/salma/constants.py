@@ -6,6 +6,7 @@ Created on 02.08.2013
 OK = 1
 NOT_OK = -1
 NONDET = 0
+AMBIGUOUS = 2
 CANCEL = -2
 SELF = 'self'
 

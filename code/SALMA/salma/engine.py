@@ -402,7 +402,7 @@ class EclipseCLPEngine(Engine):
     PROGRESSION_MODULE = os.path.abspath(
         os.path.join(salma.__path__[0], "../ecl-src/agasmc.ecl"))
 
-    __verdictMapping = {'ok': OK, 'not_ok': NOT_OK, 'nondet': NONDET}
+    __verdictMapping = {'ok': OK, 'not_ok': NOT_OK, 'nondet': NONDET, 'ambiguous': AMBIGUOUS}
 
     __pyclp_initialized = False
 
@@ -975,22 +975,28 @@ class EclipseCLPEngine(Engine):
     @staticmethod
     def __translateScheduledEvaluationResults(result):
         """
-        Translate scheduled evaluation results to a dict: fname -> list((time, verdict))
+        Translate scheduled evaluation results to a dict: fname -> list((start, end, verdict))
         :rtype: dict[str, list[(int, int)]]
         """
-        # : :type: dict[str, list[(int, int)]]
+        # : :type: dict[str, list[(int, int, int)]]
         result_dict = dict()
 
         for r in result:
-            # not_ok : sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime,_)
-            verdict = EclipseCLPEngine.__verdictMapping[str(r[0])]
-            key = r[1]
-            pname = str(key[0])
-            time = key[3]
+            # format: r(ToplevelFormula, Id, [s(Start, End) : Result, ...], OverallResult)
+            overall_verdict = EclipseCLPEngine.__verdictMapping[str(r[3])]
+            pname = str(r[0])
+            pid = r[1]
+            res_intervals = []
+            for ri in r[2]:
+                start, end = ri[0]
+                verdict_raw = ri[1]
+                res_intervals.append((start, end, EclipseCLPEngine.__verdictMapping[str(verdict_raw)], pid))
+
             if pname in result_dict:
-                result_dict[pname].append((time, verdict))
+                result_dict[pname].extend(res_intervals)
+                result_dict[pname].sort(key=lambda x: x[0])
             else:
-                result_dict[pname] = [(time, verdict)]
+                result_dict[pname] = res_intervals
 
         return result_dict
 
@@ -1004,13 +1010,19 @@ class EclipseCLPEngine(Engine):
         # : :type: dict[str, list[int]]
         result_dict = dict()
         for prop in props:
-            # sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime,_)
+            #  [p(f, id, [s(0, 1), ...])]
             pname = str(prop[0])
-            time = prop[3]
+            pid = prop[1]
+            intervals = []
+            for i in prop[2]:
+                start, end = i
+                intervals.append((start, end, pid))
+
             if pname in result_dict:
-                result_dict[pname].append(time)
+                result_dict[pname].extend(intervals)
+                result_dict[pname].sort(key=lambda x: x[0])
             else:
-                result_dict[pname] = [time]
+                result_dict[pname] = intervals
 
         return result_dict
 

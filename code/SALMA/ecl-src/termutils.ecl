@@ -70,4 +70,29 @@ sublist([Head | Tail], Start, End, Sublist) :-
 	
 sublist([], _, _, Sublist) :-
 	Sublist = [].
+
+last_element(List, Last) :-
+	length(List, 0), Last = none, !
+	;
+	I is length(List) - 1,
+	sublist(List, I, I, L2),
+	L2 = [Last].
 	
+% Calculates the minimum among V1 and V2. Handles nondet.
+getMin(V1, V2, Result) :-
+	V1 = nondet, !,
+		(V2 = nondet -> Result = nondet ; Result is V2)
+	;
+	V2 = nondet, !,
+		(V1 = nondet -> Result = nondet ; Result is V1)
+	;
+	(V2 < V1 -> Result is V2 ; Result is V1).
+
+getMax(V1, V2, Result) :-
+	V1 = nondet, !,
+		(V2 = nondet -> Result = nondet ; Result is V2)
+	;
+	V2 = nondet, !,
+		(V1 = nondet -> Result = nondet ; Result is V1)
+	;
+	(V2 > V1 -> Result is V2 ; Result is V1).

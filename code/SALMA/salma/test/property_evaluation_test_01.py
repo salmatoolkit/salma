@@ -55,6 +55,7 @@ forall(r:robot,
 )
 """.format(time_limit, x_prop_goal)
         experiment = Experiment(world)
+        experiment.step_listeners.append(lambda world, **args: print(world.getFluentValue("xpos", ["rob1"])))
         experiment.property_collection.register_property("f", f_str, INVARIANT)
         verdict, results = experiment.run_experiment()
         print("Verdict: " + str(verdict))

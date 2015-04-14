@@ -332,10 +332,12 @@ test7 :-
 	F = until(50, xpos(rob1) > 15, xpos(rob1) > 12),
 	register_property(f, F, _).
 	
-	
 evstep :-
+	evstep(1).
+	
+evstep(TimeDelta) :-
 	current_time(T),
-	T2 is T + 1,
+	T2 is T + TimeDelta,
 	evaluation_step(T2, ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 	printf("%d : %w %w %w %w\n",[T,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
 	print_scheduled_goals(stdout,4),
@@ -344,7 +346,7 @@ evstep :-
 	print("\n-------\n"),
 	print_cache_candidates(stdout),
 	moveAll,
-	progress([tick(1)]).
+	progress([tick(TimeDelta)]).
 
 test8 :-
 	init,
@@ -358,15 +360,15 @@ test8 :-
 test_nested :-
 	init,
 	F = invariant(until(20,
-				implies(
-					occur(grab(rob1, item1)),
-					until(5,
-						carrying(rob1,item1),
-						not(carrying(rob1,item1))
-					)
-				),
-				xpos(rob1) >= 29
-			)),
+			implies(
+				occur(grab(rob1, item1)),
+				until(5,
+					carrying(rob1,item1),
+					not(carrying(rob1,item1))
+				)
+			),
+			xpos(rob1) >= 29
+		)),
 	register_property(f, F, _).
 
 test_nested2 :-
@@ -397,6 +399,33 @@ test_nested3 :-
 			)),
 	register_property(f, F, _).
 	
+test_nested3b :-
+	init,
+	F = invariant(forall(r:robot, until(20,
+				implies(
+					occur(grab(r, item1)),
+					until(5,
+						carrying(r,item1),
+						not(carrying(r,item1))
+					)
+				),
+				xpos(r) >= 29
+			))),
+	register_property(f, F, _).
+	
+	
+test_nested4 :-
+	init,
+	F = until(20,
+			until(5,
+				not(carrying(rob1,item1)),
+				carrying(rob1,item1)
+			),
+			xpos(rob1) >= 29
+		),
+	register_property(f, F, _).
+	
+	
 test_inv1 :-
 	init,
 	F = invariant(
@@ -412,11 +441,10 @@ test_inv1 :-
 	
 test_inv2 :-
 	init,
-	F = 
-	invariant(until(50, xpos(rob1) >= 10, xpos(rob1) > 20)),
+	F = invariant(until(50, xpos(rob1) >= 10, xpos(rob1) > 20)),
 	register_property(f, F, _).
-test_inv4 :-
+	
+test_plain_until :-
 	init,
 	F = until(50, xpos(rob1) >= 10, xpos(rob1) > 20),
 	register_property(f, F, _).
-	

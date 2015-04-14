@@ -1,6 +1,3 @@
-% signature changes:
-% -- evaluate_until
-% -- evaluate_and_schedule
 :- local store(formula_cache).
 :- local variable(next_formula_cache_id).
 % stores results of evaluate_toplevel 
@@ -11,6 +8,12 @@
 :- local store(original_properties).
 
 :- local store(scheduled_goals).
+% stores a map of cache id / param terms to schedule ids
+:- local store(goal_id_map).
+% stored descriptors about schedule4d goals, including cache id reference
+% and parameters
+:- local store(scheduled_goal_descriptions).
+
 :- local variable(next_scheduled_goal_id).
 :- local store(persistent_fluents).
 % structure: name - (current_value : last_changed)
@@ -22,6 +25,10 @@
 :- lib(hash).
 :- lib(lists).
 :- dynamic properties_unsynced/0.
+:- [interval_utils].
+:- [goal_schedule].
+:- [formula_cache].
+:- [persistent_fluents].
 :- [property_evaluator_vartimesteps].
 :- [property_evaluator_tempops].
 
@@ -30,6 +37,8 @@ init_smc :-
 	store_erase(toplevel_goals),
 	store_erase(original_properties),
 	store_erase(scheduled_goals),
+	store_erase(goal_id_map),
+	store_erase(scheduled_goal_descriptions),
 	store_erase(persistent_fluents),
 	store_erase(persistent_fluent_states),
 	store_erase(formula_cache_candidates),
@@ -84,6 +93,8 @@ get_referenced_failures(Ref, Failures) :-
 
 reset_smc :-
 	store_erase(scheduled_goals),
+	store_erase(goal_id_map),
+	store_erase(scheduled_goal_descriptions),
 	store_erase(persistent_fluent_states),
 	setval(negated, 0),
 	erase_failure_stack,	
@@ -110,9 +121,10 @@ clean_formula_cache :-
 	
 	stored_keys_and_values(scheduled_goals, L2),
 	(foreach(Entry, L2), fromto([], In, Out, EntriesToKeep2) do
-		Entry = _ - FRef,
-		FRef = app(_, F2),
-		(F2 = cf(CacheId) ->
+		Entry = g(_, ScheduleId) - _,
+		get_scheduled_goal_description(ScheduleId, Description),
+		Description = s(_, _, Term, _),
+		(Term = cf(CacheId) ->
 			append(In, [CacheId], Out)
 			;
 			Out = In
@@ -174,8 +186,6 @@ recompile_all :-
 		
 
 		
-	
-		
 		
 
 % Evaluates the given (sub-)formula.		
@@ -191,14 +201,16 @@ recompile_all :-
 % out ScheduleParams:
 % out HasChanged:
 evaluate_formula(ToplevelFormula, FormulaPath, 
-	CurrentStep, StartTime, EndTime, 
-	F, Level, Result, 
+	CurrentStep, StartTimes, EndTime, 
+	F, Level, Results, OverallResult,
 	ToSchedule, ScheduleParams, HasChanged) :-	
 		getval(current_failure_stack, CFS),
 		record_create(MyFailures),
 		setval(current_failure_stack, MyFailures),
 		(
-			member(F, [ok, not_ok]), Result = F, 
+			member(F, [ok, not_ok]), 
+			apply_unique_result(StartTimes, F, Results),
+			OverallResult = F,				
 			ToSchedule = F, ScheduleParams = [], HasChanged = false, !
 			;
 			F = not2(F2),
@@ -206,121 +218,126 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			flip_negated,
 			append(FormulaPath, [1], SubPath),
 			evaluate_formula(ToplevelFormula, SubPath, CurrentStep,
-				StartTime, EndTime, F2, Level, Res2, ToSchedule2, ScheduleParams2, HasChanged2),
+				StartTimes, EndTime, F2, Level, Res2, OvRes2,
+				ToSchedule2, ScheduleParams2, HasChanged2),
 			flip_negated,
-			(
-				Res2 = nondet, Result = nondet ;
-				Res2 = ok, Result = not_ok ;
-				Res2 = not_ok, Result = ok
-			),
-			(Result = nondet -> 	
+			negate_results(Res2, Results),
+			((OvRes2 = nondet, ! ; OvRes2 = ambiguous) -> 	
+				OverallResult = OvRes2,
 				ToSchedule = not2(ToSchedule2),
 				ScheduleParams = ScheduleParams2,
 				HasChanged = HasChanged2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				(OvRes2 = ok -> OverallResult = not_ok ; OverallResult = ok),
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !
 			;
 			F = all(Sf2), !,
 			evaluate_checkall(ToplevelFormula, FormulaPath, 
-				CurrentStep, StartTime, EndTime, Sf2, Level, Result, 
+				CurrentStep, StartTimes, EndTime, Sf2, Level, Results,
+				OverallResult,
 				OutVar2, ScheduleParams2, HasChanged2), 
-			((Result = nondet) -> 
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) -> 
 				ToSchedule = all(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			)
 			;
 			F = one(Sf2),
 			evaluate_checkone(ToplevelFormula, FormulaPath, 
-				CurrentStep, StartTime, EndTime, Sf2, Level, Result, OutVar2, ScheduleParams2, HasChanged2), 
-			((Result = nondet) -> 
+				CurrentStep, StartTimes, EndTime, Sf2, Level, 
+				Results, OverallResult, OutVar2, ScheduleParams2, HasChanged2), 
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) -> 
 				ToSchedule = one(OutVar2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !
 			;
 			F = c_(Sf2), !, % constraint
 			evaluate_checkall(ToplevelFormula, FormulaPath, 
-				CurrentStep, StartTime, EndTime, Sf2, Level, Result, 
-				_, _, _),
-			(Result = nondet -> 
-				throw(nondet_result_in_constraint(F))
+				CurrentStep, StartTimes, EndTime, Sf2, Level, 
+				Results, OverallResult, _, _, _),
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) -> 
+				throw(ambiguous_result_in_constraint(F))
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			)
 			;			
 			F = until(MaxTime, P, Q),
 			evaluate_until(ToplevelFormula, FormulaPath, 
-				CurrentStep, Level, StartTime, EndTime, MaxTime, 
-				P, Q, Result, NewP, NewQ, ScheduleParams2, HasChanged2),
-			((Result = nondet) ->
+				CurrentStep, Level, StartTimes, EndTime, MaxTime, 
+				P, Q, Results, OverallResult, 
+				NewP, NewQ, ScheduleParams2, HasChanged2),
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) ->
 				ToSchedule = until(MaxTime, NewP, NewQ), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !		
 			;
 			F = always(MaxTime, P),
 			evaluate_always_or_eventually(ToplevelFormula, FormulaPath, always,
-				CurrentStep, Level, StartTime, EndTime, MaxTime, 
-				P, Result, NewP, ScheduleParams2, HasChanged2),
-			((Result = nondet) ->
+				CurrentStep, Level, StartTimes, EndTime, MaxTime, 
+				P, Results, OverallResult, NewP, ScheduleParams2, HasChanged2),
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) ->
 				ToSchedule = always(MaxTime, NewP), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !		
 			;
 			F = eventually(MaxTime, P),
 			evaluate_always_or_eventually(ToplevelFormula, FormulaPath, eventually,
-				CurrentStep, Level, StartTime, EndTime, MaxTime, 
-				P, Result, NewP, ScheduleParams2, HasChanged2),
-			((Result = nondet) ->
+				CurrentStep, Level, StartTimes, EndTime, MaxTime, 
+				P, Results, OverallResult, NewP, ScheduleParams2, HasChanged2),
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) ->
 				ToSchedule = eventually(MaxTime, NewP), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !		
 			;		
 			F = invariant(P),
 			evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
-				always, CurrentStep, StartTime, EndTime, P, Level, Result, ToSchedule2, ScheduleParams2, HasChanged2),
-			((Result = nondet) ->
+				always, CurrentStep, StartTimes, EndTime, P, Level, 
+				Results, OverallResult, ToSchedule2, ScheduleParams2, HasChanged2),
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) ->
 				ToSchedule = invariant(ToSchedule2), 
 				%ToSchedule = ToSchedule2, 
 				HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !
 			;
 			F = goal(P),
 			evaluate_formula_for_interval(ToplevelFormula, FormulaPath, 
-				eventually, CurrentStep, StartTime, EndTime, P, Level, Result, ToSchedule2, ScheduleParams2, HasChanged2),
-			((Result = nondet) ->
+				eventually, CurrentStep, StartTimes, EndTime, P, Level, 
+				Results, OverallResult, ToSchedule2, ScheduleParams2, HasChanged2),
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) ->
 				ToSchedule = goal(ToSchedule2), HasChanged = HasChanged2, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !
 			;			
 			F = let(Var : FreshVar, Def, Body),		
 			evaluate_formula(ToplevelFormula, FormulaPath, 
-				CurrentStep, StartTime, EndTime, Def, Level, _, _, _, _),
+				CurrentStep, StartTimes, EndTime, Def, Level, _, _, _, _, _),
 			% only proceed if FreshVar has been bound in the previous evaluation
 			(ground(FreshVar) ->
 				subst_in_term(Var, FreshVar, Body, Body2),
 				evaluate_formula(ToplevelFormula, FormulaPath, 
-					CurrentStep, StartTime, EndTime, Body2, 
-					Level, Result, ToSchedule2, ScheduleParams2, _)
-				;
-				Result = not_ok
+					CurrentStep, StartTimes, EndTime, Body2, 
+					Level, Results, OverallResult, ToSchedule2, ScheduleParams2, _)
+				; % TODO: should we throw an exception here?
+				apply_unique_result(StartTimes, not_ok, Results),
+				OverallResult = not_ok				
 			),			
-			(Result = nondet ->
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) ->
 				ToSchedule = ToSchedule2, HasChanged = true, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !
 			;
 			F = match(VarSpecs, Def, Body),
 			evaluate_formula(ToplevelFormula, FormulaPath, 
-				CurrentStep, StartTime, EndTime, Def, Level, _, _, _, _),
+				CurrentStep, StartTimes, EndTime, Def, Level, _, _, _, _, _),
 			(foreach(VarSpec, VarSpecs), fromto(Body, BodyIn, BodyOut, Body2), 
 				fromto(true, GIn, GOut, GroundStat) do
 					VarSpec = Var : FreshVar,
@@ -335,18 +352,18 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 			),
 			(GroundStat = true ->
 				evaluate_formula(ToplevelFormula, FormulaPath, 
-					CurrentStep, StartTime, EndTime,
-					Body2, Level, Result, ToSchedule2, ScheduleParams2, _)
+					CurrentStep, StartTimes, EndTime,
+					Body2, Level, Results, OverallResult, ToSchedule2, ScheduleParams2, _)
 				;
-				Result = not_ok
+				apply_unique_result(StartTimes, not_ok, Results),
+				OverallResult = not_ok
 			),
-			(Result = nondet ->
+			((OverallResult = nondet, ! ; OverallResult = ambiguous) ->
 				ToSchedule = ToSchedule2, HasChanged = true, ScheduleParams = ScheduleParams2
 				;
-				ToSchedule = Result, HasChanged = true, ScheduleParams = []
+				ToSchedule = OverallResult, HasChanged = true, ScheduleParams = []
 			), !
-			;
-						
+			;			
 			% for all remaining cases: restore original formula for Level > 0 or nondet.
 			% store original formula as value for ToSchedule later
 			shelf_create(orig/1, null, Shelf),
@@ -356,53 +373,59 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 				F = changed(P, Q, ExpectedNow),
 				% for now ignore ToSchedule output of changed
 				evaluate_changed(ToplevelFormula, FormulaPath, 
-					 StartTime, P, Q, ExpectedNow, Level, Result, _),	
+					 StartTimes, EndTime, P, Q, ExpectedNow, 
+					 Level, Results),	
 				!
 				;
 				F = pfswitch(PFName, ExpectedNow),
-				evaluate_persistent_fluent_switched(PFName, StartTime, ExpectedNow, Result),
+				evaluate_persistent_fluent_switched(PFName, StartTimes, 
+					ExpectedNow, Results),
 				!
 				;
 				F = occur(ActionTerm),
 				% for occur, only the start time is relevant since only tick can occur
 				% during a time advance phase
-				evaluate_action_occurred(ActionTerm, StartTime, Result),
+				evaluate_action_occurred(ActionTerm, StartTimes, Results),
 				!
 				;
 				% is golog program possible?
 				F = possible(CurrentStep, GologProg, InitSit),
 				(do2(GologProg, InitSit, _) -> 
-					Result = ok ; 
-					Result = not_ok), !
+					apply_unique_result(StartTimes, ok, Results) ; 
+					apply_unique_result(StartTimes, not_ok, Results)), !
 				;
 				% comparison or boolean fluent
 				functor(F, Functor, _),
 				(
 					reifiable_op(Functor), !,
-					test_reifiable(F, Result)
+					test_reifiable(F, Res2)					
 					;				
 					(constraint_op(Functor, _), ! ; fluent(Functor, _, boolean), ! ;
 						derived_fluent(Functor, _, boolean)),
-					(call(F) -> Result = ok ; Result = not_ok), !
-				), !
+					(call(F) -> Res2 = ok ; Res2 = not_ok), !
+				), 
+				apply_unique_result(StartTimes, Res2, Results), !
 				;		
 				% otherwise it's a function so call it to bind variables but don't use in schedule term
-				call(F), Result = ok, !
-			),
-			
-			((Result = nondet) ->
-					shelf_get(Shelf, 1, ToSchedule), HasChanged = false
-					;
-					ToSchedule = Result, HasChanged = true
-			), !
+				call(F), apply_unique_result(StartTimes, ok, Results), !
+			), !,
+			get_unanimous_result(Results, OverallResult),
+			ToSchedule = OverallResult
 		),
 		getval(negated, Negated),
-		((Negated = 0, Result = not_ok ; Negated = 1, Result = ok) ->
-			record(CFS, ref(MyFailures)),
-			record(CFS, failure(Result, ToplevelFormula, FormulaPath, StartTime, F, Level))
-			;
-			erase_all(MyFailures)
+		(foreach(Entry, Results), param(Negated, CFS, MyFailures,
+			ToplevelFormula, FormulaPath, F, Level) do
+			Entry = s(IStart, _) : R,
+			((Negated = 0, R = not_ok ; Negated = 1, R = ok) ->
+				record(CFS, ref(MyFailures)),
+				record(CFS, failure(R, ToplevelFormula, FormulaPath, IStart, F, Level))
+				;
+				erase_all(MyFailures)
+			)
 		).
+
+
+		
 
 % Executes a reified version of the goal in F. This ensures that the domains of variables are not 
 % reduced.
@@ -415,14 +438,16 @@ test_reifiable(F, Result) :-
 	
 % compiles and evaluates a formula ad hoc, i.e. without caching it		
 evaluate_ad_hoc(F, Result) :-
-		evaluate_ad_hoc(F, Result, s0).
+	evaluate_ad_hoc(F, Result, s0).
 		
 evaluate_ad_hoc(F, Result, Situation) :-
-		current_time(T),
-		compile_formula(F, F2, Situation),
-		erase_failure_stack,
-		setval(negated, 0),
-		evaluate_formula(null, [0], 0, T, T, F2, 0, Result, _, _, _).
+	current_time(T),
+	compile_formula(F, F2, Situation),
+	erase_failure_stack,
+	setval(negated, 0),
+	evaluate_formula(null, [0], 0, 
+		[s(T, T)], T, F2, 0, _, Result,
+		_, _, _).
 
 evaluate_ad_hoc_str(FStr, Result, Situation) :-
 	term_string(F, FStr),
@@ -436,38 +461,51 @@ test_ad_hoc(F, Situation) :-
 test_ad_hoc(F) :-
 		test_ad_hoc(F, s0).
 
+
+
 evaluate_checkall(ToplevelFormula, FormulaPath, 
-	CurrentStep, StartTime, EndTime, Subformulas, Level, 
-	Result, ToSchedule, ScheduleParams, HasChanged) :- 
+	CurrentStep, StartTimes, EndTime, Subformulas, Level, 
+	Results, OverallResult, ToSchedule, ScheduleParams, HasChanged) :- 
 		%  check all subformulas. if result can be determined (ok, not_ok) only that result is stored 
-		
+		% TODO: "vector" result
+		apply_unique_result(StartTimes, ok, ResInitial),
 		(fromto(Subformulas, SFIn, SFOut, []), 
-			foreach(F2, Handled), fromto(ok, ResIn, ResOut, Result), fromto(false, In2, Out2, HasChanged), 
+			foreach(F2, Handled), fromto(ResInitial, ResIn, ResOut, Results), 
+			fromto(ok, OvResIn, OvResOut, OverallResult),
+			fromto(false, In2, Out2, HasChanged), 
 			fromto([], In3, Out3, ScheduleParams), count(I,1,_),
-			param(CurrentStep, StartTime, EndTime, Level, ToplevelFormula, FormulaPath) do
+			param(CurrentStep, StartTimes, EndTime, Level, ToplevelFormula, FormulaPath) do
 				% handle cases
 				SFIn = [F | SFRest],
 				append(FormulaPath, [1,I], SubPath),
 				evaluate_formula(ToplevelFormula, SubPath, 
-					CurrentStep, StartTime, EndTime, F, Level, Res2, Ts1, ScheduleParams2, HC1),
-				(Res2 = nondet, 
-					ResOut = nondet,
+					CurrentStep, StartTimes, EndTime, F, Level, 
+					Res2, _, Ts1, ScheduleParams2, HC1),
+				and_resvector(ResIn, Res2, ResOut, OvRes2), 
+				(OvRes2 = nondet, 
+					OvResOut = nondet,
 					SFOut = SFRest,
 					F2 = Ts1, 
 					HC2 = false,
 					append(In3, ScheduleParams2, Out3), !
-				; Res2 = ok,
-					ResOut = ResIn,
+				; OvRes2 = ok,
+					OvResOut = OvResIn,
 					SFOut = SFRest,		
 					F2 = ok, 
 					Out3 = In3,
 					HC2 = true, !
-				; % not_ok
-					ResOut = not_ok,
+				; OvRes2 = not_ok, !,
+					OvResOut = not_ok,
 					SFOut = [], % break iteration
 					F2 = not_ok,
 					Out3 = In3,
 					HC2 = true
+				; % ambiguous
+					OvResOut = ambiguous, !,
+					SFOut = SFRest,
+					F2 = Ts1, 
+					HC2 = false,
+					append(In3, ScheduleParams2, Out3)					
 				),
 		
 				% update changed flag
@@ -477,36 +515,48 @@ evaluate_checkall(ToplevelFormula, FormulaPath,
 			
 
 evaluate_checkone(ToplevelFormula, FormulaPath, 
-	CurrentStep, StartTime, EndTime, Subformulas, Level, Result, ToSchedule, ScheduleParams, HasChanged) :- 
+	CurrentStep, StartTimes, EndTime, Subformulas, Level, 
+	Results, OverallResult, ToSchedule, ScheduleParams, HasChanged) :- 
 		%  check all subformulas. if result can be determined (ok, not_ok) only that result is stored 
-
-		(fromto(Subformulas, SFIn, SFOut, []), foreach(F2, Handled), fromto(not_ok, ResIn, ResOut, Result), 
+		apply_unique_result(StartTimes, not_ok, ResInitial),
+		(fromto(Subformulas, SFIn, SFOut, []), 
+			foreach(F2, Handled), 
+			fromto(ResInitial, ResIn, ResOut, Results), 
+			fromto(not_ok, OvResIn, OvResOut, OverallResult),
 			fromto(false, In2, Out2, HasChanged), 
 			fromto([], In3, Out3, ScheduleParams), count(I,1,_),
-			param(CurrentStep, StartTime, EndTime, Level, ToplevelFormula, FormulaPath) do
+			param(CurrentStep, StartTimes, EndTime, Level, ToplevelFormula, FormulaPath) do
 				% handle cases
 				SFIn = [F | SFRest],
 				append(FormulaPath, [1,I], SubPath),
 				evaluate_formula(ToplevelFormula, SubPath, 
-					CurrentStep, StartTime, EndTime, F, Level, Res2, Ts1, ScheduleParams2, HC1),
-				(Res2 = nondet, 
-					ResOut = nondet,
+					CurrentStep, StartTimes, EndTime, F, Level, 
+					Res2, _, Ts1, ScheduleParams2, HC1),
+				or_resvector(ResIn, Res2, ResOut, OvRes2),
+				(OvRes2 = nondet, 
+					OvResOut = nondet,
 					SFOut = SFRest,
 					F2 = Ts1, 
 					HC2 = false ,
 					append(In3, ScheduleParams2, Out3), !
-				; Res2 = not_ok,
-					ResOut = ResIn,
+				; OvRes2 = not_ok,
+					OvResOut = OvResIn,
 					SFOut = SFRest,
 					F2 = not_ok, 
 					HC2 = true,
 					Out3 = In3, !
-				; % ok
-					ResOut = ok,
+				; OvRes2 = ok, !,
+					OvResOut = ok,
 					SFOut = [], % break iteration
 					F2 = ok,
 					HC2 = true,
 					Out3 = In3
+				; % ambiguous
+					OvResOut = ambiguous, !,
+					SFOut = SFRest,
+					F2 = Ts1, 
+					HC2 = false,
+					append(In3, ScheduleParams2, Out3)			
 				),
 				((In2 = true, ! ; HC1 = true, ! ; HC2 = true, !) -> Out2 = true ; Out2 = false)
 		), 
@@ -517,144 +567,149 @@ evaluate_checkone(ToplevelFormula, FormulaPath,
 % checks whether the result of Now differs from the result of Last and Now = ExpectedNow. 
 % - No until is allowed for Last and Now
 % - The result can't be nondet
-evaluate_changed(ToplevelFormula, FormulaPath, StartTime, Last, Now, ExpectedNow, Level, Result, ToSchedule) :-	
+evaluate_changed(ToplevelFormula, FormulaPath, 
+	StartTimes, EndTime, Last, Now, 
+	ExpectedNow, Level, Results) :-	
+		% for now: only support one single step
+		(
+			StartTimes = [s(Start, Start)], !
+			;
+			throw(no_intervals_allowed_for_evaluate_changed)
+		),
 		append(FormulaPath, [2], SubPathNow),
 		evaluate_formula(ToplevelFormula, SubPathNow, 0, 
-			StartTime, StartTime, Now, Level, ResNow, _, _, _),
-		(not ResNow = ExpectedNow ->
-			Result = not_ok
+			StartTimes, EndTime, Now, Level, 
+			_, OvResNow, _, _, _),
+		(not OvResNow = ExpectedNow ->
+			apply_unique_result(StartTimes, not_ok, Results)
 			;
 			append(FormulaPath, [1], SubPathLast),
 			evaluate_formula(ToplevelFormula, SubPathLast, 0, 
-				StartTime, StartTime, Last, Level, ResLast, _, _, _),
-			(ResNow \= ResLast -> Result = ok ; Result = not_ok)
-		),
-		ToSchedule = Result.
+				StartTimes, EndTime, Last, Level, _, OvResLast, _ , _, _),
+			(OvResNow \= OvResLast -> 
+				Res2 = ok
+				; 
+				Res2 = not_ok
+			),
+			apply_unique_result(StartTimes, Res2, Results)			
+		).
 		
 
 % checks whether a persistent fluent's value has changed at Time		
-evaluate_persistent_fluent_switched(Name, Time, Expected, Result) :-
-		query_persistent_fluent(Name, CurrentState, LastChanged),
-		((CurrentState = Expected, LastChanged =:= Time) ->
-			Result = ok
-			;
-			Result = not_ok
-		).
+evaluate_persistent_fluent_switched(Name, StartTimes, Expected, Results) :-
+	% for now: only support one single step
+	(
+		StartTimes = [s(Time, Time)], !
+		;
+		throw(no_intervals_allowed_for_evaluate_persistent_fluent_switched)
+	),
+	query_persistent_fluent(Name, CurrentState, LastChanged),
+	((CurrentState = Expected, LastChanged =:= Time) ->
+		Res = ok
+		;
+		Res = not_ok
+	),
+	apply_unique_result(StartTimes, Res, Results).
 	
-evaluate_action_occurred(ActionTerm, Time, Result) :-
-		ActionTerm =.. [Action | Params],
-		get_action_clock(Action, Params, T2),
-		(T2 is Time -> Result = ok ; Result = not_ok).
+evaluate_action_occurred(ActionTerm, StartTimes, Results) :-
+	% for now: only support one single step
+	(
+		StartTimes = [s(Time, Time)], !
+		;
+		throw(no_intervals_allowed_for_evaluate_action_occurred)
+	),
+	ActionTerm =.. [Action | Params],
+	get_action_clock(Action, Params, T2),
+	(T2 is Time -> Res = ok ; Res = not_ok),
+	apply_unique_result(StartTimes, Res, Results).
 
 		
+% tests whether the given action has occurred in this
+% situation
 action_occurred(ActionTerm, Sit) :-
 	time(Time, Sit),
-	evaluate_action_occurred(ActionTerm, Time, Result),
-	Result = ok.
+	evaluate_action_occurred(ActionTerm, 
+		[s(Time, Time)], Results),
+	get_unanimous_result(Results, ok).
 
 
-% Calculates the minimum among V1 and V2. Handles nondet.
-getMin(V1, V2, Result) :-
-	V1 = nondet, Result = V2, ! ;
-	V2 = nondet, Result = V1, ! ;
-	(V2 < V1 -> Result = V2 ; Result = V1).
-
-getMax(V1, V2, Result) :-
-	V1 = nondet, Result = V2, ! ;
-	V2 = nondet, Result = V1, ! ;
-	(V2 > V1 -> Result = V2 ; Result = V1).
-			
 
 
 % Evaluates F at the current time. If an Id is given, the result is stored in the list associated with the id
 % and schedule params gathered during evaluation of F. 
 % No schedule parameters are returned from here as the gathered params are "consumed".
 
-evaluate_and_schedule(ToplevelFormula, FormulaPath, CurrentStep, StartTime, EndTime,
-	F, CacheId, Level, 
-	ScheduleIdIn, Result, ToScheduleOut, ScheduleIdOut, HasChanged) :-
-		time(CurrentTime, do2(tick(CurrentStep), s0)),
-		StartTime = StartTime, % TODO: for now StartTime isn't used, this could change...
+evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTime,
+	F, SitTerm, Level, ScheduleIdIn, CacheIdIn,
+	OverallResult, ScheduleIdOut, CacheIdOut, HasChanged) :-
+	
+		shelf_create(orig/1, null, Shelf),
+		shelf_set(Shelf,1,F),
+	
+		StartTimes = [s(StartTime, StartTime)], 
 		evaluate_formula(ToplevelFormula, FormulaPath, 
-			CurrentStep, CurrentTime, EndTime, F, Level, Result, ToSchedule1, ScheduleParams, HasChanged1),
-		% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
-		((CacheId is -1, Result = nondet, ! ; not(CacheId is -1), HasChanged1 = true) ->		
-			cache_formula(ToplevelFormula, FormulaPath, ToSchedule1, CacheId2), HasChanged2 = true
-			; 
-			CacheId2 is CacheId, HasChanged2 = false
-		),	
-		(
-			(Result = nondet, 
-				(ScheduleIdIn is -1 ->	
-					incval(next_scheduled_goal_id),
-					getval(next_scheduled_goal_id, ScheduleIdOut)
-				;
-					ScheduleIdOut is ScheduleIdIn
-				),						
-				ToSchedule2 = cf(CacheId2), 
-				ToScheduleOut = cf(CacheId2),
-				HasChanged3 = false,
-				!
-				; 
-			not(Result = nondet), not(ScheduleIdIn is -1), 
-				ToSchedule2 = Result, 
-				ScheduleIdOut is ScheduleIdIn,
-				ToScheduleOut = ToSchedule2,
-				HasChanged3 = true,				
-				!
-			), 
-			store_set(scheduled_goals, 
-						sg(ToplevelFormula, Level, ScheduleIdOut, CurrentTime, EndTime), 
-						app(ScheduleParams, ToSchedule2)
-					), !
+			StartStep, StartTimes, EndTime, F, Level, _, 
+			OverallResult, ToSchedule1, ScheduleParams, HasChanged1),
 			
-			;		
-			ScheduleIdOut = -1,
-			ToScheduleOut = ToSchedule1,
-			HasChanged3 = false		
-		),
-		((HasChanged1 = true, !; HasChanged2 = true, ! ; HasChanged3 = true) -> 
-				HasChanged = true, !
-				;
-			HasChanged = false
-		).
-
-% Adds the given formula to formula_cache. Before actually adding a new entry to formula_cache,
-% we check if we've already have the same formula cached. To speed up search, we keep an extra 
-% storage formula_cache_candidates that stores a list of cache ids for each formula position (path).
-cache_formula(ToplevelFormula, FormulaPath, F, Id) :-
-		(not ToplevelFormula = null ->
-			Key =.. [ToplevelFormula | FormulaPath],
-			(store_get(formula_cache_candidates, Key, Candidates), ! ; Candidates = []),
-			(fromto(Candidates, In, Out1, []), fromto(-1, _, Out2, MatchingKey), param(F) do
-				In = [CId | Rest],
-				get_cached_formula(CId, CachedF),
-				(CachedF = F -> 
-					Out1 = [], 
-					Out2 is CId
+		% don't schedule invariants or goals
+		(ToSchedule1 \= invariant(_), ToSchedule1 \= goal(_), !,
+			% we cache in two cases: 1.) always if the result was nondet 2.) if result is not undet then only if changed
+				
+			(CacheIdIn = new, !,
+				(OverallResult \= nondet ->
+					shelf_get(Shelf, 1, ToCacheRaw)
 					;
-					Out1 = Rest,
-					Out2 is -1
+					ToCacheRaw = ToSchedule1)
+			; OverallResult = nondet, (CacheIdIn = -1, ! ; HasChanged1 = true), !,
+				ToCacheRaw = ToSchedule1
+			;
+				ToCacheRaw = none
+			),
+			(ToCacheRaw \= none ->
+					% roll back situation replacement done in evaluate_for_all_timesteps
+					subst_in_term(SitTerm, s0, ToCacheRaw, ToCache, [until]),
+					cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheIdOut), 
+					HasChanged2 = true
+					; 
+					CacheIdOut = CacheIdIn, HasChanged2 = false
+			),		
+			(CacheIdOut \= -1 ->
+				RefTerm = cf(CacheIdOut)
+				;
+				RefTerm = OverallResult
+			),
+			% create a new schedule entry if nondet or forced
+			( 
+				(ScheduleIdIn = new, ! 
+				; ScheduleIdIn = -1, OverallResult = nondet, !) ->		
+					HasChanged3 = true,
+					get_goal_schedule_id(ToplevelFormula, Level, RefTerm, ScheduleParams, 
+						ScheduleIdOut)
+					;
+					HasChanged3 = false,
+					ScheduleIdOut = ScheduleIdIn
+			),
+			(ScheduleIdOut \= -1 ->
+				(OverallResult = nondet ->
+					add_nondet_schedule_interval(ScheduleIdOut, Level,
+						StartTime, EndTime)
+					;		
+					apply_interval_decisions(ScheduleIdOut, Level, 
+						[s(StartTime, StartTime) : OverallResult], EndTime)
 				)
+				
+				; % nothing to schedule here - go ahead
+				true
+			),
+			((HasChanged1 = true, !; HasChanged2 = true, ! ; HasChanged3 = true) -> 
+					HasChanged = true
+					;
+					HasChanged = false
 			)
-			;
-			MatchingKey is -1
-		),
-		(MatchingKey is -1 ->				
-			incval(next_formula_cache_id),
-			getval(next_formula_cache_id, Id),
-			store_set(formula_cache, Id, F),
-			(not ToplevelFormula = null ->
-				Candidates2 = [Id | Candidates],
-				store_set(formula_cache_candidates, Key, Candidates2)
-				; true
-			)
-			;
-			Id is MatchingKey
+		; % don't schedule anything for invariant or goal 
+		true
 		).
 
-get_cached_formula(Id, F) :-
-		store_get(formula_cache, Id, F).
 
 	
 add_toplevel_goal(Name, F) :-
@@ -680,21 +735,6 @@ print_toplevel_goals(Stream) :-
 			printf(Stream, "%10s %10d %w\n",[Name, CacheId, F])
 		).
 
-
-		
-print_formula_cache(Stream) :-
-		stored_keys_and_values(formula_cache, L),
-		(foreach(Entry, L), param(Stream) do
-			Entry = Id - F,
-			printf(Stream, "%10d %w\n",[Id, F])
-		).
-
-print_cache_candidates(Stream):-
-		stored_keys_and_values(formula_cache_candidates, L),
-		(foreach(Entry, L), param(Stream) do
-			Entry = Key - IdList,
-			printf(Stream, "%w %w\n",[Key, IdList])
-		).
 		
 % Evaluates all registered toplevel goals. 
 % Results: list of Term with schema Name - Result
@@ -714,7 +754,8 @@ evaluate_toplevel(EndTime, Results) :-
 			% CurrentStep = 0
 			% StartTime = CurrentTime
 			evaluate_and_schedule(Name, [0], 0, CurrentTime, EndTime,			
-				F, CacheId, 0, -1, R, _, _, _),
+				F, s0, 0, -1, CacheId, 
+				R, _, _, _),
 			(
 				R = ok, append(In2, [ok : Name], Out2), !
 				;
@@ -744,157 +785,57 @@ apply_params(Params, F) :-
 		Var is SchedId		
 	).
 
-evaluate_scheduled(Key, EndTime, Result) :-
-	Key = sg(ToplevelFormula, Level, Id, StartTime, OrigEndTime),
-	store_get(scheduled_goals, Key, FRef),
-	FRef = app(Params, F2),
-	(F2 = cf(CacheId) -> get_cached_formula(CacheId, F) ; F = F2),
+evaluate_scheduled(Goal, EndTime, Results, OverallResult) :-
+	Goal = Key - StateVector,
+	Key = g(Level, SchedId),
+	StateVector = i(NondetIntervals, _, 
+		_, _),
+	get_scheduled_goal_description(SchedId, Description),
+	Description = s(ToplevelFormula, _, Term, Params),
+	
+	(Term = cf(CacheId) -> 
+		get_cached_formula(CacheId, F)
+		; F = Term),
 	apply_params(Params, F),
 	setval(negated, 0),
 	% CurrentStep = 0
 	evaluate_formula(ToplevelFormula, [0], 0,
-		StartTime, EndTime, F, Level, Result, ToSchedule, ScheduleParams2, HasChanged),
-	(Result = nondet ->
-		(HasChanged = true ->
-			cache_formula(ToplevelFormula, [0], ToSchedule, CacheId2)
-			;
-			CacheId2 is CacheId
-		),
-		ToSchedule2 = cf(CacheId2)
-		;
-		ToSchedule2 = Result
-	),
-	(OrigEndTime =:= EndTime ->
-		Key2 = Key
-		;
-		Key2 = sg(ToplevelFormula, Level, Id, StartTime, EndTime),
-		store_delete(scheduled_goals, Key)
-	),
-	store_set(scheduled_goals, Key2, app(ScheduleParams2,ToSchedule2)).
+		NondetIntervals, EndTime, F, Level, Results, OverallResult,
+		_, _, _),
+	apply_interval_decisions(SchedId, Level, 
+		Results, EndTime).
 	
-
-check_state_filter(Content, StateFilter) :-
-	StateFilter = all, !
-	;
-	StateFilter = nondet, !,
-	Content \= ok, 
-	Content \= not_ok
-	; % ok / not_ok				
-	StateFilter = Content.
-	
-get_scheduled_goals(ScheduledGoals, StateFilter, LevelFilter) :-
-	stored_keys_and_values(scheduled_goals, L),
-	(foreach(Entry, L), fromto([], In, Out, ScheduledGoals), param(StateFilter, LevelFilter) do
-		Entry = Key - app(_, Content),
-		Key = sg(_, Level, _, _, _),
-		(  
-			((LevelFilter = all, ! ; Level == LevelFilter),
-				check_state_filter(Content, StateFilter) ) ->			 
-				append(In, [Key], Out)
-				;
-				Out = In
-		)		
-	).	
-	
-get_pending_goals(PendingGoals, LevelFilter) :-
-	get_scheduled_goals(PendingGoals, nondet, LevelFilter).
-		
-get_pending_toplevel_goals(PendingGoals) :-
-	get_pending_goals(PendingGoals, 0).
 	
 % claim schedule ids when entering evaluation --> from outside to inside. in evaluation first sort and then evaluate in descending order.
 % This makes sure that dependencies are resolved.
 evaluate_all_scheduled(EndTime, Results) :-
 	getval(current_failure_stack, CFS),
-	get_pending_goals(PendingGoals, all),
-	% sort by  1st argument = level
-	sort(2, >=, PendingGoals, SortedKeys),
-	(fromto(SortedKeys, In, Out, []), fromto([], In2, Out2, Results), 
+	get_pending_goals(PendingGoals, all), % format: Entry = Key - StateVector, Key = g(Level, Id)
+	% sort by level
+	sort([1,1], >=, PendingGoals, SortedGoals),
+	(foreach(Goal, SortedGoals), fromto([], RIn, ROut, Results), 
 		param(EndTime, CFS) do
-		In = [Key | Rest],
-		Key = sg(_, Level, _, _, _),
+		Goal = Key - _,
+		Key = g(Level, SchedId),
 		record_create(MyFailureStack),
 		setval(current_failure_stack, MyFailureStack),
-		evaluate_scheduled(Key, EndTime, R),
+		evaluate_scheduled(Goal, EndTime, R, OvR),
 		% only report properties with level 0
 		(Level == 0 ->
-			append(In2, [R : Key], Out2)
+			get_scheduled_goal_description(SchedId, s(ToplevelFormula, _, _, _)),
+			append(RIn, [r(ToplevelFormula, SchedId, R, OvR)], ROut)
 			;
 			% don't report
-			Out2 = In2
+			ROut = RIn
 		),
 		recorded_list(MyFailureStack, MyFSList),
 		(foreach(FSL, MyFSList), param(CFS) do 
 			record(CFS, FSL)
 		),
-		erase_all(MyFailureStack),
-		Out = Rest	
+		erase_all(MyFailureStack)
 	),
 	setval(current_failure_stack, CFS).
 	
-
-% TODO: proper cleanup-procedure
-print_scheduled_goals(Stream, SortPositions) :-
-	stored_keys(scheduled_goals, Keys),
-	sort(SortPositions, =<, Keys, SortedKeys),
-	nl,
-	printf(Stream, "%10s %10s %10s %5s %5s %10s %s\n",["Name", "Time","End Time", "Level","Id","Params","Term"]),
-	printf(Stream, "-------------------------------------------------------\n",[]),
-	(foreach(Key, SortedKeys), param(Stream) do
-		Key = sg(Name, Level, Id, T, EndTime),
-		store_get(scheduled_goals, Key, app(Params, F)),
-		
-		printf(Stream, "%10s %10d %10d %5d %5d %w %w\n",[Name, T, EndTime, Level, Id, Params, F])
-	).
-
-
-compile_persistent_fluents :-
-	findall((N - F),persistent_fluent(N,F), L),
-	(foreach(Entry, L) do
-		Entry = Name - Formula,
-		compile_formula(Formula, CompiledFormula),
-		store_set(persistent_fluents, Name, CompiledFormula)
-	).
-	
-% TODO: rename to persistent_property
-query_persistent_fluent(Name, CurrentState, LastChanged) :-
-	(state_dirty -> update_persistent_fluents ; true),
-	internal_query_persistent_fluent(Name, CurrentState, LastChanged).
-	
-internal_query_persistent_fluent(Name, CurrentState, LastChanged) :-
-	(store_get(persistent_fluent_states, Name, S) ->
-		S = CurrentState : LastChanged 
-		;
-		CurrentState = nondet,
-		LastChanged = -1
-	).
-update_persistent_fluents :-
-	stored_keys_and_values(persistent_fluents, L),
-	current_time(CurrentTime),		
-	(foreach(Entry, L), param(CurrentTime) do
-		Entry = Name - Formula,
-		internal_query_persistent_fluent(Name, CurrentState, _),
-		evaluate_formula(null, [0], 0,
-			CurrentTime, CurrentTime, Formula, 0, Result, _, _, _),
-		(Result \= CurrentState ->
-			store_set(persistent_fluent_states, Name, Result : CurrentTime)
-			;
-			true
-		)
-	),
-	set_state_dirty(false).
-
-print_persistent_fluents :-
-	findall((N - F),persistent_fluent(N,F), L),
-
-	(foreach(Entry, L) do
-		Entry = Name - Formula,
-		query_persistent_fluent(Name, CurrentState, LastChanged),
-		store_get(persistent_fluents, Name, CF),
-		printf("%s = %8s (%10d)\nFormula: %w\n Compiled: %w\n\n",[Name, CurrentState, LastChanged, Formula, CF])
-	).
-	
-		
 		
 evaluate_condition(GoalName, Params) :-
 	(foreach(P, Params), foreach(P2, Params2) do

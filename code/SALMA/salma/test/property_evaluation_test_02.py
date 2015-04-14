@@ -165,7 +165,6 @@ forall(r:robot,
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    @skipIf(MODE is TestModes.quick, "quick mode")
     def test_nested_until_fail_one_agent_outer(self):
         world = World.instance()
         rob1 = self.create_periodic_agent("rob1", "item1")
@@ -181,12 +180,11 @@ forall(r:robot,
         verdict, results = self.__test_nested_until(world)
         self.assertEqual(verdict, NOT_OK)
 
-    @skipIf(MODE is TestModes.quick, "quick mode")
     def test_property_4(self):
         world = World.instance()
 
         p1 = OneShotProcess([
-            While("xpos(self) < 20", [
+            While("xpos(self) < 50", [
                 Act("move_right", [SELF]),
                 Wait("not moving(self)"),
                 While("ypos(self) < 15", [
@@ -211,25 +209,26 @@ forall(r:robot,
 
         g_str = """
 forall(r:robot,
-    until(200,
+    until(500,
         implies(
             ypos(r) = 10,
             until(10, true, ypos(r) = 15)
         ),
-        xpos(r) >= 20
+        xpos(r) >= 50
     )
 )
 """
+
         experiment = Experiment(world)
         experiment.property_collection.register_property("g", g_str, INVARIANT)
-        experiment.property_collection.register_property("h", "xpos(rob1) >= 20", ACHIEVE)
+        experiment.property_collection.register_property("h", "forall(r:robot, xpos(r) >= 50)", ACHIEVE)
         verdict, results = experiment.run_experiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         # : :type: timedelta
         dt = results["time"]
         print("time: {}".format(dt.total_seconds()))
-
+        world.printState()
         # world.printState()
         self.assertEqual(verdict, OK)
 
