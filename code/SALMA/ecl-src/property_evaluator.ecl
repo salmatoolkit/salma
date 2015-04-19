@@ -204,6 +204,8 @@ evaluate_formula(ToplevelFormula, FormulaPath,
 	CurrentStep, StartTimes, EndTime, 
 	F, Level, Results, OverallResult,
 	ToSchedule, ScheduleParams, HasChanged) :-	
+		printlog("evaluate_formula: %w - %d - %w - %d - %w - %d\n",
+			[FormulaPath, CurrentStep, StartTimes, EndTime, F, Level]),
 		getval(current_failure_stack, CFS),
 		record_create(MyFailures),
 		setval(current_failure_stack, MyFailures),
@@ -855,7 +857,7 @@ evaluate_function(FunctionName, Params) :-
 	T =.. [FunctionName | Params2],
 	call(T).
 
-% printlog(Format, Params) :-
-	% printf(Format, Params).
+% printlog(format, params) :-
+	% printf(format, params).
 	
 printlog(_, _) :- true.	

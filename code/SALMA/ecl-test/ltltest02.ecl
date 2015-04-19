@@ -131,7 +131,14 @@ test11 :-
 			occur(paint(rob1, item2))),
 	register_property(f, F, _).
 	
-	
+test12 :-
+	init,
+	F = always(50, 
+			eventually(10,
+				xpos(rob1) > 30
+			)),
+	register_property(f, F, _).
+
 evstep :-
 	evstep(1).
 	

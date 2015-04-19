@@ -39,7 +39,7 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 				Sit = do2(tick(Step), s0),
 				%print(Sit), nl,
 				% idea: only substitute until reaching until block
-				subst_in_term(s0, Sit, OrigP, P2, [until]), 	
+				subst_in_term(s0, Sit, OrigP, P2, [until, always, eventually]), 	
 				%print(P2), nl,
 				
 				time(StepTime, Sit),
