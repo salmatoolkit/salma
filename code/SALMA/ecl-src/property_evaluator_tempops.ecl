@@ -217,7 +217,7 @@ evaluate_always_or_eventually(ToplevelFormula, FormulaPath, Mode,
 				var(VarPSchedId),
 				ScheduleParams = [KeyP : PSchedId],
 				ToSchedule = sched(KeyP, VarPSchedId, ToScheduleP)
-				;
+				; % is this actually possible?
 				shelf_get(Shelf, 1, OrigP),
 				ScheduleParams = [],
 				ToSchedule = OrigP			
