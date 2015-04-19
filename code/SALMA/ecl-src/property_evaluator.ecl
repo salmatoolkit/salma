@@ -669,7 +669,7 @@ evaluate_and_schedule(ToplevelFormula, FormulaPath, StartStep, StartTime, EndTim
 			),
 			(ToCacheRaw \= none ->
 					% roll back situation replacement done in evaluate_for_all_timesteps
-					subst_in_term(SitTerm, s0, ToCacheRaw, ToCache, [until]),
+					subst_in_term(SitTerm, s0, ToCacheRaw, ToCache, [until, always, eventually]),
 					cache_formula(ToplevelFormula, FormulaPath, ToCache, CacheIdOut), 
 					HasChanged2 = true
 					; 
