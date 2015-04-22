@@ -342,7 +342,8 @@ confirm_scheduled_until_goals(StartTimes, POkIntervals, QOkIntervals, MaxTime,
 				apply_unique_result(ToConfirm, ok, Confirmed2),
 				append(ResIn, Confirmed1, ResOutPre),
 				append(ResOutPre, Confirmed2, ResOut), 
-				
+				% we have to sort and merge in every iteration because
+				% the code above relies on it
 				append(Remaining1, Remaining2, RemainingUnsorted),
 				sort(0, =<, RemainingUnsorted, RemainingUnmerged),
 				merge_goals(RemainingUnmerged, UnhandledOut)
