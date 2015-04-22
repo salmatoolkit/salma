@@ -158,7 +158,7 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 				param(MaxTime) do
 					Int = s(Start, End),
 					(End - Start >= MaxTime ->
-						LastTimeout is Start + End - Start - MaxTime,
+						LastTimeout is End - MaxTime,
 						apply_result_within_interval(STIn, not_ok,
 							Start, LastTimeout, STOut, R),
 						append(Res2In, R, Res2Out),
@@ -197,7 +197,7 @@ check_schedule_for_interval(PSchedId, Level, StartTimes, Mode,
 				param(MaxTime) do
 					Int = s(Start, End),
 					(End - Start >= MaxTime ->
-						LastConfirmable is Start + End - Start - MaxTime,
+						LastConfirmable is End - MaxTime,
 						apply_result_within_interval(STIn, ok,
 							Start, LastConfirmable, STOut, R),
 						append(Res2In, R, Res2Out),
