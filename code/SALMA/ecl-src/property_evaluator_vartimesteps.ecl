@@ -293,7 +293,7 @@ apply_until_timeout(StartTimes, QNotOkIntervals, MaxTime,
 			param(MaxTime) do
 				Int = s(Start, End),
 				(End - Start >= MaxTime ->
-					LastTimeout is Start + End - Start - MaxTime,
+					LastTimeout is End - MaxTime,
 					apply_result_within_interval(STIn, not_ok,
 						Start, LastTimeout, STOut, R),
 					append(ResIn, R, ResOut)
