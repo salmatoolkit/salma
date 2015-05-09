@@ -10,6 +10,8 @@ init :-
 	set_current(ypos, [rob1], 10),
 	set_current(xpos, [rob2], 10),
 	set_current(ypos, [rob2], 20),
+	set_current(marking, [item1], 0),
+	set_current(marking, [item2], 0),
 	set_current(vx, [rob1], 0),
 	set_current(vy, [rob1], 0),
 	set_current(vx, [rob2], 0),
@@ -77,8 +79,18 @@ test1_b :-
 				not(carrying(rob1,item1))
 			)
 		),
-	register_property(f, F, _),
-	grabAll.
+	register_property(f, F, _).
+
+test1_c :-
+	init,
+	F = implies(
+			marking(item1) = 1,
+			until(5,
+				marking(item1) >= 0,
+				marking(item1) = -1
+			)
+		),
+	register_property(f, F, _).
 	
 test2 :-
 	init,
@@ -337,7 +349,7 @@ evstep :-
 	
 evstep(TimeDelta) :-
 	current_time(T),
-	T2 is T + TimeDelta,
+	T2 is T + TimeDelta -1,
 	evaluation_step(T2, ToplevelResults, ScheduledResults, PendingGoals, FailureStack),
 	printf("%d : %w %w %w %w\n",[T,ToplevelResults, ScheduledResults, PendingGoals, FailureStack]),
 	print_scheduled_goals(stdout,4),

@@ -68,7 +68,7 @@ forall(r:robot,
         world = World.instance()
         verdict, results = self.perform_property_1_test(10, 20, 25, 5)
         self.assertEqual(verdict, NOT_OK)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 15)
+        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 16)
 
     @withHeader(msg="Tests an until property that should succeed.")
     def test_property_1_OK(self):

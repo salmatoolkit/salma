@@ -322,10 +322,11 @@ confirm_scheduled_until_goals(StartTimes, POkIntervals, QOkIntervals, MaxTime,
 				get_intervals_within(U1, LeftBoundary, QEnd, Candidates, 
 					Remaining1),
 				% Selection now contains candidates that could
-				% be ok if P is ok until QStart
+				% be ok if P is ok until QStart-1
 				(length(Candidates) > 0 ->
+					RBound is QStart - 1, 
 					get_right_bound_continuous_intersection(POkIntervals, 
-						QStart, POkSpan),
+						RBound, POkSpan),
 					(POkSpan \= none ->
 						POkSpan = s(POkStart, POkEnd),
 						get_intervals_within(Candidates, POkStart, POkEnd, 

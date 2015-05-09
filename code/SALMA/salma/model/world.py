@@ -1036,9 +1036,9 @@ class World(Entity, WorldDeclaration):
             interval_end = current_time
         else:
             if next_stop_time is None:
-                interval_end = min_robust([current_time + 1, time_limit])
+                interval_end = min_robust([current_time, time_limit])
             else:
-                interval_end = min_robust([next_stop_time, time_limit])
+                interval_end = min_robust([next_stop_time-1, time_limit])
         assert isinstance(interval_end, int)
         # now we know that next_stop_time is set up correctly
         if evaluate_properties:
@@ -1055,7 +1055,7 @@ class World(Entity, WorldDeclaration):
         else:
             toplevel_results, scheduled_results, scheduled_keys = dict(), dict(), []
             failure_stack = []
-        World.logic_engine().progress([('tick', [interval_end - current_time])])
+        World.logic_engine().progress([('tick', [interval_end - current_time + 1])])
         return (self.__finished, toplevel_results, scheduled_results, scheduled_keys, performed_actions,
                 failed_actions, failure_stack)
 
