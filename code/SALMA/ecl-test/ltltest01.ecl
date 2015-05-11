@@ -92,6 +92,17 @@ test1_c :-
 		),
 	register_property(f, F, _).
 	
+test1_c :-
+	init,
+	F = implies(
+			marking(item1) = 1,
+			until(5,
+				marking(item1) >= 0,
+				marking(item1) = -1
+			)
+		),
+	register_property(f, F, _).
+	
 test2 :-
 	init,
 	F = until(20,
@@ -205,6 +216,23 @@ test2_f :-
 	%grabAll,
 	printf("F: %w \n F2: %w\n",[F,F2]).	
 
+	
+test2_g :-
+	init,
+	F = implies(marking(item1) = 1,
+			until(20,
+				implies(
+					occur(grab(rob1, item1)),
+					until(10,
+						carrying(rob1,item1),
+						not(carrying(rob1,item1))
+					)
+				),
+				marking(item1) = 0
+			)),
+	register_property(f, F, _).		
+
+	
 pstep(Num) :-
 	Period = 8,
 	Delta = 3,
@@ -459,4 +487,19 @@ test_inv2 :-
 test_plain_until :-
 	init,
 	F = until(50, xpos(rob1) >= 10, xpos(rob1) > 20),
+	register_property(f, F, _).
+	
+	
+test_nested_eventually :-
+	init,
+	F = implies(marking(item1) = 1,
+			always(20,
+				implies(
+					occur(grab(rob1, item1)),
+					eventually(5,
+						not(carrying(rob1,item1))
+					)
+				)
+			)
+		),
 	register_property(f, F, _).
