@@ -92,16 +92,19 @@ test1_c :-
 		),
 	register_property(f, F, _).
 	
-test1_c :-
+test1_d :-
 	init,
 	F = implies(
-			marking(item1) = 1,
-			until(5,
-				marking(item1) >= 0,
-				marking(item1) = -1
+			marking(item1) > 0,
+			let(x : marking(item1),
+				until(5,
+					marking(item1) < 2 * x,
+					marking(item1) =:= -1 * x
+				)
 			)
 		),
 	register_property(f, F, _).
+	
 	
 test2 :-
 	init,
