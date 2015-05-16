@@ -105,6 +105,18 @@ test1_d :-
 		),
 	register_property(f, F, _).
 	
+test1_e :-
+	init,
+	F = forall(i : item, 	
+			implies(
+				marking(i) = 1,
+				until(5,
+					marking(i) >= 0,
+					marking(i) = -1
+				)
+			)
+		),
+	register_property(f, F, _).
 	
 test2 :-
 	init,

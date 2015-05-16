@@ -154,7 +154,12 @@ create_constraint(Op, Subterms, Out, Situation) :-
 		append(InitGoals, [T], Subterms2),
 		Out = c_(Subterms2).
 
-		
+create_relational_fluent_use(FluentName, Subterms, Out, Situation) :-
+		gather_evaluations_list(Subterms, HandledSubterms, [], InitGoals, Situation),
+		append(HandledSubterms, [Situation], HandledSubterms2),
+		T =.. [FluentName | HandledSubterms2],
+		append(InitGoals, [T], Subterms2),
+		Out = c_(Subterms2).		
 		
 		
 	% idea: 
@@ -208,6 +213,11 @@ compile_constraints_term(T, Out, Situation) :-
 			T =.. [_ | Subterms],
 			create_constraint(Functor, Subterms, Out, Situation), ! 
 			;
+			isFluent(Functor, boolean),
+			T =.. [_ | Subterms],
+			create_relational_fluent_use(Functor, Subterms, Out, Situation),	!
+			;				
+			
 			% for all other cases we need to handle the subterms
 			(N > 0 ->	
 				% for a change test, create a variable to use as situation for all enclosed fluents
@@ -228,10 +238,6 @@ compile_constraints_term(T, Out, Situation) :-
 				HandledSubterms = []
 			),
 			(
-				isFluent(Functor, boolean),
-				append(HandledSubterms, [Situation], HandledSubterms2),
-				Out =.. [Functor | HandledSubterms2], !
-				;				
 				Functor = and,
 				Out =.. [all, HandledSubterms], !
 				;
