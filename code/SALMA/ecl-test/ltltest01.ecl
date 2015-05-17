@@ -19,6 +19,7 @@ init :-
 	domain(robot, D1),
 	domain(item, D2),
 	(foreach(R, D1), param(D2) do
+		setConstant(robot_radius, [R, 10]),
 		(foreach(I, D2), param(R) do
 			set_current(carrying, [R, I], false)
 		),
