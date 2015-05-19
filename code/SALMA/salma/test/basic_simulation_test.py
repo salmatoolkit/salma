@@ -77,7 +77,7 @@ class BasicSimulationTest(BaseWorldTest):
         print("AFTER STEP 3:")
         print("\n\n----\n\n")
         world.printState()
-        self.assertEqual(world.getTime(), 10)
+        self.assertEqual(world.getTime(), 11)
         self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
         self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 11)
         self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
@@ -105,7 +105,7 @@ class BasicSimulationTest(BaseWorldTest):
         self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
         self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
         self.assertTrue(world.is_finished())
-        self.assertEqual(world.getTime(), 10)
+        self.assertEqual(world.getTime(), 11)
 
     def test_run_right_until_max_X_pos(self):
         world = World.instance()

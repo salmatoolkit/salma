@@ -58,7 +58,6 @@ class InfoTransferTest(unittest.TestCase):
         self.assertTupleEqual(c2.role1, ("r1", "robot"))
         self.assertTupleEqual(c2.role2, ("r2", "robot"))
 
-
         sensors = list(world.get_sensors())
         sensor_names = sorted([s.name for s in sensors])
         self.assertEqual(len(sensors), 1)
