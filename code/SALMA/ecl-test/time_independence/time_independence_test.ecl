@@ -29,13 +29,16 @@ test1 :-
 	xpos(rob1, 6, do2(tick(6), s0)),
 	xpos(rob1, 0, s0),
 	xpos(rob1, 6, do2(activate(rob2), do2(tick(6), s0))),
-	T1 = (xpos(rob1) + vx(rob1)*3),
-	T2 = forall(r:robot, active(r)),
-	term_affected_by_action(T1, tick(_)),
-	not term_affected_by_action(T2, tick(_)),
-	not term_affected_by_action(T1, jump(rob2, 100,100)),
-	T3 = (xpos(rob1) + ypos(rob2)*3),
-	term_affected_by_action(T3, jump(rob2, 100,100)).
+	F1 = (xpos(rob1) + vx(rob1)*3 > 0),
+	compile_formula(F1, F1C),
+	F2 = forall(r:robot, active(r)),
+	compile_formula(F2, F2C),
+	term_affected_by_action(F1C, tick(_)),
+	not term_affected_by_action(F2C, tick(_)),
+	not term_affected_by_action(F1C, jump(rob2, 100,100)),
+	F3 = and(xpos(rob1) + ypos(rob2)*3 < 100, xpos(rob2) > 0),
+	compile_formula(F3, F3C),
+	term_affected_by_action(F3C, jump(rob2, 100,100)).
 	
 
 cnf_test :-
