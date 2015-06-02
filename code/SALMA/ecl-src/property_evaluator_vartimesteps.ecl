@@ -88,7 +88,7 @@ evaluate_for_all_timesteps(ToplevelFormula, FormulaPath,
 						EPOut = EPIn,
 						LDOut = LDIn,
 						% we know that the previous step was the last
-						% where a positive result is event possible
+						% where a positive result is even possible
 						LPOut is getMin(LPIn, T - 1) 						
 					), !
 				; throw(wrong_result(Res))		
@@ -435,66 +435,3 @@ evaluate_formula_for_interval(ToplevelFormula, FormulaPath,
 	),
 	shelf_abolish(Shelf).
 	
-
-% calculate_until_result(PLatestDefinite, PLatestPossible,
-	% QEarliestDefinite, QEarliestPossible,
-	% EndTime, Deadline, Result, FailureTerm) :-
-	% IntervalEnd is min(Deadline, EndTime),
-	% (QEarliestPossible = nondet ->
-		% (Deadline =< EndTime ->
-			% Result = not_ok,
-			% FailureTerm = until_q_timeout
-			% ;
-			% % Q could still happen in next interval
-			% % make sure that P is possible for the
-			% % whole interval
-			% (PLatestPossible = nondet,
-				% Result = not_ok, 
-				% FailureTerm = until_p_failed, !
-			% ; PLatestPossible < IntervalEnd - 1,
-				% Result = not_ok, 
-				% FailureTerm = until_p_timeout, !
-			% ; % PLatestPossible > IntervalEnd
-				% Result = nondet,
-				% FailureTerm = none			
-			% )
-		% )
-		% ; % QEarliestPossible not nondet	
-		% (QEarliestPossible > Deadline ->
-			% Result = not_ok,
-			% FailureTerm = until_q_timeout
-			% ; %QEarliestPossible <= Deadline
-			% (PLatestPossible = nondet,
-				% Result = not_ok, 
-				% FailureTerm = until_p_failed, !
-			% ; PLatestPossible < QEarliestPossible - 1,
-				% Result = not_ok,
-				% FailureTerm = until_p_failed, !
-			% ; % PLatestPossible >= QEarliestPossible - 1
-			  % % -> at least nondet
-				% ( % check for OK
-					% PLatestDefinite \= nondet, 
-					% QEarliestDefinite \= nondet,
-					% PLatestDefinite >= QEarliestDefinite - 1,
-					% Result = ok, !
-					% ;
-					% Result = nondet
-				% ),
-				% FailureTerm = none
-			% )
-		% )
-	% ).				
-				
-					
-					
-				
-				
-				
-				
-				
-				
-			
-			
-			
-
-				
