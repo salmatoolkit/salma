@@ -519,3 +519,11 @@ test_nested_eventually :-
 			)
 		),
 	register_property(f, F, _).
+	
+test_conjunction_eventually :-
+	init,
+	F = implies(
+			occur(grab(rob1,item1)),
+			forall(r:robot,				
+				until(5, xpos(r) > 0, xpos(r) > 200))),
+	register_property(f, F, _).
