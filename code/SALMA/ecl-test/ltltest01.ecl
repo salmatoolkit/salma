@@ -527,3 +527,9 @@ test_conjunction_eventually :-
 			forall(r:robot,				
 				until(5, xpos(r) > 0, xpos(r) > 200))),
 	register_property(f, F, _).
+	
+test_until_occur :-
+	init,
+	F = until(50, xpos(rob1) > 0, occur(grab(rob1, item1))),
+	register_property(f, F, _).
+	
