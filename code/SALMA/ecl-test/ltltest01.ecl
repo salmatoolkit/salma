@@ -413,6 +413,16 @@ test8 :-
 	evaluate_ad_hoc(F, Result),
 	Result = ok.
 	
+test8b :-
+	init,
+	set_current(partner, [rob1], rob2),
+	set_current(active, [rob2], true),
+	F = active(partner(rob1)),
+	compile_formula(F, F2),
+	printf("F2: %w\n", [F2]),
+	evaluate_ad_hoc(F, Result),
+	Result = ok.
+	
 test_nested :-
 	init,
 	F = invariant(until(20,
@@ -533,3 +543,15 @@ test_until_occur :-
 	F = until(50, xpos(rob1) > 0, occur(grab(rob1, item1))),
 	register_property(f, F, _).
 	
+test_eventually_with_time_bound_expression(F2) :-
+	init,
+	F = let(t:xpos(rob1)*2,
+		eventually(t, xpos(rob1) > 20)),
+	register_property(f, F, F2).
+	
+test_occur_expression(F2) :-
+	init,
+	F = let(x1: xpos(rob1) + 10,
+			let(y1: ypos(rob1) + 5,
+				occur(land_on(rob1, x1, y1)))),
+	register_property(f, F, F2).
