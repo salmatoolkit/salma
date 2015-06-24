@@ -416,18 +416,18 @@ term_affected_by_action(Term, Action) :-
 
 	
 create_situation([A], Time, S1, S2) :-
-	A =.. [Act | RawParams],
-	(foreach(RP, RawParams), foreach(P, Params) do
-		subst_in_term(zero, 0, RP, P)
-	),
-	A2 =.. [Act | Params],
+	A =.. [Act | Params],
+	%(foreach(RP, RawParams), foreach(P, Params) do
+	%	subst_in_term(zero, 0, RP, P)
+	%),
+	%A2 =.. [Act | Params],
 	(retract(action_clock(Act, Params, _)), ! ; true),
 	assert(action_clock(Act, Params , Time)),
 	get_action_count(Act, Params, OldCount),
 	NewCount is OldCount + 1,
 	(retract(action_count(Act, Params, _)), ! ; true),
 	assert(action_count(Act, Params , NewCount)),
-	S2 = do2(A2, S1), !.
+	S2 = do2(A, S1), !.
 		
 create_situation([A | Tl], Time, S1, S2) :-
 	create_situation([A], Time, S1, S3),
