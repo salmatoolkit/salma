@@ -7,6 +7,7 @@ class Term(object):
     """
     Represents terms used in actions or as content of fluents.
     """
+
     def __init__(self, functor: str, *params):
         self.__functor = functor
         #: :type: tuple
@@ -34,4 +35,4 @@ class Term(object):
         return "Term(\"{}\", {})".format(self.__functor, self.__params)
 
     def __str__(self, *args, **kwargs):
-        return "{}{}".format(self.__functor, self.__params)
+        return "{}({})".format(self.__functor, ", ".join(map(str, self.__params)))

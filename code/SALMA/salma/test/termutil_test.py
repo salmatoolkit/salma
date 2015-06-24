@@ -17,7 +17,7 @@ class TermUtilTest(unittest.TestCase):
         self.assertEqual((42, 4711, "test"), tuplify([42, 4711, "test"]))
         self.assertEqual((42, 4711, ("test1", 0, "test2")), tuplify([42, 4711, ["test1", 0, "test2"]]))
 
-    def term_test(self):
+    def test_simple_terms(self):
         t = Term("foo", 1, 0, ["a", 42])
         t2 = Term("foo", 1, 0, ["a", 42])
         self.assertEqual(str(t), "foo(1, 0, ('a', 42))")
@@ -33,6 +33,10 @@ class TermUtilTest(unittest.TestCase):
         d = dict()
         d[t] = 42
         self.assertEqual(d[t2], 42)
+
+    def test_compound_terms(self):
+        t = Term("foo", 42, Term("bar", 43))
+        print(str(t))
 
 
 if __name__ == '__main__':

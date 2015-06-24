@@ -16,7 +16,7 @@ def tuplify(src: object):
 
 def term_from_tuple(tupleterm):
     """
-    :param tupleterm: The tuple-representation of the term.
+    :param tuple tupleterm: The tuple-representation of the term.
     :rtype: str
     """
     if tupleterm is None:
@@ -36,7 +36,6 @@ def term_from_tuple(tupleterm):
         return "[{}]".format(", ".join(params))
     else:
         return str(tupleterm)
-
 
 
 

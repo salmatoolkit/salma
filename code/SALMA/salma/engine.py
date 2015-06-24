@@ -10,6 +10,7 @@ import salma
 import salma.termutils
 from salma.model.data import Term
 from salma.termutils import tuplify
+from salma.formatutils import format_term
 
 MODULE_LOGGER_NAME = 'salma.engine'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -939,10 +940,16 @@ class EclipseCLPEngine(Engine):
             self.__callGoal('evaluation_step', interval_end, toplevel_results, scheduled_results, scheduled_keys,
                             failure_stack)
 
+        fstack = self.__convert_value_from_engine_result(failure_stack.value())
+        if isinstance(fstack, (list, tuple)):
+            fstack = list(map(format_term, fstack))
+        else:
+            fstack = [str(format_term(fstack))]
+
         return (EclipseCLPEngine.__translateToplevelEvaluationResults(toplevel_results.value()),
                 EclipseCLPEngine.__translateScheduledEvaluationResults(scheduled_results.value()),
                 EclipseCLPEngine.__translate_scheduled_properties(scheduled_keys.value()),
-                self.__convert_value_from_engine_result(failure_stack.value()))
+                fstack)
 
     def format_failure_stack(self, failure_stack):
         """
