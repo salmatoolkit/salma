@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # assumption success prob = 0.6 --> H0: p <= 0.4
     if _MODE == HYPTEST:
         sprt = SequentialProbabilityRatioTest(0.59, 0.61, 0.05, 0.05)
-        accepted_hypothesis, results, info = runner.run_repetitions(sc1, hypothesis_test=sprt)
+        accepted_hypothesis, results, info = runner.run_trials(sc1, hypothesis_test=sprt)
         print("SPRT")
         print("Conducted tests: {}".format(len(results)))
         print("Successes: {} of {}".format(sum(results), len(results)))
@@ -29,7 +29,7 @@ if __name__ == '__main__':
         print_timing_info(info)
     elif _MODE == ESTIMATION:
         print("len: ", len(sc1.world.getDomain("plcs")))
-        _, results, info = runner.run_repetitions(sc1, number_of_repetitions=NUM_REPETITIONS)
+        _, results, info = runner.run_trials(sc1, number_of_trials=NUM_REPETITIONS)
 
         successes = sum(results)
         nobs = len(results)

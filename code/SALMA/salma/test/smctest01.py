@@ -1,11 +1,18 @@
+from logging import DEBUG, INFO
 from unittest.case import TestCase
-
+import unittest
 from statsmodels.stats import proportion
 from scipy.stats import norm
-
+import logging
 from salma.model.experiment import SingleProcessExperimentRunner
+from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.smctest_base_experiment import SMCTestBaseExperiment
 
+MODULE_LOGGER_NAME = 'salma.model'
+logging.basicConfig()
+module_logger = logging.getLogger(MODULE_LOGGER_NAME)
+module_logger.setLevel(INFO)
+module_logger.info("bla")
 
 def report_step(world, step=None, actions=None, **kwargs):
     """
@@ -26,6 +33,8 @@ class SMCTest01(TestCase):
     """
 
     def setUp(self):
+        module_logger.info("setup")
+        print("setup")
         num_robots = 3
         p_collision = 0.9
         p_drop = 0.2
@@ -41,6 +50,7 @@ class SMCTest01(TestCase):
         self.experiment.initialize()
         # self.experiment.step_listeners.append(report_step)
 
+    @unittest.skip("too long")
     def test_confidence_interval_estimation(self):
         runner = SingleProcessExperimentRunner()
         sample_length = 20
@@ -52,9 +62,9 @@ class SMCTest01(TestCase):
         confidence_intervals = []
         all_successes = 0
         for i in range(0, samples):
-            _, res, trial_infos = runner.run_repetitions(self.experiment,
-                                                         number_of_repetitions=sample_length,
-                                                         step_listeners=[report_step])
+            _, res, trial_infos = runner.run_trials(self.experiment,
+                                                    number_of_trials=sample_length,
+                                                    step_listeners=[report_step])
             print(trial_infos)
             self.assertEqual(sample_length, len(res))
             self.assertEqual(sample_length, len(trial_infos))
@@ -83,3 +93,16 @@ class SMCTest01(TestCase):
         self.assertAlmostEqual(real_prob, estimated_prob, delta=estimation_tolerance)
         self.assertTrue(interval_hit_ratio >= (1.0 - alpha))
 
+    def test_sprt(self):
+        runner = SingleProcessExperimentRunner()
+
+        p = 0.05
+        report_lines = []
+        while p <= 0.95:
+            sprt = SequentialProbabilityRatioTest(min(0, p-0.05), max(1, p+0.05), 0.05, 0.05)
+            accepted_hypothesis, res, trial_infos = runner.run_trials(self.experiment,
+                                                                      hypothesis_test=sprt,
+                                                                      step_listeners=[report_step])
+            print("Accepted Hypothesis: {}\nResults: {}\nTrial Infos: {}".format(accepted_hypothesis, res, trial_infos))
+            trials = len(trial_infos)
+            print("Trials: {}".format())

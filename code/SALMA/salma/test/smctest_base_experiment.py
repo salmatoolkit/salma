@@ -30,7 +30,7 @@ class SMCTestBaseExperiment(Experiment):
 
     def create_robot(self, num):
         """
-        Creates a simple agent that grabs an item wit id item+num and keeps moving right as long as the agent is active
+        Creates a simple agent that grabs an item with id item+num and keeps moving right as long as the agent is active
         """
         proc = OneShotProcess([
             Act("grab", [SELF, "item" + str(num)]),

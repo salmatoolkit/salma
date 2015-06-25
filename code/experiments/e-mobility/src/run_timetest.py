@@ -10,7 +10,7 @@ def run_with_given_vehicle_number(vnum):
         sc1.setup_properties()
         sc1.initialize()
         runner = SingleProcessExperimentRunner()
-        _, results, info = runner.run_repetitions(sc1, number_of_repetitions=20)
+        _, results, info = runner.run_trials(sc1, number_of_trials=20)
         successes = sum(results)
         nobs = len(results)
         steps = [ti["steps"] for ti in info]

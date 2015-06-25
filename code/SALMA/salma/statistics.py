@@ -9,10 +9,10 @@ import numpy as np
 
 class HypothesisTest(object):
     """
-    Base clas for hypothesis tests. Offers the method check_hypothesis_accepted.
+    Base class for hypothesis tests. Offers the method get_accepted_hypothesis.
     """
 
-    def check_hypothesis_accepted(self, m, numberOfDefects):
+    def get_accepted_hypothesis(self, m, numberOfDefects):
         """
         If one of the hypothesis is accepted, return its index (usually 0 or 1). Otherwise return None
          which means that testing should continue.
@@ -50,7 +50,7 @@ class SequentialProbabilityRatioTest(HypothesisTest):
 
         self.__base_R = np.log((1 - beta) / alpha) / denominator
 
-    def check_hypothesis_accepted(self, m, numberOfDefects):
+    def get_accepted_hypothesis(self, m, numberOfDefects):
         A_m = self.__base_A + self.__m_factor * m
         R_m = self.__base_R + self.__m_factor * m
 

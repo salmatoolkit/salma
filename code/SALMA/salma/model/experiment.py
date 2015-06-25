@@ -13,7 +13,7 @@ MODULE_LOGGER_NAME = 'salma.model'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
 
 DEFAULT_MAX_TIME_DELTA_PER_STEP = 100000
-
+DEFAULT_MAX_TRIALS = 500
 
 class Experiment(object):
     """
@@ -312,7 +312,7 @@ class Experiment(object):
 
 
 class ExperimentRunner(object):
-    def run_repetitions(self, experiment, number_of_repetitions=100, hypothesis_test=None, **kwargs):
+    def run_trials(self, experiment, number_of_repetitions=100, hypothesis_test=None, **kwargs):
         """
         Runs repetitions of the configured experiment. If an hypothesis test object is given then the acceptance
         of this hypothesis test is calculated.
@@ -326,18 +326,22 @@ class ExperimentRunner(object):
 
 
 class SingleProcessExperimentRunner(ExperimentRunner):
-    def run_repetitions(self, experiment, number_of_repetitions=100, hypothesis_test=None, **kwargs):
+    def run_trials(self, experiment, number_of_trials=None, hypothesis_test=None, **kwargs):
         """
         Runs repetitions of the configured experiment. If an hypothesis test object is given then the acceptance
         of this hypothesis test is calculated.
 
         :param Experiment experiment: the experiment to run.
-        :param int number_of_repetitions: fixed number of repetitions if no hypothesis test is given
+        :param int number_of_trials: fixed number of repetitions if no hypothesis test is given
         :param HypothesisTest hypothesis_test: the (sequential) hypothesis test to conduct
         :return:
         """
+        moduleLogger.info("Starting trials")
         check_initialization = kwargs.get("check_initialization", True)
         max_retrials = kwargs.get("max_retrials", 3)
+        max_trials = kwargs.get("max_trials", DEFAULT_MAX_TRIALS)
+        if number_of_trials is None and hypothesis_test is None:
+            raise SALMAException("Neither a number of trials nor a hypothesis test was specified.")
         if check_initialization:
             experiment.assure_consistent_initilization()
         results = []  # list of True/False
@@ -377,9 +381,9 @@ class SingleProcessExperimentRunner(ExperimentRunner):
             trial_number += 1
 
             if hypothesis_test is not None:
-                accepted_hypothesis = hypothesis_test.check_hypothesis_accepted(conclusive_trial_count, failures)
-                should_continue = accepted_hypothesis is None
+                accepted_hypothesis = hypothesis_test.get_accepted_hypothesis(conclusive_trial_count, failures)
+                should_continue = accepted_hypothesis is None and trial_number < max_trials
             else:
-                should_continue = conclusive_trial_count < number_of_repetitions
+                should_continue = conclusive_trial_count < number_of_trials
 
         return accepted_hypothesis, results, trial_infos
