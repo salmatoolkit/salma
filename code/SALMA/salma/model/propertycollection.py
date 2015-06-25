@@ -107,7 +107,7 @@ class PropertyCollection:
 
         return verdict, failed_invariants, failed_sustain_goals
 
-    def register_property(self, property_name, formula, property_type):
+    def register_property(self, property_name, formula, property_type, **kwargs):
         """
         Registers the given formula under the given name.
         :param str property_name: the name of the property usd for referencing it later.
@@ -119,6 +119,12 @@ class PropertyCollection:
         if (property_name in self.__invariants or property_name in self.__achieve_goals
                 or property_name in self.__achieve_and_sustain_goals):
             raise SALMAException("Property {} already registered.".format(property_name))
+
+        try:
+            formula = formula.format(**kwargs)
+        except KeyError as ke:
+            raise SALMAException("Parameter {} of property {} not specified in register_property.".format(
+                str(ke), property_name))
 
         if property_type == INVARIANT:
             self.__invariants[property_name] = (formula, property_type)

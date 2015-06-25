@@ -96,13 +96,24 @@ class SMCTest01(TestCase):
     def test_sprt(self):
         runner = SingleProcessExperimentRunner()
 
-        p = 0.05
+        p = 0.1
+
         report_lines = []
-        while p <= 0.95:
-            sprt = SequentialProbabilityRatioTest(min(0, p-0.05), max(1, p+0.05), 0.05, 0.05)
+        """:type : list[dict]"""
+
+        while p <= 0.35:
+            sprt = SequentialProbabilityRatioTest(p-0.05, min(1, p+0.05), 0.05, 0.05)
             accepted_hypothesis, res, trial_infos = runner.run_trials(self.experiment,
                                                                       hypothesis_test=sprt,
-                                                                      step_listeners=[report_step])
+                                                                      step_listeners=[report_step],
+                                                                      max_trials=200)
+            print("p={:.3}".format(p))
             print("Accepted Hypothesis: {}\nResults: {}\nTrial Infos: {}".format(accepted_hypothesis, res, trial_infos))
             trials = len(trial_infos)
-            print("Trials: {}".format())
+            print("Trials: {}".format(trials))
+            report_lines.append(dict(p=p, hyp=accepted_hypothesis, trials=trials))
+            p += 0.05
+        with open("smctest01.csv", "w") as f:
+            f.write("P;HYP;TRIALS\n")
+            for line in report_lines:
+                f.write("{p:.3};{hyp};{trials}\n".format(**line))

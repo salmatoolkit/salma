@@ -9,7 +9,6 @@ from salma.model.process import OneShotProcess
 
 
 class SMCTestBaseExperiment(Experiment):
-
     def __init__(self, num_robots, p_drop, drop_delay_mean, drop_delay_std, p_collision,
                  time_limit, x_goal, x_goal2):
         super().__init__("ecl-test/domaindesc.ecl")
@@ -72,10 +71,10 @@ class SMCTestBaseExperiment(Experiment):
 
     def create_entities(self):
         for i in range(self.num_robots):
-            self.world.addEntity(Entity("item" + str(i+1), "item"))
+            self.world.addEntity(Entity("item" + str(i + 1), "item"))
 
         for i in range(self.num_robots):
-            self.world.addAgent(self.create_robot(i+1))
+            self.world.addAgent(self.create_robot(i + 1))
 
     def augment_world_context(self):
         self.world.register_clp_function("robotLeftFrom")
@@ -90,26 +89,16 @@ forall(r:robot,
     forall(i:item,
         implies(
             occur(grab(r, i)),
-            until({},
+            until({time_limit},
                 carrying(r, i),
-                xpos(r) > {}
+                xpos(r) > {x_goal}
             )
         )
     )
 )
-""".format(self.time_limit, self.x_goal)
+"""
+        self.property_collection.register_property("f", f_str, INVARIANT,
+                                                   time_limit=self.time_limit, x_goal=self.x_goal)
 
-        self.property_collection.register_property("f", f_str, INVARIANT)
-
-        g_str = "forall(r:robot, xpos(r) >= {})".format(self.x_goal2)
-        self.property_collection.register_property("g", g_str, ACHIEVE)
-
-
-
-
-
-
-
-
-
-
+        g_str = "forall(r:robot, xpos(r) >= {x_goal2})"
+        self.property_collection.register_property("g", g_str, ACHIEVE, x_goal2=self.x_goal2)
