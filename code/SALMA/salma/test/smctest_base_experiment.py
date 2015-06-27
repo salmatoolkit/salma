@@ -1,17 +1,37 @@
+from salma.SALMAException import SALMAException
 from salma.constants import SELF, INVARIANT, ACHIEVE
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ConstantDistribution, OptionalDistribution, ExponentialDistribution, \
-    BernoulliDistribution, NormalDistribution, Categorical, ComposedDistribution, GeometricDistribution
+    BernoulliDistribution, NormalDistribution, Categorical, ComposedDistribution, GeometricDistribution, Distribution, \
+    CustomDistribution
 from salma.model.experiment import Experiment
 from salma.model.procedure import Act, While, Wait
 from salma.model.process import OneShotProcess
+import numpy as np
+
+
+def generate_drop_delay_distribution(quality_mapping):
+    """
+    :param dict[int, float] quality_mapping:
+    :return:
+    """
+
+    def accidental_drop_delay(r, i, grip=None, **ctx):
+        g = grip(r)
+        # never drop if grip is perfect (1)
+        if g <= 1:
+            return None
+        if g not in quality_mapping:
+            raise SALMAException("No drop rate defined for grip quality {}.".format(g))
+        return np.random.geometric(quality_mapping[g])
+    return accidental_drop_delay
 
 
 class SMCTestBaseExperiment(Experiment):
     def __init__(self, num_robots, p_drop, drop_delay_mean, drop_delay_std, p_collision,
                  time_limit, x_goal, x_goal2):
-        super().__init__("ecl-test/domaindesc.ecl")
+        super().__init__("ecl-test/smctest_base_domain.ecl")
         self.num_robots = num_robots
         self.p_drop = p_drop
         self.drop_delay_mean = drop_delay_mean
@@ -32,7 +52,7 @@ class SMCTestBaseExperiment(Experiment):
         Creates a simple agent that grabs an item with id item+num and keeps moving right as long as the agent is active
         """
         proc = OneShotProcess([
-            Act("grab", [SELF, "item" + str(num)]),
+            Act("pickUp", [SELF, "item" + str(num)]),
             While("True", [
                 Act("move_right", [SELF]),
                 Wait("not moving(self)")
@@ -49,6 +69,7 @@ class SMCTestBaseExperiment(Experiment):
         self.world.setConstantValue("robot_radius", [robot_id], 1)
         self.world.setFluentValue("active", [robot_id], True)
         self.world.setFluentValue("partner", [robot_id], None)
+        self.world.setFluentValue("grip", [robot_id], 0)
         items = self.world.getDomain('item')
         for i in items:
             self.world.setFluentValue('carrying', [robot_id, i.id], False)
@@ -60,18 +81,16 @@ class SMCTestBaseExperiment(Experiment):
         world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
             "integer", 1)
 
-        probs = [(None, 0.8), (0.05, 0.02), (0.06, 0.02), (0.07, 0.02), (0.08, 0.02), (0.09, 0.02),
-                 (0.1, 0.02), (0.11, 0.02), (0.12, 0.02), (0.13, 0.02), (0.14, 0.02)]
+        pickup = world.get_stochastic_action("pickUp")
+        grab = pickup.outcome("grab")
+        grab.map_param("r", "r")
+        grab.map_param("i", "i")
+        grab.uniform_param("grip", (1, 5))
 
-        pd = Categorical("float", probs)
+        drop_delay_fn = generate_drop_delay_distribution({2: 0.02, 3: 0.05, 4: 0.1, 5: 0.3})
 
-        # world.get_exogenous_action(
-        #     "accidental_drop").config.occurrence_distribution = OptionalDistribution(
-        #     self.p_drop,
-        #     NormalDistribution("integer", self.drop_delay_mean, self.drop_delay_std))
         world.get_exogenous_action(
-            "accidental_drop").config.occurrence_distribution = ComposedDistribution(GeometricDistribution,
-                                                                                     "integer", pd)
+            "accidental_drop").config.occurrence_distribution = CustomDistribution("integer", drop_delay_fn)
 
         collision_event = world.get_exogenous_action("collision")
         collision_event.config.occurrence_distribution = BernoulliDistribution(self.p_collision)
@@ -96,7 +115,7 @@ class SMCTestBaseExperiment(Experiment):
 forall(r:robot,
     forall(i:item,
         implies(
-            occur(grab(r, i)),
+            occur(grab(r, i, ?)),
             until({time_limit},
                 carrying(r, i),
                 xpos(r) > {x_goal}

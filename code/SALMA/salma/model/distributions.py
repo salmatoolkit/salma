@@ -297,4 +297,15 @@ class GeometricDistribution(Distribution):
         else:
             return np.random.geometric(self.__p)
 
+class CustomDistribution(Distribution):
+
+    def __init__(self, sort, source):
+        super().__init__(sort)
+        self.__source = source
+
+    def generateSample(self, evaluationContext, paramValues):
+        source_type = evaluationContext.determine_source_type(self.__source, paramValues)
+        result = evaluationContext.evaluateFunction(source_type, self.__source, *paramValues)
+        return result
+
 

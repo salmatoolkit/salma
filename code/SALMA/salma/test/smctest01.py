@@ -63,6 +63,8 @@ class SMCTest01(TestCase):
 
         confidence_intervals = []
         all_successes = 0
+        report_lines = []
+        """:type : list[dict]"""
         for i in range(0, samples):
             _, res, trial_infos = runner.run_trials(self.experiment,
                                                     number_of_trials=sample_length,
@@ -75,8 +77,10 @@ class SMCTest01(TestCase):
             ci_low, ci_up = proportion.proportion_confint(successes, len(res), alpha=alpha,
                                                           method=method)
             confidence_intervals.append((ci_low, ci_up))
+            report_lines.append(dict(i=i+1, successes=successes, trials=len(res)))
 
             print("Run #{}: {} successes, CI: [{}..{}]".format(i + 1, successes, ci_low, ci_up))
+
 
         estimated_prob = all_successes / (samples * sample_length)
 
@@ -84,8 +88,8 @@ class SMCTest01(TestCase):
         # real_prob = ((1.0 - self.experiment.p_drop * drop_delay_distrib.cdf(self.experiment.x_goal)) **
         #              self.experiment.num_robots)
 
-        fprobs = [(0.0, 0.8), (0.05, 0.02), (0.06, 0.02), (0.07, 0.02), (0.08, 0.02), (0.09, 0.02),
-                  (0.1, 0.02), (0.11, 0.02), (0.12, 0.02), (0.13, 0.02), (0.14, 0.02)]
+        # {2: 0.02, 3: 0.05, 4: 0.1, 5: 0.3}
+        fprobs = [(0.0, 0.2), (0.02, 0.2), (0.05, 0.2), (0.1, 0.2), (0.3, 0.2)]
         fail_prob_one_robot = 0
         for fp in fprobs:
             fail_prob_one_robot += fp[1] * geom.cdf(self.experiment.x_goal, fp[0])
@@ -100,6 +104,12 @@ class SMCTest01(TestCase):
         interval_hit_ratio = interval_hit / len(confidence_intervals)
         print("interval hits: {} of {} = {} %".format(interval_hit, len(confidence_intervals),
                                                       interval_hit_ratio * 100.0))
+
+        with open("smctest01_ci.csv", "w") as f:
+            f.write("I;SUCCESSES;TRIALS\n")
+            for line in report_lines:
+                f.write("{i};{successes};{trials}\n".format(**line))
+
         # self.assertAlmostEqual(real_prob, estimated_prob, delta=estimation_tolerance)
         # self.assertTrue(interval_hit_ratio >= (1.0 - alpha))
 
