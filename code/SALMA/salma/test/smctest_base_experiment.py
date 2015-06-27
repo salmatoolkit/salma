@@ -2,7 +2,7 @@ from salma.constants import SELF, INVARIANT, ACHIEVE
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ConstantDistribution, OptionalDistribution, ExponentialDistribution, \
-    BernoulliDistribution, NormalDistribution
+    BernoulliDistribution, NormalDistribution, Categorical, ComposedDistribution, GeometricDistribution
 from salma.model.experiment import Experiment
 from salma.model.procedure import Act, While, Wait
 from salma.model.process import OneShotProcess
@@ -60,10 +60,18 @@ class SMCTestBaseExperiment(Experiment):
         world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
             "integer", 1)
 
+        probs = [(None, 0.8), (0.05, 0.02), (0.06, 0.02), (0.07, 0.02), (0.08, 0.02), (0.09, 0.02),
+                 (0.1, 0.02), (0.11, 0.02), (0.12, 0.02), (0.13, 0.02), (0.14, 0.02)]
+
+        pd = Categorical("float", probs)
+
+        # world.get_exogenous_action(
+        #     "accidental_drop").config.occurrence_distribution = OptionalDistribution(
+        #     self.p_drop,
+        #     NormalDistribution("integer", self.drop_delay_mean, self.drop_delay_std))
         world.get_exogenous_action(
-            "accidental_drop").config.occurrence_distribution = OptionalDistribution(
-            self.p_drop,
-            NormalDistribution("integer", self.drop_delay_mean, self.drop_delay_std))
+            "accidental_drop").config.occurrence_distribution = ComposedDistribution(GeometricDistribution,
+                                                                                     "integer", pd)
 
         collision_event = world.get_exogenous_action("collision")
         collision_event.config.occurrence_distribution = BernoulliDistribution(self.p_collision)
