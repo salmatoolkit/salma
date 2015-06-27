@@ -23,8 +23,10 @@ def generate_drop_delay_distribution(quality_mapping):
         if g <= 1:
             return None
         if g not in quality_mapping:
-            raise SALMAException("No drop rate defined for grip quality {}.".format(g))
+            raise SALMAException("No drop rate defined for "
+                                 "grip quality {}.".format(g))
         return np.random.geometric(quality_mapping[g])
+
     return accidental_drop_delay
 
 
@@ -78,13 +80,11 @@ class SMCTestBaseExperiment(Experiment):
         world = self.world
         world.deactivate_info_transfer()
 
-        world.get_exogenous_action("finish_step").config.occurrence_distribution = ConstantDistribution(
-            "integer", 1)
-
+        world.get_exogenous_action("finish_step").config.occurrence_distribution = \
+            ConstantDistribution("integer", 1)
         pickup = world.get_stochastic_action("pickUp")
         grab = pickup.outcome("grab")
-        grab.map_param("r", "r")
-        grab.map_param("i", "i")
+        grab.map_param("r", "r"), grab.map_param("i", "i")
         grab.uniform_param("grip", (1, 5))
 
         drop_delay_fn = generate_drop_delay_distribution({2: 0.02, 3: 0.05, 4: 0.1, 5: 0.3})
