@@ -53,7 +53,7 @@ class SMCTest01(TestCase):
         self.experiment.initialize()
         # self.experiment.step_listeners.append(report_step)
 
-    # @unittest.skip("too long")
+    @unittest.skip("too long")
     def test_confidence_interval_estimation(self):
         runner = SingleProcessExperimentRunner()
         sample_length = 100
@@ -138,3 +138,12 @@ class SMCTest01(TestCase):
             f.write("P;HYP;TRIALS\n")
             for line in report_lines:
                 f.write("{p:.3};{hyp};{trials}\n".format(**line))
+
+    def test_calc_prob(self):
+        fprobs = [(0.0, 0.25), (0.02, 0.25), (0.05, 0.25), (0.1, 0.25)]
+        fail_prob_one_robot = 0
+        for fp in fprobs:
+            fail_prob_one_robot += fp[1] * geom.cdf(self.experiment.x_goal, fp[0])
+        real_prob = (1.0 - fail_prob_one_robot) ** self.experiment.num_robots
+
+        print("real probability: {}".format(real_prob))
