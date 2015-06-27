@@ -8,6 +8,7 @@ import logging
 from salma.model.experiment import SingleProcessExperimentRunner
 from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.smctest_base_experiment import SMCTestBaseExperiment
+import sys
 
 MODULE_LOGGER_NAME = 'salma.model'
 logging.basicConfig()
@@ -55,8 +56,8 @@ class SMCTest01(TestCase):
     # @unittest.skip("too long")
     def test_confidence_interval_estimation(self):
         runner = SingleProcessExperimentRunner()
-        sample_length = 20
-        samples = 20
+        sample_length = 100
+        samples = 1000
         alpha = 0.05
         method = "agresti_coull"
         estimation_tolerance = 0.1
@@ -80,7 +81,6 @@ class SMCTest01(TestCase):
             report_lines.append(dict(i=i+1, successes=successes, trials=len(res)))
 
             print("Run #{}: {} successes, CI: [{}..{}]".format(i + 1, successes, ci_low, ci_up))
-
 
         estimated_prob = all_successes / (samples * sample_length)
 
