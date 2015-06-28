@@ -3,7 +3,7 @@ from salma.model.distributions import *
 class DistributionTest(unittest.TestCase):
 
     def test_composed_distrib(self):
-        mu = Categorical("float", [(0.0, 0.5), (10.0, 0.5)])
+        mu = CategoricalDistribution("float", [(0.0, 0.5), (10.0, 0.5)])
         std = UniformDistribution("float", (0.5, 5.0))
         cd = ComposedDistribution(NormalDistribution, "float", mu, std)
         sample = []

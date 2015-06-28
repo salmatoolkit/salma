@@ -231,7 +231,7 @@ class Zero(Distribution):
 
 ZERO_INT = Zero()
 
-class Categorical(Distribution):
+class CategoricalDistribution(Distribution):
     """
     A categorical distribution that is specified by a collection of category-probability pairs.
     """
