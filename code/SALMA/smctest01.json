@@ -1,6 +1,6 @@
 {
-  "sample_length": 20,
-  "samples": 20,
+  "sample_length": 100,
+  "samples": 100,
   "alpha": 0.05,
   "num_robots": 3,
   "p_collision": 0.9,
