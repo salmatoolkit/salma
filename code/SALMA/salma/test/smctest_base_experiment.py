@@ -87,7 +87,7 @@ class SMCTestBaseExperiment(Experiment):
         grab.map_param("r", "r"), grab.map_param("i", "i")
         grab.uniform_param("grip", (1, 5))
 
-        drop_delay_fn = generate_drop_delay_distribution({2: 0.02, 3: 0.05, 4: 0.1, 5: 0.3})
+        drop_delay_fn = generate_drop_delay_distribution({2: 0.02, 3: 0.05, 4: 0.1})
 
         world.get_exogenous_action(
             "accidental_drop").config.occurrence_distribution = CustomDistribution("integer", drop_delay_fn)

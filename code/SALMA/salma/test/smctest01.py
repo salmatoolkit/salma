@@ -89,7 +89,7 @@ class SMCTest01(TestCase):
         #              self.experiment.num_robots)
 
         # {2: 0.02, 3: 0.05, 4: 0.1, 5: 0.3}
-        fprobs = [(0.0, 0.2), (0.02, 0.2), (0.05, 0.2), (0.1, 0.2), (0.3, 0.2)]
+        fprobs = [(0.0, 0.2), (0.02, 0.2), (0.05, 0.2), (0.1, 0.2)]
         fail_prob_one_robot = 0
         for fp in fprobs:
             fail_prob_one_robot += fp[1] * geom.cdf(self.experiment.x_goal, fp[0])

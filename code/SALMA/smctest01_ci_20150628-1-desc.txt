@@ -1,0 +1,2 @@
+drop_delay_fn = generate_drop_delay_distribution({2: 0.02, 3: 0.05, 4: 0.1})
+real probability: 0.15478291128314975
