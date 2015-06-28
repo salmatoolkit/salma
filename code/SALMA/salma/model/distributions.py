@@ -233,7 +233,7 @@ ZERO_INT = Zero()
 
 class Categorical(Distribution):
     """
-    A categorical distribution.
+    A categorical distribution that is specified by a collection of category-probability pairs.
     """
 
     def __init__(self, sort, categories):

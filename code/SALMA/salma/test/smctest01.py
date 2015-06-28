@@ -2,13 +2,12 @@ from logging import DEBUG, INFO
 from unittest.case import TestCase
 import unittest
 from statsmodels.stats import proportion
-from scipy.stats import norm
 from scipy.stats import geom
 import logging
 from salma.model.experiment import SingleProcessExperimentRunner
 from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.smctest_base_experiment import SMCTestBaseExperiment
-import sys
+import json
 
 MODULE_LOGGER_NAME = 'salma.model'
 logging.basicConfig()
@@ -38,27 +37,21 @@ class SMCTest01(TestCase):
     def setUp(self):
         module_logger.info("setup")
         print("setup")
-        num_robots = 3
-        p_collision = 0.9
-        p_drop = 0.2
-        drop_delay_mean = 10
-        drop_delay_std = 2
-        time_limit = 25
-        x_goal = 20
-        x_goal2 = 20
+        with open("smctest01.json") as f:
+            self.config = json.load(f)
+            """:type : dict[str, obj]"""
 
-        self.experiment = SMCTestBaseExperiment(num_robots, p_drop, drop_delay_mean, drop_delay_std,
-                                                p_collision, time_limit, x_goal, x_goal2)
+        self.experiment = SMCTestBaseExperiment(self.config)
         self.experiment.setup_properties()
         self.experiment.initialize()
         # self.experiment.step_listeners.append(report_step)
 
-    @unittest.skip("too long")
+    #@unittest.skip("too long")
     def test_confidence_interval_estimation(self):
         runner = SingleProcessExperimentRunner()
-        sample_length = 100
-        samples = 1000
-        alpha = 0.05
+        sample_length = self.config["sample_length"]
+        samples = self.config["samples"]
+        alpha = self.config["alpha"]
         method = "agresti_coull"
         estimation_tolerance = 0.1
 
@@ -84,16 +77,7 @@ class SMCTest01(TestCase):
 
         estimated_prob = all_successes / (samples * sample_length)
 
-        # drop_delay_distrib = norm(self.experiment.drop_delay_mean, self.experiment.drop_delay_std)
-        # real_prob = ((1.0 - self.experiment.p_drop * drop_delay_distrib.cdf(self.experiment.x_goal)) **
-        #              self.experiment.num_robots)
-
-        # {2: 0.02, 3: 0.05, 4: 0.1, 5: 0.3}
-        fprobs = [(0.0, 0.2), (0.02, 0.2), (0.05, 0.2), (0.1, 0.2)]
-        fail_prob_one_robot = 0
-        for fp in fprobs:
-            fail_prob_one_robot += fp[1] * geom.cdf(self.experiment.x_goal, fp[0])
-        real_prob = (1.0 - fail_prob_one_robot) ** self.experiment.num_robots
+        real_prob = self.calc_real_prob()
 
         print("estimated probability: {}".format(estimated_prob))
         print("real probability: {}".format(real_prob))
@@ -139,11 +123,12 @@ class SMCTest01(TestCase):
             for line in report_lines:
                 f.write("{p:.3};{hyp};{trials}\n".format(**line))
 
-    def test_calc_prob(self):
-        fprobs = [(0.0, 0.25), (0.02, 0.25), (0.05, 0.25), (0.1, 0.25)]
+    def calc_real_prob(self):
         fail_prob_one_robot = 0
-        for fp in fprobs:
-            fail_prob_one_robot += fp[1] * geom.cdf(self.experiment.x_goal, fp[0])
+        for (gprobspec, dprop) in zip(self.experiment.grip_probs, self.experiment.drop_props):
+            fail_prob_one_robot += gprobspec[1] * geom.cdf(self.experiment.x_goal, dprop)
         real_prob = (1.0 - fail_prob_one_robot) ** self.experiment.num_robots
+        return real_prob
 
-        print("real probability: {}".format(real_prob))
+    def test_calc_prob(self):
+        print("real probability: {}".format(self.calc_real_prob()))

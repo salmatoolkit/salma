@@ -11,37 +11,39 @@ from salma.model.process import OneShotProcess
 import numpy as np
 
 
-def generate_drop_delay_distribution(quality_mapping):
+def generate_drop_delay_distribution(drop_probabilities):
     """
-    :param dict[int, float] quality_mapping:
-    :return:
+    :type drop_probabilities: list[float]
     """
 
     def accidental_drop_delay(r, i, grip=None, **ctx):
         g = grip(r)
-        # never drop if grip is perfect (1)
-        if g <= 1:
-            return None
-        if g not in quality_mapping:
+        if g < 1 or g > len(drop_probabilities):
             raise SALMAException("No drop rate defined for "
                                  "grip quality {}.".format(g))
-        return np.random.geometric(quality_mapping[g])
+        p = drop_probabilities[g-1]
+        if p == 0:
+            return None
+        else:
+            return np.random.geometric(p)
 
     return accidental_drop_delay
 
 
 class SMCTestBaseExperiment(Experiment):
-    def __init__(self, num_robots, p_drop, drop_delay_mean, drop_delay_std, p_collision,
-                 time_limit, x_goal, x_goal2):
+    def __init__(self, config):
+        """
+        Creates an experiment instance with the given configuration map that is loaded from the JSON config file.
+        :type config: dict[str, obj]
+        """
         super().__init__("ecl-test/smctest_base_domain.ecl")
-        self.num_robots = num_robots
-        self.p_drop = p_drop
-        self.drop_delay_mean = drop_delay_mean
-        self.drop_delay_std = drop_delay_std
-        self.p_collision = p_collision
-        self.time_limit = time_limit
-        self.x_goal = x_goal
-        self.x_goal2 = x_goal2
+        self.num_robots = config["num_robots"]
+        self.p_collision = config["p_collision"]
+        self.time_limit = config["time_limit"]
+        self.x_goal = config["x_goal"]
+        self.x_goal2 = config["x_goal2"]
+        self.grip_probs = [(i+1, gp) for i, gp in enumerate(config["grip_probs"])]
+        self.drop_props = config["drop_probs"]
 
     def __place_agents_in_column(self, x):
         y = 10
@@ -85,9 +87,9 @@ class SMCTestBaseExperiment(Experiment):
         pickup = world.get_stochastic_action("pickUp")
         grab = pickup.outcome("grab")
         grab.map_param("r", "r"), grab.map_param("i", "i")
-        grab.uniform_param("grip", (1, 5))
+        grab.set_param_distribution("grip", Categorical("integer", self.grip_probs))
 
-        drop_delay_fn = generate_drop_delay_distribution({2: 0.02, 3: 0.05, 4: 0.1})
+        drop_delay_fn = generate_drop_delay_distribution(self.drop_props)
 
         world.get_exogenous_action(
             "accidental_drop").config.occurrence_distribution = CustomDistribution("integer", drop_delay_fn)

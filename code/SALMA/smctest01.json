@@ -1,0 +1,20 @@
+{
+  "sample_length": 20,
+  "samples": 20,
+  "alpha": 0.05,
+  "num_robots": 3,
+  "p_collision": 0.9,
+  "time_limit": 25,
+  "x_goal": 20,
+  "x_goal2": 20,
+  "grip_probs": [
+    0.3, 0.65, 0.04, 0.01
+  ],
+  "drop_probs": [
+    0.0,
+    0.001,
+    0.01,
+    0.2
+  ]
+}
+
