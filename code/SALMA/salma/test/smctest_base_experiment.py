@@ -3,7 +3,7 @@ from salma.constants import SELF, INVARIANT, ACHIEVE
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ConstantDistribution, OptionalDistribution, ExponentialDistribution, \
-    BernoulliDistribution, NormalDistribution, Categorical, ComposedDistribution, GeometricDistribution, Distribution, \
+    BernoulliDistribution, NormalDistribution, CategoricalDistribution, ComposedDistribution, GeometricDistribution, Distribution, \
     CustomDistribution
 from salma.model.experiment import Experiment
 from salma.model.procedure import Act, While, Wait
@@ -87,7 +87,7 @@ class SMCTestBaseExperiment(Experiment):
         pickup = world.get_stochastic_action("pickUp")
         grab = pickup.outcome("grab")
         grab.map_param("r", "r"), grab.map_param("i", "i")
-        grab.set_param_distribution("grip", Categorical("integer", self.grip_probs))
+        grab.set_param_distribution("grip", CategoricalDistribution("integer", self.grip_probs))
 
         drop_delay_fn = generate_drop_delay_distribution(self.drop_props)
 
