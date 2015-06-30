@@ -14,11 +14,12 @@ class Agent(Entity):
     An agent is an active entity that executes one or several processes.
     """
 
-    def __init__(self, entity_id, sort_name, processes=None, procedure_registry=None, world_declaration=None):
+    def __init__(self, entity_id, sort_name, processes=None, procedure_registry=None, world_declaration=None,
+                 **kwargs):
         """
         Creates an agent with the given id, sort and control procedure. Additionally,
         a procedure registry can be specified to allow procedure calls within the agent's control
-        procedure.
+        procedure. Also, variables can be defined by additional keywords.
 
         :type entity_id: str
         :type sort_name: str
@@ -48,6 +49,9 @@ class Agent(Entity):
                 self.add_process(p)
 
         self.evaluation_context = None
+        self.__predef_vars = dict()
+        self.__predef_vars.update(kwargs)
+
         self.__world_declaration = world_declaration
         self.__procedure_registry = procedure_registry or ProcedureRegistry()
 
@@ -68,6 +72,18 @@ class Agent(Entity):
         if ctx is not None:
             ctx.set_agent(self)
             ctx.set_procedure_call(None)
+            for k, v in self.__predef_vars.items():
+                ctx.assign_global_variable(k, v)
+
+    def define_variable(self, name, value):
+        """
+        Defines a variable in the agent context.
+        :param str name: the variable's name
+        :param obj value: the variable's initial value
+        """
+        self.__predef_vars[name] = value
+        if self.evaluation_context is not None:
+            self.evaluation_context.assign_global_variable(name, value)
 
     @property
     def procedure_registry(self):

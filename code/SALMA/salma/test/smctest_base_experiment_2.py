@@ -6,7 +6,7 @@ from salma.model.distributions import ConstantDistribution, OptionalDistribution
     BernoulliDistribution, NormalDistribution, CategoricalDistribution, ComposedDistribution, GeometricDistribution, Distribution, \
     CustomDistribution
 from salma.model.experiment import Experiment
-from salma.model.procedure import Act, While, Wait, makevars, Assign
+from salma.model.procedure import Act, While, Wait, makevars, Assign, If, Variable
 from salma.model.process import OneShotProcess
 import numpy as np
 
@@ -40,10 +40,9 @@ class SMCTestBaseExperiment2(Experiment):
         self.num_robots = config["num_robots"]
         self.p_collision = config["p_collision"]
         self.time_limit = config["time_limit"]
-        self.x_goal = config["x_goal"]
-        self.x_goal2 = config["x_goal2"]
         self.grip_probs = [(i+1, gp) for i, gp in enumerate(config["grip_probs"])]
         self.drop_props = config["drop_probs"]
+        self.destination_range = config["destination_range"]
 
     def __place_agents_in_column(self, x):
         y = 10
@@ -59,9 +58,8 @@ class SMCTestBaseExperiment2(Experiment):
         """
         Creates a simple agent that grabs an item with id item+num and keeps moving right as long as the agent is active
         """
-        myItem = makevars(("myItem", "item"))
+        myItem = Variable("myItem")
         proc = OneShotProcess([
-            Assign(myItem, "item" + str(num)),
             Act("pickUp", [SELF, myItem]),
             While("xpos(self) < destX(myItem)", [
                 Act("move_right", [SELF]),
@@ -69,7 +67,7 @@ class SMCTestBaseExperiment2(Experiment):
             ]),
             Act("drop", [SELF, myItem])
         ])
-        agent = Agent("rob" + str(num), "robot", [proc])
+        agent = Agent("rob" + str(num), "robot", [proc], myItem="item" + str(num))
         return agent
 
     def initialize_robot(self, robot_id, x, y, vx, vy):
@@ -118,7 +116,7 @@ class SMCTestBaseExperiment2(Experiment):
     def create_initial_situation(self):
         self.__place_agents_in_column(0)
         for i in self.world.getDomain("item"):
-            dist = np.random.randint(10, 51)
+            dist = np.random.randint(self.destination_range[0], self.destination_range[1] + 1)
             self.world.setConstantValue("destX", [i.id], self.world.getFluentValue("xpos", [i.id]) + dist)
             self.world.setConstantValue("destY", [i.id], self.world.getFluentValue("ypos", [i.id]))
 
@@ -139,7 +137,7 @@ forall(r:robot,
 )
 """
         self.property_collection.register_property("f", f_str, INVARIANT,
-                                                   time_limit=self.time_limit, x_goal=self.x_goal)
+                                                   time_limit=self.time_limit)
 
         g_str = "forall(i:item, xpos(i) = destX(i))"
-        self.property_collection.register_property("g", g_str, ACHIEVE, x_goal2=self.x_goal2)
+        self.property_collection.register_property("g", g_str, ACHIEVE)

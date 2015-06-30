@@ -146,8 +146,8 @@ poss(pickUp(R, I, _), S) :- test_ad_hoc(
 poss(grab(_,_,_), _) :- true.
 
 
-%poss(drop(R,I), S) :- carrying(R,I,S).
-poss(drop(R,I), S) :- true.
+poss(drop(R,I), S) :- carrying(R,I,S).
+%poss(drop(R,I), S) :- true.
 
 schedulable(accidental_drop(R,I), S) :- 
 	action_occurred(grab(R,I,_), S).

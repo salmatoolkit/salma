@@ -12,7 +12,7 @@ import json
 MODULE_LOGGER_NAME = 'salma.model'
 logging.basicConfig()
 module_logger = logging.getLogger(MODULE_LOGGER_NAME)
-module_logger.setLevel(DEBUG)
+module_logger.setLevel(INFO)
 module_logger.info("bla")
 
 
@@ -74,6 +74,7 @@ class SMCTest02(TestCase):
             report_lines.append(dict(i=i+1, successes=successes, trials=len(res)))
 
             print("Run #{}: {} successes, CI: [{}..{}]".format(i + 1, successes, ci_low, ci_up))
+            # self.experiment.world.printState()
 
         estimated_prob = all_successes / (samples * sample_length)
 
@@ -89,13 +90,13 @@ class SMCTest02(TestCase):
         print("interval hits: {} of {} = {} %".format(interval_hit, len(confidence_intervals),
                                                       interval_hit_ratio * 100.0))
 
-        with open("smctest01_ci.csv", "w") as f:
+        with open("smctest02_ci.csv", "w") as f:
             f.write("I;SUCCESSES;TRIALS\n")
             for line in report_lines:
                 f.write("{i};{successes};{trials}\n".format(**line))
 
-        # self.assertAlmostEqual(real_prob, estimated_prob, delta=estimation_tolerance)
-        # self.assertTrue(interval_hit_ratio >= (1.0 - alpha))
+        self.assertAlmostEqual(real_prob, estimated_prob, delta=estimation_tolerance)
+        self.assertTrue(interval_hit_ratio >= (1.0 - alpha))
 
     @unittest.skip("too long")
     def test_sprt(self):
@@ -125,8 +126,10 @@ class SMCTest02(TestCase):
 
     def calc_real_prob(self):
         fail_prob_one_robot = 0
-        for (gprobspec, dprop) in zip(self.experiment.grip_probs, self.experiment.drop_props):
-            fail_prob_one_robot += gprobspec[1] * geom.cdf(self.experiment.x_goal, dprop)
+        p_dist = 1 / (self.experiment.destination_range[1] - self.experiment.destination_range[0] + 1)
+        for dist in range(self.experiment.destination_range[0], self.experiment.destination_range[1] + 1):
+            for (gprobspec, dprop) in zip(self.experiment.grip_probs, self.experiment.drop_props):
+                fail_prob_one_robot += p_dist * gprobspec[1] * geom.cdf(dist, dprop)
         real_prob = (1.0 - fail_prob_one_robot) ** self.experiment.num_robots
         return real_prob
 

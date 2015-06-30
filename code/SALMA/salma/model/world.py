@@ -863,7 +863,11 @@ class World(Entity, WorldDeclaration):
         :type constantParams: list|tuple
         :rtype: object
         """
-        return World.logic_engine().getConstantValue(constantName, constantParams)[1]
+        cv = World.logic_engine().getConstantValue(constantName, constantParams)
+        if cv is None:
+            return None
+        else:
+            return cv.value
 
     # noinspection PyMethodMayBeStatic
     def is_constant_defined(self, constant_name, constant_params):
@@ -873,8 +877,7 @@ class World(Entity, WorldDeclaration):
         :param list|tuple constant_params: the parameters
         :rtype: bool
         """
-        d, _ = World.logic_engine().getConstantValue(constant_name, constant_params)
-        return d
+        return World.logic_engine().isConstantDefined(constant_name, constant_params)
 
     # noinspection PyMethodMayBeStatic
     def setFluentValue(self, fluentName, fluentParams, value):
@@ -1164,7 +1167,9 @@ class LocalEvaluationContext(EvaluationContext):
         if source_type == EvaluationContext.PYTHON_EXPRESSION:
             source = str(source)
             ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.resolve(self.__variable_bindings)[0])
+            ctx.update(self.resolve(self.global_variable_bindings)[0])
+            ctx.update(self.resolve(self.variable_bindings)[0])
+
             ctx['self'] = self.__context_entity.id
             ctx['params'] = resolved_params
             result = eval(source, ctx)
@@ -1200,7 +1205,7 @@ class LocalEvaluationContext(EvaluationContext):
         elif source_type == EvaluationContext.TRANSIENT_FLUENT:
             result = World.logic_engine().evaluateCondition(source, *resolved_params, situation='s0')
         elif source_type == EvaluationContext.CONSTANT:
-            result = bool(World.logic_engine().getConstantValue(source, resolved_params))
+            result = bool(World.instance().getConstantValue(source, resolved_params))
         elif source_type in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
                              EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
             result = self.evaluate_python(source_type, source, *resolved_params)
@@ -1264,13 +1269,6 @@ class LocalEvaluationContext(EvaluationContext):
         """
         return World.logic_engine().create_message(connector, agent, msg_type, params)
 
-    def assignVariable(self, variableName, value):
-        """
-        :param str variableName: name of variable that should be set.
-        :param object value: the value to assign
-        """
-        self.__variable_bindings[variableName] = value
-
     def resolve(self, *terms, **kwargs):
         """
         Evaluates each term in terms and returns a list with the collected results.
@@ -1290,11 +1288,14 @@ class LocalEvaluationContext(EvaluationContext):
             if term is Entity.SELF:
                 gt = self.__context_entity.id
             elif isinstance(term, Variable):
-                if term.name not in self.__variable_bindings:
-                    if strict:
-                        raise SALMAException("Variable %s not bound." % term.name)
+                if term.name not in self.variable_bindings:
+                    if term.name not in self.global_variable_bindings:
+                        if strict:
+                            raise SALMAException("Variable %s not bound." % term.name)
+                        else:
+                            gt = (term.name, term.sort)
                     else:
-                        gt = (term.name, term.sort)
+                        gt = self.global_variable_bindings[term.name]
                 else:
                     gt = self.__variable_bindings[term.name]
             elif isinstance(term, (list, set)):

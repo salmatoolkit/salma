@@ -267,5 +267,45 @@ class Action(object):
         return "n/a"
 
 
+class FluentValue(object):
+    """
+    Stores the value of a fluent instance.
+    Note that no type is stored here.
+    """
 
+    def __init__(self, fluent_name, param_values, value):
+        """
+        :param str fluent_name: fluent name
+        :param list param_values: list of params
+        :param obj value: fluent value
+        """
+        self.__fluent_name = fluent_name
+        self.__param_values = param_values
+        self.__value = value
 
+    @property
+    def name(self):
+        return self.__fluent_name
+
+    @property
+    def params(self):
+        return self.__param_values
+
+    @property
+    def value(self):
+        return self.__value
+
+    def __str__(self):
+        s = self.__fluent_name
+        if len(self.__param_values) > 0:
+            s += "("
+            for p in self.__param_values[:-1]:
+                s += p + ", "
+            s += str(self.__param_values[-1]) + ")"
+
+        s += " = " + str(self.__value)
+        return s
+
+class ConstantValue(FluentValue):
+    def __init__(self, constant_name, params, value):
+        super().__init__(constant_name, params, value)

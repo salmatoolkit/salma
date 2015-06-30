@@ -133,7 +133,7 @@ class BasicSimulationTest(BaseWorldTest):
 
         self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 100)
         self.assertEqual(verdict, constants.OK)
-        self.assertTrue(450 <= world.getTime() <= 451)
+        self.assertTrue(450 <= world.getTime() <= 452)
         self.assertTrue(world.is_finished())
         print(info)
 

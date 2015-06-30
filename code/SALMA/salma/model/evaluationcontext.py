@@ -28,6 +28,11 @@ class EvaluationContext(object):
         self.__procedureCall = None
         self.__agent = None
         self.__process = None
+        self.__variable_bindings = dict()
+        if self.__parent is None:
+            self.__global_variables = dict()
+        else:
+            self.__global_variables = None
 
     def set_procedure_call(self, procedure_call):
         self.__procedureCall = procedure_call
@@ -143,12 +148,32 @@ class EvaluationContext(object):
         """
         Assigns the given value to the given variable name.
 
-        variable_name: name of the variable that should be set.
-        value: new value for variable
-
+        :param str variableName: name of variable that should be set.
+        :param object value: the value to assign
         """
-        raise NotImplementedError()
- 
+        self.__variable_bindings[variableName] = value
+
+    def assign_global_variable(self, var_name, value):
+        if self.__parent is None:
+            self.__global_variables[var_name] = value
+        else:
+            self.__parent.assignGlobalVariable(var_name, value)
+
+    @property
+    def variable_bindings(self):
+        return self.__variable_bindings
+
+    @property
+    def global_variable_bindings(self):
+        """
+        Returns the global variable bindings of the root context.
+        :rtype: dict[str, obj]
+        """
+        if self.__parent is None:
+            return self.__global_variables
+        else:
+            return self.__parent.global_variable_bindings
+
     def resolve(self, *terms, **kwargs):
         """
         Evaluates each term in terms and returns a list with the collected results.

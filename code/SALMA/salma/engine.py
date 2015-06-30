@@ -7,6 +7,7 @@ import pyclp
 from salma.SALMAException import SALMAException
 from .constants import *
 import salma
+from salma.model.core import FluentValue, ConstantValue
 import salma.termutils
 from salma.model.data import Term
 from salma.termutils import tuplify
@@ -14,49 +15,6 @@ from salma.formatutils import format_term
 
 MODULE_LOGGER_NAME = 'salma.engine'
 moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
-
-
-class FluentValue(object):
-    """
-    Stores the string representation of a fluent value together with its associated parameters.
-    Note that no type is stored here.
-    """
-
-    def __init__(self, fluentName, fluentParamValues, value):
-        """
-        fluentName: fluent name
-        fluentParamValues: list of params
-        value: fluent value in string form
-        """
-        self.__fluentName = fluentName
-        self.__fluentParamValues = fluentParamValues
-        self.__value = value
-
-    def getFluentName(self):
-        return self.__fluentName
-
-    fluentName = property(getFluentName)
-
-    def getFluentParamValues(self):
-        return self.__fluentParamValues
-
-    fluentParamValues = property(getFluentParamValues)
-
-    def getValue(self):
-        return self.__value
-
-    value = property(getValue)
-
-    def __str__(self):
-        s = self.__fluentName
-        if len(self.__fluentParamValues) > 0:
-            s += "("
-            for p in self.__fluentParamValues[:-1]:
-                s += p + ", "
-            s += str(self.__fluentParamValues[-1]) + ")"
-
-        s += " = " + str(self.__value)
-        return s
 
 
 class Engine(object):
@@ -67,14 +25,14 @@ class Engine(object):
     def getCurrentState(self):
         """
         returns a list of FluentValue objects.
-        :rtype: list[FluentValue]
+        :rtype: list[salma.model.core.FluentValue]
         """
         raise NotImplementedError()
 
     def restore_state(self, fluent_values):
         """
         Uses the given list of fluent values to update the world state.
-        :param list[FluentValue] fluent_values: the fluent values that define the state
+        :param list[salma.model.core.FluentValue] fluent_values: the fluent values that define the state
         """
         raise NotImplementedError()
 
@@ -200,9 +158,9 @@ class Engine(object):
         Returns the cached value for the given constant with the given parameters together with a flag that
         tells whether the value is defined, i.e. tuples of the form (defined, value).
 
-        :param constantName: str
-        :param constantParams: list
-        :rtype: (bool, object)
+        :param str constantName: the name of the constant
+        :param list constantParams: the parameters
+        :rtype: ConstantValue
         """
         raise NotImplementedError()
 
@@ -210,8 +168,9 @@ class Engine(object):
         """
         Returns true iff a value is defined for the given constant with the given parameters.
 
-        :param constantName: str
-        :param constantParams: list
+        :param str constantName: the name of the constant
+        :param list constantParams: the parameters
+        :rtype: bool
         """
         raise NotImplementedError()
 
@@ -416,9 +375,12 @@ class EclipseCLPEngine(Engine):
         self.__domain_init_function = domain_init_function
         self.__properties = dict()
         self.__constants = dict()
+        """:type : dict[(str, tuple), ConstantValue]"""
 
         # dict: (fluentName, tuple(fluentParams)) -> engine.FluentValue
         self.__currentState = None
+        """:type : dict[(str, tuple), FluentValue]"""
+
         if EclipseCLPEngine.__pyclp_initialized:
             pyclp.cleanup()
             EclipseCLPEngine.__pyclp_initialized = False
@@ -603,15 +565,18 @@ class EclipseCLPEngine(Engine):
 
     def getCurrentState(self):
         """
-        Returns a list of engine.FluentValue instances that contain the current state.
+        Returns a list of FluentValue instances that contain the current state.
         """
         self.__updateCurrentState()
-        return self.__currentState.values()
+        st = []
+        st.extend(self.__currentState.values())
+        st.extend(self.__constants.values())
+        return st
 
     def restore_state(self, fluent_values):
         """
         Uses the given list of fluent values to update the world state.
-        :param list[FluentValue] fluent_values: the fluent values that define the state
+        :param list[salma.model.core.FluentValue] fluent_values: the fluent values that define the state
         """
         self.__currentState = None
         for fv in fluent_values:
@@ -893,15 +858,18 @@ class EclipseCLPEngine(Engine):
         vterm = createParamTerms(value)[0]
         self.__callGoal("setConstant", pyclp.Atom(constantName),
                         pyclp.PList(pterms + [vterm]))
-        self.__constants[(constantName, tuple(constantParams))] = value
+        self.__constants[(constantName, tuple(constantParams))] = ConstantValue(constantName, constantParams,
+                                                                                value)
 
     def __retrieve_constant_value(self, constant_name, constant_params):
         """
-        Retrieves the value of the given constant from the engine. Returns
-        a tuple of form (defined, value).
+        Retrieves the value of the given constant from the engine. If the constant value
+        is not cached yet, the cache is updated.
+
+        Returns a ConstantValue or None if the constant is not defined.
         :param str constant_name: the constant name
         :param list|tuple constant_params: the constant params
-        :rtype: (bool, object)
+        :rtype: ConstantValue
         """
         pterms = createParamTerms(*constant_params)
         val = pyclp.Var()
@@ -909,24 +877,24 @@ class EclipseCLPEngine(Engine):
         goal = pyclp.Compound(constant_name, *pterms)
         goal.post_goal()
         result, _ = pyclp.resume()
-        value = None
         if result == pyclp.SUCCEED and val.value() is not None:
             value = self.__convert_value_from_engine_result(val.value())
-            self.__constants[(constant_name, tuple(constant_params))] = value
-            return True, value
+            cv = ConstantValue(constant_name, constant_params, value)
+            self.__constants[(constant_name, tuple(constant_params))] = cv
+            return cv
         else:
-            return False, None
+            return None
 
     def getConstantValue(self, constantName, constantParams):
-        v = None
         try:
-            d, v = True, self.__constants[(constantName, tuple(constantParams))]
+            constant_value = self.__constants[(constantName, tuple(constantParams))]
         except KeyError:
-            d, v = self.__retrieve_constant_value(constantName, constantParams)
-        return d, v
+            constant_value = self.__retrieve_constant_value(constantName, constantParams)
+
+        return constant_value
 
     def isConstantDefined(self, constantName, constantParams):
-        return (constantName, tuple(constantParams)) in self.__constants
+        return self.getConstantValue(constantName, constantParams) is not None
 
     def evaluationStep(self, interval_end=None):
         toplevel_results = pyclp.Var()
@@ -1232,6 +1200,4 @@ class EclipseCLPEngine(Engine):
         return self.__convert_value_from_engine_result(msgid.value())
 
 
-__all__ = ["Engine", "EclipseCLPEngine", "FluentValue", "createParamTerms", "create_term"]
-
-
+__all__ = ["Engine", "EclipseCLPEngine", "createParamTerms", "create_term"]
