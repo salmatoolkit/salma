@@ -11,8 +11,7 @@ from salma.mathutils import min_robust
 import random
 from collections.abc import Iterable
 
-MODULE_LOGGER_NAME = 'salma.model'
-moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
+logger = logging.getLogger(__name__)
 
 
 class EventSchedule:
@@ -242,8 +241,8 @@ class EventSchedule:
         # ignore failed events
         failed_intentional_actions = [fa for fa in failed if fa[0] not in self.__exogenous_actions]
 
-        if moduleLogger.isEnabledFor(logging.DEBUG):
-            moduleLogger.debug("  Progressed: %s, failed: %s", performed_actions, failed_intentional_actions)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("  Progressed: %s, failed: %s", performed_actions, failed_intentional_actions)
         return performed_actions, failed_intentional_actions
 
     def __translate_event_instances_from_raw(self, raw_event_instances, schedule):

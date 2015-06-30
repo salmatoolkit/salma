@@ -13,8 +13,7 @@ from salma.model.data import Term
 from salma.termutils import tuplify
 from salma.formatutils import format_term
 
-MODULE_LOGGER_NAME = 'salma.engine'
-moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
+logger = logging.getLogger(__name__)
 
 
 class Engine(object):

@@ -1,4 +1,4 @@
-from logging import DEBUG, INFO
+from logging import DEBUG, INFO, FileHandler, StreamHandler
 from unittest.case import TestCase
 import unittest
 from statsmodels.stats import proportion
@@ -9,12 +9,17 @@ from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.smctest_base_experiment_2 import SMCTestBaseExperiment2
 import json
 
-MODULE_LOGGER_NAME = 'salma.model'
-logging.basicConfig()
-module_logger = logging.getLogger(MODULE_LOGGER_NAME)
-module_logger.setLevel(INFO)
-module_logger.info("bla")
+MODULE_LOGGER_NAME = 'salma'
 
+logger = logging.getLogger(MODULE_LOGGER_NAME)
+logger.setLevel(DEBUG)
+sh = StreamHandler()
+sh.setLevel(INFO)
+logger.addHandler(sh)
+fh = FileHandler("smctest02.log", mode="w")
+fh.setLevel(DEBUG)
+logger.addHandler(fh)
+logger.info("bla")
 
 def report_step(world, step=None, actions=None, **kwargs):
     """
@@ -35,8 +40,7 @@ class SMCTest02(TestCase):
     """
 
     def setUp(self):
-        module_logger.info("setup")
-        print("setup")
+        logger.info("setup")
         with open("smctest02.json") as f:
             self.config = json.load(f)
             """:type : dict[str, obj]"""

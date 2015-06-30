@@ -9,8 +9,7 @@ import time
 import datetime
 from collections.abc import Callable
 
-MODULE_LOGGER_NAME = 'salma.model'
-moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
+logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_TIME_DELTA_PER_STEP = 100000
 DEFAULT_MAX_TRIALS = 500
@@ -128,22 +127,22 @@ class Experiment(object):
         problematic_fluents, problematic_constants = self.__world.check_fluent_initialization()
         failed = False
         if problematic_fluents is not None and len(problematic_fluents) > 0:
-            moduleLogger.error("Fluent initialization problems:\n{}".format(problematic_fluents))
+            logger.error("Fluent initialization problems:\n{}".format(problematic_fluents))
             failed = True
         if problematic_constants is not None and len(problematic_constants) > 0:
-            moduleLogger.error("Constant initialization problems:\n{}".format(problematic_constants))
+            logger.error("Constant initialization problems:\n{}".format(problematic_constants))
             failed = True
         (problematic_stochastic_actions, problematic_exogenous_actions,
          problematic_exogenous_action_choices) = self.__world.check_action_initialization()
 
         if problematic_stochastic_actions is not None and len(problematic_stochastic_actions) > 0:
-            moduleLogger.error("Stochastic Action initialization problems:\n{}".format(problematic_stochastic_actions))
+            logger.error("Stochastic Action initialization problems:\n{}".format(problematic_stochastic_actions))
             failed = True
         if problematic_exogenous_actions is not None and len(problematic_exogenous_actions) > 0:
-            moduleLogger.error("Exogenous Action initialization problems:\n{}".format(problematic_exogenous_actions))
+            logger.error("Exogenous Action initialization problems:\n{}".format(problematic_exogenous_actions))
             failed = True
         if problematic_exogenous_action_choices is not None and len(problematic_exogenous_action_choices) > 0:
-            moduleLogger.error(
+            logger.error(
                 "Exogenous Action Choice initialization problems:\n{}".format(problematic_exogenous_action_choices))
             failed = True
         if failed:
@@ -336,7 +335,7 @@ class SingleProcessExperimentRunner(ExperimentRunner):
         :param HypothesisTest hypothesis_test: the (sequential) hypothesis test to conduct
         :return:
         """
-        moduleLogger.info("Starting trials")
+        logger.info("Starting trials")
         check_initialization = kwargs.get("check_initialization", True)
         max_retrials = kwargs.get("max_retrials", 3)
         max_trials = kwargs.get("max_trials", DEFAULT_MAX_TRIALS)
@@ -359,14 +358,14 @@ class SingleProcessExperimentRunner(ExperimentRunner):
             trial_infos.append(res)
             if verdict == NONDET or verdict == CANCEL:
                 if verdict == CANCEL:
-                    moduleLogger.warn("Trail #{} was canceled! Reason: {}".format(trial_number, res["finish_reason"]))
+                    logger.warn("Trail #{} was canceled! Reason: {}".format(trial_number, res["finish_reason"]))
                 if verdict == NONDET:
-                    moduleLogger.warn("Received non-conclusive result for trial #{}!".format(trial_number))
+                    logger.warn("Received non-conclusive result for trial #{}!".format(trial_number))
                 if retrial < max_retrials:
                     retrial += 1
-                    moduleLogger.warn("Starting retrial #".format(retrial))
+                    logger.warn("Starting retrial #".format(retrial))
                 else:
-                    moduleLogger.warn("Maximum number of retrials reached ({}) --> giving up!".format(retrial))
+                    logger.warn("Maximum number of retrials reached ({}) --> giving up!".format(retrial))
                     break
             else:
                 retrial = 0
@@ -376,7 +375,7 @@ class SingleProcessExperimentRunner(ExperimentRunner):
                 else:
                     failures += 1
                 conclusive_trial_count += 1
-                moduleLogger.info(
+                logger.info(
                     "Trial #{} --> {}, steps = {}, time = {}".format(trial_number, verdict, res["steps"], res["time"]))
             trial_number += 1
 

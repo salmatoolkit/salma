@@ -21,9 +21,7 @@ from salma.mathutils import min_robust, max_robust
 from salma.termutils import tuplify
 import inspect
 
-
-MODULE_LOGGER_NAME = 'salma.model'
-moduleLogger = logging.getLogger(MODULE_LOGGER_NAME)
+logger = logging.getLogger(__name__)
 
 
 class World(Entity, WorldDeclaration):
@@ -962,8 +960,8 @@ class World(Entity, WorldDeclaration):
         :rtype: (bool, dict[str, int], dict, dict[str, list[int]], list, list, list)
         """
         current_time = self.getTime()
-        if moduleLogger.isEnabledFor(logging.DEBUG):
-            moduleLogger.debug("T = %d", current_time)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("T = %d", current_time)
         performed_actions = []
         failed_actions = []
         # update the actual event schedule using only the possibility and schedulability information at hand
@@ -1049,8 +1047,8 @@ class World(Entity, WorldDeclaration):
             assert isinstance(ie2, int)
             toplevel_results, scheduled_results, scheduled_keys, failure_stack = World.logic_engine().evaluationStep(
                 interval_end=ie2)
-            if moduleLogger.isEnabledFor(logging.DEBUG):
-                moduleLogger.debug(("  toplevel_results: {}\n"
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(("  toplevel_results: {}\n"
                                     "  scheduled_results: {}\n"
                                     "  scheduled_keys: {}").format(toplevel_results,
                                                                    scheduled_results,
