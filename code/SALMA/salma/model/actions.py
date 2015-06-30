@@ -13,7 +13,7 @@ class DeterministicAction(Action):
     it will be progressed immediately in the simulation loop instead of being interleaved with others.
     """
 
-    def __init__(self, name, parameters, atomic):
+    def __init__(self, name, parameters, atomic, break_on_failure=False):
         """
         Creates a deterministic action with the given name, parameters and atomicity setting.
 
@@ -23,10 +23,22 @@ class DeterministicAction(Action):
         """
         Action.__init__(self, name, parameters)
         self.__atomic = atomic
+        self.__break_on_failure = break_on_failure
 
     @property
     def atomic(self):
         return self.__atomic
+
+    @property
+    def break_on_failure(self) -> bool:
+        """
+        If break_on_failure is true, the experiment run will be canceled when an instance of this action fails.
+        """
+        return self.__break_on_failure
+
+    @break_on_failure.setter
+    def break_on_failure(self, bof: bool):
+        self.__break_on_failure = bof
 
     def __str__(self):
         return "DeterministicAction: {}({})".format(self.name, self.parameters, self.__atomic)

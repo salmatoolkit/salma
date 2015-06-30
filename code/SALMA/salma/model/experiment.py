@@ -2,6 +2,7 @@ import logging
 from salma.SALMAException import SALMAException
 from salma.constants import *
 from salma.engine import EclipseCLPEngine
+from salma.model.actions import DeterministicAction
 from salma.model.propertycollection import PropertyCollection
 from salma.model.world import World
 from salma.mathutils import min_robust
@@ -178,7 +179,7 @@ class Experiment(object):
         step_num = 0
         verdict = NONDET if check_verdict else None
         self.__property_collection.reset()
-        failed_regular_actions = []
+        failed_critical_actions = []
         c1 = c2 = time.clock()
         finish_reason = None
         failed_invariants = set()
@@ -199,7 +200,7 @@ class Experiment(object):
                 else:
                     time_limit = current_time + DEFAULT_MAX_TIME_DELTA_PER_STEP
 
-            (_, toplevel_results, scheduled_results, scheduled_keys, actions, failed_regular_actions,
+            (_, toplevel_results, scheduled_results, scheduled_keys, actions, all_failed_actions,
              failure_stack) = self.__world.step(
                 time_limit, evaluate_properties=check_verdict)
 
@@ -218,7 +219,7 @@ class Experiment(object):
                             verdict=verdict,
                             step=step_num, deltaT=delta_t,
                             actions=actions,
-                            failedActions=failed_regular_actions,
+                            failedActions=all_failed_actions,
                             toplevel_results=toplevel_results,
                             scheduled_results=scheduled_results,
                             pending_properties=scheduled_keys)
@@ -238,10 +239,16 @@ class Experiment(object):
                 finish_reason = break_reason
                 verdict = CANCEL
                 break
-            if failed_regular_actions is not None and len(failed_regular_actions) > 0:
-                finish_reason = "failed_actions"
-                verdict = CANCEL
-                break
+            if all_failed_actions is not None and len(all_failed_actions) > 0:
+                for fatuple in all_failed_actions:
+                    fa = self.world.getAction(fatuple[0])
+                    if isinstance(fa, DeterministicAction):
+                        if fa.break_on_failure:
+                            finish_reason = "failed_actions"
+                            verdict = CANCEL
+                            failed_critical_actions.append(fatuple)
+                if verdict == CANCEL:
+                    break
             if max_steps is not None and step_num >= max_steps:
                 finish_reason = "max_steps"
                 time_out = True
@@ -277,7 +284,7 @@ class Experiment(object):
         details = {'steps': step_num,
                    'time': duration,
                    'worldTime': world_time,
-                   'failedActions': failed_regular_actions,
+                   'failedActions': failed_critical_actions,
                    "finish_reason": finish_reason,
                    "failed_invariants": failed_invariants,
                    "failed_sustain_goals": failed_sustain_goals,

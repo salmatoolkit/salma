@@ -169,6 +169,9 @@ effect(carrying(Rob, Item), drop(Rob, Item), _, false, _).
 effect(carrying(Rob, Item), accidental_drop(Rob, Item), _, false, _).
 
 effect(grip(Rob), grab(Rob, _, NewGrip), _, NewGrip, _).
+effect(grip(Rob), drop(Rob, _), _, 0, _).
+effect(grip(Rob), accidental_drop(Rob, _), _, 0, _).
+
 
 effect(active(Rob), crash(Rob), _, false, _).
 effect(active(Rob), collision(R1, R2, I), _, false, _) :-
