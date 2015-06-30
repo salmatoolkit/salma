@@ -61,7 +61,6 @@ class SMCTestBaseExperiment2(Experiment):
         """
         myItem = Variable("myItem")
         proc = OneShotProcess([
-            Act("drop", [SELF, myItem]),
             Act("pickUp", [SELF, myItem]),
             While("xpos(self) < destX(myItem)", [
                 Act("move_right", [SELF]),
