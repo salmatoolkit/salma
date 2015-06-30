@@ -44,29 +44,24 @@ schedulable(finish_step(Rob), S) :-
 	moving(Rob, S).
 	
 
-effect(xpos(Robot), finish_step(Robot), OldX, X, S) :-
+effect(xpos(O), finish_step(Robot), _, X, S) :-
+	(O = Robot, ! ; carrying(Robot, O, S)),	
 	vx(Robot, Vx, S),
+	xpos(Robot, OldX, S),
 	X is OldX + Vx.
 
-effect(xpos(Robot), land_on(Robot, X, _), _, X, _).
-
-effect(xpos(Item), drop(Rob, Item), _, NewX, S) :-
-	xpos(Rob, RobX, S),
-	NewX is RobX.
-
-effect(xpos(Item), drop(Rob, Item), _, NewX, S) :-
-	xpos(Rob, RobX, S),
-	NewX is RobX.
-
-effect(ypos(Item), drop(Rob, Item), _, NewY, S) :-
-	ypos(Rob, RobY, S),
-	NewY is RobY.
+effect(xpos(O), land_on(Robot, X, _), _, X, _) :-
+	(O = Robot, ! ; carrying(Robot, O, S)).
 	
-effect(ypos(Robot), finish_step(Robot), OldY, Y, S) :-
+effect(ypos(O), finish_step(Robot), _, Y, S) :-
+	(O = Robot, ! ; carrying(Robot, O, S)),	
 	vy(Robot, Vy, S),
+	ypos(Robot, OldY, S),
 	Y is OldY + Vy.
 
-effect(ypos(Robot), land_on(Robot, _, Y), _, Y, _).
+effect(ypos(O), land_on(Robot, _, Y), _, Y, _) :-
+	(O = Robot, ! ; carrying(Robot, O, S)).	
+
 	
 effect(vx(Robot), finish_step(Robot), _, 0, _).
 effect(vy(Robot), finish_step(Robot), _, 0, _).

@@ -3,7 +3,8 @@ from salma.constants import SELF, INVARIANT, ACHIEVE
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ConstantDistribution, OptionalDistribution, ExponentialDistribution, \
-    BernoulliDistribution, NormalDistribution, CategoricalDistribution, ComposedDistribution, GeometricDistribution, Distribution, \
+    BernoulliDistribution, NormalDistribution, CategoricalDistribution, ComposedDistribution, GeometricDistribution, \
+    Distribution, \
     CustomDistribution
 from salma.model.experiment import Experiment
 from salma.model.procedure import Act, While, Wait, makevars, Assign, If, Variable
@@ -21,7 +22,7 @@ def generate_drop_delay_distribution(drop_probabilities):
         if g < 1 or g > len(drop_probabilities):
             raise SALMAException("No drop rate defined for "
                                  "grip quality {}.".format(g))
-        p = drop_probabilities[g-1]
+        p = drop_probabilities[g - 1]
         if p == 0:
             return None
         else:
@@ -40,7 +41,7 @@ class SMCTestBaseExperiment2(Experiment):
         self.num_robots = config["num_robots"]
         self.p_collision = config["p_collision"]
         self.time_limit = config["time_limit"]
-        self.grip_probs = [(i+1, gp) for i, gp in enumerate(config["grip_probs"])]
+        self.grip_probs = [(i + 1, gp) for i, gp in enumerate(config["grip_probs"])]
         self.drop_props = config["drop_probs"]
         self.destination_range = config["destination_range"]
 
@@ -65,7 +66,8 @@ class SMCTestBaseExperiment2(Experiment):
                 Act("move_right", [SELF]),
                 Wait("not moving(self)")
             ]),
-            Act("drop", [SELF, myItem])
+            If("carrying(self, myItem)",
+               Act("drop", [SELF, myItem]))
         ])
         agent = Agent("rob" + str(num), "robot", [proc], myItem="item" + str(num))
         return agent
