@@ -4,21 +4,17 @@ import unittest
 from statsmodels.stats import proportion
 from scipy.stats import geom
 import logging
+import logging.config
 from salma.model.experiment import SingleProcessExperimentRunner
 from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.smctest_base_experiment_2 import SMCTestBaseExperiment2
 import json
 
-MODULE_LOGGER_NAME = 'salma'
 
+
+MODULE_LOGGER_NAME = 'salma'
+logging.config.fileConfig("smctest02.logging.conf")
 logger = logging.getLogger(MODULE_LOGGER_NAME)
-logger.setLevel(DEBUG)
-sh = StreamHandler()
-sh.setLevel(INFO)
-logger.addHandler(sh)
-fh = FileHandler("smctest02.log", mode="w")
-fh.setLevel(DEBUG)
-logger.addHandler(fh)
 logger.info("bla")
 
 def report_step(world, step=None, actions=None, **kwargs):
