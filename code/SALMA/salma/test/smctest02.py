@@ -62,7 +62,7 @@ class SMCTest02(TestCase):
         for i in range(0, samples):
             _, res, trial_infos = runner.run_trials(self.experiment,
                                                     number_of_trials=sample_length,
-                                                    step_listeners=[report_step])
+                                                    max_retrials=0)
             print(trial_infos)
             self.assertEqual(sample_length, len(res))
             self.assertEqual(sample_length, len(trial_infos))
