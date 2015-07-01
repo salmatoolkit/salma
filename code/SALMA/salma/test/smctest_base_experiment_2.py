@@ -42,7 +42,7 @@ class SMCTestBaseExperiment2(Experiment):
         self.p_collision = config["p_collision"]
         self.time_limit = config["time_limit"]
         self.grip_probs = [(i + 1, gp) for i, gp in enumerate(config["grip_probs"])]
-        self.drop_props = config["drop_probs"]
+        self.drop_probs = config["drop_probs"]
         self.destination_range = config["destination_range"]
 
     def __place_agents_in_column(self, x):
@@ -96,7 +96,7 @@ class SMCTestBaseExperiment2(Experiment):
         grab.map_param("r", "r"), grab.map_param("i", "i")
         grab.set_param_distribution("grip", CategoricalDistribution("integer", self.grip_probs))
 
-        drop_delay_fn = generate_drop_delay_distribution(self.drop_props)
+        drop_delay_fn = generate_drop_delay_distribution(self.drop_probs)
 
         world.get_exogenous_action(
             "accidental_drop").config.occurrence_distribution = CustomDistribution("integer", drop_delay_fn)

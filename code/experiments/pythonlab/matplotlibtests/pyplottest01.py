@@ -26,6 +26,6 @@ assert isinstance(fig, Figure)
 xaxis = fig.axes[0].get_xaxis()
 print(xaxis)
 
-fig.axes[0].get_xaxis().set_visible(False)
-fig.axes[0].get_yaxis().set_visible(False)
+# fig.axes[0].get_xaxis().set_visible(False)
+# fig.axes[0].get_yaxis().set_visible(False)
 plt.show()

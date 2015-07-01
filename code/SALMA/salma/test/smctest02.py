@@ -9,6 +9,11 @@ from salma.model.experiment import SingleProcessExperimentRunner
 from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.smctest_base_experiment_2 import SMCTestBaseExperiment2
 import json
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy
+import scipy.stats
+import pandas as pd
 
 
 
@@ -46,7 +51,7 @@ class SMCTest02(TestCase):
         self.experiment.initialize()
         # self.experiment.step_listeners.append(report_step)
 
-    #@unittest.skip("too long")
+    @unittest.skip("too long")
     def test_confidence_interval_estimation(self):
         runner = SingleProcessExperimentRunner()
         sample_length = self.config["sample_length"]
@@ -128,10 +133,13 @@ class SMCTest02(TestCase):
         fail_prob_one_robot = 0
         p_dist = 1 / (self.experiment.destination_range[1] - self.experiment.destination_range[0] + 1)
         for dist in range(self.experiment.destination_range[0], self.experiment.destination_range[1] + 1):
-            for (gprobspec, dprop) in zip(self.experiment.grip_probs, self.experiment.drop_props):
+            for (gprobspec, dprop) in zip(self.experiment.grip_probs, self.experiment.drop_probs):
                 fail_prob_one_robot += p_dist * gprobspec[1] * geom.cdf(dist, dprop)
         real_prob = (1.0 - fail_prob_one_robot) ** self.experiment.num_robots
         return real_prob
 
     def test_calc_prob(self):
         print("real probability: {}".format(self.calc_real_prob()))
+
+    def test_visualize(self):
+        pass
