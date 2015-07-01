@@ -51,7 +51,7 @@ class SMCTest02(TestCase):
         self.experiment.initialize()
         # self.experiment.step_listeners.append(report_step)
 
-    @unittest.skip("too long")
+    #@unittest.skip("too long")
     def test_confidence_interval_estimation(self):
         runner = SingleProcessExperimentRunner()
         sample_length = self.config["sample_length"]

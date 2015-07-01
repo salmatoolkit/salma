@@ -141,5 +141,9 @@ forall(r:robot,
         self.property_collection.register_property("f", f_str, INVARIANT,
                                                    time_limit=self.time_limit)
 
-        g_str = "forall(i:item, xpos(i) = destX(i))"
+        g_str = """
+forall(i:item, and(
+    xpos(i) = destX(i),
+    not(exists(r:robot, carrying(r, i) ))))
+"""
         self.property_collection.register_property("g", g_str, ACHIEVE)
