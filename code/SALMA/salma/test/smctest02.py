@@ -51,7 +51,7 @@ class SMCTest02(TestCase):
         self.experiment.initialize()
         # self.experiment.step_listeners.append(report_step)
 
-    #@unittest.skip("too long")
+    @unittest.skip("too long")
     def test_confidence_interval_estimation(self):
         runner = SingleProcessExperimentRunner()
         sample_length = self.config["sample_length"]
@@ -103,7 +103,7 @@ class SMCTest02(TestCase):
         self.assertAlmostEqual(real_prob, estimated_prob, delta=estimation_tolerance)
         self.assertTrue(interval_hit_ratio >= (1.0 - alpha))
 
-    @unittest.skip("too long")
+    #@unittest.skip("too long")
     def test_sprt(self):
         runner = SingleProcessExperimentRunner()
 
@@ -112,8 +112,8 @@ class SMCTest02(TestCase):
         report_lines = []
         """:type : list[dict]"""
 
-        while p <= 0.35:
-            sprt = SequentialProbabilityRatioTest(p - 0.05, min(1, p + 0.05), 0.05, 0.05)
+        while p <= 0.1:
+            sprt = SequentialProbabilityRatioTest(p - 0.01, min(1, p + 0.01), 0.05, 0.05)
             accepted_hypothesis, res, trial_infos = runner.run_trials(self.experiment,
                                                                       hypothesis_test=sprt,
                                                                       step_listeners=[report_step],
@@ -124,7 +124,7 @@ class SMCTest02(TestCase):
             print("Trials: {}".format(trials))
             report_lines.append(dict(p=p, hyp=accepted_hypothesis, trials=trials))
             p += 0.05
-        with open("smctest01.csv", "w") as f:
+        with open("smctest02_sprt.csv", "w") as f:
             f.write("P;HYP;TRIALS\n")
             for line in report_lines:
                 f.write("{p:.3};{hyp};{trials}\n".format(**line))
@@ -139,7 +139,7 @@ class SMCTest02(TestCase):
         return real_prob
 
     def test_calc_prob(self):
-        print("real probability: {}".format(self.calc_real_prob()))
+        print("real probability: {:.50}".format(self.calc_real_prob()))
 
     def test_visualize(self):
         pass
