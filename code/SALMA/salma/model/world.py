@@ -1157,8 +1157,7 @@ class LocalEvaluationContext(EvaluationContext):
         """
         EvaluationContext.__init__(self, parent)
         self.__context_entity = context_entity
-        self.__variable_bindings = dict()  # variable name
-        self.__variable_bindings[Entity.SELF] = self.__context_entity
+        self.variable_bindings[Entity.SELF] = self.__context_entity
 
     def evaluate_python(self, source_type, source, *resolved_params):
         result = None
@@ -1175,7 +1174,7 @@ class LocalEvaluationContext(EvaluationContext):
             result = source(*resolved_params)
         elif source_type == EvaluationContext.EXTENDED_PYTHON_FUNCTION:  # is python function
             ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.resolve(self.__variable_bindings)[0])
+            ctx.update(self.resolve(self.variable_bindings)[0])
             ctx['agent'] = self.__context_entity  # don't call it self here to avoid confusion in function
             ctx['ctx'] = self
             result = source(*resolved_params, **ctx)
@@ -1295,7 +1294,7 @@ class LocalEvaluationContext(EvaluationContext):
                     else:
                         gt = self.global_variable_bindings[term.name]
                 else:
-                    gt = self.__variable_bindings[term.name]
+                    gt = self.variable_bindings[term.name]
             elif isinstance(term, (list, set)):
                 gt = list()
                 for t in term:
