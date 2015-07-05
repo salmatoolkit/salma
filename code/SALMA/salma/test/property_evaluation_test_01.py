@@ -1,18 +1,15 @@
 import unittest
 
 from salma.model.agent import Agent
-from salma.model.core import Entity, Constant
+from salma.model.core import Entity
 from salma.model.distributions import ConstantDistribution
-from salma.model.experiment import Experiment
-from salma.model.selectionstrategy import Stepwise
-from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, Act, Procedure, While, Wait
-from salma.model.process import OneShotProcess, PeriodicProcess
+from salma.experiment import Experiment
+from salma.model.procedure import Act, Procedure, While, Wait
+from salma.model.process import OneShotProcess
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 from salma.test.world_test_base import BaseWorldTest
 from salma.constants import *
-from datetime import datetime, timedelta
 
 
 class PropertyEvaluationTest01(BaseWorldTest):

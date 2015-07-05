@@ -1,4 +1,7 @@
 import logging
+import random
+import unittest
+
 from salma.SALMAException import SALMAException
 from salma.constants import INVARIANT, ACHIEVE, OK
 from salma.engine import EclipseCLPEngine
@@ -7,14 +10,10 @@ from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ExponentialDistribution, ConstantDistribution, \
     BernoulliDistribution, NormalDistribution
-from salma.model.evaluationcontext import EvaluationContext
-from salma.model.experiment import Experiment
+from salma.experiment import Experiment
 from salma.model.procedure import Sequence, Assign, Act, Variable
 from salma.model.selectionstrategy import Stepwise
 from salma.model.world import World
-import random
-
-import unittest
 
 
 def steplogger(world: World, **kwargs):

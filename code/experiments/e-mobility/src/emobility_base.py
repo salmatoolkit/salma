@@ -8,13 +8,12 @@ import numpy as np
 
 from salma.model.data import Term
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.experiment import Experiment
+from salma.experiment import Experiment
 from map_generator import MapGenerator
 from map_translator import MapTranslator
 from visualizer import Visualizer
 from salma.model.world import World
 from salma.model.core import Action
-
 
 ASPECT_RATIO = 1.4
 FIG_HEIGHT = 8

@@ -1,12 +1,11 @@
 import math
+
 from salma import constants
 from salma.model.agent import Agent
 from salma.model.core import Entity
-from salma.model.experiment import Experiment
+from salma.experiment import Experiment
 from salma.model.process import OneShotProcess
 from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
-from salma.model.distributions import BernoulliDistribution, ConstantDistribution, OptionalDistribution, \
-    ExponentialDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import ControlNode, While, Act, Wait, Procedure, Sequence, Assign, FunctionControlNode, Variable
 from salma.model.world import World

@@ -1,13 +1,15 @@
-from logging import DEBUG, INFO
+from logging import INFO
 from unittest.case import TestCase
 import unittest
+import logging
+import json
+
 from statsmodels.stats import proportion
 from scipy.stats import geom
-import logging
-from salma.model.experiment import SingleProcessExperimentRunner
+
+from salma.experiment import SingleProcessExperimentRunner
 from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.smctest_base_experiment import SMCTestBaseExperiment
-import json
 
 MODULE_LOGGER_NAME = 'salma.model'
 logging.basicConfig()

@@ -1,6 +1,6 @@
 from statsmodels.stats import proportion
 
-from salma.model.experiment import SingleProcessExperimentRunner
+from salma.experiment import SingleProcessExperimentRunner
 from salma.statistics import SequentialProbabilityRatioTest
 from emobility_scenario_1 import EMobilityScenario1, ESTIMATION, VISUALIZE, HYPTEST
 from emobility_base import print_timing_info

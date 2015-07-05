@@ -3,7 +3,7 @@ import logging
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ConstantDistribution, BernoulliDistribution, Never, NormalDistribution
-from salma.model.experiment import Experiment
+from salma.experiment import Experiment
 from salma.model.procedure import While, Act, Wait, Procedure
 
 

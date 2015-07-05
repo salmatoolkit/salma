@@ -1,21 +1,15 @@
-from logging import DEBUG, INFO, FileHandler, StreamHandler
 from unittest.case import TestCase
 import unittest
-from statsmodels.stats import proportion
-from scipy.stats import geom
 import logging
 import logging.config
-from salma.model.experiment import SingleProcessExperimentRunner
+import json
+
+from statsmodels.stats import proportion
+from scipy.stats import geom
+
+from salma.experiment import SingleProcessExperimentRunner
 from salma.statistics import SequentialProbabilityRatioTest
 from salma.test.smctest_base_experiment_2 import SMCTestBaseExperiment2
-import json
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy
-import scipy.stats
-import pandas as pd
-
-
 
 MODULE_LOGGER_NAME = 'salma'
 logging.config.fileConfig("smctest02.logging.conf")

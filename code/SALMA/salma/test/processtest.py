@@ -1,16 +1,14 @@
-from salma.model.experiment import Experiment
+from salma.experiment import Experiment
 from salma.model.world import World
 from salma.model.core import Entity
-from salma.model.distributions import BernoulliDistribution, ConstantDistribution, OptionalDistribution, \
-    ExponentialDistribution
+from salma.model.distributions import ConstantDistribution
 
 from salma.test.testhelpers import withHeader
 from salma.model.agent import Agent
 from salma.model import process
-from salma.model.procedure import Procedure, Act, While, Sequence, Wait
+from salma.model.procedure import Procedure, Act, While, Wait
 from salma.test.world_test_base import BaseWorldTest
 from salma import constants
-from salma.model.evaluationcontext import EvaluationContext
 
 
 class ProcessTest(BaseWorldTest):

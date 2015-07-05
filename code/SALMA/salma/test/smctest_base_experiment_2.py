@@ -1,15 +1,14 @@
+import numpy as np
+
 from salma.SALMAException import SALMAException
 from salma.constants import SELF, INVARIANT, ACHIEVE
 from salma.model.agent import Agent
 from salma.model.core import Entity
-from salma.model.distributions import ConstantDistribution, OptionalDistribution, ExponentialDistribution, \
-    BernoulliDistribution, NormalDistribution, CategoricalDistribution, ComposedDistribution, GeometricDistribution, \
-    Distribution, \
+from salma.model.distributions import ConstantDistribution, BernoulliDistribution, CategoricalDistribution, \
     CustomDistribution
-from salma.model.experiment import Experiment
-from salma.model.procedure import Act, While, Wait, makevars, Assign, If, Variable
+from salma.experiment import Experiment
+from salma.model.procedure import Act, While, Wait, If, Variable
 from salma.model.process import OneShotProcess
-import numpy as np
 
 
 def generate_drop_delay_distribution(drop_probabilities):

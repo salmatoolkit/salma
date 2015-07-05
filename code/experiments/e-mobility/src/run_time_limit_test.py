@@ -1,7 +1,7 @@
 import numpy as np
 from pandas import DataFrame
 
-from salma.model.experiment import SingleProcessExperimentRunner
+from salma.experiment import SingleProcessExperimentRunner
 from emobility_scenario_1 import EMobilityScenario1, ESTIMATION
 
 
