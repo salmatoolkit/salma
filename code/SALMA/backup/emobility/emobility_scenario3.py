@@ -14,7 +14,7 @@ from salma.test.emobility.map_translator import MapTranslator
 from salma.model.world import World
 from salma.test.emobility.emobility_base import EMobilityBase
 import salma.test.emobility.utils as utils
-from salma.statistics import SequentialProbabilityRatioTest
+from salma.statistics import SPRT
 
 
 HYPTEST, ESTIMATION, VISUALIZE = range(3)
@@ -233,7 +233,7 @@ class EMobilityScenario3(EMobilityBase):
 
         # assumption success prob = 0.6 --> H0: p <= 0.4
         if _MODE == HYPTEST:
-            sprt = SequentialProbabilityRatioTest(0.6, 0.7, 0.01, 0.01)
+            sprt = SPRT(0.6, 0.7, 0.01, 0.01)
             accepted_hypothesis, results, info = world.run_repetitions(hypothesis_test=sprt)
             print("SPRT")
             print("Conducted tests: {}".format(len(results)))

@@ -8,7 +8,7 @@ from statsmodels.stats import proportion
 from scipy.stats import geom
 
 from salma.experiment import SingleProcessExperimentRunner
-from salma.statistics import SequentialProbabilityRatioTest
+from salma.statistics import SPRT
 from salma.test.smctest_base_experiment import SMCTestBaseExperiment
 
 MODULE_LOGGER_NAME = 'salma.model'
@@ -109,7 +109,7 @@ class SMCTest01(TestCase):
         """:type : list[dict]"""
 
         while p <= 0.35:
-            sprt = SequentialProbabilityRatioTest(p - 0.05, min(1, p + 0.05), 0.05, 0.05)
+            sprt = SPRT(p - 0.05, min(1, p + 0.05), 0.05, 0.05)
             accepted_hypothesis, res, trial_infos = runner.run_trials(self.experiment,
                                                                       hypothesis_test=sprt,
                                                                       step_listeners=[report_step],

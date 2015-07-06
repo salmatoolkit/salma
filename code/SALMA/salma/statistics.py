@@ -20,7 +20,7 @@ class HypothesisTest(object):
         raise NotImplementedError()
 
 
-class SequentialProbabilityRatioTest(HypothesisTest):
+class SPRT(HypothesisTest):
     """
     An implementation of the sequential hypothesis test proposed by A. Wald.
     Tests the hypothesis that the probability of failure for an experiment is

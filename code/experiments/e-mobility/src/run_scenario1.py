@@ -1,7 +1,7 @@
 from statsmodels.stats import proportion
 
 from salma.experiment import SingleProcessExperimentRunner
-from salma.statistics import SequentialProbabilityRatioTest
+from salma.statistics import SPRT
 from emobility_scenario_1 import EMobilityScenario1, ESTIMATION, VISUALIZE, HYPTEST
 from emobility_base import print_timing_info
 
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     # assumption success prob = 0.6 --> H0: p <= 0.4
     if _MODE == HYPTEST:
-        sprt = SequentialProbabilityRatioTest(0.59, 0.61, 0.05, 0.05)
+        sprt = SPRT(0.59, 0.61, 0.05, 0.05)
         accepted_hypothesis, results, info = runner.run_trials(sc1, hypothesis_test=sprt)
         print("SPRT")
         print("Conducted tests: {}".format(len(results)))
