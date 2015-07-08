@@ -1,7 +1,9 @@
+from io import StringIO
 from salma.SALMAException import SALMAException
 from salma.constants import *
 from salma.engine import Engine
 from itertools import chain
+import re
 
 
 class PropertyCollection:
@@ -102,7 +104,7 @@ class PropertyCollection:
                 break
 
         if (verdict == NONDET and all_achieved is True
-                and len(pending_properties) == 0):
+            and len(pending_properties) == 0):
             verdict = OK
 
         return verdict, failed_invariants, failed_sustain_goals
@@ -117,7 +119,7 @@ class PropertyCollection:
         if property_type not in (INVARIANT, ACHIEVE, ACHIEVE_AND_SUSTAIN):
             raise SALMAException("Unknown property type: {}".format(property_type))
         if (property_name in self.__invariants or property_name in self.__achieve_goals
-                or property_name in self.__achieve_and_sustain_goals):
+            or property_name in self.__achieve_and_sustain_goals):
             raise SALMAException("Property {} already registered.".format(property_name))
 
         try:
@@ -125,6 +127,9 @@ class PropertyCollection:
         except KeyError as ke:
             raise SALMAException("Parameter {} of property {} not specified in register_property.".format(
                 str(ke), property_name))
+        except IndexError as ie:
+            raise SALMAException(
+                "Positional parameters of the form {{}} are not allowed in SALMA property specifications.")
 
         if property_type == INVARIANT:
             self.__invariants[property_name] = (formula, property_type)
@@ -201,3 +206,43 @@ class PropertyCollection:
 
     def reset(self):
         self.__already_achieved_goals.clear()
+
+    def load_from_string(self, specs, **kwargs):
+        """
+        Loads properties from the given string. The properties have to be specified in the following format:
+
+        INVARIANT F: ...
+
+        GOAL G: ...
+        :param str specs: the string containing the properties
+        """
+        lines = specs.splitlines()
+        startpattern = re.compile(r"^\s*(\w+)\s+(\S+?)\s*:(.*)$")
+        current_proptype = None
+        current_propname = None
+        current_prop_lines = []
+        for l in lines:
+            m = startpattern.match(l)
+            if m is not None:
+                if current_propname is not None:
+                    formula = "".join(current_prop_lines)
+                    self.register_property(current_propname, formula, current_proptype, **kwargs)
+                current_proptype = INVARIANT if m.group(1).casefold() == "invariant" else ACHIEVE
+                current_propname = m.group(2)
+                restline = m.group(3).strip()
+                current_prop_lines = []
+            else:
+                restline = l.strip()
+
+            if len(restline) > 0:
+                current_prop_lines.append(restline)
+
+        if current_propname is not None:
+            formula = "".join(current_prop_lines)
+            self.register_property(current_propname, formula, current_proptype, **kwargs)
+
+    def load_from_file(self, path, **kwargs):
+        spec = None
+        with open(path) as fd:
+            spec = fd.read()
+        self.load_from_string(spec, **kwargs)

@@ -159,7 +159,13 @@ create_relational_fluent_use(FluentName, Subterms, Out, Situation) :-
 		append(HandledSubterms, [Situation], HandledSubterms2),
 		T =.. [FluentName | HandledSubterms2],
 		append(InitGoals, [T], Subterms2),
-		Out = c_(Subterms2).		
+		Out = c_(Subterms2).
+
+create_predicate_use(PredicateName, Subterms, Out, Situation) :-
+		gather_evaluations_list(Subterms, HandledSubterms, [], InitGoals, Situation),
+		T =.. [PredicateName | HandledSubterms],
+		append(InitGoals, [T], Subterms2),
+		Out = c_(Subterms2).	
 		
 		
 	% idea: 
@@ -216,8 +222,11 @@ compile_constraints_term(T, Out, Situation) :-
 			isFluent(Functor, boolean),
 			T =.. [_ | Subterms],
 			create_relational_fluent_use(Functor, Subterms, Out, Situation),	!
-			;				
-			
+			;
+			is_predicate(Functor/N), not member(Functor, [and, or, not]),
+			T =.. [_ | Subterms],
+			create_predicate_use(Functor, Subterms, Out, Situation), !
+			;			
 			% for all other cases we need to handle the subterms
 			(N > 0 ->	
 				% for a change test, create a variable to use as situation for all enclosed fluents

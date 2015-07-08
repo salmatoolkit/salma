@@ -15,7 +15,7 @@ class SALMAException(Exception):
         return self.__message
 
     def __str__(self):
-        return "SALMAException: {}".format(self.__message)
+        return "{}".format(self.__message)
 
 
 

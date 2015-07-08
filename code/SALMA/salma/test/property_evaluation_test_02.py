@@ -328,6 +328,7 @@ forall(r : robot,
         print("Verdict: " + str(verdict))
         self.assertEqual(verdict, NOT_OK)
 
+    @unittest.skip
     def _test_variable_in_timelimit(self, max_x):
         world = World.instance()
         p1 = OneShotProcess([
@@ -343,15 +344,6 @@ forall(r : robot,
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=0)
 
-        f_str= """
-        implies(occur(grab(rob1, item1))
-"""
-
-        f_str = ""
-        e = Experiment(world)
-
-
-        e.property_collection.register_property("f", f_str, INVARIANT)
 
 
 

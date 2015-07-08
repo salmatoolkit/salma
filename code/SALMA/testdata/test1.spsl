@@ -1,0 +1,14 @@
+INVARIANT F : forall(r:robot, forall(i:item,
+        until({time_limit1},
+            implies(
+                occur(grab(r,i)),
+                until({time_limit2},
+                    carrying(r,i),
+                    not(carrying(r,i))
+                )
+            ),
+            xpos(r) >= {xgoal}
+        )
+))
+
+  goal g: forall(r:robot, xpos(r) >= {xgoal})

@@ -555,3 +555,14 @@ test_occur_expression(F2) :-
 			let(y1: ypos(rob1) + 5,
 				occur(land_on(rob1, x1, y1)))),
 	register_property(f, F, F2).
+
+foo(In, Out) :-
+	Out is In*42.
+	
+bar(In) :-
+	In > 42.
+	
+test_prolog_goals(F2) :-
+	init,
+	F = and(foo(xpos(rob1)) == 420, bar(xpos(rob1) *10)),
+	register_property(f, F, F2).

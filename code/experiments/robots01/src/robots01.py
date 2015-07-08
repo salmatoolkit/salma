@@ -11,6 +11,7 @@ from salma.model.distributions import ConstantDistribution, BernoulliDistributio
 from salma.experiment import Experiment, SingleProcessExperimentRunner
 from salma.model.procedure import Act, While, Wait, If, Variable
 from salma.model.process import OneShotProcess
+from salma.psl.internaldsl import *
 
 
 def generate_drop_delay_distribution(drop_probabilities):
@@ -132,11 +133,7 @@ forall(r:robot,
             occur(grab(r, i, ?)),
             until({time_limit},
                 carrying(r, i),
-                xpos(i) = destX(i)
-            )
-        )
-    )
-)
+                xpos(i) = destX(i)))))
 """
         self.property_collection.register_property("f", f_str, INVARIANT,
                                                    time_limit=self.time_limit)
