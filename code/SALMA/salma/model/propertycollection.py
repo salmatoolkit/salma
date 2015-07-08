@@ -121,7 +121,7 @@ class PropertyCollection:
             raise SALMAException("Property {} already registered.".format(property_name))
 
         try:
-            formula = formula.format(**kwargs)
+            formula = str(formula).format(**kwargs)
         except KeyError as ke:
             raise SALMAException("Parameter {} of property {} not specified in register_property.".format(
                 str(ke), property_name))

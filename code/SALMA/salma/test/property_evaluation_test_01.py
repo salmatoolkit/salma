@@ -10,10 +10,10 @@ from salma.model.world import World
 from salma.test.testhelpers import withHeader
 from salma.test.world_test_base import BaseWorldTest
 from salma.constants import *
+from salma.psl.internaldsl import *
 
 
 class PropertyEvaluationTest01(BaseWorldTest):
-
     def setUp(self):
         super().setUp()
         world = World.instance()
@@ -40,20 +40,16 @@ class PropertyEvaluationTest01(BaseWorldTest):
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=x)
 
-        f_str = """
-forall(r:robot,
-    implies(
-        occur(paint(r,?)),
-        until({},
-            true,
-            xpos(r) >= {}
-        )
-    )
-)
-""".format(time_limit, x_prop_goal)
+        f = Forall("r", "robot",
+                   Implies(
+                       Occur("paint", ["r", "?"]),
+                       Until("{time_limit}", True, "xpos(r) >= {x_prop_goal}")
+                   ))
+        print("Testing property: {}".format(str(f)))
         experiment = Experiment(world)
         experiment.step_listeners.append(lambda world, **args: print(world.getFluentValue("xpos", ["rob1"])))
-        experiment.property_collection.register_property("f", f_str, INVARIANT)
+        experiment.property_collection.register_property("f", f, INVARIANT, time_limit=time_limit,
+                                                         x_prop_goal=x_prop_goal)
         verdict, results = experiment.run_experiment()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
@@ -152,4 +148,3 @@ forall([r,robot], until({}, xpos(r) > {}, xpos(r) > {}))
 
 if __name__ == '__main__':
     unittest.main()
-

@@ -328,6 +328,32 @@ forall(r : robot,
         print("Verdict: " + str(verdict))
         self.assertEqual(verdict, NOT_OK)
 
+    def _test_variable_in_timelimit(self, max_x):
+        world = World.instance()
+        p1 = OneShotProcess([
+            Act("grab", [SELF, "item1"]),
+            While("xpos(self) < max_x", [
+                Act("move_right", [SELF]),
+                Wait("not moving(self)")
+            ])])
+        rob1 = Agent("rob1", "robot", [p1], max_x=max_x)
+        world.addAgent(rob1)
+        world.addEntity(Entity("item1", "item"))
+        world.initialize(False)
+        self.setNoOneCarriesAnything()
+        self.place_agents_in_column(x=0)
+
+        f_str= """
+        implies(occur(grab(rob1, item1))
+"""
+
+        f_str = ""
+        e = Experiment(world)
+
+
+        e.property_collection.register_property("f", f_str, INVARIANT)
+
+
 
 if __name__ == '__main__':
     unittest.main()
