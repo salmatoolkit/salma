@@ -563,8 +563,30 @@ foo(In, Out) :-
 	
 bar(In) :-
 	In > 42.
+
+maxxpos(XMax) :-
+	domain(robot, Robots, s0),
+	member(R, Robots),
+	xpos(R, XMax, s0),
+	not (
+		member(R2, Robots),
+		R \= R2,
+		xpos(R2, XR2, s0),
+		XR2 > XMax
+	), !.
+	
+	
 	
 test_prolog_goals(F2) :-
 	init,
 	F = and(foo(xpos(rob1)) == 420, bar(xpos(rob1) *10)),
+	register_property(f, F, F2).
+	
+test_prolog_function(F2) :-
+	init,
+	F = forall(r:robot,
+			implies(
+				occur(grab(r,?)),
+				let(mx:maxxpos,
+					eventually(50, xpos(r) > mx)))),
 	register_property(f, F, F2).

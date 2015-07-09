@@ -135,7 +135,12 @@ gather_evaluations_term(T, Out, InList, OutList, Situation):-
 			;
 			% we might have a function, a constant, or an atom
 			% if arity > 0 then it can't be an atom
-			((N > 0, ! ; constant(Functor, _, _)) ->		
+			((N > 0, ! ; 
+				% we could have a predicate that has only on one "return" argument
+				atom(Functor),
+				is_predicate(Functor/1), !
+				;
+				constant(Functor, _, _)) ->		
 				var(NewVar),
 				append(Subterms2, [NewVar], Subterms3),
 				T2 =.. [Functor | Subterms3],
