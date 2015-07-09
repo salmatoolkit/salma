@@ -545,8 +545,10 @@ test_until_occur :-
 	
 test_eventually_with_time_bound_expression(F2) :-
 	init,
-	F = let(t:xpos(rob1)*2,
-		eventually(t, xpos(rob1) > 20)),
+	F = implies(
+			occur(grab(rob1, item1)),
+			let(t: marking(item1) * 2 - time,
+				eventually(t, xpos(rob1) > 20))),
 	register_property(f, F, F2).
 	
 test_occur_expression(F2) :-
