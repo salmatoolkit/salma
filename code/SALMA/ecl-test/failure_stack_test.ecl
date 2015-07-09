@@ -68,3 +68,5 @@ test01 :-
 	F = forall(i:item, marking(i) < 10),
 	register_property(f, F, _).
 	
+test02 :-
+	init.
