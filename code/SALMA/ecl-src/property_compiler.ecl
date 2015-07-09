@@ -219,11 +219,11 @@ compile_constraints_term(T, Out, Situation) :-
 			T =.. [_ | Subterms],
 			create_constraint(Functor, Subterms, Out, Situation), ! 
 			;
-			isFluent(Functor, boolean),
+			atom(Functor), isFluent(Functor, boolean),
 			T =.. [_ | Subterms],
 			create_relational_fluent_use(Functor, Subterms, Out, Situation),	!
 			;
-			is_predicate(Functor/N), not member(Functor, [and, or, not]),
+			atom(Functor), is_predicate(Functor/N), not member(Functor, [and, or, not]),
 			T =.. [_ | Subterms],
 			create_predicate_use(Functor, Subterms, Out, Situation), !
 			;			
