@@ -10,7 +10,7 @@
 % domain(item,D) :- D = [coffee, chocolate].
 sorts([robot, item]).
 subsort(robot, agent).
-subsort(item, object).
+%subsort(item, object).
 
 % MOTION
 

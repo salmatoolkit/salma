@@ -10,7 +10,7 @@
 
 sort(sort).
 sorts([agent, object]).
-subsort(agent, object).
+subsort(X, object) :- X \= object, X \= sort.
 
 domain(Sort, D) :- domain(Sort, D, s0).
 
@@ -71,7 +71,8 @@ init_uninitialized_sorts :-
 	).
 
 get_transitive_domain(Sort, Domain) :-
-	findall(D, subsort(D, Sort), SubSorts1),
+	get_all_sorts(AllSorts),
+	findall(D, (member(D, AllSorts), subsort(D, Sort)), SubSorts1),
 	findall(D, subsorts(D, Sort), SubSorts2),
 	flatten(SubSorts2, FlatSubSorts2),
 	append(SubSorts1, FlatSubSorts2, SubSortsTemp),
