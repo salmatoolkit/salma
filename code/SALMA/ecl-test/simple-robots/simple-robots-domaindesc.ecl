@@ -1,67 +1,122 @@
-:- dynamic xpos/3, ypos/3, holding/3.
+:- dynamic xpos/3, ypos/3, vx/3, vy/3, carrying/3, 
+	robot_radius/2, moving/2, dist_from_station/4, next_task/3.
 
-% domain description for worldtest.py
 
-% no activities
+sorts([robot, item, station, movable_object]).
+subsorts([robot, station], agent).
+subsorts([robot, item], movable_object).
 
-% domain(robot,D) :- D = [rob1, rob2].
-% domain(item,D) :- D = [coffee, chocolate].
-sorts([robot, item, object]).
-subsorts([robot, item], object).
 
+% FLUENT DEFINITIONS
+
+fluent(xpos, [o:movable_object], integer).
+fluent(ypos, [o:movable_object], integer).
+
+fluent(vx, [r:robot], integer).
+fluent(vy, [r:robot], integer).
+
+fluent(carrying, [r:robot, i:item], boolean).
+
+fluent(next_task, [r:robot], item).
+
+derived_fluent(dist_from_station, [r:robot, s:station], float).
+derived_fluent(moving, [r:robot], boolean).
+
+
+
+constant(stationX, [s:station], integer).
+constant(stationY, [s:station], integer).
+constant(robot_radius, [r:robot], float).
+
+% ACTIONS
 
 primitive_action(move_right,[r:robot]).
+atomic_action(move_right).
 primitive_action(move_left, [r:robot]).
+atomic_action(move_left).
 primitive_action(move_down, [r:robot]).
+atomic_action(move_down).
 primitive_action(move_up, [r:robot]).
+atomic_action(move_up).
 
 primitive_action(grab, [r:robot, i:item]).
 primitive_action(drop, [robot,item]).
-% land_on and crash are meant as outcome for stochastic action jump
+
+% a stochastic action wit two outcomes
+stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
 primitive_action(land_on, [r:robot, x:integer, y:integer]).
-
-
 primitive_action(crash, [r:robot]).
 
-primitive_action(paint, [r:robot, i:item]).
 
 
-% distinguish between discriminating entity parameters and additional "augmenting" parameters
+exogenous_action(finish_step, [r:robot], []).
+
 exogenous_action(accidental_drop, [r:robot, i:item], []).
 
 exogenous_action(collision, [r1:robot, r2:robot], [severity:integer]).
 
-stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
+
+% POSS AND SCHED
+schedulable(finish_step(Rob), S) :-
+	moving(Rob, S).
+	
+	
+% EFFECT AXIOMS
+
+effect(xpos(Robot), finish_step(Robot), OldX, X, S) :-
+	vx(Robot, Vx, S),
+	X is OldX + Vx.
+
+effect(xpos(Robot), land_on(Robot, X, _), _, X, _).
 
 
-% fluent declaration: fluent_name, [arg_domains], value_domain
+effect(ypos(Robot), finish_step(Robot), OldY, Y, S) :-
+	vy(Robot, Vy, S),
+	Y is OldY + Vy.
 
-fluent(xpos, [r:robot], integer).
-fluent(ypos, [r:robot], integer).
-fluent(carrying, [r:robot, i:item], boolean).
-fluent(active, [r:robot], boolean).
-% for now we just tread paint as a boolean attribute
-fluent(painted, [i:item], boolean).
+effect(ypos(Robot), land_on(Robot, _, Y), _, Y, _).
+	
+effect(vx(Robot), finish_step(Robot), _, 0, _).
+effect(vy(Robot), finish_step(Robot), _, 0, _).
 
-constant(robot_radius, [r:robot], float).
-constant(gravity, [], float).
-% poss
+effect(vx(Robot), move_right(Robot), _, 1, _).
+effect(vx(Robot), move_left(Robot), _, -1, _).
+effect(vx(Robot), move_up(Robot), _, 0, _).
+effect(vx(Robot), move_down(Robot), _, 0, _).
 
+effect(vy(Robot), move_right(Robot), _, 0, _).
+effect(vy(Robot), move_left(Robot), _, 0, _).
+effect(vy(Robot), move_up(Robot), _, -1, _).
+effect(vy(Robot), move_down(Robot), _, 1, _).
 
 poss(move_right(_), _) :- true.
 poss(move_left(_), _) :-true.
 poss(move_down(_), _) :-true.
 poss(move_up(_), _):-true.
 
-poss(grab(R,I), S) :- test_ad_hoc(
-						and(
-							not(exists([i, item], carrying(R, i))),
-							not(exists([r, robot], carrying(r, I)))
-						)
-					).
+
+
+
+
+
+
+
+
+poss(grab(R,I), S) :- 
+	domain(robot, Robots),
+	domain(item, Items),
+	xpos(R, Xr, S), xpos(I, Xi, S), Xr =:= Xi,
+	ypos(R, Yr, S), ypos(I, Yi, S), Yr =:= Yi,	
+	not (member(R2, Robots), carrying(R2, I)).
 
 poss(drop(R,I), S) :- carrying(R,I,S).
+
+schedulable(accidental_drop(R,I), S) :- 
+	action_occurred(grab(R,I), S).
+	
+	
 poss(accidental_drop(R,I), S) :- carrying(R,I,S).
+
 poss(collision(R1, R2, _), S) :- 
 	R1 \= R2, xpos(R1, X, S), xpos(R2, X, S), 
 	ypos(R1, Y, S), ypos(R2, Y, S).
@@ -73,74 +128,41 @@ poss(crash(_), _) :- true.
 
 poss(paint(_,_), _) :- true.
 
+poss(mark(_,_,_), _) :- true.
 
 % successor state axioms
 
+effect(carrying(Rob, Item), grab(Rob, Item), _, true, _).
+effect(carrying(Rob, Item), drop(Rob, Item), _, false, _).
+effect(carrying(Rob, Item), accidental_drop(Rob, Item), _, false, _).
 
-xpos(Rob, Pos, do2(A,S)) :- 
-    (A = land_on(Rob, X, _) ->
-		Pos is X
-		;			
-		xpos(Rob, POld, S),
-		(
-		 A = move_right(Rob), 
-		 Pos is POld + 1, !
-		;
-		 A = move_left(Rob),
-		 Pos is POld - 1, !
-		;
-		 Pos is POld, !
-		)
-	).
-	
-ypos(Rob, Pos, do2(A,S)) :- 
-	(A = land_on(Rob, _, Y) ->
-		Pos is Y
-		;
-		ypos(Rob, POld, S),
-		(
-		 A = move_down(Rob), 
-		 Pos is POld + 1, !
-		;
-		 A = move_up(Rob),
-		 Pos is POld - 1, !
-		;
-		 Pos is POld, !
-		)
-	).
-	
-carrying(Rob, Item, do2(A,S)) :-
-    A = grab(Rob, Item), ! 
-	;
-	A \= drop(Rob, Item), A \= accidental_drop(Rob, Item), 
-    carrying(Rob, Item, S).
-	
-	
+effect(active(Rob), crash(Rob), _, false, _).
+effect(active(Rob), collision(R1, R2, I), _, false, _) :-
+	member(Rob, [R1, R2]), I >= 50.
 
-active(Rob, do2(A,S)) :-
-	A \= crash(Rob),
-	% assume that collision iwth intensity of higher than 50 leads
-	% to destruction
-	not (A = collision(R1, R2, I), member(Rob, [R1, R2]), I >= 50),
-	active(Rob, S).
+effect(painted(Item), paint(_, Item), _, true, _).
+
+effect(marking(Item), mark(_, Item, Data), _, Data, _).	
 	
-	
-painted(Item, do2(A,S)) :-
-	A = paint(_, Item), !
-	;
-	painted(Item, S).
-	
-		
 
 %restoreSitArg(xpos(Rob, Pos), S, xpos(Rob, Pos, S)).
 
     
-robotLeftFrom(Rob, Pos, S) :-
-        xpos(Rob, P, S),
-        P < Pos.
-        
-canPaint(_, Item, S) :-
-		not painted(Item, S).
 
+
+dist_from_station(Rob, Station, Dist, S) :-
+	xpos(Rob, X, S),
+	ypos(Rob, Y, S),
+	stationX(Station, Sx), stationY(Station, Sy),
+	Dist is sqrt((X - Sx)^2 + (Y - Y).
+	
+
+moving(Rob, S) :-
+	vx(Rob, Vx, S), abs(Vx) > 0, !
+	;
+	vy(Rob, Vy, S), abs(Vy) > 0.
+	
+
+		
 init_domaindesc :- true.
         

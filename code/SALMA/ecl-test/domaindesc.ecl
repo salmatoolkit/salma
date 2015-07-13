@@ -32,6 +32,9 @@ fluent(ypos, [r:robot], integer).
 derived_fluent(dist_from_origin, [r:robot], float).
 derived_fluent(moving, [r:robot], boolean).
 
+derived_fluent(futureX, [r:robot, deltaT:integer], integer).
+derived_fluent(futureY, [r:robot, deltaT:integer], integer).
+
 fluent(vx, [r:robot], integer).
 fluent(vy, [r:robot], integer).
 
@@ -173,6 +176,16 @@ dist_from_origin(Rob, Dist, S) :-
 	xpos(Rob, X, S),
 	ypos(Rob, Y, S),
 	Dist is sqrt(X*X + Y*Y).
+	
+futureX(Rob, DeltaT, Fx, S) :-
+	xpos(Rob, X, S),
+	vx(Rob, Vx, S),
+	Fx is X + Vx*DeltaT.
+
+futureY(Rob, DeltaT, Fy, S) :-
+	ypos(Rob, Y, S),
+	vy(Rob, Vy, S),
+	Fy is Y + Vy*DeltaT.
 
 moving(Rob, S) :-
 	vx(Rob, Vx, S), abs(Vx) > 0, !
