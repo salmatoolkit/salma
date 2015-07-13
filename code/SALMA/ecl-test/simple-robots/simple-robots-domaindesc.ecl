@@ -47,8 +47,6 @@ stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
 primitive_action(land_on, [r:robot, x:integer, y:integer]).
 primitive_action(crash, [r:robot]).
 
-
-
 exogenous_action(finish_step, [r:robot], []).
 
 exogenous_action(accidental_drop, [r:robot, i:item], []).
@@ -56,51 +54,13 @@ exogenous_action(accidental_drop, [r:robot, i:item], []).
 exogenous_action(collision, [r1:robot, r2:robot], [severity:integer]).
 
 
-% POSS AND SCHED
-schedulable(finish_step(Rob), S) :-
-	moving(Rob, S).
+% POSS AXIOMS
+
 	
-	
-% EFFECT AXIOMS
-
-effect(xpos(Robot), finish_step(Robot), OldX, X, S) :-
-	vx(Robot, Vx, S),
-	X is OldX + Vx.
-
-effect(xpos(Robot), land_on(Robot, X, _), _, X, _).
-
-
-effect(ypos(Robot), finish_step(Robot), OldY, Y, S) :-
-	vy(Robot, Vy, S),
-	Y is OldY + Vy.
-
-effect(ypos(Robot), land_on(Robot, _, Y), _, Y, _).
-	
-effect(vx(Robot), finish_step(Robot), _, 0, _).
-effect(vy(Robot), finish_step(Robot), _, 0, _).
-
-effect(vx(Robot), move_right(Robot), _, 1, _).
-effect(vx(Robot), move_left(Robot), _, -1, _).
-effect(vx(Robot), move_up(Robot), _, 0, _).
-effect(vx(Robot), move_down(Robot), _, 0, _).
-
-effect(vy(Robot), move_right(Robot), _, 0, _).
-effect(vy(Robot), move_left(Robot), _, 0, _).
-effect(vy(Robot), move_up(Robot), _, -1, _).
-effect(vy(Robot), move_down(Robot), _, 1, _).
-
 poss(move_right(_), _) :- true.
 poss(move_left(_), _) :-true.
 poss(move_down(_), _) :-true.
 poss(move_up(_), _):-true.
-
-
-
-
-
-
-
-
 
 poss(grab(R,I), S) :- 
 	domain(robot, Robots),
@@ -110,10 +70,6 @@ poss(grab(R,I), S) :-
 	not (member(R2, Robots), carrying(R2, I)).
 
 poss(drop(R,I), S) :- carrying(R,I,S).
-
-schedulable(accidental_drop(R,I), S) :- 
-	action_occurred(grab(R,I), S).
-	
 	
 poss(accidental_drop(R,I), S) :- carrying(R,I,S).
 
@@ -129,25 +85,58 @@ poss(crash(_), _) :- true.
 poss(paint(_,_), _) :- true.
 
 poss(mark(_,_,_), _) :- true.
+	
+
+% SCHEDULABILITY AXIOMS
+schedulable(finish_step(Rob), S) :-
+	moving(Rob, S).
+schedulable(accidental_drop(R,I), S) :- 
+	action_occurred(grab(R,I), S).
+
+	
+% EFFECT AXIOMS
+
+effect(xpos(O), finish_step(Robot), _, X, S) :-
+	(O = Robot, ! ; carrying(Robot, O, S)),	
+	vx(Robot, Vx, S),
+	xpos(Robot, OldX, S),
+	X is OldX + Vx.
+
+effect(xpos(O), land_on(Robot, X, _), _, X, _) :-
+	(O = Robot, ! ; carrying(Robot, O, S)).
+	
+effect(ypos(O), finish_step(Robot), _, Y, S) :-
+	(O = Robot, ! ; carrying(Robot, O, S)),	
+	vy(Robot, Vy, S),
+	ypos(Robot, OldY, S),
+	Y is OldY + Vy.
+
+effect(ypos(O), land_on(Robot, _, Y), _, Y, _) :-
+	(O = Robot, ! ; carrying(Robot, O, S)).	
+	
+effect(vx(Robot), finish_step(Robot), _, 0, _).
+effect(vy(Robot), finish_step(Robot), _, 0, _).
+
+effect(vx(Robot), move_right(Robot), _, 1, _).
+effect(vx(Robot), move_left(Robot), _, -1, _).
+effect(vx(Robot), move_up(Robot), _, 0, _).
+effect(vx(Robot), move_down(Robot), _, 0, _).
+
+effect(vy(Robot), move_right(Robot), _, 0, _).
+effect(vy(Robot), move_left(Robot), _, 0, _).
+effect(vy(Robot), move_up(Robot), _, -1, _).
+effect(vy(Robot), move_down(Robot), _, 1, _).
+
+
 
 % successor state axioms
 
 effect(carrying(Rob, Item), grab(Rob, Item), _, true, _).
 effect(carrying(Rob, Item), drop(Rob, Item), _, false, _).
 effect(carrying(Rob, Item), accidental_drop(Rob, Item), _, false, _).
-
-effect(active(Rob), crash(Rob), _, false, _).
-effect(active(Rob), collision(R1, R2, I), _, false, _) :-
-	member(Rob, [R1, R2]), I >= 50.
-
-effect(painted(Item), paint(_, Item), _, true, _).
-
-effect(marking(Item), mark(_, Item, Data), _, Data, _).	
 	
 
-%restoreSitArg(xpos(Rob, Pos), S, xpos(Rob, Pos, S)).
-
-    
+% DERIVED FLUENTS   
 
 
 dist_from_station(Rob, Station, Dist, S) :-
