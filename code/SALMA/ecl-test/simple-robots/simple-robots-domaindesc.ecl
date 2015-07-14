@@ -1,5 +1,6 @@
 :- dynamic xpos/3, ypos/3, vx/3, vy/3, carrying/3, 
-	robot_radius/2, moving/2, dist_from_station/4, next_task/3.
+	robot_radius/2, moving/2, dist_from_station/4, next_task/3,
+	broken/2.
 
 
 sorts([robot, item, station, movable_object]).
@@ -8,6 +9,8 @@ subsorts([robot, item], movable_object).
 
 
 % FLUENT DEFINITIONS
+
+fluent(broken, [r:robot], boolean).
 
 fluent(xpos, [o:movable_object], integer).
 fluent(ypos, [o:movable_object], integer).
@@ -42,6 +45,8 @@ atomic_action(move_up).
 primitive_action(grab, [r:robot, i:item]).
 primitive_action(drop, [robot,item]).
 
+primitive_action(assign_task, [s:station, r:robot, i:item]).
+
 % a stochastic action wit two outcomes
 stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
 primitive_action(land_on, [r:robot, x:integer, y:integer]).
@@ -57,10 +62,10 @@ exogenous_action(collision, [r1:robot, r2:robot], [severity:integer]).
 % POSS AXIOMS
 
 	
-poss(move_right(_), _) :- true.
-poss(move_left(_), _) :-true.
-poss(move_down(_), _) :-true.
-poss(move_up(_), _):-true.
+poss(move_right(R), S) :- not broken(R,S).
+poss(move_left(R), S) :- true.
+poss(move_down(R), S) :- true.
+poss(move_up(R), S):- true.
 
 poss(grab(R,I), S) :- 
 	domain(robot, Robots),
@@ -82,9 +87,6 @@ poss(collision(R1, R2, _), S) :-
 poss(land_on(_,_,_), _):-true.
 poss(crash(_), _) :- true.
 
-poss(paint(_,_), _) :- true.
-
-poss(mark(_,_,_), _) :- true.
 	
 
 % SCHEDULABILITY AXIOMS
@@ -129,12 +131,17 @@ effect(vy(Robot), move_down(Robot), _, 1, _).
 
 
 
-% successor state axioms
-
 effect(carrying(Rob, Item), grab(Rob, Item), _, true, _).
 effect(carrying(Rob, Item), drop(Rob, Item), _, false, _).
 effect(carrying(Rob, Item), accidental_drop(Rob, Item), _, false, _).
 	
+effect(next_task(Rob), assign_task(_, Rob, Item), _, Item, _).
+
+effect(broken(Rob), crash(Rob), _, true, _).
+effect(broken(Rob), collision(R1, R2, Severity), _, B, _) :-
+	(R1 = Rob, ! ; R2 = Rob),
+	Severity > 7.
+
 
 % DERIVED FLUENTS   
 
@@ -143,7 +150,7 @@ dist_from_station(Rob, Station, Dist, S) :-
 	xpos(Rob, X, S),
 	ypos(Rob, Y, S),
 	stationX(Station, Sx), stationY(Station, Sy),
-	Dist is sqrt((X - Sx)^2 + (Y - Y).
+	Dist is sqrt((X - Sx)^2 + (Y - Y)).
 	
 
 moving(Rob, S) :-
