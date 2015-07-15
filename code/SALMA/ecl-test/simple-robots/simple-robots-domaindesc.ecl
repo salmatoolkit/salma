@@ -63,24 +63,26 @@ exogenous_action(collision, [r1:robot, r2:robot], [severity:integer]).
 
 	
 poss(move_right(R), S) :- not broken(R,S).
-poss(move_left(R), S) :- true.
-poss(move_down(R), S) :- true.
-poss(move_up(R), S):- true.
+poss(move_left(R), S) :- not broken(R,S).
+poss(move_down(R), S) :- not broken(R,S).
+poss(move_up(R), S):- not broken(R,S).
 
 poss(grab(R,I), S) :- 
+	not broken(R, S),
 	domain(robot, Robots),
 	domain(item, Items),
 	xpos(R, Xr, S), xpos(I, Xi, S), Xr =:= Xi,
 	ypos(R, Yr, S), ypos(I, Yi, S), Yr =:= Yi,	
 	not (member(R2, Robots), carrying(R2, I)).
 
-poss(drop(R,I), S) :- carrying(R,I,S).
+poss(drop(R,I), S) :- not broken(R,S), carrying(R,I,S).
 	
 poss(accidental_drop(R,I), S) :- carrying(R,I,S).
 
 poss(collision(R1, R2, _), S) :- 
 	R1 \= R2, xpos(R1, X, S), xpos(R2, X, S), 
-	ypos(R1, Y, S), ypos(R2, Y, S).
+	ypos(R1, Y, S), ypos(R2, Y, S),
+	(moving(R2, S), ! ; moving(R2, S)).
 
 
 % land_on and crash are meant as outcome for stochastic action jump
