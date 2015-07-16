@@ -1,0 +1,215 @@
+<html><head><title>simple-robots-test.ecl</title>
+	    <link type="text/css" rel="stylesheet" href="style.css"> </head><body><h1>File: simple-robots-test.ecl
+</h1><HR>
+<pre><span class="control">:-</span> [<span class="atom">'../../ecl-src/agasmc'</span>].<span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/compiler/lib-1.html">lib</a>(<span class="atom">ic</span>).<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/compiler/lib-1.html">lib</a>(<span class="atom">hash</span>).<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">fluent</span> <span class="functor">/</span> <span class="number">3</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">effect</span> <span class="functor">/</span> <span class="number">5</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">constant</span> <span class="functor">/</span> <span class="number">3</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">doc</span> <span class="functor">/</span> <span class="number">2</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">derived_fluent</span> <span class="functor">/</span> <span class="number">3</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">poss</span> <span class="functor">/</span> <span class="number">2</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">caused</span> <span class="functor">/</span> <span class="number">3</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">schedulable</span> <span class="functor">/</span> <span class="number">2</span>.<span class="comment"> 
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">event_alternatives</span> <span class="functor">/</span> <span class="number">1</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">untracked_fluent</span> <span class="functor">/</span> <span class="number">1</span>.<span class="comment">
+</span><span class="control">:-</span> [<span class="atom">termutils</span>].<span class="comment">
+
+</span><a name="subst_in_term-4"></a><span class="head">subst_in_term</span>(<span class="variable">Var</span>, <span class="variable">Rep</span>, <span class="variable">T</span>, <span class="variable">T2</span>) <span class="control">:-</span>
+        <span class="coverage"> 36 </span><a class="call" href="#subst_in_term-5">subst_in_term</a>(<span class="variable">Var</span>, <span class="variable">Rep</span>, <span class="variable">T</span>, <span class="variable">T2</span>, <span class="atom">[]</span>)<span class="coverage"> 36 </span>.<span class="comment">
+	
+</span><a name="subst_in_term-5"></a><span class="head">subst_in_term</span>(<span class="variable">Var</span>, <span class="variable">Rep</span>, <span class="variable">T</span>, <span class="variable">T2</span>, <span class="variable">BlockMargins</span>) <span class="control">:-</span>
+        <span class="coverage"> 180 </span><span class="control">(</span>
+            <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/typetest/var-1.html">var</a>(<span class="variable">T</span>),
+            <span class="nocoverage"> 0 </span><span class="variable">T2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="variable">T</span>,
+            <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a><span class="nocoverage"> 0 </span>
+        <span class="control">;</span>
+            <span class="coverage"> 180 </span><span class="control">(</span>
+                <span class="variable">T</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="variable">Var</span>,
+                <span class="nocoverage"> 0 </span><span class="variable">T2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="variable">Rep</span>,
+                <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a><span class="nocoverage"> 0 </span>
+            <span class="control">;</span>
+                <span class="coverage"> 180 </span><span class="control">(</span>
+                    <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termmanip/functor-3.html">functor</a>(<span class="variable">T</span>, <span class="variable">Functor</span>, <span class="variable">_405650</span>),
+                    <span class="coverage"> 180 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/lib/lists/member-2.html">member</a>(<span class="variable">Functor</span>, <span class="variable">BlockMargins</span>),
+                    <span class="nocoverage"> 0 </span><span class="variable">T2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="variable">T</span>,
+                    <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a><span class="nocoverage"> 0 </span>
+                <span class="control">;</span>
+                    <span class="coverage"> 180 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termmanip/arity-2.html">arity</a>(<span class="variable">T</span>, <span class="variable">N</span>),
+                    <span class="coverage"> 180 </span><span class="control">(</span> <span class="variable">N</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="number">0</span> <span class="control">-&gt;</span>
+                        <span class="coverage"> 132 </span><span class="variable">T2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="variable">T</span><span class="coverage"> 132 </span>
+                    <span class="control">;</span>
+                        <span class="coverage"> 48 </span><span class="variable">T</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termmanip/EDD-2.html">=..</a> <span class="variable">Tl</span>,
+                        <span class="coverage"> 48 </span><a class="call" href="#subst_in_list-5">subst_in_list</a>(<span class="variable">Var</span>, <span class="variable">Rep</span>, <span class="variable">Tl</span>, <span class="variable">Tl2</span>, <span class="variable">BlockMargins</span>),
+                        <span class="coverage"> 48 </span><span class="variable">T2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termmanip/EDD-2.html">=..</a> <span class="variable">Tl2</span><span class="coverage"> 48 </span>
+                    <span class="control">)</span><span class="coverage"> 180 </span>
+                <span class="control">)</span><span class="coverage"> 180 </span>
+            <span class="control">)</span><span class="coverage"> 180 </span>
+        <span class="control">)</span><span class="coverage"> 180 </span>.<span class="comment">
+		
+		
+</span><a name="subst_in_list-5"></a><span class="head">subst_in_list</span>(<span class="variable">Var</span>, <span class="variable">Rep</span>, [<span class="variable">H</span>], <span class="variable">Tl2</span>, <span class="variable">BlockMargins</span>) <span class="control">:-</span>
+        <span class="coverage"> 48 </span><a class="call" href="#subst_in_term-5">subst_in_term</a>(<span class="variable">Var</span>, <span class="variable">Rep</span>, <span class="variable">H</span>, <span class="variable">T2</span>, <span class="variable">BlockMargins</span>),
+        <span class="coverage"> 48 </span><span class="variable">Tl2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> [<span class="variable">T2</span>],
+        <span class="coverage"> 48 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a><span class="coverage"> 48 </span>.<span class="comment">
+
+</span><span class="head">subst_in_list</span>(<span class="variable">Var</span>, <span class="variable">Rep</span>, [<span class="variable">H</span>|<span class="variable">Tl</span>], <span class="variable">Tl2</span>, <span class="variable">BlockMargins</span>) <span class="control">:-</span>
+        <span class="coverage"> 96 </span><a class="call" href="#subst_in_term-5">subst_in_term</a>(<span class="variable">Var</span>, <span class="variable">Rep</span>, <span class="variable">H</span>, <span class="variable">T2</span>, <span class="variable">BlockMargins</span>),
+        <span class="coverage"> 96 </span><a class="call" href="#subst_in_list-5">subst_in_list</a>(<span class="variable">Var</span>, <span class="variable">Rep</span>, <span class="variable">Tl</span>, <span class="variable">Tl3</span>, <span class="variable">BlockMargins</span>),
+        <span class="coverage"> 96 </span><span class="variable">Tl2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> [<span class="variable">T2</span>|<span class="variable">Tl3</span>]<span class="coverage"> 96 </span>.<span class="comment">
+		
+</span><a name="get_subterm-3"></a><span class="head">get_subterm</span>(<span class="variable">TermIn</span>, [<span class="variable">Pos</span>], <span class="variable">TermOut</span>) <span class="control">:-</span>
+        <span class="nocoverage"> 0 </span><span class="control">(</span> <span class="variable">Pos</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="number">0</span> <span class="control">-&gt;</span>
+            <span class="nocoverage"> 0 </span><span class="variable">TermOut</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="variable">TermIn</span><span class="nocoverage"> 0 </span>
+        <span class="control">;</span>
+            <span class="nocoverage"> 0 </span><span class="control">(</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/typetest/is_list-1.html">is_list</a>(<span class="variable">TermIn</span>) <span class="control">-&gt;</span>
+                <span class="nocoverage"> 0 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termmanip/array_list-2.html">array_list</a>(<span class="variable">T</span>, <span class="variable">TermIn</span>)<span class="nocoverage"> 0 </span>
+            <span class="control">;</span>
+                <span class="nocoverage"> 0 </span><span class="variable">T</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="variable">TermIn</span><span class="nocoverage"> 0 </span>
+            <span class="control">)</span>,
+            <span class="nocoverage"> 0 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termmanip/arg-3.html">arg</a>(<span class="variable">Pos</span>, <span class="variable">T</span>, <span class="variable">TermOut</span>)<span class="nocoverage"> 0 </span>
+        <span class="control">)</span>,
+        <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a><span class="nocoverage"> 0 </span>.<span class="comment">
+	
+</span><span class="head">get_subterm</span>(<span class="variable">TermIn</span>, [<span class="variable">Pos</span>|<span class="variable">PTail</span>], <span class="variable">TermOut</span>) <span class="control">:-</span>
+        <span class="nocoverage"> 0 </span><a class="call" href="#get_subterm-3">get_subterm</a>(<span class="variable">TermIn</span>, [<span class="variable">Pos</span>], <span class="variable">T</span>),
+        <span class="nocoverage"> 0 </span><a class="call" href="#get_subterm-3">get_subterm</a>(<span class="variable">T</span>, <span class="variable">PTail</span>, <span class="variable">TermOut</span>),
+        <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a><span class="nocoverage"> 0 </span>.<span class="comment">
+	
+</span><a name="sublist-4"></a><span class="head">sublist</span>([<span class="variable">Head</span>|<span class="variable">Tail</span>], <span class="variable">Start</span>, <span class="variable">End</span>, <span class="variable">Sublist</span>) <span class="control">:-</span>
+        <span class="coverage"> 12 </span><span class="control">(</span>
+            <span class="variable">Start</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/L-2.html">&lt;</a> <span class="number">0</span>,
+            <span class="nocoverage"> 0 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/throw-1.html">throw</a>(<span class="atom">start_out_of_bounds</span>)<span class="nocoverage"> 0 </span>
+        <span class="control">;</span>
+            <span class="coverage"> 12 </span><span class="control">(</span>
+                <span class="variable">End</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/L-2.html">&lt;</a> <span class="variable">Start</span>,
+                <span class="nocoverage"> 0 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/throw-1.html">throw</a>(<span class="atom">end_before_start</span>)<span class="nocoverage"> 0 </span>
+            <span class="control">;</span>
+                <span class="coverage"> 12 </span><span class="control">(</span>
+                    <span class="variable">Start</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="number">0</span>,
+                    <span class="coverage"> 12 </span><span class="control">(</span> <span class="variable">End</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="number">0</span> <span class="control">-&gt;</span>
+                        <span class="coverage"> 12 </span><span class="variable">Sublist</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> [<span class="variable">Head</span>]<span class="coverage"> 12 </span>
+                    <span class="control">;</span>
+                        <span class="nocoverage"> 0 </span><span class="variable">E2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">End</span> <span class="functor">-</span> <span class="number">1</span>,
+                        <span class="nocoverage"> 0 </span><a class="call" href="#sublist-4">sublist</a>(<span class="variable">Tail</span>, <span class="number">0</span>, <span class="variable">E2</span>, <span class="variable">Sub2</span>),
+                        <span class="nocoverage"> 0 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/lib/lists/append-3.html">append</a>([<span class="variable">Head</span>], <span class="variable">Sub2</span>, <span class="variable">Sublist</span>)<span class="nocoverage"> 0 </span>
+                    <span class="control">)</span>,
+                    <span class="coverage"> 12 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a><span class="coverage"> 12 </span>
+                <span class="control">;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">S2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">Start</span> <span class="functor">-</span> <span class="number">1</span>,
+                    <span class="nocoverage"> 0 </span><span class="variable">E2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">End</span> <span class="functor">-</span> <span class="number">1</span>,
+                    <span class="nocoverage"> 0 </span><a class="call" href="#sublist-4">sublist</a>(<span class="variable">Tail</span>, <span class="variable">S2</span>, <span class="variable">E2</span>, <span class="variable">Sublist</span>)<span class="nocoverage"> 0 </span>
+                <span class="control">)</span><span class="coverage"> 12 </span>
+            <span class="control">)</span><span class="coverage"> 12 </span>
+        <span class="control">)</span><span class="coverage"> 12 </span>.<span class="comment">
+	%,printf("H: %w, T: %w, S: %d, E: %d -&gt; %w\n",[Head, Tail, Start, End, Sublist])	.
+	
+</span><span class="head">sublist</span>(<span class="head">[]</span>, <span class="variable">_425228</span>, <span class="variable">_425229</span>, <span class="variable">Sublist</span>) <span class="control">:-</span>
+        <span class="nocoverage"> 0 </span><span class="variable">Sublist</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">[]</span><span class="nocoverage"> 0 </span>.<span class="comment">
+
+</span><a name="last_element-2"></a><span class="head">last_element</span>(<span class="variable">List</span>, <span class="variable">Last</span>) <span class="control">:-</span>
+        <span class="nocoverage"> 0 </span><span class="control">(</span>
+            <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/lib/lists/length-2.html">length</a>(<span class="variable">List</span>, <span class="number">0</span>),
+            <span class="nocoverage"> 0 </span><span class="variable">Last</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">none</span>,
+            <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a><span class="nocoverage"> 0 </span>
+        <span class="control">;</span>
+            <span class="nocoverage"> 0 </span><span class="variable">I</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="functor">length</span>(<span class="variable">List</span>) <span class="functor">-</span> <span class="number">1</span>,
+            <span class="nocoverage"> 0 </span><a class="call" href="#sublist-4">sublist</a>(<span class="variable">List</span>, <span class="variable">I</span>, <span class="variable">I</span>, <span class="variable">L2</span>),
+            <span class="nocoverage"> 0 </span><span class="variable">L2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> [<span class="variable">Last</span>]<span class="nocoverage"> 0 </span>
+        <span class="control">)</span><span class="nocoverage"> 0 </span>.<span class="comment">
+	
+% Calculates the minimum among V1 and V2. Handles nondet.
+</span><a name="getMin-3"></a><span class="head">getMin</span>(<span class="variable">V1</span>, <span class="variable">V2</span>, <span class="variable">Result</span>) <span class="control">:-</span>
+        <span class="nocoverage"> 0 </span><span class="control">(</span>
+            <span class="variable">V1</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span>,
+            <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a>,
+            <span class="nocoverage"> 0 </span><span class="control">(</span> <span class="variable">V2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span> <span class="control">-&gt;</span>
+                <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span><span class="nocoverage"> 0 </span>
+            <span class="control">;</span>
+                <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">V2</span><span class="nocoverage"> 0 </span>
+            <span class="control">)</span><span class="nocoverage"> 0 </span>
+        <span class="control">;</span>
+            <span class="nocoverage"> 0 </span><span class="control">(</span>
+                <span class="variable">V2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span>,
+                <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a>,
+                <span class="nocoverage"> 0 </span><span class="control">(</span> <span class="variable">V1</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span> <span class="control">-&gt;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span><span class="nocoverage"> 0 </span>
+                <span class="control">;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">V1</span><span class="nocoverage"> 0 </span>
+                <span class="control">)</span><span class="nocoverage"> 0 </span>
+            <span class="control">;</span>
+                <span class="nocoverage"> 0 </span><span class="control">(</span> <span class="variable">V2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/L-2.html">&lt;</a> <span class="variable">V1</span> <span class="control">-&gt;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">V2</span><span class="nocoverage"> 0 </span>
+                <span class="control">;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">V1</span><span class="nocoverage"> 0 </span>
+                <span class="control">)</span><span class="nocoverage"> 0 </span>
+            <span class="control">)</span><span class="nocoverage"> 0 </span>
+        <span class="control">)</span><span class="nocoverage"> 0 </span>.<span class="comment">
+
+</span><a name="getMax-3"></a><span class="head">getMax</span>(<span class="variable">V1</span>, <span class="variable">V2</span>, <span class="variable">Result</span>) <span class="control">:-</span>
+        <span class="nocoverage"> 0 </span><span class="control">(</span>
+            <span class="variable">V1</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span>,
+            <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a>,
+            <span class="nocoverage"> 0 </span><span class="control">(</span> <span class="variable">V2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span> <span class="control">-&gt;</span>
+                <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span><span class="nocoverage"> 0 </span>
+            <span class="control">;</span>
+                <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">V2</span><span class="nocoverage"> 0 </span>
+            <span class="control">)</span><span class="nocoverage"> 0 </span>
+        <span class="control">;</span>
+            <span class="nocoverage"> 0 </span><span class="control">(</span>
+                <span class="variable">V2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span>,
+                <span class="nocoverage"> 0 </span><a class="warning" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/control/I-0.html">!</a>,
+                <span class="nocoverage"> 0 </span><span class="control">(</span> <span class="variable">V1</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span> <span class="control">-&gt;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/E-2.html">=</a> <span class="atom">nondet</span><span class="nocoverage"> 0 </span>
+                <span class="control">;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">V1</span><span class="nocoverage"> 0 </span>
+                <span class="control">)</span><span class="nocoverage"> 0 </span>
+            <span class="control">;</span>
+                <span class="nocoverage"> 0 </span><span class="control">(</span> <span class="variable">V2</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/G-2.html">&gt;</a> <span class="variable">V1</span> <span class="control">-&gt;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">V2</span><span class="nocoverage"> 0 </span>
+                <span class="control">;</span>
+                    <span class="nocoverage"> 0 </span><span class="variable">Result</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/arithmetic/is-2.html">is</a> <span class="variable">V1</span><span class="nocoverage"> 0 </span>
+                <span class="control">)</span><span class="nocoverage"> 0 </span>
+            <span class="control">)</span><span class="nocoverage"> 0 </span>
+        <span class="control">)</span><span class="nocoverage"> 0 </span>.<span class="comment">
+</span><span class="control">:-</span> [<span class="atom">sort_system</span>].<span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">domain</span> <span class="functor">/</span> <span class="number">2</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">domain</span> <span class="functor">/</span> <span class="number">3</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">sort</span> <span class="functor">/</span> <span class="number">1</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">sorts</span> <span class="functor">/</span> <span class="number">1</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">dynamic_sort</span> <span class="functor">/</span> <span class="number">1</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">subsort</span> <span class="functor">/</span> <span class="number">2</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">subsorts</span> <span class="functor">/</span> <span class="number">2</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/dynamic/dynamic-1.html">dynamic</a> <span class="atom">sort_hierarchy_unsynced</span> <span class="functor">/</span> <span class="number">0</span>.<span class="comment">
+</span><span class="control">:-</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/modules/local-1.html">local</a> <span class="functor">variable</span>(<span class="atom">next_object_id</span>, <span class="number">1</span>).<span class="comment">
+
+</span><a name="sort-1"></a><span class="head">sort</span>(<span class="head">sort</span>)<span class="coverage"> 44 </span>.<span class="comment">
+</span><a name="sorts-1"></a><span class="head">sorts</span>([<span class="atom">agent</span>, <span class="atom">object</span>])<span class="coverage"> 44 </span>.<span class="comment">
+</span><a name="subsort-2"></a><span class="head">subsort</span>(<span class="variable">X</span>, <span class="head">object</span>) <span class="control">:-</span>
+        <span class="coverage"> 13 </span><span class="variable">X</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/RE-2.html">\=</a> <span class="atom">object</span>,
+        <span class="coverage"> 12 </span><span class="variable">X</span> <a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/RE-2.html">\=</a> <span class="atom">sort</span><span class="coverage"> 11 </span>.<span class="comment">
+
+</span><a name="domain-2"></a><span class="head">domain</span>(<span class="variable">Sort</span>, <span class="variable">D</span>) <span class="control">:-</span>
+        <span class="coverage"> 42 </span><a class="call" href="#domain-3">domain</a>(<span class="variable">Sort</span>, <span class="variable">D</span>, <span class="atom">s0</span>)<span class="coverage"> 42 </span>.<span class="comment">
+
+
+</span><a name="fluent-3"></a><span class="head">fluent</span>(<span class="head">domain</span>, [<span class="atom">s</span> <span class="functor">:</span> <span class="atom">sort</span>], <span class="head">list</span>)<span class="coverage"> 2 </span>.<span class="comment">
+
+</span><a name="domain-3"></a><span class="head">domain</span>(<span class="variable">Sort</span>, <span class="variable">D</span>, <span class="head">s0</span>) <span class="control">:-</span>
+        <span class="coverage"> 42 </span><a class="call" href="#get_current-3">get_current</a>(<span class="atom">domain</span>, [<span class="variable">Sort</span>], <span class="variable">D</span>)<span class="coverage"> 42 </span>.<span class="comment">		
+</span><span class="head">domain</span>(<span class="variable">Sort</span>, <span class="variable">D</span>, <span class="head">slast</span>) <span class="control">:-</span>
+        <span class="nocoverage"> 0 </span><a class="call" href="#get_last-3">get_last</a>(<span class="atom">domain</span>, [<span class="variable">Sort</span>], <span class="variable">D</span>)<span class="nocoverage"> 0 </span>.<span class="comment">
+
+</span><a name="remove_duplicates-2"></a><span class="head">remove_duplicates</span>(<span class="variable">L1</span>, <span class="variable">L2</span>) <span class="control">:-</span>
+        <span class="coverage"> 124 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/termcomp/sort-2.html">sort</a>(<span class="variable">L1</span>, <span class="variable">L2</span>)<span class="coverage"> 124 </span>.<span class="comment">
+	
+</span><a name="get_all_sorts-1"></a><span class="head">get_all_sorts</span>(<span class="variable">Sorts</span>) <span class="control">:-</span>
+        <span class="coverage"> 44 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/allsols/findall-3.html">findall</a>(<span class="variable">SList</span>, <span class="coverage"> 44 </span><a class="call" href="#sorts-1">sorts</a>(<span class="variable">SList</span>)<span class="coverage"> 132 </span>, <span class="variable">SListList</span>),
+        <span class="coverage"> 44 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/lib/lists/flatten-2.html">flatten</a>(<span class="variable">SListList</span>, <span class="variable">Sorts1</span>),
+        <span class="coverage"> 44 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/kernel/allsols/findall-3.html">findall</a>(<span class="variable">S</span>, <span class="coverage"> 44 </span><a class="call" href="#sort-1">sort</a>(<span class="variable">S</span>)<span class="coverage"> 176 </span>, <span class="variable">Sorts2</span>),
+        <span class="coverage"> 44 </span><a class="builtin" href="file:///C:/Program Files/ECLiPSe 6.1/doc/bips/lib/lists/append-3.html">append</a>(<span class="variable">Sorts1</span>, <span class="variable">Sorts2</span>, <span class="variable">RawSorts</span>),
+        <span class="coverage"> 44 </span><a class="call" href="#remove_duplicates-2">remove_duplicates</a>(<span class="variable">RawSorts</span>, <span class="variable">Sorts</span>)<span class="coverage"> 44 </span>.<span class="comment">
+
+</span><a name="get_all_domains-1"></a><span class="head">get_all_domains</span>(<span class="variable">Domains</span>) <span class="control">:-</span>
+        <span class="coverage"> 1 </span><a class="call" href="#get_all_sorts-1">get_all_sorts</a>(<span class="variable">Sorts</span>),
+        <span class="coverage"> 1 </span><span class="control">(</span>
+            
