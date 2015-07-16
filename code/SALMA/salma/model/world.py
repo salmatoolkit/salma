@@ -2,6 +2,7 @@ import itertools
 import logging
 import random
 from collections.abc import Iterable, Iterator
+from sympy.core.trace import Tr
 
 from salma.SALMAException import SALMAException
 from salma.model.actions import StochasticAction, DeterministicAction, RandomActionOutcome
@@ -1414,7 +1415,7 @@ class LocalEvaluationContext(EvaluationContext):
 
         The parameter list can include ground values, bound variables and (name, sort) tuples.
         """
-        resolvedParams = self.resolve(*params)  # the free variables tuples are ignored by resolve()
+        resolvedParams = self.resolve(*params, strict=False)  # the free variables tuples are ignored by resolve()
 
         sit = 's0' if predicateType in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
 

@@ -142,7 +142,7 @@ poss(collision(R1, R2, _), S) :-
 poss(land_on(_,_,_), _):-true.
 poss(crash(_), _) :- true.
 
-poss(paint(_,_), _) :- true.
+poss(paint(_,Item), S) :- not painted(Item, S).
 
 poss(mark(_,_,_), _) :- true.
 

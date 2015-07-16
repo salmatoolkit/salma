@@ -8,6 +8,7 @@ from salma.SALMAException import SALMAException
 from .constants import *
 import salma
 from salma.model.core import FluentValue, ConstantValue
+from salma.model.procedure import Variable
 import salma.termutils
 from salma.model.data import Term
 from salma.termutils import tuplify
@@ -684,9 +685,17 @@ class EclipseCLPEngine(Engine):
         # pyclp.Var is unhashable so we have to use indices to store names
         i = 0
         for param in params:
-            if isinstance(param, tuple):
+            if isinstance(param, Variable):
+                if param.sort is None:
+                    raise SALMAException("No type specified for free variable {}.".format(param.name))
                 newVar = pyclp.Var()
-                params2.append((':', newVar, param[1]))
+                params2.append(Term(':', newVar, param.sort))
+                variables.append(newVar)
+                indices[param.name] = i
+                i += 1
+            elif isinstance(param, tuple) and len(param) == 2:
+                newVar = pyclp.Var()
+                params2.append(Term(':', newVar, param[1]))
                 variables.append(newVar)
                 indices[param[0]] = i
                 i += 1
