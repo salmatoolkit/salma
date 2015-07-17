@@ -1,4 +1,5 @@
 import math
+import unittest
 
 from salma import constants
 from salma.constants import SELF
@@ -61,6 +62,7 @@ class SALMAAPDLTest(BaseWorldTest):
             for i in items:
                 world.setFluentValue("carrying", [rob, "item" + str(i)], True)
 
+    #@unittest.skip
     def testSelect_Fluent(self):
         world = World.instance()
         reclist1 = []
@@ -93,6 +95,7 @@ class SALMAAPDLTest(BaseWorldTest):
         print(reclist1)
         print(reclist2)
         world.printState()
+
         self.assertEqual(len(reclist1), 1)
         r, i = reclist1[0]
         self.assertTrue(int(i[4:]) in carry_map[r])
@@ -103,6 +106,7 @@ class SALMAAPDLTest(BaseWorldTest):
         self.assertTrue(int(i[4:]) in carry_map["rob2"])
         self.assertFalse(world.getFluentValue("carrying", [agent2.id, i]))
 
+    @unittest.skip
     def testIterate_Fluent(self):
         world = World.instance()
         reclist1 = []
@@ -135,4 +139,64 @@ class SALMAAPDLTest(BaseWorldTest):
         print(reclist1)
         print(reclist2)
         world.printState()
+        self.assertEqual(len(reclist1), 10)
+        todo = set(range(1, 11))
+        for r, i in reclist1:
+            rec_item = int(i[len("item"):])
+            self.assertIn(rec_item, carry_map[r])
+            self.assertIn(rec_item, todo)
+            todo.remove(rec_item)
+        self.assertEqual(len(todo), 0)
+
+        self.assertEqual(len(reclist2), 5)
+        self.assertSetEqual(set(map(lambda x: ("item" + str(x),), carry_map["rob2"])), set(reclist2))
+
+    @unittest.skip
+    def testIterate_Python(self):
+        world = World.instance()
+        reclist1 = []
+        recorder1 = create_value_recorder(reclist1)
+        reclist2 = []
+        recorder2 = create_value_recorder(reclist2)
+        r, i = makevars(("r", "robot"), ("i", "item"))
+        agent1 = Agent("rob1", "robot", Procedure([
+            Iterate("carrying", [r, i], [
+                FunctionControlNode(recorder1, r, i),
+                Act("mark", [SELF, i, SELF])])
+        ]))
+        agent2 = Agent("rob2", "robot", Procedure([
+            Iterate("carrying", [SELF, i], [
+                FunctionControlNode(recorder2, i),
+                Act("paint", [SELF, i])])
+        ]))
+
+        world.addAgent(agent1)
+        world.addAgent(agent2)
+        carry_map = {"rob1": [3, 5, 9, 2, 10], "rob2": [1, 4, 6, 7, 8]}
+        self.setupSelectionContext(carry_map)
+
+        print("\n\n----\n\n")
+        print("INIT:")
+        print("\n\n----\n\n")
+        world.printState()
+        experiment = Experiment(world)
+        verdict, results = experiment.run_until_finished()
+        print(reclist1)
+        print(reclist2)
+        world.printState()
+        self.assertEqual(len(reclist1), 10)
+        todo = set(range(1, 11))
+        for r, i in reclist1:
+            rec_item = int(i[len("item"):])
+            self.assertIn(rec_item, carry_map[r])
+            self.assertIn(rec_item, todo)
+            todo.remove(rec_item)
+        self.assertEqual(len(todo), 0)
+
+        self.assertEqual(len(reclist2), 5)
+        self.assertSetEqual(set(map(lambda x: ("item" + str(x),), carry_map["rob2"])), set(reclist2))
+
+
+if __name__ == '__main__':
+    unittest.main()
 

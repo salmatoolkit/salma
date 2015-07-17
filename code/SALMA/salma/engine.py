@@ -710,7 +710,10 @@ class EclipseCLPEngine(Engine):
             *params,
             **kwargs)
 
-        g = pyclp.Compound("select_entities",
+        # g = pyclp.Compound("select_entities",
+        #                    pyclp.Atom(predicateName),
+        #                    pyclp.PList(paramTerms))
+        g = pyclp.Compound("select_first_entity",
                            pyclp.Atom(predicateName),
                            pyclp.PList(paramTerms))
         return variables, indices, g
@@ -764,19 +767,20 @@ class EclipseCLPEngine(Engine):
         selectCall.post_goal()
         result, stream_num = pyclp.resume()
         result, lines = self.__readPyCLPOutputLines(result, stream_num)
-
         if result != pyclp.SUCCEED:
+            found = False
             if result == pyclp.THROW:
                 errorMsg = "Can't execute predicate {}. Message = {}."
                 raise (SALMAException(
                     errorMsg.format(predicateName, "\n".join(lines))))
             else:
                 return None
-
-        pyclp.cut()  # throw away all but the first result
+        else:
+            found = True
+        #pyclp.cut()  # throw away all but the first result
         entry = dict()
         for varName, index in indices.items():
-            entry[varName] = self.__convert_value_from_engine_result(variables[index].value())
+            entry[varName] = self.__convert_value_from_engine_result(variables[index].value()) if found else None
 
         return entry
 

@@ -87,6 +87,10 @@ select_entities(Predicate, Params) :-
 	create_param_constraints(Params, ConstrainedParams),
 	T =.. [Predicate | ConstrainedParams],
 	call(T).
+	
+select_first_entity(Predicate, Params) :-
+	select_entities(Predicate, Params), !.
+	
 
 % Attempts to create a valid plan for a procedure call with the
 % given parameters. The paramer list can contain ground values or

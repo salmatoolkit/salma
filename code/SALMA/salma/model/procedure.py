@@ -568,8 +568,10 @@ class Select(ControlNode):
     def execute_step(self, evaluation_context, procedure_registry):
         predicate_type = evaluation_context.determine_source_type(self.predicate, self.params)
         result = evaluation_context.selectFirst(predicate_type, self.predicate, *self.params)
-        for var_name, value in result.items():
-            evaluation_context.assignVariable(var_name, value)
+        if result is not None:
+            for var_name, value in result.items():
+                evaluation_context.assignVariable(var_name, value)
+
         return ControlNode.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
