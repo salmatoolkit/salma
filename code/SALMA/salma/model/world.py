@@ -499,6 +499,8 @@ class World(Entity, WorldDeclaration):
         Adds the given entity to the registry
         :type entity: Entity
         """
+        if entity.id in self.__entities:
+            raise SALMAException("Trying to register entity whose id is already used: {}".format(entity.id))
         self.__entities[entity.id] = entity
         if isinstance(entity, Agent):
             self.__agents[entity.id] = entity
@@ -1367,7 +1369,10 @@ class LocalEvaluationContext(EvaluationContext):
             result_list = World.logic_engine().selectAll(source, *resolved_params, situation=sit)
         elif source_type in {EvaluationContext.PYTHON_EXPRESSION, EvaluationContext.PYTHON_FUNCTION,
                              EvaluationContext.EXTENDED_PYTHON_FUNCTION}:
-            result_list = self.evaluate_python(source_type, source, *resolved_params)
+            # for Python calls, we don't pass the free variables since the result will be extracted purely
+            # from the returned value
+            bound_params = [v for v in resolved_params if v not in free_vars]
+            result_list = self.evaluate_python(source_type, source, *bound_params)
         elif source_type == EvaluationContext.ITERATOR:
             # Here we just use a python object that supports the iterator protocol
             if isinstance(source, Variable):

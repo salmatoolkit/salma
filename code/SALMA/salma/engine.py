@@ -705,17 +705,25 @@ class EclipseCLPEngine(Engine):
         paramTerms = createParamTerms(*params2, **kwargs)
         return variables, indices, paramTerms
 
-    def __prepareSelectEntities(self, predicateName, *params, **kwargs):
+    def __prepare_select_first(self, predicateName, *params, **kwargs):
         variables, indices, paramTerms = self.__prepareIndexedFreeParams(
             *params,
             **kwargs)
 
-        # g = pyclp.Compound("select_entities",
-        #                    pyclp.Atom(predicateName),
-        #                    pyclp.PList(paramTerms))
         g = pyclp.Compound("select_first_entity",
                            pyclp.Atom(predicateName),
                            pyclp.PList(paramTerms))
+        return variables, indices, g
+
+    def __prepare_select_entities(self, predicateName, *params, **kwargs):
+        variables, indices, paramTerms = self.__prepareIndexedFreeParams(
+            *params,
+            **kwargs)
+
+        g = pyclp.Compound("select_entities",
+                           pyclp.Atom(predicateName),
+                           pyclp.PList(paramTerms))
+
         return variables, indices, g
 
     def __readPyCLPOutputLines(self, result, stream_num):
@@ -732,30 +740,30 @@ class EclipseCLPEngine(Engine):
             outstream.close()
         return result, lines
 
-    def selectAll(self, predicateName, *params, **kwargs):
+    def selectAll(self, predicate_name, *params, **kwargs):
 
-        variables, indices, selectCall = self.__prepareSelectEntities(predicateName, *params, **kwargs)
+        variables, indices, select_call = self.__prepare_select_entities(predicate_name, *params, **kwargs)
 
-        resultList = pyclp.Var()
+        result_list = pyclp.Var()
 
-        varSeq = pyclp.Compound('val', *variables)
+        varseq = pyclp.Compound('val', *variables)
         g = pyclp.Compound("findall",
-                           varSeq,
-                           selectCall,
-                           resultList)
+                           varseq,
+                           select_call,
+                           result_list)
         g.post_goal()
         result, stream_num = pyclp.resume()
 
-        errorMsg = "Can't execute findall for predicate {}. Result = {}, Message = {}."
+        error_msg = "Can't execute findall for predicate {}. Result = {}, Message = {}."
 
         result, lines = self.__readPyCLPOutputLines(result, stream_num)
 
         if result != pyclp.SUCCEED:
             raise (SALMAException(
-                errorMsg.format(predicateName, result, "\n".join(lines))))
+                error_msg.format(predicate_name, result, "\n".join(lines))))
 
         refinedResult = []
-        for valueCombination in resultList.value():
+        for valueCombination in result_list.value():
             entry = dict()
             for varName, index in indices.items():
                 entry[varName] = self.__convert_value_from_engine_result(valueCombination[index])
@@ -763,7 +771,7 @@ class EclipseCLPEngine(Engine):
         return refinedResult
 
     def selectFirst(self, predicateName, *params, **kwargs):
-        variables, indices, selectCall = self.__prepareSelectEntities(predicateName, *params, **kwargs)
+        variables, indices, selectCall = self.__prepare_select_first(predicateName, *params, **kwargs)
         selectCall.post_goal()
         result, stream_num = pyclp.resume()
         result, lines = self.__readPyCLPOutputLines(result, stream_num)

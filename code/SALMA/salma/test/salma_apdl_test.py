@@ -1,5 +1,8 @@
 import math
+from random import random
+import random
 import unittest
+from sqlalchemy.sql.functions import random
 
 from salma import constants
 from salma.constants import SELF
@@ -15,7 +18,8 @@ from salma.model.procedure import ControlNode, While, Act, Wait, Procedure, Sequ
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 from salma.test.world_test_base import BaseWorldTest
-
+import random
+from itertools import cycle
 
 def print_value(value):
     print("Val: ", value)
@@ -27,6 +31,27 @@ def create_value_recorder(reclist: list):
         reclist.append(params)
 
     return rfunc
+
+
+def choose_items(num, ctx=None, **kwargs):
+    """
+    :param int num: number of chosen items
+    :param EvaluationContext ctx: context
+    :rtype: list
+    """
+    items = list(ctx.getDomain("item"))
+    return items[:num]
+
+
+def choose_pairs(ctx=None, **kwargs):
+    """
+    :param int num: number of chosen items
+    :param EvaluationContext ctx: context
+    :rtype: list
+    """
+    robots = ctx.getDomain("robot")
+    items = ctx.getDomain("item")
+    return list(zip(cycle(robots), items))
 
 
 class MySelectionStrategy(OutcomeSelectionStrategy):
@@ -47,6 +72,7 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
 
 
 class SALMAAPDLTest(BaseWorldTest):
+
     def setupSelectionContext(self, carry_map):
         world = World.instance()
 
@@ -62,7 +88,6 @@ class SALMAAPDLTest(BaseWorldTest):
             for i in items:
                 world.setFluentValue("carrying", [rob, "item" + str(i)], True)
 
-    #@unittest.skip
     def testSelect_Fluent(self):
         world = World.instance()
         reclist1 = []
@@ -106,7 +131,6 @@ class SALMAAPDLTest(BaseWorldTest):
         self.assertTrue(int(i[4:]) in carry_map["rob2"])
         self.assertFalse(world.getFluentValue("carrying", [agent2.id, i]))
 
-    @unittest.skip
     def testIterate_Fluent(self):
         world = World.instance()
         reclist1 = []
@@ -151,50 +175,61 @@ class SALMAAPDLTest(BaseWorldTest):
         self.assertEqual(len(reclist2), 5)
         self.assertSetEqual(set(map(lambda x: ("item" + str(x),), carry_map["rob2"])), set(reclist2))
 
-    @unittest.skip
-    def testIterate_Python(self):
+    def testIterate_Python_function(self):
+        print("\n\n" + (80 * "-") + "\ntestIterate_Python_function\n" + (80 * "-"))
         world = World.instance()
         reclist1 = []
         recorder1 = create_value_recorder(reclist1)
         reclist2 = []
         recorder2 = create_value_recorder(reclist2)
+
         r, i = makevars(("r", "robot"), ("i", "item"))
         agent1 = Agent("rob1", "robot", Procedure([
-            Iterate("carrying", [r, i], [
-                FunctionControlNode(recorder1, r, i),
-                Act("mark", [SELF, i, SELF])])
+            Iterate(choose_items, [3, i], [
+                FunctionControlNode(recorder1, i),
+                Act("paint", [SELF, i])])
         ]))
         agent2 = Agent("rob2", "robot", Procedure([
-            Iterate("carrying", [SELF, i], [
-                FunctionControlNode(recorder2, i),
-                Act("paint", [SELF, i])])
+            Iterate(choose_pairs, [r, i], [
+                FunctionControlNode(recorder2, r, i),
+                Act("mark", [SELF, i, r])])
         ]))
 
         world.addAgent(agent1)
         world.addAgent(agent2)
-        carry_map = {"rob1": [3, 5, 9, 2, 10], "rob2": [1, 4, 6, 7, 8]}
+        carry_map = {}
         self.setupSelectionContext(carry_map)
+        self.setNoOneCarriesAnything()
 
-        print("\n\n----\n\n")
-        print("INIT:")
-        print("\n\n----\n\n")
-        world.printState()
         experiment = Experiment(world)
         verdict, results = experiment.run_until_finished()
         print(reclist1)
         print(reclist2)
         world.printState()
-        self.assertEqual(len(reclist1), 10)
-        todo = set(range(1, 11))
-        for r, i in reclist1:
-            rec_item = int(i[len("item"):])
-            self.assertIn(rec_item, carry_map[r])
-            self.assertIn(rec_item, todo)
-            todo.remove(rec_item)
-        self.assertEqual(len(todo), 0)
+        self.assertEqual(len(reclist1), 3)
+        for t in reclist1:
+            self.assertIsInstance(t, tuple)
+            self.assertEqual(len(t), 1)
+            self.assertIsInstance(t[0], str)
+            self.assertTrue(t[0].startswith("item"))
+            self.assertEqual(reclist1.count(t), 1)
 
-        self.assertEqual(len(reclist2), 5)
-        self.assertSetEqual(set(map(lambda x: ("item" + str(x),), carry_map["rob2"])), set(reclist2))
+        self.assertEqual(len(reclist2), 10)
+        handled_robots = []
+        handled_items = []
+        robots_ids = list(map(lambda x: x.id, world.getDomain("robot")))
+        item_ids = list(map(lambda x: x.id, world.getDomain("item")))
+        for r, i in reclist2:
+            handled_robots.append(r)
+            handled_items.append(i)
+            self.assertIn(r, robots_ids)
+            self.assertIn(i, item_ids)
+
+        unhandled_robots = [r for r in robots_ids if r not in handled_robots]
+        self.assertEqual(len(unhandled_robots), 0)
+        unhandled_items = [i for i in item_ids if i not in handled_items]
+        self.assertEqual(len(unhandled_items), 0)
+
 
 
 if __name__ == '__main__':
