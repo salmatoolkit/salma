@@ -11,37 +11,10 @@ def is_control_node_sequence(thelist):
         return False
     else:
         for e in thelist:
-            if isinstance(e, ControlNode):
+            if isinstance(e, Statement):
                 return True
             else:
                 return is_control_node_sequence(e)
-
-
-class Element(object):
-    """
-    The base class for all elements of a process, i.e. procedures and control elements.
-    Each element keeps a unique, automatically generated id.
-    """
-    # static field
-    __next_id = 1
-
-    def __init__(self, element_id=None):
-        """
-        Creates a new element with the given id. If no id is given, a new value will be assigned by increasing
-        Element.__next_id.
-        """
-        if element_id is None:
-            self.__id = Element.__next_id
-            Element.__next_id += 1
-        else:
-            self.__id = element_id
-
-    @property
-    def id(self) -> int:
-        """
-        The element's id.
-        """
-        return self.__id
 
 
 def makevars(*args):
@@ -80,7 +53,7 @@ class Variable(object):
         return self.__sort
 
 
-class Procedure(Element):
+class Procedure(object):
     """
     A procedure that is used either as the main control flow of a process or as a sub-procedure.
     """
@@ -91,7 +64,6 @@ class Procedure(Element):
 
         :param str procedure_name:
         """
-        Element.__init__(self)
         if len(args) == 1:
             self.__name = "main"
             self.__parameters = []
@@ -109,17 +81,17 @@ class Procedure(Element):
                                  "got {} instead.".format(args))
         if isinstance(body, (list, tuple)):
             self.__body = Sequence(body)
-        elif isinstance(body, ControlNode):
+        elif isinstance(body, Statement):
             self.__body = body
         else:
-            raise SALMAException("Wrong type for body in Procedure: expected list or ControlNode but "
+            raise SALMAException("Wrong type for body in Procedure: expected list or Statement but "
                                  "got {}".format(type(body)))
 
     @property
     def body(self):
         """
         The procedure's body.
-        :rtype: ControlNode
+        :rtype: Statement
         """
         return self.__body
 
@@ -144,7 +116,7 @@ class Procedure(Element):
         self.__body.reset(evaluation_context)
 
 
-class ControlNode(Element):
+class Statement(object):
     """
     The base class for all procedure statements.
     """
@@ -152,21 +124,20 @@ class ControlNode(Element):
         """
         Default constructor.
         """
-        Element.__init__(self)
         self.__parent = None
 
     @property
     def parent(self):
         """
         The parent of the control node, e.g. the enclosing Sequence.
-        :rtype: ControlNode
+        :rtype: Statement
         """
         return self.__parent
 
     @parent.setter
     def parent(self, parent):
         """
-        :param ControlNode parent: the parent of the control node, e.g. the enclosing Sequence.
+        :param Statement parent: the parent of the control node, e.g. the enclosing Sequence.
         """
         self.__parent = parent
 
@@ -186,7 +157,7 @@ class ControlNode(Element):
     CONTINUE = 1
 
 
-class Sequence(ControlNode):
+class Sequence(Statement):
     """
     A sequence of statements, i.e. ControlNodes.
     """
@@ -195,7 +166,7 @@ class Sequence(ControlNode):
         """
         Creates a new sequence that contains the given children.
 
-        :param list[ControlNode]|tuple[ControlNode] new_children: the children that are added to the sequence.
+        :param list[Statement]|tuple[Statement] new_children: the children that are added to the sequence.
         """
         super().__init__()
         if not new_children:
@@ -207,7 +178,7 @@ class Sequence(ControlNode):
     def execute_step(self, evaluation_context, procedure_registry):
         if evaluation_context.getCurrentSequenceIndex(self) is None:
             if len(self.__children) == 0:
-                return ControlNode.CONTINUE, None, evaluation_context
+                return Statement.CONTINUE, None, evaluation_context
             else:
                 evaluation_context.setCurrentSequenceIndex(self, 0)
 
@@ -216,7 +187,7 @@ class Sequence(ControlNode):
         # check if the sequence has finished
         if csi > len(self.__children) - 1:
             evaluation_context.setCurrentSequenceIndex(self, 0)
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
         state, next_node, next_context = self.__children[csi].execute_step(evaluation_context, procedure_registry)
 
@@ -232,7 +203,7 @@ class Sequence(ControlNode):
     def children(self):
         """
         The children of the sequence.
-        :rtype: list[ControlNode]
+        :rtype: list[Statement]
         """
         return self.__children
 
@@ -241,7 +212,7 @@ class Sequence(ControlNode):
         Adds a child control node to the sequence. Alternatively, a list can be given to add
         a nested sequence.
 
-        :param ControlNode|list[ControlNode] child: the child to add
+        :param Statement|list[Statement] child: the child to add
         """
         if isinstance(child, list):
             seq = Sequence(child)
@@ -253,7 +224,7 @@ class Sequence(ControlNode):
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
-        # : :type node: ControlNode
+        # : :type node: Statement
         for node in self.__children:
             node.reset(evaluation_context)
 
@@ -292,7 +263,7 @@ class ProcedureRegistry(object):
         self.__registry[procedure.name] = procedure
 
 
-class While(ControlNode):
+class While(Statement):
     """
     A typical while control structure that repeats the given body control node as long as the given condition
     evaluates to True.
@@ -304,9 +275,9 @@ class While(ControlNode):
 
         :param object condition: the condition
         :param args: 1.: (optional) the parameters that are used for evaluating the condition goal, 2.:
-        the loops body (ControlNode or list).
+        the loops body (Statement or list).
         """
-        ControlNode.__init__(self)
+        Statement.__init__(self)
 
         self.__condition = condition
         if len(args) == 1:
@@ -341,7 +312,7 @@ class While(ControlNode):
     def body(self):
         """
         The body of this while block.
-        :rtype: ControlNode
+        :rtype: Statement
         """
         return self.__body
 
@@ -352,15 +323,15 @@ class While(ControlNode):
                                                       *self.condition_params)
 
         if result is True:
-            return ControlNode.CONTINUE, self.body, evaluation_context
+            return Statement.CONTINUE, self.body, evaluation_context
         else:
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         self.body.reset(evaluation_context)
 
 
-class If(ControlNode):
+class If(Statement):
     """
     A typical IF-ElSE control structure.
     """
@@ -372,14 +343,14 @@ class If(ControlNode):
         :param object condition: the condition.
         :param args: 1. (optional): params, 2.: IF-body, 3. (optional): ELSE-body.
         """
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__condition = condition
         if len(args) == 1:
             self.__condition_params = []
             t_body = args[0]
             e_body = None
         elif len(args) == 2:
-            if isinstance(args[0], ControlNode) or is_control_node_sequence(args[0]):
+            if isinstance(args[0], Statement) or is_control_node_sequence(args[0]):
                 t_body = args[0]
                 e_body = args[1]
                 self.__condition_params = []
@@ -420,7 +391,7 @@ class If(ControlNode):
     def then_body(self):
         """
         The control node that is executed if the condition evaluates to True.
-        :rtype: ControlNode
+        :rtype: Statement
         """
         return self.__then_body
 
@@ -428,7 +399,7 @@ class If(ControlNode):
     def else_body(self):
         """
         The control node that is executed if the condition evaluates to False.
-        :rtype: ControlNode
+        :rtype: Statement
         """
         return self.__else_body
 
@@ -438,7 +409,7 @@ class If(ControlNode):
         # after execution of the then or else body
         if index > 0:
             self.reset(evaluation_context)
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
         condition_type = evaluation_context.determine_source_type(self.condition, self.condition_params)
         result = evaluation_context.evaluateCondition(condition_type,
                                                       self.condition,
@@ -446,12 +417,12 @@ class If(ControlNode):
 
         if result is True:
             evaluation_context.setCurrentSequenceIndex(self, 1)
-            return ControlNode.CONTINUE, self.then_body, evaluation_context
+            return Statement.CONTINUE, self.then_body, evaluation_context
         else:
             # Only wait for re-entering when we have an else body. Otherwise just skip.
             if self.else_body is not None:
                 evaluation_context.setCurrentSequenceIndex(self, 1)
-            return ControlNode.CONTINUE, self.else_body, evaluation_context
+            return Statement.CONTINUE, self.else_body, evaluation_context
 
     def reset(self, evaluation_context):
         self.then_body.reset(evaluation_context)
@@ -460,7 +431,7 @@ class If(ControlNode):
         evaluation_context.setCurrentSequenceIndex(self, 0)
 
 
-class Iterate(ControlNode):
+class Iterate(Statement):
     """
     An iteration construct that returns result tuples for one or several line variables that are bound in the
     body.
@@ -472,7 +443,7 @@ class Iterate(ControlNode):
     """
 
     def __init__(self, source, params, body):
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__source = source
         self.__params = params
         self.__body = Sequence(body) if isinstance(body, (list, tuple)) else body
@@ -499,7 +470,7 @@ class Iterate(ControlNode):
         """
         The iteration body that is executed in each iteration with the out-parameters bound to the
         values of the current row.
-        :rtype: ControlNode
+        :rtype: Statement
         """
         return self.__body
 
@@ -527,7 +498,7 @@ class Iterate(ControlNode):
         # at the end of the iteration list, reset and pass control to parent
         if result_index > len(result_list) - 1:
             self.reset(evaluation_context)
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
         value_combination = result_list[result_index]
         evaluation_context.incCurrentResultListIndex(self)
@@ -535,7 +506,7 @@ class Iterate(ControlNode):
         for varName, value in value_combination.items():
             evaluation_context.assignVariable(varName, value)
 
-        return ControlNode.CONTINUE, self.body, evaluation_context
+        return Statement.CONTINUE, self.body, evaluation_context
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentResultList(self, None)
@@ -543,14 +514,14 @@ class Iterate(ControlNode):
         self.body.reset(evaluation_context)
 
 
-class Select(ControlNode):
+class Select(Statement):
     """
     Selects the first value combination that makes predicateName with the given params true. The values are bound to
     variables with the given names in the current evaluation context.
     """
 
     def __init__(self, predicate, params):
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__predicate = predicate
         self.__params = params
 
@@ -572,15 +543,15 @@ class Select(ControlNode):
             for var_name, value in result.items():
                 evaluation_context.assignVariable(var_name, value)
 
-        return ControlNode.CONTINUE, None, evaluation_context
+        return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         pass
 
 
-class Plan(ControlNode):
+class Plan(Statement):
     def __init__(self, procedure_name, params, plan_name='plan'):
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__procedureName = procedure_name
         self.__params = params
         self.__planName = plan_name
@@ -604,10 +575,10 @@ class Plan(ControlNode):
             evaluation_context.assignVariable(varName, value)
 
         evaluation_context.assignVariable('plan', plan)
-        return ControlNode.CONTINUE, None, evaluation_context
+        return Statement.CONTINUE, None, evaluation_context
 
 
-class Wait(ControlNode):
+class Wait(Statement):
     """
     Blocks the process until the given condition is fulfilled.
     """
@@ -618,7 +589,7 @@ class Wait(ControlNode):
         :param list condition_params: parameters
         :param timeout: [obtional]
         """
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__condition = condition
         self.__condition_params = condition_params if condition_params is not None else []
         self.__timeout_expr = kwargs["timeout"] if "timeout" in kwargs else None
@@ -645,18 +616,18 @@ class Wait(ControlNode):
         result = evaluation_context.evaluateCondition(condition_type, self.condition,
                                                       *self.condition_params)
         if result is True:
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
         else:
             if self.__timeout_expr is not None:
                 current_time = evaluation_context.getFluentValue('time')
                 self.__current_timeout = current_time + evaluation_context.resolve(self.__timeout_expr)[0]
-            return ControlNode.BLOCK, self, evaluation_context
+            return Statement.BLOCK, self, evaluation_context
 
     def reset(self, evaluation_context):
         pass
 
 
-class Act(ControlNode):
+class Act(Statement):
     """
     A control node that represents the execution of an action.
     """
@@ -668,7 +639,7 @@ class Act(ControlNode):
 
         The agent will be inserted as an implicit 1st parameter.
         """
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__action_name = action_name
         self.__action_parameters = action_parameters
 
@@ -682,7 +653,7 @@ class Act(ControlNode):
 
     def execute_step(self, evaluation_context, procedure_registry):
         # - return self as action
-        return ControlNode.BLOCK, self, evaluation_context
+        return Statement.BLOCK, self, evaluation_context
 
     def __str__(self, *args, **kwargs):
         return "Act({},{})".format(self.action_name, self.action_parameters)
@@ -691,7 +662,7 @@ class Act(ControlNode):
         pass
 
 
-class Assign(ControlNode):
+class Assign(Statement):
     """
     A statement that calculates a value and assigns it to the given variable.
     """
@@ -745,13 +716,13 @@ class Assign(ControlNode):
             for i in range(len(self.variable_names)):
                 evaluation_context.assignVariable(self.variable_names[i], val[i])
         # TODO: proper error handling
-        return ControlNode.CONTINUE, None, evaluation_context
+        return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         pass
 
 
-class FunctionControlNode(ControlNode):
+class FunctionStatement(Statement):
     """
     An action that executes a python function.
     """
@@ -761,10 +732,10 @@ class FunctionControlNode(ControlNode):
         Installs the given Python function as action handler.
 
         :param  handler: function supporting the given signature that returns a tuple of the form
-        (state, next_node) where state is either ControlNode.CONTINUE or ControlNode.BLOCK and
-        next_node is a ControlNode or None.
+        (state, next_node) where state is either Statement.CONTINUE or Statement.BLOCK and
+        next_node is a Statement or None.
         """
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__handler = handler
         self.__params = params
 
@@ -784,7 +755,7 @@ class FunctionControlNode(ControlNode):
             res = self.__handler(*ground_params)
 
         if res is None:
-            state = ControlNode.CONTINUE
+            state = Statement.CONTINUE
             next_node = None
             ec = evaluation_context
         elif isinstance(res, (tuple, list)) and len(res) >= 2:
@@ -803,7 +774,7 @@ class FunctionControlNode(ControlNode):
         pass
 
 
-class ProcedureCall(ControlNode):
+class ProcedureCall(Statement):
     def __init__(self, procedure_name, procedure_parameters):
         """
         action_parameters can be terms, need metamodel for that. Terms have to be evaluated first to ground them.
@@ -811,7 +782,7 @@ class ProcedureCall(ControlNode):
 
         The agent will be inserted as an implicit 1st parameter.
         """
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__procedure_name = procedure_name
         self.__procedure_parameters = procedure_parameters
 
@@ -845,7 +816,7 @@ class ProcedureCall(ControlNode):
             child_context.assignVariable(var_name, ground_params[i])
 
         # - return self as action
-        return ControlNode.CONTINUE, procedure.body, child_context
+        return Statement.CONTINUE, procedure.body, child_context
 
     def __str__(self, *args, **kwargs):
         return "Act({},{})".format(self.__procedure_name, self.__procedure_parameters)
@@ -854,13 +825,13 @@ class ProcedureCall(ControlNode):
         pass
 
 
-class Send(ControlNode):
+class Send(Statement):
     """
     Sends a message on a channel to a specific agent.
     """
 
     def __init__(self, channel, message, own_role=None, destination=None, destination_role=None):
-        ControlNode.__init__(self)
+        Statement.__init__(self)
         self.__channel = channel
         self.__own_role = own_role
         self.__destination = destination
@@ -925,16 +896,16 @@ class Send(ControlNode):
             req_transfer = Act("requestTransfer", [msgid])
             req_transfer.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, req_transfer, evaluation_context
+            return Statement.CONTINUE, req_transfer, evaluation_context
         else:
             evaluation_context.setCurrentSequenceIndex(self, 0)
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
 
 
-class TransmitRemoteSensorReading(ControlNode):
+class TransmitRemoteSensorReading(Statement):
     """
     Transmits the most recent sensor readings for the given remote sensor.
 
@@ -969,16 +940,16 @@ class TransmitRemoteSensorReading(ControlNode):
             req_transfer_action = Act("requestTransfer", [msgid])
             req_transfer_action.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, req_transfer_action, evaluation_context
+            return Statement.CONTINUE, req_transfer_action, evaluation_context
         else:
             evaluation_context.setCurrentSequenceIndex(self, 0)
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
 
 
-class Receive(ControlNode):
+class Receive(Statement):
     def __init__(self, channel, role, variable):
         super().__init__()
         self.__channel = channel
@@ -1004,16 +975,16 @@ class Receive(ControlNode):
             clean_queue = Act("clean_queue", [Entity.SELF, channel, role])
             clean_queue.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, clean_queue, evaluation_context
+            return Statement.CONTINUE, clean_queue, evaluation_context
         else:
             evaluation_context.setCurrentSequenceIndex(self, 0)
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
 
 
-class WaitForSensor(ControlNode):
+class WaitForSensor(Statement):
     def __init__(self, sensor, agent, params, start_time):
         super().__init__()
         self.__sensor = sensor
@@ -1032,15 +1003,15 @@ class WaitForSensor(ControlNode):
         allparams = [agent] + params
         tstamp = evaluation_context.getFluentValue("tstamp_" + sensor, *allparams)
         if tstamp is None or tstamp < tstamp:
-            return ControlNode.BLOCK, self, evaluation_context
+            return Statement.BLOCK, self, evaluation_context
         else:
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         pass
 
 
-class Sense(ControlNode):
+class Sense(Statement):
     """
     Performs asynchronous sensing on the given sensor with the given parameters. An optional variable
     can be specified in which case the sensing is synchronous and the result will be stored in this variable
@@ -1068,27 +1039,27 @@ class Sense(ControlNode):
             req_transfer = Act("requestTransfer", [msgid])
             req_transfer.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, req_transfer, evaluation_context
+            return Statement.CONTINUE, req_transfer, evaluation_context
         elif csi == 1 and self.__variable is not None:
             # wait until transfer ends
             ctime = evaluation_context.getFluentValue("time")
             wait_for_sensor = WaitForSensor(sensor, agent, params, ctime)
             wait_for_sensor.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, wait_for_sensor, evaluation_context
+            return Statement.CONTINUE, wait_for_sensor, evaluation_context
         else:
             if self.__variable is not None:
                 val = evaluation_context.getFluentValue(sensor, *params)
                 evaluation_context.assignVariable(self.__variable, val)
 
             evaluation_context.setCurrentSequenceIndex(self, 0)
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)
 
 
-class UpdateRemoteSensor(ControlNode):
+class UpdateRemoteSensor(Statement):
     """
     Updates the remote sensor map at the receiving agent using the most recent messages from the information sources.
     Afterwards, these messages are removed from the incoming queue.
@@ -1113,16 +1084,16 @@ class UpdateRemoteSensor(ControlNode):
             update_action = Act("update_remote_sensor", [Entity.SELF, remote_sensor_name])
             update_action.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, update_action, evaluation_context
+            return Statement.CONTINUE, update_action, evaluation_context
         elif csi == 1:
             agent, remote_sensor_name = evaluation_context.resolve(Entity.SELF, self.__remote_sensor_name)
             clean_queue_action = Act("clean_queue", [agent, remote_sensor_name, remote_sensor_name])
             clean_queue_action.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
-            return ControlNode.CONTINUE, clean_queue_action, evaluation_context
+            return Statement.CONTINUE, clean_queue_action, evaluation_context
         else:
             evaluation_context.setCurrentSequenceIndex(self, 0)
-            return ControlNode.CONTINUE, None, evaluation_context
+            return Statement.CONTINUE, None, evaluation_context
 
     def reset(self, evaluation_context):
         evaluation_context.setCurrentSequenceIndex(self, 0)

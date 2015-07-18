@@ -6,7 +6,7 @@ from salma.model.distributions import BernoulliDistribution, ConstantDistributio
 
 from salma.model.agent import Agent
 from salma.model import process
-from salma.model.procedure import Procedure, Act, Wait, FunctionControlNode
+from salma.model.procedure import Procedure, Act, Wait, FunctionStatement
 from salma.test.world_test_base import BaseWorldTest
 from salma.model.evaluationcontext import EvaluationContext
 
@@ -41,7 +41,7 @@ class WaitTest(BaseWorldTest):
         pmain = Procedure([
             Act("move_right", [Entity.SELF]),
             Wait("not moving(self)"),
-            FunctionControlNode(record_state)
+            FunctionStatement(record_state)
         ])
 
         proc = process.OneShotProcess(pmain)
@@ -90,7 +90,7 @@ class WaitTest(BaseWorldTest):
         pmain = Procedure([
             Act("move_right", [Entity.SELF]),
             Wait("not moving(self)", timeout=5),
-            FunctionControlNode(record_state)
+            FunctionStatement(record_state)
         ])
 
         proc = process.OneShotProcess(pmain)

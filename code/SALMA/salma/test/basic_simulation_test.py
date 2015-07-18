@@ -7,14 +7,14 @@ from salma.experiment import Experiment
 from salma.model.process import OneShotProcess
 from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, While, Act, Wait, Procedure, Sequence, Assign, FunctionControlNode, Variable
+from salma.model.procedure import Statement, While, Act, Wait, Procedure, Sequence, Assign, FunctionStatement, Variable
 from salma.model.world import World
 from salma.test.world_test_base import BaseWorldTest
 
 
 def print_value(value):
     print("Val: ", value)
-    return ControlNode.CONTINUE, None
+    return Statement.CONTINUE, None
 
 
 class MySelectionStrategy(OutcomeSelectionStrategy):
@@ -142,7 +142,7 @@ class BasicSimulationTest(BaseWorldTest):
         # run from (x,y) to (y,y)
         seq = Sequence([
             Assign("myY", "ypos", [Entity.SELF]),
-            FunctionControlNode(print_value, [Variable("myY")])
+            FunctionStatement(print_value, [Variable("myY")])
         ])
         w = While("robotLeftFrom",
                   [Entity.SELF, Variable("myY"), "s0"],
@@ -150,7 +150,7 @@ class BasicSimulationTest(BaseWorldTest):
                       Act("move_right", [Entity.SELF]),
                       Wait("not moving(self)"),
                       Assign("myX", "xpos", [Entity.SELF]),
-                      FunctionControlNode(print_value, [Variable("myX")])
+                      FunctionStatement(print_value, [Variable("myX")])
                   ])
         seq.add_child(w)
         proc1 = OneShotProcess(Procedure(seq))

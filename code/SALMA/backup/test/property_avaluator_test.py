@@ -15,8 +15,8 @@ from salma.model.agent import Agent
 from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, Sequence, \
-    Act, Procedure, While, Assign, FunctionControlNode, Variable, \
+from salma.model.procedure import Statement, Sequence, \
+    Act, Procedure, While, Assign, FunctionStatement, Variable, \
     Iterate, Select, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader

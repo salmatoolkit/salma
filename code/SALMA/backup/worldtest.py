@@ -17,8 +17,8 @@ from salma.model.distributions import UniformDistribution, \
     ArgumentIdentityDistribution, BernoulliDistribution, Distribution, ConstantDistribution, OptionalDistribution, \
     ExponentialDistribution
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, Sequence, \
-    Act, Procedure, While, Assign, FunctionControlNode, Variable, \
+from salma.model.procedure import Statement, Sequence, \
+    Act, Procedure, While, Assign, FunctionStatement, Variable, \
     Iterate, Select, ProcedureRegistry, ProcedureCall, If, Plan
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
@@ -27,7 +27,7 @@ from salma.test.world_test_base import BaseWorldTest
 
 def printValue(value):
     print("Val: ", value)
-    return ControlNode.CONTINUE, None
+    return Statement.CONTINUE, None
 
 
 class MySelectionStrategy(OutcomeSelectionStrategy):

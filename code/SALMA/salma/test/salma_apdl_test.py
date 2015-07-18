@@ -12,7 +12,7 @@ from salma.experiment import Experiment
 from salma.model.process import OneShotProcess
 from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import ControlNode, While, Act, Wait, Procedure, Sequence, Assign, FunctionControlNode, \
+from salma.model.procedure import Statement, While, Act, Wait, Procedure, Sequence, Assign, FunctionStatement, \
     Variable, \
     Select, If, Iterate, makevars
 from salma.model.world import World
@@ -23,7 +23,7 @@ from itertools import cycle
 
 def print_value(value):
     print("Val: ", value)
-    return ControlNode.CONTINUE, None
+    return Statement.CONTINUE, None
 
 
 def create_value_recorder(reclist: list):
@@ -97,12 +97,12 @@ class SALMAAPDLTest(BaseWorldTest):
         r, i = makevars(("r", "robot"), ("i", "item"))
         agent1 = Agent("rob1", "robot", Procedure([
             Select("carrying", [r, i]),
-            FunctionControlNode(recorder1, r, i),
+            FunctionStatement(recorder1, r, i),
             Act("mark", [SELF, i, SELF])
         ]))
         agent2 = Agent("rob2", "robot", Procedure([
             Select("carrying", [SELF, i]),
-            FunctionControlNode(recorder2, i),
+            FunctionStatement(recorder2, i),
             Act("drop", [SELF, i])
         ]))
 
@@ -140,12 +140,12 @@ class SALMAAPDLTest(BaseWorldTest):
         r, i = makevars(("r", "robot"), ("i", "item"))
         agent1 = Agent("rob1", "robot", Procedure([
             Iterate("carrying", [r, i], [
-                FunctionControlNode(recorder1, r, i),
+                FunctionStatement(recorder1, r, i),
                 Act("mark", [SELF, i, SELF])])
         ]))
         agent2 = Agent("rob2", "robot", Procedure([
             Iterate("carrying", [SELF, i], [
-                FunctionControlNode(recorder2, i),
+                FunctionStatement(recorder2, i),
                 Act("paint", [SELF, i])])
         ]))
 
@@ -186,12 +186,12 @@ class SALMAAPDLTest(BaseWorldTest):
         r, i = makevars(("r", "robot"), ("i", "item"))
         agent1 = Agent("rob1", "robot", Procedure([
             Iterate(choose_items, [3, i], [
-                FunctionControlNode(recorder1, i),
+                FunctionStatement(recorder1, i),
                 Act("paint", [SELF, i])])
         ]))
         agent2 = Agent("rob2", "robot", Procedure([
             Iterate(choose_pairs, [r, i], [
-                FunctionControlNode(recorder2, r, i),
+                FunctionStatement(recorder2, r, i),
                 Act("mark", [SELF, i, r])])
         ]))
 

@@ -1,7 +1,7 @@
 from numbers import Number
 from .core import Entity
 from salma.SALMAException import SALMAException
-from salma.model.procedure import ControlNode, Act, Procedure, Wait
+from salma.model.procedure import Statement, Act, Procedure, Wait
 from salma.model.evaluationcontext import EvaluationContext
 
 ONE_SHOT_PROCESS = 0
@@ -27,7 +27,7 @@ class Process(object):
         Creates a process with the given procedure and an optional introduction time. Additionally,
         a process name can be specified to identify the process later, e.g. in debugging.
         The status is initially set to IDLE.
-        :type procedure: Procedure|ControlNode|list
+        :type procedure: Procedure|Statement|list
         :type introduction_time: int
         :type name: str
         """
@@ -43,7 +43,7 @@ class Process(object):
 
         if isinstance(procedure, Procedure):
             self.__procedure = procedure
-        elif isinstance(procedure, (ControlNode, list)):
+        elif isinstance(procedure, (Statement, list)):
             self.__procedure = Procedure("main", [], procedure)
         else:
             raise SALMAException("Unsupported type for process procedure.")
@@ -315,13 +315,13 @@ class Process(object):
         if not self.__state == Process.RUNNING:
             return None
 
-        status = ControlNode.CONTINUE
+        status = Statement.CONTINUE
         current_node = self.__current_control_node
         current_context = self.__current_evaluation_context
 
-        while status == ControlNode.CONTINUE and current_node is not None:
+        while status == Statement.CONTINUE and current_node is not None:
             if self.interrupted:
-                status = ControlNode.CONTINUE
+                status = Statement.CONTINUE
                 next_node = None
                 next_context = current_context
                 self.__interrupted = False
