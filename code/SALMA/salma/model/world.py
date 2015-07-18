@@ -913,7 +913,9 @@ class World(Entity, WorldDeclaration):
         :rtype: (Action, tuple, EvaluationContext)
         """
         try:
+            # note that we don't allow a variable for the action name!
             action = self.__actions[action_execution.action_name]
+
             ground_params = tuplify(evaluation_context.resolve(*action_execution.action_parameters))
             return action, ground_params, evaluation_context
         except KeyError:
