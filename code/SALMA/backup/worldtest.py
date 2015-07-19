@@ -39,7 +39,7 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
         :type evaluation_context: EvaluationContext
         :type param_values: list
         """
-        x = evaluation_context.getFluentValue('xpos', param_values[0])
+        x = evaluation_context.get_fluent_value('xpos', param_values[0])
         height = param_values[1]
         if x > 100 or height > 50:
             return self.options["crash"]
@@ -92,8 +92,8 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(verdict, constants.OK)
         # there should be 110 steps to take rob1 to 120 and 2 extra steps
         self.assertEqual(info['steps'], 112)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 120)
-        self.assertEqual(world.getFluentValue("xpos", ["rob2"]), 120)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 120)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob2"]), 120)
 
 
     @withHeader()
@@ -206,8 +206,8 @@ class WorldTest(BaseWorldTest):
 
         self.place_agents_in_column()
         world.setFluentValue("carrying", ["rob1", "coffee"], True)
-        world.setFluentValue("xpos", ["rob1"], world.getFluentValue("xpos", ["rob2"]))
-        world.setFluentValue("ypos", ["rob1"], world.getFluentValue("ypos", ["rob2"]))
+        world.setFluentValue("xpos", ["rob1"], world.get_fluent_value("xpos", ["rob2"]))
+        world.setFluentValue("ypos", ["rob1"], world.get_fluent_value("ypos", ["rob2"]))
 
         print('BEFORE:')
         world.printState()
@@ -408,7 +408,7 @@ class WorldTest(BaseWorldTest):
         world.runUntilFinished()
         world.printState()
         for item in items:
-            self.assertTrue(world.getFluentValue("painted", [item.id]))
+            self.assertTrue(world.get_fluent_value("painted", [item.id]))
 
     @withHeader()
     def testIterate_python(self):
@@ -440,7 +440,7 @@ class WorldTest(BaseWorldTest):
         world.runUntilFinished()
         world.printState()
         for item in items:
-            self.assertTrue(world.getFluentValue("painted", [item.id]))
+            self.assertTrue(world.get_fluent_value("painted", [item.id]))
 
     @withHeader()
     def testSelectFirstWorld(self):
@@ -468,7 +468,7 @@ class WorldTest(BaseWorldTest):
         world.printState()
         paintedItems = []
         for item in items:
-            if world.getFluentValue("painted", [item.id]):
+            if world.get_fluent_value("painted", [item.id]):
                 paintedItems.append(item)
 
         self.assertEqual(len(paintedItems), 1)
@@ -510,7 +510,7 @@ class WorldTest(BaseWorldTest):
         self.setNoOneCarriesAnything()
         world.runUntilFinished()
         world.printState()
-        self.assertEqual(world.getFluentValue('xpos', ['rob1']), 17)
+        self.assertEqual(world.get_fluent_value('xpos', ['rob1']), 17)
 
     @withHeader()
     def test_recursive_procedure_call(self):
@@ -553,7 +553,7 @@ class WorldTest(BaseWorldTest):
         self.setNoOneCarriesAnything()
         world.runUntilFinished()
         world.printState()
-        self.assertEqual(world.getFluentValue('xpos', ['rob1']), 25)
+        self.assertEqual(world.get_fluent_value('xpos', ['rob1']), 25)
 
     @withHeader()
     def testCreatePLan_OK_Unique(self):
@@ -634,7 +634,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(len(l1), 3)
         self.assertEqual(len(l2), 2)
         for f in default_false_fluent_instances:
-            self.assertFalse(world.getFluentValue(f[0], f[1]))
+            self.assertFalse(world.get_fluent_value(f[0], f[1]))
 
         world.setFluentValue('xpos', ['rob1'], 10)
         expected_fluents.remove(("xpos", ["rob1"]))

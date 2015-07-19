@@ -619,7 +619,7 @@ class Wait(Statement):
             return Statement.CONTINUE, None, evaluation_context
         else:
             if self.__timeout_expr is not None:
-                current_time = evaluation_context.getFluentValue('time')
+                current_time = evaluation_context.get_fluent_value('time')
                 self.__current_timeout = current_time + evaluation_context.resolve(self.__timeout_expr)[0]
             return Statement.BLOCK, self, evaluation_context
 
@@ -1001,7 +1001,7 @@ class WaitForSensor(Statement):
                                                                        self.__start_time)
 
         allparams = [agent] + params
-        tstamp = evaluation_context.getFluentValue("tstamp_" + sensor, *allparams)
+        tstamp = evaluation_context.get_fluent_value("tstamp_" + sensor, *allparams)
         if tstamp is None or tstamp < tstamp:
             return Statement.BLOCK, self, evaluation_context
         else:
@@ -1042,14 +1042,14 @@ class Sense(Statement):
             return Statement.CONTINUE, req_transfer, evaluation_context
         elif csi == 1 and self.__variable is not None:
             # wait until transfer ends
-            ctime = evaluation_context.getFluentValue("time")
+            ctime = evaluation_context.get_fluent_value("time")
             wait_for_sensor = WaitForSensor(sensor, agent, params, ctime)
             wait_for_sensor.parent = self
             evaluation_context.incCurrentSequenceIndex(self)
             return Statement.CONTINUE, wait_for_sensor, evaluation_context
         else:
             if self.__variable is not None:
-                val = evaluation_context.getFluentValue(sensor, *params)
+                val = evaluation_context.get_fluent_value(sensor, *params)
                 evaluation_context.assignVariable(self.__variable, val)
 
             evaluation_context.setCurrentSequenceIndex(self, 0)

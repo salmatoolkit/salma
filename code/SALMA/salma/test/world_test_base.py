@@ -86,15 +86,15 @@ class BaseWorldTest(unittest.TestCase):
             for i in items:
                 world.setFluentValue('carrying', [r.id, i.id], False)
 
-    def initialize_robot(self, robot_id, x, y, vx, vy):
+    def initialize_robot(self, robot_id, x, y, vx, vy, radius=1, active=True, partner=None):
         world = World.instance()
         world.setFluentValue("xpos", [robot_id], x)
         world.setFluentValue("ypos", [robot_id], y)
         world.setFluentValue("vx", [robot_id], vx)
         world.setFluentValue("vy", [robot_id], vy)
-        world.setConstantValue("robot_radius", [robot_id], 1)
-        world.setFluentValue("active", [robot_id], True)
-        world.setFluentValue("partner", [robot_id], None)
+        world.setConstantValue("robot_radius", [robot_id], radius)
+        world.setFluentValue("active", [robot_id], active)
+        world.setFluentValue("partner", [robot_id], partner)
         items = world.getDomain('item')
         for i in items:
             world.setFluentValue('carrying', [robot_id, i.id], False)

@@ -102,9 +102,9 @@ class EMobilityTest(unittest.TestCase):
             vehicles = world.getDomain("vehicle")
             all_finished = True
             for vehicle in vehicles:
-                pos = world.getFluentValue("vehiclePosition", [vehicle.id])
-                route = world.getFluentValue("currentRoute", [vehicle.id])
-                target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
+                pos = world.get_fluent_value("vehiclePosition", [vehicle.id])
+                route = world.get_fluent_value("currentRoute", [vehicle.id])
+                target = world.get_fluent_value("currentTargetPLCS", [vehicle.id])
                 self.__log("{}: {} - {} - {}".format(vehicle.id,
                                                      pos, route, target))
 

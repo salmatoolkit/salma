@@ -42,8 +42,8 @@ class ProcessTest(BaseWorldTest):
         print("----")
         world.printState()
         print("----\n\n")
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 16)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 16)
         self.assertEqual(verdict, constants.OK)
 
         self.assertEqual(proc.execution_count, 1)
@@ -88,8 +88,8 @@ class ProcessTest(BaseWorldTest):
         world.printState()
         print("----\n\n")
 
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 12)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 17)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 12)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 17)
         self.assertEqual(verdict, constants.OK)
         self.assertEqual(proc1.execution_count, 1)
         self.assertEqual(proc1.introduction_time, 0)
@@ -133,8 +133,8 @@ class ProcessTest(BaseWorldTest):
 
         experiment = Experiment(world)
         experiment.run_until_finished(max_world_time=90)
-        self.assertEqual(19, world.getFluentValue("xpos", ["rob1"]))
-        self.assertEqual(33, world.getFluentValue("ypos", ["rob1"]))
+        self.assertEqual(19, world.get_fluent_value("xpos", ["rob1"]))
+        self.assertEqual(33, world.get_fluent_value("ypos", ["rob1"]))
         world.printState()
 
     @withHeader()
@@ -150,8 +150,8 @@ class ProcessTest(BaseWorldTest):
 
         experiment = Experiment(world)
         experiment.run_until_finished(max_world_time=92)
-        self.assertEqual(20, world.getFluentValue("xpos", ["rob1"]))
-        self.assertEqual(34, world.getFluentValue("ypos", ["rob1"]))
+        self.assertEqual(20, world.get_fluent_value("xpos", ["rob1"]))
+        self.assertEqual(34, world.get_fluent_value("ypos", ["rob1"]))
         world.printState()
 
     @withHeader()
@@ -181,5 +181,5 @@ class ProcessTest(BaseWorldTest):
         experiment.run_until_finished(max_world_time=50)
 
         world.printState()
-        self.assertEqual(50, world.getFluentValue("xpos", ["rob1"]))
-        self.assertEqual(11, world.getFluentValue("ypos", ["rob1"]))
+        self.assertEqual(50, world.get_fluent_value("xpos", ["rob1"]))
+        self.assertEqual(11, world.get_fluent_value("ypos", ["rob1"]))

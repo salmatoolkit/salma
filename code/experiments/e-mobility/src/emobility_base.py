@@ -132,7 +132,7 @@ class EMobilityBase(Experiment):
         :rtype: (bool, str)
         """
         if self.__should_log:
-            time = world.getFluentValue("time", [])
+            time = world.get_fluent_value("time", [])
             self.__log("Step {} (t = {})".format(step, time))
             self.__log("   Verdict: {}".format(verdict))
             self.__log("   Actions: {}".format(actions))
@@ -147,8 +147,8 @@ class EMobilityBase(Experiment):
             for msgid in messages:
                 spec = world.evaluation_context.evaluateFunction(EvaluationContext.ECLP_FUNCTION, "message_spec",
                                                                  msgid)
-                stransval = world.getFluentValue("sensor_transmitted_value", [msgid])
-                chtransval = world.getFluentValue("channel_transmission_content", [msgid])
+                stransval = world.get_fluent_value("sensor_transmitted_value", [msgid])
+                chtransval = world.get_fluent_value("channel_transmission_content", [msgid])
                 self.__log("      #{}: {}   sensor_transmitted_value: {}    "
                            "channel_trans_value: {}".format(msgid, spec, stransval, chtransval))
 
@@ -158,23 +158,23 @@ class EMobilityBase(Experiment):
             vehicles = world.getDomain("vehicle")
             all_finished = True
             for vehicle in vehicles:
-                pos = world.getFluentValue("vehiclePosition", [vehicle.id])
+                pos = world.get_fluent_value("vehiclePosition", [vehicle.id])
                 assert isinstance(pos, Term)
                 if pos.functor == "r":
                     pos2 = get_road_info(world, pos.params[0])[0]
                 else:
                     pos2 = pos.params[0]
 
-                route = world.getFluentValue("currentRoute", [vehicle.id])
+                route = world.get_fluent_value("currentRoute", [vehicle.id])
                 assert isinstance(route, Iterable)
                 route2 = get_road_info(world, *route)
-                target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
-                currentPLCS = world.getFluentValue("currentPLCS", [vehicle.id])
+                target = world.get_fluent_value("currentTargetPLCS", [vehicle.id])
+                currentPLCS = world.get_fluent_value("currentPLCS", [vehicle.id])
                 self.__log("   {}: {} - {} - {} / {}".format(vehicle.id,
                                                              pos2, route2, target, currentPLCS))
             for plcs in world.getDomain("plcs"):
-                fslocal = world.getFluentValue("freeSlotsL", [plcs.id])
-                fsremote = world.getFluentValue("freeSlotsR", ["sam1", plcs.id])
+                fslocal = world.get_fluent_value("freeSlotsL", [plcs.id])
+                fsremote = world.get_fluent_value("freeSlotsR", ["sam1", plcs.id])
                 fsreal = world.get_derived_fluent_value("freeSlots", [plcs.id])
                 self.__log("   {}: real = {}, local = {}, remote = {}".format(plcs, fsreal, fslocal, fsremote))
 

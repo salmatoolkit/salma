@@ -81,8 +81,8 @@ class Robot(Agent):
     def getMainFluents(self):
         world = World.instance()
         mf = dict()
-        mf['xpos'] = world.getFluentValue('xpos', [self.id])
-        mf['ypos'] = world.getFluentValue('ypos', [self.id])
+        mf['xpos'] = world.get_fluent_value('xpos', [self.id])
+        mf['ypos'] = world.get_fluent_value('ypos', [self.id])
         return mf
 
 
@@ -193,9 +193,9 @@ class RoboticScenario(unittest.TestCase):
         row = [str(step)]
         robots = world.getDomain('robot')
         for r in robots:
-            x = world.getFluentValue('xpos', [r.id])
-            y = world.getFluentValue('ypos', [r.id])
-            direction = world.getFluentValue('direction', [r.id])
+            x = world.get_fluent_value('xpos', [r.id])
+            y = world.get_fluent_value('ypos', [r.id])
+            direction = world.get_fluent_value('direction', [r.id])
             row.append("{:.5f}".format(x))
             row.append("{:.5f}".format(y))
             row.append("{:.5f}".format(direction))
@@ -344,7 +344,7 @@ class RoboticScenario(unittest.TestCase):
         world.printState()
 
         print("New Direction: {}".format(
-            math.degrees(world.getFluentValue('direction', [rob1.id]))))
+            math.degrees(world.get_fluent_value('direction', [rob1.id]))))
 
         self.showSensors(rob1.id)
 
@@ -354,7 +354,7 @@ class RoboticScenario(unittest.TestCase):
         sensorValues = []
         for ds in distance_sensors:
             phi = world.getConstantValue('sensor_angle', [ds.id])
-            v = world.getFluentValue('distance_sensor_value', [robotId, ds.id])
+            v = world.get_fluent_value('distance_sensor_value', [robotId, ds.id])
             sensorValues.append((phi, ds.id, v))
         sensorValues.sort()
         for sv in sensorValues:

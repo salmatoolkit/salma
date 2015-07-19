@@ -50,7 +50,7 @@ class PropertyEvaluationTest02(BaseWorldTest):
 """.format(min_pos)
 
         def logger(world, **info):
-            print("X = {}".format(world.getFluentValue("xpos", ["rob1"])))
+            print("X = {}".format(world.get_fluent_value("xpos", ["rob1"])))
 
         experiment = Experiment(world)
         experiment.step_listeners.append(logger)
@@ -66,16 +66,16 @@ class PropertyEvaluationTest02(BaseWorldTest):
         self.assertEqual(verdict, OK)
         world = World.instance()
         world.printState()
-        self.assertTrue(world.getFluentValue("painted", ["item1"]))
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 20)
+        self.assertTrue(world.get_fluent_value("painted", ["item1"]))
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 20)
 
     def test_property_3_fail(self):
         verdict, results = self.perform_property_3_test("item1", 13, 15, 20)
         self.assertEqual(verdict, NOT_OK)
         world = World.instance()
         world.printState()
-        self.assertTrue(world.getFluentValue("painted", ["item1"]))
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 13)
+        self.assertTrue(world.get_fluent_value("painted", ["item1"]))
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 13)
 
     def create_periodic_agent(self, agent_id, item_id, target_x=40, start=0, period=6, delta=3):
         p1 = OneShotProcess([

@@ -118,8 +118,8 @@ class SMCTestBaseExperiment2(Experiment):
         self.__place_agents_in_column(0)
         for i in self.world.getDomain("item"):
             dist = np.random.randint(self.destination_range[0], self.destination_range[1] + 1)
-            self.world.setConstantValue("destX", [i.id], self.world.getFluentValue("xpos", [i.id]) + dist)
-            self.world.setConstantValue("destY", [i.id], self.world.getFluentValue("ypos", [i.id]))
+            self.world.setConstantValue("destX", [i.id], self.world.get_fluent_value("xpos", [i.id]) + dist)
+            self.world.setConstantValue("destY", [i.id], self.world.get_fluent_value("ypos", [i.id]))
 
         self.world.setConstantValue("gravity", [], 9.81)
 

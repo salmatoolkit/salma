@@ -47,7 +47,7 @@ class PropertyEvaluationTest01(BaseWorldTest):
                    ))
         print("Testing property: {}".format(str(f)))
         experiment = Experiment(world)
-        experiment.step_listeners.append(lambda world, **args: print(world.getFluentValue("xpos", ["rob1"])))
+        experiment.step_listeners.append(lambda world, **args: print(world.get_fluent_value("xpos", ["rob1"])))
         experiment.property_collection.register_property("f", f, INVARIANT, time_limit=time_limit,
                                                          x_prop_goal=x_prop_goal)
         verdict, results = experiment.run_experiment()
@@ -61,21 +61,21 @@ class PropertyEvaluationTest01(BaseWorldTest):
         world = World.instance()
         verdict, results = self.perform_property_1_test(10, 20, 25, 5)
         self.assertEqual(verdict, NOT_OK)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 16)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 16)
 
     @withHeader(msg="Tests an until property that should succeed.")
     def test_property_1_OK(self):
         world = World.instance()
         verdict, results = self.perform_property_1_test(23, 30, 25, 5)
         self.assertEqual(verdict, OK)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 30)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 30)
 
     @withHeader(msg="Tests an until property that is undetermined.")
     def test_property_1_nondet(self):
         world = World.instance()
         verdict, results = self.perform_property_1_test(10, 30, 50, 50)
         self.assertEqual(verdict, NONDET)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 30)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 30)
 
     def perform_property_2_test(self, agentstop1=20, agentstop2=20, agentstart1=10, agentstart2=10, timelimit=50, px=5,
                                 qx=18) -> (int, dict):
@@ -118,8 +118,8 @@ forall([r,robot], until({}, xpos(r) > {}, xpos(r) > {}))
         world = World.instance()
         verdict, results = self.perform_property_2_test()
         self.assertEqual(verdict, OK)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 20)
-        self.assertEqual(world.getFluentValue("xpos", ["rob2"]), 20)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 20)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob2"]), 20)
 
     def test_property_2_nondet_rob1(self):
         verdict, results = self.perform_property_2_test(agentstop1=15)

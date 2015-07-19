@@ -26,7 +26,7 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
         :type evaluation_context: EvaluationContext
         :type param_values: list
         """
-        x = evaluation_context.getFluentValue('xpos', param_values[0])
+        x = evaluation_context.get_fluent_value('xpos', param_values[0])
         height = param_values[1]
         if x > 100 or height > 50:
             return self.options["crash"]
@@ -54,10 +54,10 @@ class BasicSimulationTest(BaseWorldTest):
         print("\n\n----\n\n")
         world.printState()
         self.assertEqual(world.getTime(), 5)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 10)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 10)
-        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 1)
-        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 10)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 10)
+        self.assertEqual(world.get_fluent_value("vx", ["rob1"]), 1)
+        self.assertEqual(world.get_fluent_value("vy", ["rob1"]), 0)
 
         world.step(100)
 
@@ -67,20 +67,20 @@ class BasicSimulationTest(BaseWorldTest):
         world.printState()
 
         self.assertEqual(world.getTime(), 10)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 10)
-        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
-        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 1)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 10)
+        self.assertEqual(world.get_fluent_value("vx", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("vy", ["rob1"]), 1)
         world.step(100)
         print("\n\n----\n\n")
         print("AFTER STEP 3:")
         print("\n\n----\n\n")
         world.printState()
         self.assertEqual(world.getTime(), 11)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
-        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("vx", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("vy", ["rob1"]), 0)
 
     def test_world_run_until_end(self):
         world = World.instance()
@@ -99,10 +99,10 @@ class BasicSimulationTest(BaseWorldTest):
         print("\n\n----\n\n")
         world.printState()
         print(results)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
-        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("vx", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("vy", ["rob1"]), 0)
         self.assertTrue(world.is_finished())
         self.assertEqual(world.getTime(), 11)
 
@@ -130,7 +130,7 @@ class BasicSimulationTest(BaseWorldTest):
         world.printState()
         print("----\n\n")
 
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 100)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 100)
         self.assertEqual(verdict, constants.OK)
         self.assertTrue(450 <= world.getTime() <= 452)
         self.assertTrue(world.is_finished())

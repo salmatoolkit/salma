@@ -176,7 +176,7 @@ class ExogenousAction(object):
         if res is None:
             return None
         assert isinstance(res, int) and not isinstance(res, bool)
-        t = evaluation_context.getFluentValue("time")
+        t = evaluation_context.get_fluent_value("time")
         assert isinstance(t, int)
         return t + res
 

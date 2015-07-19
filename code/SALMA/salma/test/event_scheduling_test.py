@@ -20,10 +20,10 @@ def steplogger(world: World, **kwargs):
     print("Step: {} - T = {} - pos: ({}, {}) - v: ({}, {})".format(
         kwargs["step"],
         world.getTime(),
-        world.getFluentValue("xpos", ["rob1"]),
-        world.getFluentValue("ypos", ["rob1"]),
-        world.getFluentValue("vx", ["rob1"]),
-        world.getFluentValue("vy", ["rob1"])))
+        world.get_fluent_value("xpos", ["rob1"]),
+        world.get_fluent_value("ypos", ["rob1"]),
+        world.get_fluent_value("vx", ["rob1"]),
+        world.get_fluent_value("vy", ["rob1"])))
     return True, None
 
 

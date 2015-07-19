@@ -55,25 +55,11 @@ class Agent(Entity):
         self.__world_declaration = world_declaration
         self.__procedure_registry = procedure_registry or ProcedureRegistry()
 
-    @property
-    def evaluation_context(self):
-        """
-        The evaluation context used by this entity.
-        :rtype: EvaluationContext
-        """
-        return self.__evaluation_context
-
-    @evaluation_context.setter
-    def evaluation_context(self, ctx):
-        """
-        :type ctx: EvaluationContext
-        """
-        self.__evaluation_context = ctx
-        if ctx is not None:
-            ctx.set_agent(self)
-            ctx.set_procedure_call(None)
-            for k, v in self.__predef_vars.items():
-                ctx.assign_global_variable(k, v)
+    def initialize_evaluation_context(self, ctx: EvaluationContext):
+        ctx.set_agent(self)
+        ctx.set_procedure_call(None)
+        for k, v in self.__predef_vars.items():
+            ctx.assign_global_variable(k, v)
 
     def define_variable(self, name, value):
         """

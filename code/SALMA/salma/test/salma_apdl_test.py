@@ -63,7 +63,7 @@ class MySelectionStrategy(OutcomeSelectionStrategy):
         :type evaluation_context: EvaluationContext
         :type param_values: list
         """
-        x = evaluation_context.getFluentValue('xpos', param_values[0])
+        x = evaluation_context.get_fluent_value('xpos', param_values[0])
         height = param_values[1]
         if x > 100 or height > 50:
             return self.options["crash"]
@@ -124,12 +124,12 @@ class SALMAAPDLTest(BaseWorldTest):
         self.assertEqual(len(reclist1), 1)
         r, i = reclist1[0]
         self.assertTrue(int(i[4:]) in carry_map[r])
-        self.assertEqual(world.getFluentValue("marking", [i]), r)
+        self.assertEqual(world.get_fluent_value("marking", [i]), r)
 
         self.assertEqual(len(reclist2), 1)
         i = reclist2[0][0]
         self.assertTrue(int(i[4:]) in carry_map["rob2"])
-        self.assertFalse(world.getFluentValue("carrying", [agent2.id, i]))
+        self.assertFalse(world.get_fluent_value("carrying", [agent2.id, i]))
 
     def testIterate_Fluent(self):
         world = World.instance()
@@ -229,7 +229,6 @@ class SALMAAPDLTest(BaseWorldTest):
         self.assertEqual(len(unhandled_robots), 0)
         unhandled_items = [i for i in item_ids if i not in handled_items]
         self.assertEqual(len(unhandled_items), 0)
-
 
 
 if __name__ == '__main__':
