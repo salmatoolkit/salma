@@ -1,6 +1,6 @@
 :- dynamic xpos/3, ypos/3, vx/3, vy/3, carrying/3, 
 	robot_radius/2, moving/2, dist_from_station/4, next_task/3,
-	broken/2.
+	broken/2, idle/2, delivered_to/3, undelivered/2.
 
 
 sorts([robot, item, station, movable_object]).
@@ -22,10 +22,14 @@ fluent(carrying, [r:robot, i:item], boolean).
 
 fluent(next_task, [r:robot], item).
 
+fluent(delivered_to, [i:item], station).
+
+
 derived_fluent(dist_from_station, [r:robot, s:station], float).
 derived_fluent(moving, [r:robot], boolean).
 
-
+derived_fluent(idle, [r:robot], boolean).
+derived_fluent(undelivered, [i:item], boolean).
 
 constant(stationX, [s:station], integer).
 constant(stationY, [s:station], integer).
@@ -43,7 +47,8 @@ primitive_action(move_up, [r:robot]).
 atomic_action(move_up).
 
 primitive_action(grab, [r:robot, i:item]).
-primitive_action(drop, [robot,item]).
+primitive_action(drop, [r:robot, i:item]).
+primitive_action(deliver, [r:robot, i:item, s:station]).
 
 primitive_action(assign_task, [s:station, r:robot, i:item]).
 
@@ -70,12 +75,16 @@ poss(move_up(R), S):- not broken(R,S).
 poss(grab(R,I), S) :- 
 	not broken(R, S),
 	domain(robot, Robots),
-	domain(item, Items),
 	xpos(R, Xr, S), xpos(I, Xi, S), Xr =:= Xi,
 	ypos(R, Yr, S), ypos(I, Yi, S), Yr =:= Yi,	
-	not (member(R2, Robots), carrying(R2, I)).
+	not (member(R2, Robots), carrying(R2, I, S)).
 
-poss(drop(R,I), S) :- not broken(R,S), carrying(R,I,S).
+poss(drop(R,I), S) :- not broken(R,S), carrying(R, I, S).
+
+poss(deliver(R, I, Station), S) :- 
+	not broken(R,S), carrying(R, I, S),
+	xpos(R, Xr, S), stationX(Station, Xs), Xr =:= Xs,
+	ypos(R, Yr, S), stationY(Station, Ys), Yr =:= Ys.
 	
 poss(accidental_drop(R,I), S) :- carrying(R,I,S).
 
@@ -89,6 +98,7 @@ poss(collision(R1, R2, _), S) :-
 poss(land_on(_,_,_), _):-true.
 poss(crash(_), _) :- true.
 
+poss(assign_task(_, _, _), _) :- true.
 	
 
 % SCHEDULABILITY AXIOMS
@@ -135,12 +145,16 @@ effect(vy(Robot), move_down(Robot), _, 1, _).
 
 effect(carrying(Rob, Item), grab(Rob, Item), _, true, _).
 effect(carrying(Rob, Item), drop(Rob, Item), _, false, _).
+effect(carrying(Rob, Item), deliver(Rob, Item, _), _, false, _).
 effect(carrying(Rob, Item), accidental_drop(Rob, Item), _, false, _).
 	
 effect(next_task(Rob), assign_task(_, Rob, Item), _, Item, _).
+effect(next_task(Rob), deliver(Rob, _, _), _, none, _).
+
+effect(delivered_to(Item), deliver(_, Item, Station), _, Station, _).
 
 effect(broken(Rob), crash(Rob), _, true, _).
-effect(broken(Rob), collision(R1, R2, Severity), _, B, _) :-
+effect(broken(Rob), collision(R1, R2, Severity), _, true, _) :-
 	(R1 = Rob, ! ; R2 = Rob),
 	Severity > 7.
 
@@ -160,7 +174,11 @@ moving(Rob, S) :-
 	;
 	vy(Rob, Vy, S), abs(Vy) > 0.
 	
-
-		
+idle(Rob, S) :-
+	next_task(Rob, none, S).
+undelivered(Item, S) :-
+	delivered_to(Item, none, S).
+	
+	
 init_domaindesc :- true.
         

@@ -1,4 +1,4 @@
-:- ['../../ecl-src/agasmc'].
+:- ['../../../SALMA/ecl-src/agasmc'].
 :- ['simple-robots-domaindesc.ecl'].
 
 init :- 
