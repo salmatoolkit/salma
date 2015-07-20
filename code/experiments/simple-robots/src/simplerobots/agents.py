@@ -1,61 +1,75 @@
 from salma.constants import SELF
 from salma.model.agent import Agent
+from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Variable, Act, While, Wait, If, Assign, makevars, Procedure, Iterate, Select
 from salma.model.process import OneShotProcess, PeriodicProcess, TriggeredProcess
+import numpy as np
+
+
+def create_move_loop():
+    return While(
+        "(next_task(self) != None) and "
+        "((xpos(self) != tx) or (ypos(self) != ty))", [
+            If("xpos(self) < tx",
+               Act("move_right", [SELF]),
+               If("xpos(self) > tx",
+                  Act("move_left", [SELF]))),
+            Wait("ready(self)"),
+            If("ypos(self) < ty",
+               Act("move_down", [SELF]),
+               If("ypos(self) > ty",
+                  Act("move_up", [SELF]))),
+            Wait("ready(self)")])
 
 
 def create_robot(num):
     """
     Creates a simple agent that grabs an item with id item+num and keeps moving right as long as the agent is active
     """
-    target, tx, ty = makevars("target", "tx", "ty")
+    targetItem, targetWs, tx, ty = makevars("targetItem", "targetWs", "tx", "ty")
+
     p = Procedure([
-        While("True", [
-            Wait("next_task(self) is not None"),
-            Assign(target, "next_task(self)"),
-            Assign(tx, "xpos(next_task(self))"),
-            Assign(ty, "ypos(next_task(self))"),
-            While("(xpos(self) != tx) or "
-                  "(ypos(self) != ty)", [
-                      If("xpos(self) < tx",
-                         Act("move_right", [SELF]),
-                         If("xpos(self) > tx",
-                            Act("move_left", [SELF]))),
-                      Wait("not moving(self)"),
-                      If("ypos(self) < ty",
-                         Act("move_down", [SELF]),
-                         If("ypos(self) > ty",
-                            Act("move_up", [SELF]))),
-                      Wait("not moving(self)")]),
-            Act("grab", [SELF, target]),
-            #
-            While("ypos(self) != stationY(base)", [
-                If("ypos(self) < stationY(base)",
-                   Act("move_down", [SELF]),
-                   If("ypos(self) > stationY(base)",
-                      Act("move_up", [SELF]))),
-                Wait("not moving(self)")]),
-            While("xpos(self) != stationX(base)", [
-                If("xpos(self) < stationX(base)",
-                   Act("move_right", [SELF]),
-                   If("xpos(self) > stationX(base)",
-                      Act("move_left", [SELF]))),
-                Wait("not moving(self)")]),
-            Act("deliver", [SELF, target, "base"])
+        While("not broken(self)", [
+            Wait("next_task(self) != None"),
+            Assign(targetItem, "task_item", [SELF]),
+            Assign(targetWs, "task_workstation", [SELF]),
+            Assign(tx, "xpos(targetItem)"),
+            Assign(ty, "ypos(targetItem)"),
+            create_move_loop(),
+            Act("grab", [SELF, targetItem]),
+            Assign(tx, "stationX(targetWs)"),
+            Assign(ty, "stationY(targetWs)"),
+            create_move_loop(),
+            If("dist_from_station(self, targetWs) == 0 and carrying(self, targetItem)",
+               Act("deliver", [SELF, targetItem, targetWs]))
         ])])
     proc = OneShotProcess(p)
     agent = Agent("rob" + str(num), "robot", [proc])
     return agent
 
 
-def create_base():
-    r, i = makevars(("r", "robot"), ("i", "item"))
+def select_item(rob: Agent, ctx: EvaluationContext=None, **kwargs):
+    if rob is None:
+        return None
+    closest_item = None
+    min_dist = None
+    for item in ctx.getDomain("item"):
+        if item.undelivered:
+            dist = np.sqrt((rob.xpos - item.xpos) ** 2 + (rob.ypos - item.ypos) ** 2)
+            if min_dist is None or dist < min_dist:
+                closest_item = item
+                min_dist = dist
+    return closest_item
+
+
+def create_coordinator():
+    r, i, ws = makevars(("r", "robot"), ("i", "item"), ("ws", "workstation"))
     p = Procedure([
-        Iterate("idle", [r], [
-            Select("undelivered", [i]),
-            If("i is not None",
-               Act("assign_task", [SELF, r, i]))])
+        Iterate("request_queue(self)", [ws], [
+            Select("unassigned", [r]),
+            Assign(i, select_item, [r]),
+            If("i != None and r != None",
+               Act("assign_task", [SELF, r, i, ws]))])
     ])
     proc = PeriodicProcess(p, 50)
-
-    return Agent("base", "station", [proc])
+    return Agent("coordinator1", "coordinator", [proc])
