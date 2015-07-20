@@ -146,6 +146,7 @@ class Entity(object):
             else:
                 def __f(*params):
                     return self.evaluation_context.get_fluent_value(fl.name, *([self.id] + list(params)))
+
                 return __f
         elif item in self.__own_derived_fluents:
             fl = self.__own_derived_fluents[item]
@@ -156,6 +157,7 @@ class Entity(object):
             else:
                 def __f(*params):
                     return self.evaluation_context.get_derived_fluent_value(fl.name, [self.id] + list(params))
+
                 return __f
         elif item in self.__own_constants:
             c = self.__own_constants[item]
@@ -166,6 +168,7 @@ class Entity(object):
             else:
                 def __f(*params):
                     return self.evaluation_context.get_constant_value(fl.name, [self.id] + list(params))
+
                 return __f
         else:
             raise SALMAException(
@@ -184,6 +187,7 @@ class Entity(object):
                 else:
                     pars = []
                 self.evaluation_context.set_fluent_value(fname, pars, value)
+
             return __f
         elif fname in self.__own_constants:
             co = self.__own_constants[fname]
@@ -197,6 +201,7 @@ class Entity(object):
                 else:
                     pars = []
                 self.evaluation_context.set_constant_value(fname, pars, value)
+
             return __f
         elif fname in self.__own_derived_fluents:
             raise SALMAException("Trying to set value of derived fluent {}.{}".format(self.id, fname))
@@ -216,6 +221,39 @@ class Entity(object):
             return self.__create_setter(feature_name)
         else:
             return self.__handle_get_feature(item)
+
+    def __eq__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return self.id == other.id and self.sortName == other.sortName
+
+    def __lt__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return (self.sortName, self.id) < (other.sortName, other.id)
+
+    def __gt__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return (self.sortName, self.id) > (other.sortName, other.id)
+
+    def __le__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return not self.__gt__(other)
+
+    def __ne__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return not self.__eq__(other)
+
+    def __ge__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return not self.__lt__(other)
+
+    def __hash__(self):
+        return hash((self.sortName, self.id))
 
 
 class SituationDependentFunction(object):
@@ -480,3 +518,18 @@ class FluentValue(object):
 class ConstantValue(FluentValue):
     def __init__(self, constant_name, params, value):
         super().__init__(constant_name, params, value)
+
+
+def translate_entities(params):
+    """
+    Translates every entity entry to its id. Every other value will be passed trough.
+    :param list params: the params
+    :rtype: list
+    """
+    translated = []
+    for p in params:
+        if isinstance(p, Entity):
+            translated.append(p.id)
+        else:
+            translated.append(p)
+    return translated
