@@ -226,6 +226,12 @@ class Experiment(object):
                 if sl_res is None:
                     continue_from_listener = True
                     break_reason_from_listener = None
+                elif isinstance(sl_res, str):
+                    continue_from_listener = False
+                    break_reason_from_listener = sl_res
+                elif isinstance(sl_res, bool):
+                    continue_from_listener = sl_res
+                    break_reason_from_listener = None if continue_from_listener else "n/a"
                 elif isinstance(sl_res, tuple) and len(sl_res) == 2 and isinstance(sl_res[0], bool):
                     continue_from_listener = sl_res[0]
                     break_reason_from_listener = str(sl_res[1])
