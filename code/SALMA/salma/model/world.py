@@ -417,15 +417,15 @@ class World(Entity, WorldDeclaration):
     def __create_entity_accessors(self):
         for e in self.__entities.values():
             for fl in self.__fluents.values():
-                if len(fl.parameters) > 0 and fl.parameters[0][1] == e.sortName:
+                if len(fl.parameters) > 0 and e in self.getDomain(fl.parameters[0][1]):
                     e.register_own_fluent(fl)
             for dfl in self.__derived_fluents.values():
-                if len(dfl.parameters) > 0 and dfl.parameters[0][1] == e.sortName:
+                if len(dfl.parameters) > 0 and e in self.getDomain(dfl.parameters[0][1]):
                     e.register_own_derived_fluent(dfl)
-
             for c in self.__constants.values():
-                if len(c.parameters) > 0 and c.parameters[0][1] == e.sortName:
+                if len(c.parameters) > 0 and e in self.getDomain(c.parameters[0][1]):
                     e.register_own_constant(c)
+
         # add features that have no parameters to the world
         for fl in self.__fluents.values():
             if len(fl.parameters) == 0:
@@ -511,6 +511,23 @@ class World(Entity, WorldDeclaration):
         else:
             return self.__entities[entityId]
 
+    def get_entities_by_id(self, *ids):
+        """
+        Returns a list of entities with the given ids. Raises SALMAException if an id
+        is not registered.
+
+        :param list[str] ids: the entity ids
+        :rtype: list[Entity]
+        """
+        entities = []
+        for i in ids:
+            try:
+                e = self.__entities[i]
+                entities.append(e)
+            except KeyError:
+                raise SALMAException("No entity registered with id {}.".format(i))
+        return entities
+
     def addEntity(self, entity):
         """
         Adds the given entity to the registry
@@ -525,6 +542,7 @@ class World(Entity, WorldDeclaration):
             self.__domainMap[entity.sortName].add(entity)
         else:
             self.__domainMap[entity.sortName] = {entity}
+        entity.evaluation_context = LocalEvaluationContext(entity, None)
 
     def addAgent(self, agent):
         """
@@ -532,7 +550,6 @@ class World(Entity, WorldDeclaration):
         :type agent: Agent
         """
         self.addEntity(agent)
-        agent.evaluation_context = LocalEvaluationContext(agent, None)
         agent.world_declaration = self
 
     def removeEntity(self, entity):
@@ -1465,15 +1482,17 @@ class LocalEvaluationContext(EvaluationContext):
 
         The parameter list can include ground values, bound variables and (name, sort) tuples.
         """
+        freevars = self.__select_free_variables(params)
         resolvedParams = self.resolve(*params, strict=False)  # the free variables tuples are ignored by resolve()
 
         sit = 's0' if predicateType in [EvaluationContext.FLUENT, EvaluationContext.TRANSIENT_FLUENT] else None
 
+        refinedResult = dict()
         result = World.logic_engine().selectFirst(predicateName, *resolvedParams, situation=sit)
         if result is None:
-            return None
-
-        refinedResult = dict()
+            for fv in freevars:
+                refinedResult[fv[0]] = None
+            return refinedResult
 
         # : :type valueCombination: dict
 
