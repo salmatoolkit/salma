@@ -708,8 +708,7 @@ class Assign(Statement):
 
     def execute_step(self, evaluation_context, procedure_registry):
         source_type = evaluation_context.determine_source_type(self.source, self.params)
-        ground_params = evaluation_context.resolve(*self.params)
-        val = evaluation_context.evaluateFunction(source_type, self.source, *ground_params)
+        val = evaluation_context.evaluateFunction(source_type, self.source, *self.params)
         if len(self.variable_names) == 1:
             evaluation_context.assignVariable(self.variable_names[0], val)
         else:
