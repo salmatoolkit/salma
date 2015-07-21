@@ -1,7 +1,7 @@
 from io import TextIOBase
 import logging
 from salma.experiment import Experiment, SingleProcessExperimentRunner
-from salma.model.core import Entity
+from salma.model.core import Entity, translate_entities
 from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, GeometricDistribution
 from salma.model.world import World
 from src.simplerobots.agents import create_robot, create_coordinator
@@ -15,11 +15,11 @@ logging.basicConfig()
 logger = logging.getLogger(MODULE_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
 
-NUM_ROBOTS = 3
-NUM_ITEMS = 20
-NUM_STATIONS = 3
-GRID_WIDTH = 200
-GRID_HEIGHT = 200
+NUM_ROBOTS = 20
+NUM_ITEMS = 100
+NUM_STATIONS = 10
+GRID_WIDTH = 500
+GRID_HEIGHT = 500
 
 
 def create_step_logger(fd: TextIOBase):
@@ -39,6 +39,7 @@ def create_step_logger(fd: TextIOBase):
         columns.extend(brokenstates)
         for ws in sorted(world.getDomain("workstation")):
             columns.append(ws.delivered_item_count)
+        columns.append(len(world.getEntityById("coordinator1").request_queue))
         fd.write(";".join(list(map(str, columns))) + "\n")
         fd.flush()
 
@@ -50,6 +51,13 @@ def break_when_all_delivered(world: World, **kwargs):
         if i.delivered_to is None:
             return None
     return "all items delivered"
+
+
+def break_when_all_broken(world: World, **kwargs):
+    for r in world.getDomain("robot"):
+        if r.broken is False:
+            return None
+    return "all robots broken"
 
 
 class Experiment01(Experiment):
@@ -117,7 +125,7 @@ class Experiment01(Experiment):
 
         collision_event = world.get_exogenous_action("collision")
         collision_event.config.occurrence_distribution = BernoulliDistribution(1.0)
-        collision_event.config.uniform_param("severity", value_range=(0, 2))
+        collision_event.config.uniform_param("severity", value_range=(5, 10))
 
         request_event = world.get_exogenous_action("request")
         request_event.config.occurrence_distribution = GeometricDistribution(1 / 100)
@@ -136,7 +144,7 @@ class Experiment01(Experiment):
             items[i.id] = {
                 "x": i.xpos,
                 "y": i.ypos,
-                "delivered_to": None if i.delivered_to is None else i.delivered_to.id
+                "delivered_to": translate_entities(i.delivered_to)
             }
         report["items"] = items
         workstations = dict()
@@ -150,7 +158,7 @@ class Experiment01(Experiment):
         coordinators = dict()
         for c in self.world.getDomain("coordinator"):
             coordinators[c.id] = {
-                "request_queue": c.request_queue
+                "request_queue": translate_entities(c.request_queue)
             }
         report["coordinators"] = coordinators
         return report
@@ -177,6 +185,7 @@ def create_csv_header():
         columns.append("broken" + str(i))
     for ws in range(1, NUM_STATIONS +1):
         columns.append("wscount" + str(i))
+    columns.append("queue")
     return ";".join(columns)
 
 
@@ -198,5 +207,6 @@ if __name__ == '__main__':
         f.flush()
         experiment.step_listeners.append(create_step_logger(f))
         experiment.step_listeners.append(break_when_all_delivered)
+        experiment.step_listeners.append(break_when_all_broken)
         _, res, trial_infos = runner.run_trials(experiment, number_of_trials=1, max_steps=3000, max_retrials=0)
     experiment.world.printState()
