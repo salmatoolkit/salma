@@ -117,7 +117,7 @@ class Experiment01(Experiment):
 
         collision_event = world.get_exogenous_action("collision")
         collision_event.config.occurrence_distribution = BernoulliDistribution(1.0)
-        collision_event.config.uniform_param("severity", value_range=(8, 10))
+        collision_event.config.uniform_param("severity", value_range=(0, 2))
 
         request_event = world.get_exogenous_action("request")
         request_event.config.occurrence_distribution = GeometricDistribution(1 / 100)
@@ -136,7 +136,7 @@ class Experiment01(Experiment):
             items[i.id] = {
                 "x": i.xpos,
                 "y": i.ypos,
-                "delivered_to": i.delivered_to
+                "delivered_to": None if i.delivered_to is None else i.delivered_to.id
             }
         report["items"] = items
         workstations = dict()

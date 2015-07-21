@@ -301,7 +301,7 @@ class World(Entity, WorldDeclaration):
         # add a "variable" for each entity to allow access without quotation marks
         for entity_id in self.__entities.keys():
             if not str(entity_id) in self.__expressionContext:
-                self.__expressionContext[str(entity_id)] = str(entity_id)
+                self.__expressionContext[str(entity_id)] = self.__entities[entity_id]
 
     def sample_fluent_values(self):
         """
@@ -865,7 +865,10 @@ class World(Entity, WorldDeclaration):
         if fv is None:
             return None
         else:
-            return fv.value
+            if isinstance(fv.value, str):
+                return self.getEntityById(fv.value)
+            else:
+                return fv.value
 
     # noinspection PyMethodMayBeStatic
     def get_state_snapshot(self):
@@ -884,7 +887,11 @@ class World(Entity, WorldDeclaration):
         :param list|tuple fluent_params: the parameters defining the derived fluent instance.
         :rtype: object
         """
-        return World.logic_engine().get_derived_fluent_value(fluent_name, translate_entities(fluent_params))
+        val = World.logic_engine().get_derived_fluent_value(fluent_name, translate_entities(fluent_params))
+        if isinstance(val, str):
+            return self.getEntityById(val)
+        else:
+            return val
 
     # noinspection PyMethodMayBeStatic
     def is_fluent__instance_defined(self, fluent_name, fluent_params):
@@ -916,7 +923,10 @@ class World(Entity, WorldDeclaration):
         if cv is None:
             return None
         else:
-            return cv.value
+            if isinstance(cv.value, str):
+                return self.getEntityById(cv.value)
+            else:
+                return cv.value
 
     # noinspection PyMethodMayBeStatic
     def is_constant_defined(self, constant_name, constant_params):
@@ -1217,17 +1227,17 @@ class LocalEvaluationContext(EvaluationContext):
         if source_type == EvaluationContext.PYTHON_EXPRESSION:
             source = str(source)
             ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.resolve(self.global_variable_bindings)[0])
-            ctx.update(self.resolve(self.variable_bindings)[0])
+            ctx.update(self.resolve(self.global_variable_bindings, resolve_entities=False)[0])
+            ctx.update(self.resolve(self.variable_bindings, resolve_entities=False)[0])
 
-            ctx['self'] = self.__context_entity.id
+            ctx['self'] = self.__context_entity
             ctx['params'] = resolved_params
             result = eval(source, ctx)
         elif source_type == EvaluationContext.PYTHON_FUNCTION:
             result = source(*resolved_params)
         elif source_type == EvaluationContext.EXTENDED_PYTHON_FUNCTION:  # is python function
             ctx = World.instance().getExpressionContext().copy()
-            ctx.update(self.resolve(self.variable_bindings)[0])
+            ctx.update(self.resolve(self.variable_bindings, resolve_entities=False)[0])
             ctx['agent'] = self.__context_entity  # don't call it self here to avoid confusion in function
             ctx['ctx'] = self
             result = source(*resolved_params, **ctx)

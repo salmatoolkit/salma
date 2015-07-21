@@ -7,19 +7,19 @@ import numpy as np
 
 
 def create_move_loop():
-    return While(
-        "(next_task(self) != None) and "
-        "((xpos(self) != tx) or (ypos(self) != ty))", [
-            If("xpos(self) < tx",
-               Act("move_right", [SELF]),
-               If("xpos(self) > tx",
-                  Act("move_left", [SELF]))),
-            Wait("ready(self)"),
-            If("ypos(self) < ty",
-               Act("move_down", [SELF]),
-               If("ypos(self) > ty",
-                  Act("move_up", [SELF]))),
-            Wait("ready(self)")])
+    return While("not self.broken and"
+                 "(next_task(self) != None) and "
+                 "((xpos(self) != tx) or (ypos(self) != ty))", [
+                     If("self.xpos < tx",
+                        Act("move_right", [SELF]),
+                        If("self.xpos > tx",
+                           Act("move_left", [SELF]))),
+                     Wait("ready(self)"),
+                     If("ypos(self) < ty",
+                        Act("move_down", [SELF]),
+                        If("ypos(self) > ty",
+                           Act("move_up", [SELF]))),
+                     Wait("ready(self)")])
 
 
 def create_robot(num):
@@ -36,11 +36,13 @@ def create_robot(num):
             Assign(tx, "xpos(targetItem)"),
             Assign(ty, "ypos(targetItem)"),
             create_move_loop(),
-            Act("grab", [SELF, targetItem]),
+            If("not self.broken",
+                Act("grab", [SELF, targetItem])),
             Assign(tx, "stationX(targetWs)"),
             Assign(ty, "stationY(targetWs)"),
             create_move_loop(),
-            If("dist_from_station(self, targetWs) == 0 and carrying(self, targetItem)",
+            If("not self.broken and "
+               "dist_from_station(self, targetWs) == 0 and carrying(self, targetItem)",
                Act("deliver", [SELF, targetItem, targetWs]))
         ])])
     proc = OneShotProcess(p)

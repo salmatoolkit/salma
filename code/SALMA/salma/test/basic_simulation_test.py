@@ -154,8 +154,8 @@ class BasicSimulationTest(BaseWorldTest):
                   ])
         seq.add_child(w)
         proc1 = OneShotProcess(Procedure(seq))
-        agent = Agent("rob1", "robot", [proc1])
-        world.addAgent(agent)
+        rob1 = Agent("rob1", "robot", [proc1])
+        world.addAgent(rob1)
 
         world.initialize(False)
 
@@ -181,15 +181,24 @@ class BasicSimulationTest(BaseWorldTest):
             Assign("z6", "dist_from_origin(rob1)"),
             While("z < y - params[0]", [3],
                   [
-                      Assign("z", "z + 1")])
+                      Assign("z", "z + 1")]),
+            Assign("z7", "rob1.xpos * rob1.robot_radius"),
+            Assign("z8", "rob1.partner.ypos * 2"),
+            Assign("z9", "rob1.dist_from_origin")
+        ])
+        proc2 = OneShotProcess([
+
         ])
 
-        agent = Agent("rob1", "robot", [proc1])
-        world.addAgent(agent)
+        rob1 = Agent("rob1", "robot", [proc1])
+        rob2 = Agent("rob2", "robot", [proc2])
+        world.add(rob1, rob2)
 
         world.initialize(False)
-        self.initialize_robot("rob1", 10, 15, 0, 0)
-
+        self.initialize_robot("rob1", 10, 15, 0, 0, radius=3)
+        self.initialize_robot("rob2", 100, 150, 0, 0, radius=5)
+        rob1.partner = rob2
+        rob1.partner.xpos = 120
         world.printState()
 
         experiment = Experiment(world)
@@ -201,11 +210,15 @@ class BasicSimulationTest(BaseWorldTest):
         self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z2"))[0], 25)
         self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z3"))[0], 25)
         self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z4"))[0], 3)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z7"))[0], 30)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z8"))[0], 300)
 
         v = proc1.current_evaluation_context.resolve(Variable("z5"))[0]
         self.assertAlmostEqual(98.1, v)
         v2 = proc1.current_evaluation_context.resolve(Variable("z6"))[0]
-        self.assertAlmostEqual(math.sqrt(10 * 10 + 15 * 15), v2)
+        dist = math.sqrt(10 * 10 + 15 * 15)
+        self.assertAlmostEqual(dist, v2)
+        self.assertAlmostEqual(dist, proc1.current_evaluation_context.resolve(Variable("z9"))[0])
 
     def test_evaluate_python_function(self):
         world = World.instance()

@@ -739,7 +739,7 @@ class FunctionStatement(Statement):
         self.__params = params
 
     def execute_step(self, evaluation_context, procedure_registry):
-        ground_params = evaluation_context.resolve(*self.__params)
+        ground_params = evaluation_context.resolve(*self.__params, resolve_entities=False)
         aspec = inspect.getfullargspec(self.__handler)
         kwargs = dict()
         if aspec.varkw is not None or "agent" in aspec.kwonlyargs or "agent" in aspec.args:

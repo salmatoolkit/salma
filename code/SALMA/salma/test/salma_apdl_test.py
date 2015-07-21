@@ -95,19 +95,19 @@ class SALMAAPDLTest(BaseWorldTest):
         reclist2 = []
         recorder2 = create_value_recorder(reclist2)
         r, i = makevars(("r", "robot"), ("i", "item"))
-        agent1 = Agent("rob1", "robot", Procedure([
+        rob1 = Agent("rob1", "robot", Procedure([
             Select("carrying", [r, i]),
             FunctionStatement(recorder1, r, i),
             Act("mark", [SELF, i, SELF])
         ]))
-        agent2 = Agent("rob2", "robot", Procedure([
+        rob2 = Agent("rob2", "robot", Procedure([
             Select("carrying", [SELF, i]),
             FunctionStatement(recorder2, i),
             Act("drop", [SELF, i])
         ]))
 
-        world.addAgent(agent1)
-        world.addAgent(agent2)
+        world.addAgent(rob1)
+        world.addAgent(rob2)
         carry_map = {"rob1": [3, 5, 9, 2, 10], "rob2": [1, 4, 6, 7, 8]}
         self.setupSelectionContext(carry_map)
 
@@ -123,13 +123,13 @@ class SALMAAPDLTest(BaseWorldTest):
 
         self.assertEqual(len(reclist1), 1)
         r, i = reclist1[0]
-        self.assertTrue(int(i[4:]) in carry_map[r])
+        self.assertTrue(int(i.id[4:]) in carry_map[r.id])
         self.assertEqual(world.get_fluent_value("marking", [i]), r)
 
         self.assertEqual(len(reclist2), 1)
         i = reclist2[0][0]
-        self.assertTrue(int(i[4:]) in carry_map["rob2"])
-        self.assertFalse(world.get_fluent_value("carrying", [agent2.id, i]))
+        self.assertTrue(int(i.id[4:]) in carry_map["rob2"])
+        self.assertFalse(world.get_fluent_value("carrying", [rob2, i]))
 
     def testIterate_Fluent(self):
         world = World.instance()
@@ -166,14 +166,15 @@ class SALMAAPDLTest(BaseWorldTest):
         self.assertEqual(len(reclist1), 10)
         todo = set(range(1, 11))
         for r, i in reclist1:
-            rec_item = int(i[len("item"):])
-            self.assertIn(rec_item, carry_map[r])
+            rec_item = int(i.id[len("item"):])
+            self.assertIn(rec_item, carry_map[r.id])
             self.assertIn(rec_item, todo)
             todo.remove(rec_item)
         self.assertEqual(len(todo), 0)
 
         self.assertEqual(len(reclist2), 5)
-        self.assertSetEqual(set(map(lambda x: ("item" + str(x),), carry_map["rob2"])), set(reclist2))
+        self.assertSetEqual(set(map(lambda x: ("item" + str(x),), carry_map["rob2"])),
+                            set(map(lambda x: (x[0].id,), reclist2)))
 
     def testIterate_Python_function(self):
         print("\n\n" + (80 * "-") + "\ntestIterate_Python_function\n" + (80 * "-"))
@@ -210,24 +211,24 @@ class SALMAAPDLTest(BaseWorldTest):
         for t in reclist1:
             self.assertIsInstance(t, tuple)
             self.assertEqual(len(t), 1)
-            self.assertIsInstance(t[0], str)
-            self.assertTrue(t[0].startswith("item"))
+            self.assertIsInstance(t[0], Entity)
+            self.assertTrue(t[0].id.startswith("item"))
             self.assertEqual(reclist1.count(t), 1)
 
         self.assertEqual(len(reclist2), 10)
+        robots = world.getDomain("robot")
+        items = world.getDomain("item")
         handled_robots = []
         handled_items = []
-        robots_ids = list(map(lambda x: x.id, world.getDomain("robot")))
-        item_ids = list(map(lambda x: x.id, world.getDomain("item")))
         for r, i in reclist2:
             handled_robots.append(r)
             handled_items.append(i)
-            self.assertIn(r, robots_ids)
-            self.assertIn(i, item_ids)
+            self.assertIn(r, robots)
+            self.assertIn(i, items)
 
-        unhandled_robots = [r for r in robots_ids if r not in handled_robots]
+        unhandled_robots = [r for r in robots if r not in handled_robots]
         self.assertEqual(len(unhandled_robots), 0)
-        unhandled_items = [i for i in item_ids if i not in handled_items]
+        unhandled_items = [i for i in items if i not in handled_items]
         self.assertEqual(len(unhandled_items), 0)
 
 

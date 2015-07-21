@@ -16,6 +16,7 @@ from salma.formatutils import format_term
 
 logger = logging.getLogger(__name__)
 
+REPLACE_O_WITH_ZERO = False
 
 class Engine(object):
     """
@@ -322,7 +323,7 @@ def createParamTerms(*params, **kwargs):
         elif isinstance(p, bool):
             term = pyclp.Atom('true') if p is True else pyclp.Atom('false')
         elif isinstance(p, numbers.Number):
-            if p == 0:
+            if p == 0 and REPLACE_O_WITH_ZERO:
                 term = pyclp.Atom('zero')
             else:
                 term = p
