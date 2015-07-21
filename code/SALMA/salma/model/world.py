@@ -851,6 +851,32 @@ class World(Entity, WorldDeclaration):
             World.__instance = World()
         return World.__instance
 
+    def __resolve_entities(self, term):
+        if term is None:
+            return None
+        elif isinstance(term, Entity):
+            return term
+        elif isinstance(term, str):
+            return self.getEntityById(term)
+        elif isinstance(term, (list, tuple, set)):
+            resolved = []
+            for t in term:
+                resolved.append(self.__resolve_entities(t))
+            if isinstance(term, tuple):
+                return tuple(resolved)
+            elif isinstance(term, set):
+                return set(resolved)
+            else:
+                return resolved
+        elif isinstance(term, dict):
+            # resolve only values
+            resolved = dict()
+            for k, v in term.items():
+                resolved[k] = self.__resolve_entities(v)
+            return resolved
+        else:
+            return term
+
     # noinspection PyMethodMayBeStatic
     def get_fluent_value(self, fluent_name, fluent_params):
         """
@@ -865,10 +891,7 @@ class World(Entity, WorldDeclaration):
         if fv is None:
             return None
         else:
-            if isinstance(fv.value, str):
-                return self.getEntityById(fv.value)
-            else:
-                return fv.value
+            return self.__resolve_entities(fv.value)
 
     # noinspection PyMethodMayBeStatic
     def get_state_snapshot(self):
@@ -888,10 +911,7 @@ class World(Entity, WorldDeclaration):
         :rtype: object
         """
         val = World.logic_engine().get_derived_fluent_value(fluent_name, translate_entities(fluent_params))
-        if isinstance(val, str):
-            return self.getEntityById(val)
-        else:
-            return val
+        return self.__resolve_entities(val)
 
     # noinspection PyMethodMayBeStatic
     def is_fluent__instance_defined(self, fluent_name, fluent_params):
@@ -923,10 +943,7 @@ class World(Entity, WorldDeclaration):
         if cv is None:
             return None
         else:
-            if isinstance(cv.value, str):
-                return self.getEntityById(cv.value)
-            else:
-                return cv.value
+            return self.__resolve_entities(cv.value)
 
     # noinspection PyMethodMayBeStatic
     def is_constant_defined(self, constant_name, constant_params):
@@ -1381,20 +1398,20 @@ class LocalEvaluationContext(EvaluationContext):
             elif isinstance(term, (list, set)):
                 gt = list()
                 for t in term:
-                    gt.append(self.resolve(t)[0])
+                    gt.append(self.resolve(t, **kwargs)[0])
             elif isinstance(term, tuple):
                 l = list()
                 for t in term:
-                    l.append(self.resolve(t)[0])
+                    l.append(self.resolve(t, **kwargs)[0])
                 gt = tuple(l)
             elif isinstance(term, dict):
                 gt = dict()
                 for k, v in term.items():
-                    gt[k] = self.resolve(v)[0]
+                    gt[k] = self.resolve(v, **kwargs)[0]
             elif isinstance(term, Term):
                 l = []
                 for t in term.params:
-                    l.append(self.resolve(t)[0])
+                    l.append(self.resolve(t, **kwargs)[0])
                 gt = Term(term.functor, *l)
             else:
                 gt = term

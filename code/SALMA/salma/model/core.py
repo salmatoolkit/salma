@@ -520,16 +520,28 @@ class ConstantValue(FluentValue):
         super().__init__(constant_name, params, value)
 
 
-def translate_entities(params):
+def translate_entities(term):
     """
     Translates every entity entry to its id. Every other value will be passed trough.
-    :param list params: the params
-    :rtype: list
     """
-    translated = []
-    for p in params:
-        if isinstance(p, Entity):
-            translated.append(p.id)
+    if term is None:
+        return None
+    elif isinstance(term, Entity):
+        return term.id
+    elif isinstance(term, (list, tuple, set)):
+        translated = []
+        for t in term:
+            translated.append(translate_entities(t))
+        if isinstance(term, tuple):
+            return tuple(translated)
+        elif isinstance(term, set):
+            return set(translated)
         else:
-            translated.append(p)
-    return translated
+            return translated
+    elif isinstance(term, dict):
+        translated = dict()
+        for k, v in term.items():
+            translated[k] = translate_entities(v)
+        return translated
+    else:
+        return term
