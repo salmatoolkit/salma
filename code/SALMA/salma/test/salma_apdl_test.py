@@ -14,7 +14,7 @@ from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Statement, While, Act, Wait, Procedure, Sequence, Assign, FunctionStatement, \
     Variable, \
-    Select, If, Iterate, makevars
+    Select, If, Iterate, makevars, Switch, Case, Default
 from salma.model.world import World
 from salma.test.testhelpers import withHeader
 from salma.test.world_test_base import BaseWorldTest
@@ -230,6 +230,77 @@ class SALMAAPDLTest(BaseWorldTest):
         self.assertEqual(len(unhandled_robots), 0)
         unhandled_items = [i for i in items if i not in handled_items]
         self.assertEqual(len(unhandled_items), 0)
+
+    def _run_switch_test(self, recorder, xpos):
+        world = World.instance()
+
+        rob1 = Agent("rob1", "robot", Procedure([
+            Switch(
+                Case("self.xpos < 100", FunctionStatement(recorder, 1)),
+                Case("100 <= self.xpos < 200", FunctionStatement(recorder, 2)),
+                Case("200 <= self.xpos < 400", FunctionStatement(recorder, 3)))
+            ]))
+
+        world.add(rob1)
+        world.initialize(False)
+        self.initialize_robot("rob1", xpos, 100, 0, 0)
+        self.setNoOneCarriesAnything()
+        experiment = Experiment(world)
+        experiment.run_until_finished()
+
+    def _run_switch_test_width_default(self, recorder, xpos):
+        world = World.instance()
+
+        rob1 = Agent("rob1", "robot", Procedure([
+            Switch(
+                Case("self.xpos < 100", FunctionStatement(recorder, 1)),
+                Case("100 <= self.xpos < 200", FunctionStatement(recorder, 2)),
+                Default(FunctionStatement(recorder, -1)),
+                Case("200 <= self.xpos < 400", FunctionStatement(recorder, 3)))
+            ]))
+
+        world.add(rob1)
+        world.initialize(False)
+        self.initialize_robot("rob1", xpos, 100, 0, 0)
+        self.setNoOneCarriesAnything()
+        experiment = Experiment(world)
+        experiment.run_until_finished()
+
+    def test_switch_case1(self):
+        reclist1 = []
+        recorder1 = create_value_recorder(reclist1)
+        self._run_switch_test(recorder1, 50)
+        print(reclist1)
+        self.assertEqual(reclist1[0][0], 1)
+
+    def test_switch_case2(self):
+        reclist1 = []
+        recorder1 = create_value_recorder(reclist1)
+        self._run_switch_test(recorder1, 100)
+        print(reclist1)
+        self.assertEqual(reclist1[0][0], 2)
+
+    def test_switch_case3(self):
+        reclist1 = []
+        recorder1 = create_value_recorder(reclist1)
+        self._run_switch_test(recorder1, 200)
+        print(reclist1)
+        self.assertEqual(reclist1[0][0], 3)
+
+    def test_switch_nocase(self):
+        reclist1 = []
+        recorder1 = create_value_recorder(reclist1)
+        self._run_switch_test(recorder1, 500)
+        print(reclist1)
+        self.assertEqual(len(reclist1), 0)
+
+    def test_switch_default(self):
+        reclist1 = []
+        recorder1 = create_value_recorder(reclist1)
+        self._run_switch_test_width_default(recorder1, 500)
+        print(reclist1)
+        self.assertEqual(reclist1[0][0], -1)
+
 
 
 if __name__ == '__main__':

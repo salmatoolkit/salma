@@ -431,6 +431,111 @@ class If(Statement):
         evaluation_context.setCurrentSequenceIndex(self, 0)
 
 
+class Case(object):
+
+    def __init__(self, condition, *args):
+        self.__condition = condition
+        if len(args) == 1:
+            self.__condition_params = []
+            t_body = args[0]
+        elif len(args) == 2:
+            self.__condition_params = args[0]
+            t_body = args[1]
+            e_body = None
+        else:
+            raise SALMAException("Wrong number of arguments in IF: expected 1 or 2 but got"
+                                 "{}".format(args))
+        self.__then_body = Sequence(t_body) if isinstance(t_body, list) else t_body
+
+    @property
+    def condition(self) -> str:
+        return self.__condition
+
+    @property
+    def condition_params(self):
+        """
+        The parameters of the condition.
+        :rtype: list.
+        """
+        return self.__condition_params
+
+    @property
+    def body(self) -> Statement:
+        return self.__then_body
+
+
+class Default(Case):
+
+    def __init__(self, body):
+        super().__init__(None, body)
+
+
+class Switch(Statement):
+    """
+    A conditional statement inspired by the switch() { } statement of, e.g. C / C++
+    """
+
+    def __init__(self, *cases):
+        """
+        :param cases: the Case objects that handle the cases.
+        """
+        super().__init__()
+        if len(cases) == 0:
+            raise SALMAException("No case specified for switch statement.")
+        self.__cases = []
+        self.__default_case = None
+
+        for c in cases:
+            assert isinstance(c, Case)
+            c.body.parent = self
+            if isinstance(c, Default):
+                if self.__default_case is not None:
+                    raise SALMAException("More than one default case given for Switch statement.")
+                self.__default_case = c
+            else:
+                self.__cases.append(c)
+
+    @property
+    def cases(self):
+        """
+        :rtype: list[Case]
+        """
+        return self.__cases
+
+    @property
+    def default_case(self) -> Default:
+        return self.__default_case
+
+    def execute_step(self, evaluation_context, procedure_registry):
+        index = evaluation_context.getCurrentSequenceIndex(self) or 0
+        # check if we're re-entering after the control bubbles up
+        # after execution a case body
+        if index > 0:
+            self.reset(evaluation_context)
+            return Statement.CONTINUE, None, evaluation_context
+        for c in self.cases:
+            condition_type = evaluation_context.determine_source_type(c.condition, c.condition_params)
+            result = evaluation_context.evaluateCondition(condition_type,
+                                                          c.condition,
+                                                          *c.condition_params)
+            if result is True:
+                evaluation_context.setCurrentSequenceIndex(self, 1)
+                return Statement.CONTINUE, c.body, evaluation_context
+        if self.__default_case is not None:
+            evaluation_context.setCurrentSequenceIndex(self, 1)
+            return Statement.CONTINUE, self.__default_case.body, evaluation_context
+        # no case was chosen
+        return Statement.CONTINUE, None, evaluation_context
+
+    def reset(self, evaluation_context):
+        for c in self.cases:
+            c.body.reset(evaluation_context)
+
+        if self.default_case is not None:
+            self.default_case.body.reset(evaluation_context)
+        evaluation_context.setCurrentSequenceIndex(self, 0)
+
+
 class Iterate(Statement):
     """
     An iteration construct that returns result tuples for one or several line variables that are bound in the

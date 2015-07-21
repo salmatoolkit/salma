@@ -6,7 +6,7 @@ from pathlib import Path
 import matplotlib.patches as patches
 import json
 # 3 robots, 10 items
-basepath = Path("experiment_results/2015_07_20-15_53_25")
+#basepath = Path("experiment_results/2015_07_20-15_53_25")
 
 
 # 1 robot, 3 items
@@ -14,7 +14,9 @@ basepath = Path("experiment_results/2015_07_20-15_53_25")
 
 # 3 robots, 20 items
 #basepath = Path("experiment_results/2015_07_21-00_29_01")
-basepath = Path("experiment_results/3r_20i_3ws-all_delivered-closest_item")
+#basepath = Path("experiment_results/3r_20i_3ws-all_delivered-closest_item")
+basepath = Path("experiment_results/2015_07_21-11_27_24")
+
 
 def draw_locations(expsetup, ax):
     for item, desc in expsetup["items"].items():

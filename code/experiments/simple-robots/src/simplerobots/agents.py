@@ -1,7 +1,8 @@
 from salma.constants import SELF
 from salma.model.agent import Agent
 from salma.model.evaluationcontext import EvaluationContext
-from salma.model.procedure import Variable, Act, While, Wait, If, Assign, makevars, Procedure, Iterate, Select
+from salma.model.procedure import Variable, Act, While, Wait, If, Assign, makevars, Procedure, Iterate, Select, Switch, \
+    Case
 from salma.model.process import OneShotProcess, PeriodicProcess, TriggeredProcess
 import numpy as np
 
@@ -10,15 +11,15 @@ def create_move_loop():
     return While("not self.broken and"
                  "(next_task(self) != None) and "
                  "((xpos(self) != tx) or (ypos(self) != ty))", [
-                     If("self.xpos < tx",
-                        Act("move_right", [SELF]),
-                        If("self.xpos > tx",
-                           Act("move_left", [SELF]))),
+                     Switch(
+                         Case("self.xpos < tx", Act("move_right", [SELF])),
+                         Case("self.xpos > tx", Act("move_left", [SELF]))
+                     ),
                      Wait("ready(self)"),
-                     If("ypos(self) < ty",
-                        Act("move_down", [SELF]),
-                        If("ypos(self) > ty",
-                           Act("move_up", [SELF]))),
+                     Switch(
+                         Case("self.ypos < ty", Act("move_down", [SELF])),
+                         Case("self.ypos > ty", Act("move_up", [SELF]))
+                     ),
                      Wait("ready(self)")])
 
 
@@ -37,7 +38,7 @@ def create_robot(num):
             Assign(ty, "ypos(targetItem)"),
             create_move_loop(),
             If("not self.broken",
-                Act("grab", [SELF, targetItem])),
+               Act("grab", [SELF, targetItem])),
             Assign(tx, "stationX(targetWs)"),
             Assign(ty, "stationY(targetWs)"),
             create_move_loop(),
