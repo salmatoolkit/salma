@@ -8,39 +8,36 @@ import numpy as np
 
 
 def create_move_loop():
-    return While("not self.broken and"
-                 "(next_task(self) != None) and "
-                 "((xpos(self) != tx) or (ypos(self) != ty))", [
+    return While("not self.broken and "
+                 "self.next_task != None and "
+                 "(self.xpos != tx or self.ypos != ty)", [
                      Switch(
                          Case("self.xpos < tx", Act("move_right", [SELF])),
                          Case("self.xpos > tx", Act("move_left", [SELF]))
                      ),
-                     Wait("ready(self)"),
+                     Wait("self.ready"),
                      Switch(
                          Case("self.ypos < ty", Act("move_down", [SELF])),
                          Case("self.ypos > ty", Act("move_up", [SELF]))
                      ),
-                     Wait("ready(self)")])
+                     Wait("self.ready")])
 
 
 def create_robot(num):
-    """
-    Creates a simple agent that grabs an item with id item+num and keeps moving right as long as the agent is active
-    """
     targetItem, targetWs, tx, ty = makevars("targetItem", "targetWs", "tx", "ty")
 
     p = Procedure([
-        While("not broken(self)", [
-            Wait("next_task(self) != None"),
+        While("not self.broken", [
+            Wait("self.next_task != None"),
             Assign(targetItem, "task_item", [SELF]),
             Assign(targetWs, "task_workstation", [SELF]),
-            Assign(tx, "xpos(targetItem)"),
-            Assign(ty, "ypos(targetItem)"),
+            Assign(tx, "targetItem.xpos"),
+            Assign(ty, "targetItem.ypos"),
             create_move_loop(),
             If("not self.broken",
                Act("grab", [SELF, targetItem])),
-            Assign(tx, "stationX(targetWs)"),
-            Assign(ty, "stationY(targetWs)"),
+            Assign(tx, "targetWs.stationX"),
+            Assign(ty, "targetWs.stationY"),
             create_move_loop(),
             If("not self.broken and "
                "dist_from_station(self, targetWs) == 0 and carrying(self, targetItem)",
@@ -68,7 +65,7 @@ def select_item(rob: Agent, ctx: EvaluationContext=None, **kwargs):
 def create_coordinator():
     r, i, ws = makevars(("r", "robot"), ("i", "item"), ("ws", "workstation"))
     p = Procedure([
-        Iterate("request_queue(self)", [ws], [
+        Iterate("self.request_queue", [ws], [
             Select("unassigned", [r]),
             Assign(i, select_item, [r]),
             If("i != None and r != None",
