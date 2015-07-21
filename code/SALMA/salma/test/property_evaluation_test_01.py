@@ -88,7 +88,7 @@ class PropertyEvaluationTest01(BaseWorldTest):
                 Wait("not moving(self)")])
         ])
         p2 = OneShotProcess([
-            Act("paint", [SELF, "item1"]),
+            Act("paint", [SELF, "item2"]),
             While("xpos(self) < params[0]", [agentstop2], [
                 Act("move_right", [SELF]),
                 Wait("not moving(self)")])
