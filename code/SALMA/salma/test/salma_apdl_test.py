@@ -10,7 +10,7 @@ from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.experiment import Experiment
 from salma.model.process import OneShotProcess
-from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
+from salma.model.selectionstrategy import OutcomeSelectionStrategy, NonDeterministic
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Statement, While, Act, Wait, Procedure, Sequence, Assign, FunctionStatement, \
     Variable, \

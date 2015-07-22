@@ -12,7 +12,7 @@ from salma.model.distributions import ExponentialDistribution, ConstantDistribut
     BernoulliDistribution, NormalDistribution
 from salma.experiment import Experiment
 from salma.model.procedure import Sequence, Assign, Act, Variable
-from salma.model.selectionstrategy import Stepwise
+from salma.model.selectionstrategy import Categorical
 from salma.model.world import World
 
 
@@ -113,7 +113,7 @@ class EventSchedulingTest(unittest.TestCase):
         asteroid_hit.config.set_param_distribution("size", NormalDistribution("float", 100.0, 25.0))
 
         disaster = world.get_exogenous_action_choice("disaster")
-        disaster.selection_strategy = Stepwise(lightning_strike=0.1, asteroid_hit=0.9)
+        disaster.selection_strategy = Categorical(lightning_strike=0.1, asteroid_hit=0.9)
 
         wall_alert = world.get_exogenous_action("wall_alert")
         wall_alert.config.occurrence_distribution = BernoulliDistribution(1.0)
@@ -139,7 +139,7 @@ class EventSchedulingTest(unittest.TestCase):
 
         disaster = world.get_exogenous_action_choice("disaster")
         # use wrong probabilities that don't sum up to 1.0
-        disaster.selection_strategy = Stepwise(lightning_strike=0.1, asteroid_hit=0.7)
+        disaster.selection_strategy = Categorical(lightning_strike=0.1, asteroid_hit=0.7)
 
         wall_alert = world.get_exogenous_action("wall_alert")
         wall_alert.config.occurrence_distribution = BernoulliDistribution(1.0)

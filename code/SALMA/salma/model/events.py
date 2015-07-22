@@ -4,7 +4,7 @@ from salma.model.distributions import BernoulliDistribution, UniformDistribution
     NEVER, DONT_OCCUR
 from salma.model.evaluationcontext import EvaluationContext
 from salma.termutils import tuplify
-from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
+from salma.model.selectionstrategy import OutcomeSelectionStrategy, NonDeterministic
 
 
 class ExogenousAction(object):
@@ -259,7 +259,7 @@ class ExogenousActionChoice(object):
         if selection_strategy is not None:
             self.selection_strategy = selection_strategy
         else:
-            self.selection_strategy = Uniform()
+            self.selection_strategy = NonDeterministic()
 
         self.__occurrence_distribution = (occurrence_distribution if occurrence_distribution is not None
                                           else BernoulliDistribution(1.0))

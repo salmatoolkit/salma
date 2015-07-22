@@ -5,7 +5,7 @@ from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.experiment import Experiment
 from salma.model.process import OneShotProcess
-from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
+from salma.model.selectionstrategy import OutcomeSelectionStrategy, NonDeterministic
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Statement, While, Act, Wait, Procedure, Sequence, Assign, FunctionStatement, Variable
 from salma.model.world import World
@@ -291,7 +291,7 @@ class BasicSimulationTest(BaseWorldTest):
 
         jump_action = world.get_stochastic_action("jump")
         self.generate_outcomes(jump_action)
-        jump_action.selection_strategy = Uniform()
+        jump_action.selection_strategy = NonDeterministic()
 
         self.initialize_robot("rob1", 10, 20, 0, 0)
 

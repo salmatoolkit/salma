@@ -1,5 +1,4 @@
 from unittest.case import TestCase
-import unittest
 import logging
 import logging.config
 import json

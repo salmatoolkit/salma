@@ -54,7 +54,7 @@ class OutcomeSelectionStrategy:
         return "n/a"
 
 
-class Stepwise(OutcomeSelectionStrategy):
+class Categorical(OutcomeSelectionStrategy):
     """
     Creates a selection strategy where a selection probability is given for each outcome.
     """
@@ -130,9 +130,10 @@ class Stepwise(OutcomeSelectionStrategy):
         return "Stepwise({})".format(", ".join(probs))
 
 
-class Uniform(OutcomeSelectionStrategy):
+class NonDeterministic(OutcomeSelectionStrategy):
     """
-    Creates an outcome selection strategy that chooses one outcome uniformly from the list of outcomes.
+    Creates an outcome selection strategy that non-deterministically chooses one outcome from the
+    given list of outcomes.
     """
 
     def __init__(self):
