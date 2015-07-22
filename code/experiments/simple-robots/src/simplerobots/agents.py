@@ -35,7 +35,7 @@ def create_robot(num):
             Assign(ty, "targetItem.ypos"),
             create_move_loop(),
             If("not self.broken",
-               Act("grab", [SELF, targetItem])),
+               Act("pickUp", [SELF, targetItem])),
             Assign(tx, "targetWs.stationX"),
             Assign(ty, "targetWs.stationY"),
             create_move_loop(),

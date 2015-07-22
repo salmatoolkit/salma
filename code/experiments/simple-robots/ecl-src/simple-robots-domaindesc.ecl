@@ -49,28 +49,27 @@ constant(robot_radius, [r:robot], float).
 % ACTIONS
 
 primitive_action(move_right,[r:robot]).
-atomic_action(move_right).
+%atomic_action(move_right).
 primitive_action(move_left, [r:robot]).
-atomic_action(move_left).
+%atomic_action(move_left).
 primitive_action(move_down, [r:robot]).
-atomic_action(move_down).
+%atomic_action(move_down).
 primitive_action(move_up, [r:robot]).
-atomic_action(move_up).
+%atomic_action(move_up).
 
-primitive_action(grab, [r:robot, i:item]).
+stochastic_action(pickUp, [r:robot, i:item], [grab, drop]).
+primitive_action(grab, [r:robot, i:item, grip:integer]).
 primitive_action(drop, [r:robot, i:item]).
+exogenous_action(accidental_drop, [r:robot, i:item], []).
+
+
 primitive_action(deliver, [r:robot, i:item, ws:workstation]).
 
 primitive_action(assign_task, [c:coordinator, r:robot, i:item, ws:workstation]).
 
-% a stochastic action wit two outcomes
-stochastic_action(jump, [r:robot, height:float], [land_on, crash]).
-primitive_action(land_on, [r:robot, x:integer, y:integer]).
-primitive_action(crash, [r:robot]).
 
 exogenous_action(finish_step, [r:robot], []).
 
-exogenous_action(accidental_drop, [r:robot, i:item], []).
 
 exogenous_action(collision, [r1:robot, r2:robot], [severity:integer]).
 
@@ -85,14 +84,16 @@ poss(move_left(R), S) :- not broken(R,S).
 poss(move_down(R), S) :- not broken(R,S).
 poss(move_up(R), S):- not broken(R,S).
 
-poss(grab(R,I), S) :- 
+
+poss(pickUp(R, I), S) :- 
 	not broken(R, S),	
 	xpos(R, Xr, S), xpos(I, Xi, S), Xr =:= Xi,
 	ypos(R, Yr, S), ypos(I, Yi, S), Yr =:= Yi,	
 	domain(robot, Robots),
 	not (member(R2, Robots), carrying(R2, I, S)).
 
-poss(drop(R,I), S) :- not broken(R,S), carrying(R, I, S).
+poss(grab(_, _, _), _) :- true.
+poss(drop(_, _), _) :- true.
 
 poss(deliver(R, I, Station), S) :- 
 	not broken(R, S), carrying(R, I, S),
@@ -108,10 +109,6 @@ poss(collision(R1, R2, _), S) :-
 
 poss(request(_, _), _) :- true.
 
-
-% land_on and crash are meant as outcome for stochastic action jump
-poss(land_on(_,_,_), _):-true.
-poss(crash(_), _) :- true.
 
 poss(assign_task(_, _, _, _), _) :- true.
 	
@@ -131,18 +128,12 @@ effect(xpos(O), finish_step(Robot), _, X, S) :-
 	vx(Robot, Vx, S),
 	xpos(Robot, OldX, S),
 	X is OldX + Vx.
-
-effect(xpos(O), land_on(Robot, X, _), _, X, _) :-
-	(O = Robot, ! ; carrying(Robot, O, S)).
 	
 effect(ypos(O), finish_step(Robot), _, Y, S) :-
 	(O = Robot, ! ; carrying(Robot, O, S)),	
 	vy(Robot, Vy, S),
 	ypos(Robot, OldY, S),
 	Y is OldY + Vy.
-
-effect(ypos(O), land_on(Robot, _, Y), _, Y, _) :-
-	(O = Robot, ! ; carrying(Robot, O, S)).	
 	
 effect(vx(Robot), finish_step(Robot), _, 0, _).
 effect(vy(Robot), finish_step(Robot), _, 0, _).
@@ -158,23 +149,20 @@ effect(vy(Robot), move_up(Robot), _, -1, _).
 effect(vy(Robot), move_down(Robot), _, 1, _).
 
 
-
-effect(carrying(Rob, Item), grab(Rob, Item), _, true, _).
+effect(carrying(Rob, Item), grab(Rob, Item, _), _, true, _).
 effect(carrying(Rob, Item), drop(Rob, Item), _, false, _).
 effect(carrying(Rob, Item), deliver(Rob, Item, _), _, false, _).
 effect(carrying(Rob, Item), accidental_drop(Rob, Item), _, false, _).
 	
 effect(next_task(Rob), assign_task(_, Rob, Item, Workstation), _, d(Item, Workstation), _).
 effect(next_task(Rob), deliver(Rob, _, _), _, none, _).
-effect(next_task(Rob), Action, OldTask, none, S) :-
-	(Action = drop(Rob, Item), ! ; Action = accidental_drop(Rob, Item)),
-	OldTask = d(Item, _).
+effect(next_task(Rob), drop(Rob, _), _, none, _).
+effect(next_task(Rob), accidental_drop(Rob, _), _, none, _).
 
 effect(delivered_to(Item), deliver(_, Item, Station), _, Station, _).
 effect(delivered_item_count(Ws), deliver(_, _, Ws), OldCount, NewCount, _) :-
 	NewCount is OldCount + 1.
 
-effect(broken(Rob), crash(Rob), _, true, _).
 effect(broken(Rob), collision(R1, R2, Severity), _, true, _) :-
 	(R1 = Rob, ! ; R2 = Rob),
 	Severity > 7.
@@ -208,8 +196,6 @@ undelivered(Item, S) :-
 	delivered_to(Item, none, S),
 	domain(robot, Robots, S),
 	not (member(R, Robots), next_task(R, d(Item, _), S)).
-
-	
 	
 task_item(Rob, Item, S) :-
 	next_task(Rob, Task, S),

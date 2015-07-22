@@ -1,8 +1,11 @@
 from io import TextIOBase
 import logging
+from logging import FileHandler
+import logging.config
 from salma.experiment import Experiment, SingleProcessExperimentRunner
 from salma.model.core import Entity, translate_entities
 from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, GeometricDistribution
+from salma.model.selectionstrategy import NonDeterministic, Categorical
 from salma.model.world import World
 from src.simplerobots.agents import create_robot, create_coordinator
 import numpy as np
@@ -10,10 +13,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 
-MODULE_LOGGER_NAME = 'salma'
-logging.basicConfig()
-logger = logging.getLogger(MODULE_LOGGER_NAME)
-logger.setLevel(logging.DEBUG)
+
 
 NUM_ROBOTS = 20
 NUM_ITEMS = 100
@@ -111,14 +111,14 @@ class Experiment01(Experiment):
 
         world.get_exogenous_action("finish_step").config.occurrence_distribution = \
             ConstantDistribution("integer", 1)
-        jump_action = world.get_stochastic_action("jump")
-        land_on = jump_action.outcome("land_on")
-        land_on.map_param("r", "r")
-        land_on.uniform_param("x", (100, 500))
-        land_on.uniform_param("y", (0, 200))
 
-        crash = jump_action.outcome("crash")
-        crash.map_param("r", "r")
+        pickup = world.get_stochastic_action("pickUp")
+        grab = pickup.outcome("grab")
+        grab.map_param("r", "r"), grab.map_param("i", "i")
+        grab.uniform_param("grip", value_range=(1, 10))
+        drop = pickup.outcome("drop")
+        drop.map_param("r", "r"), drop.map_param("i", "i")
+        pickup.selection_strategy = Categorical(grab=0.7, drop=0.3)
 
         world.get_exogenous_action(
             "accidental_drop").config.occurrence_distribution = GeometricDistribution(0.001)
@@ -199,9 +199,19 @@ if __name__ == '__main__':
         experiment_path = basepath.joinpath(timestamp + "_" + "v" + str(num))
     experiment_path.mkdir()
 
+    MODULE_LOGGER_NAME = 'salma'
+    #logging.config.fileConfig("experiment01.logging.conf")
+    logging.basicConfig()
+    logger = logging.getLogger(MODULE_LOGGER_NAME)
+    logger.setLevel(logging.DEBUG)
+    fh = FileHandler(str(experiment_path / "experiment.log"))
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
+
     experiment = Experiment01(experiment_path)
     experiment.initialize()
     runner = SingleProcessExperimentRunner()
+
     with experiment_path.joinpath("experiment.csv").open("w") as f:
         f.write(create_csv_header() + "\n")
         f.flush()

@@ -3,7 +3,7 @@ import numpy as np
 
 import pandas as pd
 import matplotlib
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from pathlib import Path
 
@@ -25,7 +25,10 @@ import matplotlib.animation as manimation
 # basepath = Path("experiment_results/2015_07_21-11_27_24")
 
 # basepath = Path("experiment_results/20r_100i_10ws_500x500-collision_impossible")
-basepath = Path("experiment_results/20r_100i_10ws_500x500-no_collision")
+#basepath = Path("experiment_results/20r_100i_10ws_500x500-no_collision")
+
+basepath = Path("experiment_results/2015_07_22-19_56_23")
+
 GRID_WIDTH = 500
 GRID_HEIGHT = 500
 MARGIN = 100
@@ -71,9 +74,13 @@ def draw_all_on_one(expsetup, df):
 
 def draw_on_subfigures(expsetup, df):
     numrobots = len(expsetup["robots"])
-    fig, axes = plt.subplots(nrows=1, ncols=numrobots)
+    cols = min(5, numrobots)
+    rows, _ = divmod(numrobots, cols)
+    fig, axes = plt.subplots(nrows=rows, ncols=cols)
     if numrobots == 1:
         axes = [axes]
+    elif isinstance(axes, np.ndarray):
+        axes = [a for a in axes.flatten()]
     for i, ax in enumerate(axes):
         ax.set_xlim(0, GRID_WIDTH + MARGIN)
         ax.set_ylim(0, GRID_HEIGHT + MARGIN)
@@ -130,6 +137,6 @@ if __name__ == '__main__':
     with basepath.joinpath("before.json").open() as fd:
         expsetup = json.load(fd)
     df = pd.read_csv(str(basepath.joinpath("experiment.csv")), sep=";")
-    # draw_all_on_one(expsetup, df)
-    # draw_on_subfigures(expsetup, df)
-    create_movie(expsetup, df, str(basepath.joinpath("movie.mp4")))
+    #draw_all_on_one(expsetup, df)
+    draw_on_subfigures(expsetup, df)
+    #create_movie(expsetup, df, str(basepath.joinpath("movie.mp4")))
