@@ -170,7 +170,7 @@ class ProcessTest(BaseWorldTest):
             Wait("not moving(self)"),
             Act("move_down", [Entity.SELF]),
             Wait("not moving(self)")])
-        proc2 = process.TriggeredProcess(handler_procedure, "xpos(self) == 25")
+        proc2 = process.TriggeredProcess(handler_procedure, "self.xpos >= 25 and self.ypos == 10")
         agent = Agent("rob1", "robot", [proc1, proc2])
         world.addAgent(agent)
         world.initialize(False)
