@@ -126,6 +126,7 @@ class EventSchedulingTest(unittest.TestCase):
         verdict, info = e1.run_experiment(max_world_time=500, step_listeners=[steplogger])
         self.assertEqual(verdict, OK)
         print("T = {}, verdict = {}\n\ninfo: {}".format(world.getTime(), verdict, info))
+        # TODO: actually check (statistically) that choice of events for disaster works correctly
 
     def test_flawed_stepwise_distrib(self):
         self.setup_world()

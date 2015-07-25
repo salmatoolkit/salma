@@ -30,7 +30,6 @@ class Agent(Entity):
         if not processes:
             processes = []
         Entity.__init__(self, entity_id, sort_name)
-        self.__evaluation_context = None
         # : :type : set[process.Process]
         self.__processes = set()
         # : :type : dict[str, Process]
