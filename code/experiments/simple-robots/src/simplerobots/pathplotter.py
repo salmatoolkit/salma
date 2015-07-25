@@ -27,7 +27,8 @@ import matplotlib.animation as manimation
 # basepath = Path("experiment_results/20r_100i_10ws_500x500-collision_impossible")
 #basepath = Path("experiment_results/20r_100i_10ws_500x500-no_collision")
 
-basepath = Path("experiment_results/2015_07_22-19_56_23")
+#basepath = Path("experiment_results/2015_07_22-19_56_23")
+basepath = Path("experiment_results/2015_07_25-01_23_49")
 
 GRID_WIDTH = 500
 GRID_HEIGHT = 500
@@ -137,6 +138,6 @@ if __name__ == '__main__':
     with basepath.joinpath("before.json").open() as fd:
         expsetup = json.load(fd)
     df = pd.read_csv(str(basepath.joinpath("experiment.csv")), sep=";")
-    #draw_all_on_one(expsetup, df)
-    draw_on_subfigures(expsetup, df)
+    draw_all_on_one(expsetup, df)
+    #draw_on_subfigures(expsetup, df)
     #create_movie(expsetup, df, str(basepath.joinpath("movie.mp4")))

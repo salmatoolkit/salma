@@ -68,7 +68,9 @@ primitive_action(deliver, [r:robot, i:item, ws:workstation]).
 primitive_action(assign_task, [c:coordinator, r:robot, i:item, ws:workstation]).
 
 
-exogenous_action(finish_step, [r:robot], []).
+exogenous_action(step_succeeded, [r:robot], []).
+exogenous_action(step_failed, [r:robot], []).
+exogenous_action_choice(step_finished, [r:robot], [step_succeeded, step_failed]).
 
 
 exogenous_action(collision, [r1:robot, r2:robot], [severity:integer]).
@@ -112,9 +114,9 @@ poss(request(_, _), _) :- true.
 
 poss(assign_task(_, _, _, _), _) :- true.
 	
-
+ 
 % SCHEDULABILITY AXIOMS
-schedulable(finish_step(Rob), S) :-
+schedulable(step_finished(Rob), S) :-
 	moving(Rob, S).
 schedulable(accidental_drop(R,I), S) :- 
 	action_occurred(grab(R,I), S).
@@ -123,20 +125,23 @@ schedulable(request(_, _), _) :- true.
 	
 % EFFECT AXIOMS
 
-effect(xpos(O), finish_step(Robot), _, X, S) :-
+effect(xpos(O), step_succeeded(Robot), _, X, S) :-
 	(O = Robot, ! ; carrying(Robot, O, S)),	
 	vx(Robot, Vx, S),
 	xpos(Robot, OldX, S),
 	X is OldX + Vx.
 	
-effect(ypos(O), finish_step(Robot), _, Y, S) :-
+effect(ypos(O), step_succeeded(Robot), _, Y, S) :-
 	(O = Robot, ! ; carrying(Robot, O, S)),	
 	vy(Robot, Vy, S),
 	ypos(Robot, OldY, S),
 	Y is OldY + Vy.
 	
-effect(vx(Robot), finish_step(Robot), _, 0, _).
-effect(vy(Robot), finish_step(Robot), _, 0, _).
+effect(vx(Robot), step_succeeded(Robot), _, 0, _).
+effect(vy(Robot), step_succeeded(Robot), _, 0, _).
+
+effect(vx(Robot), step_failed(Robot), _, 0, _).
+effect(vy(Robot), step_failed(Robot), _, 0, _).
 
 effect(vx(Robot), move_right(Robot), _, 1, _).
 effect(vx(Robot), move_left(Robot), _, -1, _).

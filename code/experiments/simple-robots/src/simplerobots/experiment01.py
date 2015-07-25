@@ -15,7 +15,7 @@ from datetime import datetime
 
 
 
-NUM_ROBOTS = 20
+NUM_ROBOTS = 5
 NUM_ITEMS = 100
 NUM_STATIONS = 10
 GRID_WIDTH = 500
@@ -109,7 +109,11 @@ class Experiment01(Experiment):
         world = self.world
         world.deactivate_info_transfer()
 
-        world.get_exogenous_action("finish_step").config.occurrence_distribution = \
+        step_finished = world.get_exogenous_action_choice("step_finished")
+        step_finished.selection_strategy = Categorical(step_succeeded=0.8, step_failed=0.2)
+        world.get_exogenous_action("step_succeeded").config.occurrence_distribution = \
+            ConstantDistribution("integer", 1)
+        world.get_exogenous_action("step_failed").config.occurrence_distribution = \
             ConstantDistribution("integer", 1)
 
         pickup = world.get_stochastic_action("pickUp")
