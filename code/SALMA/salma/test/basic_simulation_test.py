@@ -20,18 +20,21 @@ def print_value(value):
 class MySelectionStrategy(OutcomeSelectionStrategy):
     def __init__(self):
         super().__init__()
+        self.record = []
+        self.next_option = "land_on"
 
     def select_outcome(self, evaluation_context, param_values):
         """
         :type evaluation_context: EvaluationContext
         :type param_values: list
         """
-        x = evaluation_context.get_fluent_value('xpos', param_values[0])
-        height = param_values[1]
-        if x > 100 or height > 50:
-            return self.options["crash"]
+        self.record.append(param_values)
+        option = self.next_option
+        if self.next_option == "land_on":
+            self.next_option = "crash"
         else:
-            return self.options["land_on"]
+            self.next_option = "land_on"
+        return self.options[option]
 
 
 class BasicSimulationTest(BaseWorldTest):
@@ -299,9 +302,13 @@ class BasicSimulationTest(BaseWorldTest):
         self.__crash_count = 0
         self.__land_on_count = 0
         experiment = Experiment(world)
-        experiment.run_until_finished(step_listeners=[self.record_outcomes])
+        experiment.step_listeners.append(self.record_outcomes)
+        experiment.run_until_finished()
         world.printState()
         print("crash: {} - land on: {}".format(self.__crash_count, self.__land_on_count))
+        self.assertTrue(self.__crash_count > 40)
+        self.assertTrue(self.__land_on_count > 40)
+        self.assertEqual(self.__crash_count + self.__land_on_count, 100)
         # TODO: test hypothesis for uniform distribution
 
     def generate_outcomes(self, jump_action):
@@ -323,3 +330,37 @@ class BasicSimulationTest(BaseWorldTest):
     def test_failed_intentional_actions_lead_to_cancel(self):
         # TODO write test
         pass
+
+    def test_custom_selection_strategy(self):
+        world = World.instance()
+
+        seq = Sequence([
+            Act("jump", [Entity.SELF, 42])
+        ])
+
+        seq2 = Sequence([
+            Act("jump", [Entity.SELF, 100])
+        ])
+
+        rob1 = Agent("rob1", "robot", Procedure(seq))
+        rob2 = Agent("rob2", "robot", Procedure(seq2))
+        world.add(rob1, rob2)
+        world.initialize(False)
+
+        jump_action = world.get_stochastic_action("jump")
+        self.generate_outcomes(jump_action)
+        selsttat = MySelectionStrategy()
+        jump_action.selection_strategy = selsttat
+
+        self.initialize_robot("rob1", 10, 20, 0, 0)
+        self.initialize_robot("rob2", 30, 20, 0, 0)
+        self.__crash_count = 0
+        self.__land_on_count = 0
+        world.printState()
+        experiment = Experiment(world)
+        experiment.step_listeners.append(self.record_outcomes)
+        experiment.run_until_finished()
+        print("crash: {} - land on: {}".format(self.__crash_count, self.__land_on_count))
+        print(selsttat.record)
+        self.assertTrue((rob1, 42) in selsttat.record)
+        self.assertTrue((rob2, 100) in selsttat.record)

@@ -9,7 +9,7 @@ from salma.model import process
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ExponentialDistribution, ConstantDistribution, \
-    BernoulliDistribution, NormalDistribution
+    BernoulliDistribution, NormalDistribution, CustomDistribution
 from salma.experiment import Experiment
 from salma.model.procedure import Sequence, Assign, Act, Variable
 from salma.model.selectionstrategy import Categorical
@@ -152,9 +152,86 @@ class EventSchedulingTest(unittest.TestCase):
         except SALMAException as ex:
             print("As expected: {}".format(ex.message))
 
+    def init_robot(self, robot, x=250, y=250, vx=1, vy=0):
+        robot.xpos = x
+        robot.ypos = y
+        robot.vx = vx
+        robot.vy = vy
+        robot.active = True
+        robot.wheels_wet = False
 
+    def test_entity_arguments_passed_as_entities(self):
+        world = World.instance()
+
+        rob1 = self.create_random_walk_robot("rob1")
+        rob2 = self.create_random_walk_robot("rob2")
+
+        world.add(rob1, rob2)
+
+        world.initialize(False)
+        world.deactivate_info_transfer()
+
+        world.world_width = 500
+        world.world_height = 500
+        world.safety_distance = 10
+        self.init_robot(rob1, 250, 250, 1, 0)
+        self.init_robot(rob2, 255, 250, 0, 0)
+        reclist1 = []
+        reclist2 = []
+
+        def _collision_occurrence_distrib(r1, r2, **ctx):
+            reclist1.append(r1)
+            reclist1.append(r2)
+            return True
+
+        def _collision_severity_distrib(r1, r2, **ctx):
+            reclist2.append(r1)
+            reclist2.append(r2)
+            return 42
+
+        collision = world.get_exogenous_action("collide")
+        collision.config.occurrence_distribution = CustomDistribution("boolean", _collision_occurrence_distrib)
+        collision.config.set_param_distribution("severity",
+                                                CustomDistribution("integer", _collision_severity_distrib))
+
+        e1 = Experiment(world)
+        e1.run_experiment(max_world_time=0, step_listeners=[steplogger])
+        print("rec1:", reclist1)
+        print("rec2:", reclist2)
+        self.assertListEqual(reclist1, [rob1, rob2])
+        self.assertListEqual(reclist2, [rob1, rob2])
+
+    def test_custom_distrib_lambda(self):
+        world = World.instance()
+
+        rob1 = self.create_random_walk_robot("rob1")
+        rob2 = self.create_random_walk_robot("rob2")
+
+        world.add(rob1, rob2)
+
+        world.initialize(False)
+        world.deactivate_info_transfer()
+
+        world.world_width = 500
+        world.world_height = 500
+        world.safety_distance = 10
+        self.init_robot(rob1, 250, 250, 1, 2)
+        self.init_robot(rob2, 255, 250, 3, 4)
+
+        collision = world.get_exogenous_action("collide")
+        collision.config.occurrence_distribution = BernoulliDistribution(1.0)
+        sev = lambda r1, r2: 1000 * r1.vx + 100 * r1.vy + 10 * r2.vx + r2.vy
+
+        collision.config.set_param_distribution("severity", CustomDistribution("integer", sev))
+        e1 = Experiment(world)
+        reclist = []
+
+        def recorder(w, **kwargs):
+            reclist.append(kwargs)
+
+        e1.step_listeners.append(recorder)
+        e1.run_experiment(max_world_time=0)
+        print(reclist)
 
 if __name__ == '__main__':
     unittest.main()
-
-

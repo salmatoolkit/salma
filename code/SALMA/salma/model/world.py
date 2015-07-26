@@ -851,7 +851,11 @@ class World(Entity, WorldDeclaration):
             World.__instance = World()
         return World.__instance
 
-    def __resolve_entities(self, term):
+    def lookup_entities(self, term):
+        """
+        Replaces every entity id string in the given "term" by its entity object.
+        :param term: the term to translate
+        """
         if term is None:
             return None
         elif isinstance(term, Entity):
@@ -861,7 +865,7 @@ class World(Entity, WorldDeclaration):
         elif isinstance(term, (list, tuple, set)):
             resolved = []
             for t in term:
-                resolved.append(self.__resolve_entities(t))
+                resolved.append(self.lookup_entities(t))
             if isinstance(term, tuple):
                 return tuple(resolved)
             elif isinstance(term, set):
@@ -872,7 +876,7 @@ class World(Entity, WorldDeclaration):
             # resolve only values
             resolved = dict()
             for k, v in term.items():
-                resolved[k] = self.__resolve_entities(v)
+                resolved[k] = self.lookup_entities(v)
             return resolved
         else:
             return term
@@ -891,7 +895,7 @@ class World(Entity, WorldDeclaration):
         if fv is None:
             return None
         else:
-            return self.__resolve_entities(fv.value)
+            return self.lookup_entities(fv.value)
 
     # noinspection PyMethodMayBeStatic
     def get_state_snapshot(self):
@@ -911,7 +915,7 @@ class World(Entity, WorldDeclaration):
         :rtype: object
         """
         val = World.logic_engine().get_derived_fluent_value(fluent_name, translate_entities(fluent_params))
-        return self.__resolve_entities(val)
+        return self.lookup_entities(val)
 
     # noinspection PyMethodMayBeStatic
     def is_fluent__instance_defined(self, fluent_name, fluent_params):
@@ -943,7 +947,7 @@ class World(Entity, WorldDeclaration):
         if cv is None:
             return None
         else:
-            return self.__resolve_entities(cv.value)
+            return self.lookup_entities(cv.value)
 
     # noinspection PyMethodMayBeStatic
     def is_constant_defined(self, constant_name, constant_params):
@@ -1422,6 +1426,13 @@ class LocalEvaluationContext(EvaluationContext):
             ground_terms.append(gt)
 
         return ground_terms
+
+    def lookup_entities(self, term):
+        """
+        Replaces every entity id string in the given "term" by its entity object.
+        :param term: the term to translate
+        """
+        return World.instance().lookup_entities(term)
 
     def getEntity(self, entity_id):
         """

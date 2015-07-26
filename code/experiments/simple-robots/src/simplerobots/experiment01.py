@@ -2,9 +2,12 @@ from io import TextIOBase
 import logging
 from logging import FileHandler
 import logging.config
+from math import sqrt
 from salma.experiment import Experiment, SingleProcessExperimentRunner
 from salma.model.core import Entity, translate_entities
-from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, GeometricDistribution
+from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, GeometricDistribution, \
+    CustomDistribution
+from salma.model.evaluationcontext import EvaluationContext
 from salma.model.selectionstrategy import NonDeterministic, Categorical
 from salma.model.world import World
 from src.simplerobots.agents import create_robot, create_coordinator
@@ -12,8 +15,6 @@ import numpy as np
 import json
 from pathlib import Path
 from datetime import datetime
-
-
 
 NUM_ROBOTS = 5
 NUM_ITEMS = 100
@@ -111,10 +112,11 @@ class Experiment01(Experiment):
 
         step_finished = world.get_exogenous_action_choice("step_finished")
         step_finished.selection_strategy = Categorical(step_succeeded=0.8, step_failed=0.2)
+        stepdelay = ConstantDistribution("integer", 1)
         world.get_exogenous_action("step_succeeded").config.occurrence_distribution = \
-            ConstantDistribution("integer", 1)
+            stepdelay
         world.get_exogenous_action("step_failed").config.occurrence_distribution = \
-            ConstantDistribution("integer", 1)
+            stepdelay
 
         pickup = world.get_stochastic_action("pickUp")
         grab = pickup.outcome("grab")
@@ -124,12 +126,19 @@ class Experiment01(Experiment):
         drop.map_param("r", "r"), drop.map_param("i", "i")
         pickup.selection_strategy = Categorical(grab=0.7, drop=0.3)
 
-        world.get_exogenous_action(
-            "accidental_drop").config.occurrence_distribution = GeometricDistribution(0.001)
+        accidental_drop = world.get_exogenous_action("accidental_drop")
+
+        accidental_drop.config.occurrence_distribution = GeometricDistribution(0.001)
 
         collision_event = world.get_exogenous_action("collision")
         collision_event.config.occurrence_distribution = BernoulliDistribution(1.0)
-        collision_event.config.uniform_param("severity", value_range=(5, 10))
+
+        def sevdistr(r1, r2):
+            d = sqrt((r1.vx - r2.vx)**2 + (r1.vy - r2.vy)**2)
+            sev = (d/sqrt(2)) * 10
+            return 0 if sev == 0 else round(np.random.normal(sev, 0.3*sev))
+
+        collision_event.config.set_param_distribution("severity", CustomDistribution("integer", sevdistr))
 
         request_event = world.get_exogenous_action("request")
         request_event.config.occurrence_distribution = GeometricDistribution(1 / 100)
@@ -187,7 +196,7 @@ def create_csv_header():
         columns.append("task" + str(i))
     for i in range(1, NUM_ROBOTS + 1):
         columns.append("broken" + str(i))
-    for ws in range(1, NUM_STATIONS +1):
+    for ws in range(1, NUM_STATIONS + 1):
         columns.append("wscount" + str(i))
     columns.append("queue")
     return ";".join(columns)
@@ -204,7 +213,7 @@ if __name__ == '__main__':
     experiment_path.mkdir()
 
     MODULE_LOGGER_NAME = 'salma'
-    #logging.config.fileConfig("experiment01.logging.conf")
+    # logging.config.fileConfig("experiment01.logging.conf")
     logging.basicConfig()
     logger = logging.getLogger(MODULE_LOGGER_NAME)
     logger.setLevel(logging.DEBUG)

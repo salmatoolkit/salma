@@ -186,6 +186,13 @@ class EvaluationContext(object):
         """
         raise NotImplementedError()
 
+    def lookup_entities(self, term):
+        """
+        Replaces every entity id string in the given "term" by its entity object.
+        :param term: the term to translate
+        """
+        raise NotImplementedError()
+
     def determine_source_type(self, source, params):
         """
         Returns the source type as defined in EvaluationContext.
