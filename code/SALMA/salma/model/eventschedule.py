@@ -1,5 +1,7 @@
 import logging
 import heapq
+import random
+from collections.abc import Iterable
 
 from salma.engine import Engine
 from salma.model.core import translate_entities
@@ -9,8 +11,6 @@ from salma.model.events import ExogenousActionChoice
 from salma.model.events import ExogenousAction, EventOccurrence
 from salma.model.evaluationcontext import EvaluationContext
 from salma.mathutils import min_robust
-import random
-from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 

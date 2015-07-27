@@ -307,6 +307,8 @@ class CustomDistribution(Distribution):
     def generateSample(self, evaluationContext, paramValues):
         source_type = evaluationContext.determine_source_type(self.__source, paramValues)
         result = evaluationContext.evaluateFunction(source_type, self.__source, *paramValues)
+        if result is None:
+            return None
         if self.sort == "integer" and not isinstance(result, int):
             return round(result)
 

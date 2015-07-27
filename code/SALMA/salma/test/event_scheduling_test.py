@@ -9,7 +9,7 @@ from salma.model import process
 from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.model.distributions import ExponentialDistribution, ConstantDistribution, \
-    BernoulliDistribution, NormalDistribution, CustomDistribution
+    BernoulliDistribution, NormalDistribution, CustomDistribution, GeometricDistribution
 from salma.experiment import Experiment
 from salma.model.procedure import Sequence, Assign, Act, Variable
 from salma.model.selectionstrategy import Categorical
@@ -232,6 +232,39 @@ class EventSchedulingTest(unittest.TestCase):
         e1.step_listeners.append(recorder)
         e1.run_experiment(max_world_time=0)
         print(reclist)
+
+    def test_event_instance_scheduled_only_once(self):
+        world = World.instance()
+
+        rob1 = self.create_random_walk_robot("rob1")
+        rob2 = self.create_random_walk_robot("rob2")
+
+        world.add(rob1, rob2)
+
+        world.initialize(False)
+        world.deactivate_info_transfer()
+
+        world.world_width = 500
+        world.world_height = 500
+        world.safety_distance = 10
+        self.init_robot(rob1, 250, 250, 0, 0)
+        self.init_robot(rob2, 300, 250, 0, 0)
+        welcome = world.get_exogenous_action("welcome_message")
+        welcome.config.occurrence_distribution = GeometricDistribution(0.1)
+        welcome.config.uniform_param("code", (0, 10))
+
+        e1 = Experiment(world)
+        reclist = []
+
+        def recorder(w, **kwargs):
+            reclist.append(kwargs)
+
+        e1.step_listeners.append(recorder)
+        e1.run_experiment(max_world_time=100)
+        print(reclist)
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

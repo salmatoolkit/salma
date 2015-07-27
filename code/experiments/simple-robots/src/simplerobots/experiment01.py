@@ -40,7 +40,8 @@ def create_step_logger(fd: TextIOBase):
         columns.extend(brokenstates)
         for ws in sorted(world.getDomain("workstation")):
             columns.append(ws.delivered_item_count)
-        columns.append(len(world.getEntityById("coordinator1").request_queue))
+        coordinator = world.getEntityById("coordinator1")
+        columns.append(translate_entities(coordinator.request_queue))
         fd.write(";".join(list(map(str, columns))) + "\n")
         fd.flush()
 
@@ -133,15 +134,17 @@ class Experiment01(Experiment):
         collision_event = world.get_exogenous_action("collision")
         collision_event.config.occurrence_distribution = BernoulliDistribution(1.0)
 
-        def sevdistr(r1, r2):
-            d = sqrt((r1.vx - r2.vx)**2 + (r1.vy - r2.vy)**2)
-            sev = (d/sqrt(2)) * 10
-            return 0 if sev == 0 else round(np.random.normal(sev, 0.3*sev))
-
-        collision_event.config.set_param_distribution("severity", CustomDistribution("integer", sevdistr))
+        collision_event.config.uniform_param("severity", value_range=(5, 10))
 
         request_event = world.get_exogenous_action("request")
-        request_event.config.occurrence_distribution = GeometricDistribution(1 / 100)
+
+        def request_distrib(ws, c, ctx: EvaluationContext=None, **kwargs):
+            ws_in_queue = c.request_queue.count(ws)
+            assigned_robots = len([r for r in ctx.getDomain("robot") if r.task_workstation == ws])
+            p = (5 - ws_in_queue - assigned_robots) * 0.02
+            return None if p == 0 else np.random.geometric(p)
+
+        request_event.config.occurrence_distribution = CustomDistribution("integer", request_distrib)
 
     def __create_report(self):
         report = dict()
@@ -196,7 +199,7 @@ def create_csv_header():
         columns.append("task" + str(i))
     for i in range(1, NUM_ROBOTS + 1):
         columns.append("broken" + str(i))
-    for ws in range(1, NUM_STATIONS + 1):
+    for i in range(1, NUM_STATIONS + 1):
         columns.append("wscount" + str(i))
     columns.append("queue")
     return ";".join(columns)
