@@ -24,6 +24,7 @@ GRID_HEIGHT = 500
 N_SLOTS = 5
 P_SLOT = 0.01
 
+
 def create_step_logger(fd: TextIOBase):
     def __l(world: World, step=None, **kwargs):
         positions = []
@@ -143,7 +144,7 @@ class Experiment01(Experiment):
             ws_in_queue = c.request_queue.count(ws)
             assigned_robots = len([r for r in ctx.getDomain("robot") if r.task_workstation == ws])
             n_free = N_SLOTS - assigned_robots - ws_in_queue
-            p_tot = 1 - (1 - P_SLOT)**n_free
+            p_tot = 1 - (1 - P_SLOT) ** n_free
             return None if p_tot == 0 else np.random.geometric(p_tot)
 
         request_event.config.occurrence_distribution = CustomDistribution("integer", request_distrib)
