@@ -86,7 +86,7 @@ class SALMAAPDLTest(BaseWorldTest):
         self.initialize_items()
         for rob, items in carry_map.items():
             for i in items:
-                world.setFluentValue("carrying", [rob, "item" + str(i)], True)
+                world.set_fluent_value("carrying", [rob, "item" + str(i)], True)
 
     def testSelect_Fluent(self):
         world = World.instance()

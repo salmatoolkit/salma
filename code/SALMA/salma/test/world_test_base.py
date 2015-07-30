@@ -59,7 +59,7 @@ class BaseWorldTest(unittest.TestCase):
         World.create_new_world(erase_properties=True)
         world = World.instance()
         world.load_declarations()
-        world.setConstantValue("gravity", [], 9.81)
+        world.set_constant_value("gravity", [], 9.81)
         world.register_clp_function("robotLeftFrom")
         self.configure_events_default()
 
@@ -84,27 +84,27 @@ class BaseWorldTest(unittest.TestCase):
         items = world.getDomain('item')
         for r in robots:
             for i in items:
-                world.setFluentValue('carrying', [r.id, i.id], False)
+                world.set_fluent_value('carrying', [r.id, i.id], False)
 
     def initialize_robot(self, robot_id, x, y, vx, vy, radius=1, active=True, partner=None):
         world = World.instance()
-        world.setFluentValue("xpos", [robot_id], x)
-        world.setFluentValue("ypos", [robot_id], y)
-        world.setFluentValue("vx", [robot_id], vx)
-        world.setFluentValue("vy", [robot_id], vy)
-        world.setConstantValue("robot_radius", [robot_id], radius)
-        world.setFluentValue("active", [robot_id], active)
-        world.setFluentValue("partner", [robot_id], partner)
+        world.set_fluent_value("xpos", [robot_id], x)
+        world.set_fluent_value("ypos", [robot_id], y)
+        world.set_fluent_value("vx", [robot_id], vx)
+        world.set_fluent_value("vy", [robot_id], vy)
+        world.set_constant_value("robot_radius", [robot_id], radius)
+        world.set_fluent_value("active", [robot_id], active)
+        world.set_fluent_value("partner", [robot_id], partner)
         items = world.getDomain('item')
         for i in items:
-            world.setFluentValue('carrying', [robot_id, i.id], False)
+            world.set_fluent_value('carrying', [robot_id, i.id], False)
 
     def initialize_items(self):
         world = World.instance()
         items = world.getDomain('item')
         for i in items:
-            world.setFluentValue("painted", [i.id], False)
-            world.setFluentValue("marking", [i.id], None)
+            world.set_fluent_value("painted", [i.id], False)
+            world.set_fluent_value("marking", [i.id], None)
 
     def place_agents_in_column(self, x=10, startY=10, distance=20):
         world = World.instance()

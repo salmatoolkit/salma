@@ -33,7 +33,7 @@ class EMobilityScenario1(EMobilityBase):
         plcses = world.getDomain("plcs")
 
         for plcs in plcses:
-            world.setConstantValue("maxCapacty", [plcs.id], 10)
+            world.set_constant_value("maxCapacty", [plcs.id], 10)
 
         targets = dict()
         for vehicle in vehicles:
@@ -44,12 +44,12 @@ class EMobilityScenario1(EMobilityBase):
             targets[vehicle.id] = target
             r = nx.shortest_path(world_map, crossing, target)
 
-            world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", crossing, crossing, 0))
-            world.setFluentValue("vehicleSpeed", [vehicle.id], 10)
-            world.setFluentValue("currentTargetPLCS", [vehicle.id], target)
-            world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi)
-            world.setFluentValue("currentRoute", [vehicle.id], r)
-            world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi, 100, 100)])
+            world.set_fluent_value("vehiclePosition", [vehicle.id], ("pos", crossing, crossing, 0))
+            world.set_fluent_value("vehicleSpeed", [vehicle.id], 10)
+            world.set_fluent_value("currentTargetPLCS", [vehicle.id], target)
+            world.set_fluent_value("currentTargetPOI", [vehicle.id], target_poi)
+            world.set_fluent_value("currentRoute", [vehicle.id], r)
+            world.set_constant_value("calendar", [vehicle.id], [("cal", target_poi, 100, 100)])
 
         uninitialized_fluent_instances, uninitialized_constant_instances = world.check_fluent_initialization()
         print("-" * 80)

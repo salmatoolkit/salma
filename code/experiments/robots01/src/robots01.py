@@ -52,8 +52,8 @@ class Robots01(Experiment):
             self.initialize_robot(r.id, x, y, 0, 0)
             y += 20
         for i in self.world.getDomain("item"):
-            self.world.setFluentValue("xpos", [i.id], x)
-            self.world.setFluentValue("ypos", [i.id], y)
+            self.world.set_fluent_value("xpos", [i.id], x)
+            self.world.set_fluent_value("ypos", [i.id], y)
             y += 20
 
     def create_robot(self, num):
@@ -74,17 +74,17 @@ class Robots01(Experiment):
         return agent
 
     def initialize_robot(self, robot_id, x, y, vx, vy):
-        self.world.setFluentValue("xpos", [robot_id], x)
-        self.world.setFluentValue("ypos", [robot_id], y)
-        self.world.setFluentValue("vx", [robot_id], vx)
-        self.world.setFluentValue("vy", [robot_id], vy)
-        self.world.setConstantValue("robot_radius", [robot_id], 1)
-        self.world.setFluentValue("active", [robot_id], True)
-        self.world.setFluentValue("partner", [robot_id], None)
-        self.world.setFluentValue("grip", [robot_id], 0)
+        self.world.set_fluent_value("xpos", [robot_id], x)
+        self.world.set_fluent_value("ypos", [robot_id], y)
+        self.world.set_fluent_value("vx", [robot_id], vx)
+        self.world.set_fluent_value("vy", [robot_id], vy)
+        self.world.set_constant_value("robot_radius", [robot_id], 1)
+        self.world.set_fluent_value("active", [robot_id], True)
+        self.world.set_fluent_value("partner", [robot_id], None)
+        self.world.set_fluent_value("grip", [robot_id], 0)
         items = self.world.getDomain('item')
         for i in items:
-            self.world.setFluentValue('carrying', [robot_id, i.id], False)
+            self.world.set_fluent_value('carrying', [robot_id, i.id], False)
 
     def setup_distributions(self):
         world = self.world
@@ -120,10 +120,10 @@ class Robots01(Experiment):
         self.__place_agents_in_column(0)
         for i in self.world.getDomain("item"):
             dist = np.random.randint(self.destination_range[0], self.destination_range[1] + 1)
-            self.world.setConstantValue("destX", [i.id], self.world.get_fluent_value("xpos", [i.id]) + dist)
-            self.world.setConstantValue("destY", [i.id], self.world.get_fluent_value("ypos", [i.id]))
+            self.world.set_constant_value("destX", [i.id], self.world.get_fluent_value("xpos", [i.id]) + dist)
+            self.world.set_constant_value("destY", [i.id], self.world.get_fluent_value("ypos", [i.id]))
 
-        self.world.setConstantValue("gravity", [], 9.81)
+        self.world.set_constant_value("gravity", [], 9.81)
 
     def setup_properties(self):
         f_str = """

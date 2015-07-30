@@ -456,10 +456,10 @@ class World(Entity, WorldDeclaration):
         self.__create_entity_accessors()
 
         for chan in self.get_channels():
-            self.setFluentValue("channel_in_queue", [chan.name], [])
+            self.set_fluent_value("channel_in_queue", [chan.name], [])
 
         for rs in self.get_remote_sensors():
-            self.setFluentValue("channel_in_queue", [rs.name], [])
+            self.set_fluent_value("channel_in_queue", [rs.name], [])
 
         World.logic_engine().setFluentValue('time', [], 0)
 
@@ -960,24 +960,24 @@ class World(Entity, WorldDeclaration):
         return World.logic_engine().isConstantDefined(constant_name, translate_entities(constant_params))
 
     # noinspection PyMethodMayBeStatic
-    def setFluentValue(self, fluentName, fluentParams, value):
+    def set_fluent_value(self, fluent_name, fluent_params, value):
         """
         Sets the current value for the given fluent instance.
-        :type fluentName: str
-        :type fluentParams: list|tuple
+        :type fluent_name: str
+        :type fluent_params: list|tuple
         :type value: object
         """
-        World.logic_engine().setFluentValue(fluentName, translate_entities(fluentParams), value)
+        World.logic_engine().setFluentValue(fluent_name, translate_entities(fluent_params), value)
 
     # noinspection PyMethodMayBeStatic
-    def setConstantValue(self, constantName, constantParams, value):
+    def set_constant_value(self, constant_name, constant_params, value):
         """
         Sets the current value for the given constant instance.
-        :type constantName: str
-        :type constantParams: list|tuple
+        :type constant_name: str
+        :type constant_params: list|tuple
         :type value: object
         """
-        World.logic_engine().setConstantValue(constantName, translate_entities(constantParams), value)
+        World.logic_engine().setConstantValue(constant_name, translate_entities(constant_params), value)
 
     def __translate_action_execution(self, evaluation_context, action_execution):
         """
@@ -1337,7 +1337,7 @@ class LocalEvaluationContext(EvaluationContext):
         """
         resolved_params = self.resolve(*params)
         resolved_value = self.resolve(value)[0]
-        World.instance().setFluentValue(fluent_name, resolved_params, resolved_value)
+        World.instance().set_fluent_value(fluent_name, resolved_params, resolved_value)
 
     def get_derived_fluent_value(self, fluent_name, params):
         resolved_params = self.resolve(*params)
@@ -1350,7 +1350,7 @@ class LocalEvaluationContext(EvaluationContext):
     def set_constant_value(self, constant_name, params, value):
         resolved_params = self.resolve(*params)
         resolved_value = self.resolve(value)[0]
-        World.instance().setConstantValue(constant_name, resolved_params, resolved_value)
+        World.instance().set_constant_value(constant_name, resolved_params, resolved_value)
 
     def create_message(self, connector, agent, msg_type, params):
         """

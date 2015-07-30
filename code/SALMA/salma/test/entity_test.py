@@ -19,8 +19,8 @@ class EntityTest(BaseWorldTest):
         world.initialize(False)
         self.initialize_robot("rob1", 10, 15, 1, -1, radius=5)
         self.initialize_robot("rob2", 100, 150, 0, 0, radius=8, active=False)
-        world.setFluentValue("carrying", [self.rob1.id, self.item1.id], True)
-        world.setFluentValue("carrying", [self.rob2.id, self.item2.id], True)
+        world.set_fluent_value("carrying", [self.rob1.id, self.item1.id], True)
+        world.set_fluent_value("carrying", [self.rob2.id, self.item2.id], True)
 
     def test_get_agent_properties(self):
         world = World.instance()

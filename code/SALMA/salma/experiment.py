@@ -149,7 +149,7 @@ class Experiment(object):
         if failed:
             raise SALMAException("Initialisation problems.")
 
-    def run_experiment(self, **kwargs):
+    def run(self, **kwargs):
         """
         Runs the experiment that has been set up until a) a conclusive verdict can be determined,
         b) the world has finished, c) the given step or time maximum is reached, or d) at least one of
@@ -188,7 +188,9 @@ class Experiment(object):
         # : :type: dict[str, list[int]]
         scheduled_keys = dict()
         time_out = False
+        # ---- BEFORE -----------
         self.before_run(**kwargs)
+
         while (not self.__world.is_finished()) and (not check_verdict or verdict == NONDET):
             current_time = self.__world.getTime()
             # only use default maximum time delta if no other bound was specified
@@ -297,6 +299,7 @@ class Experiment(object):
                    "achieved_goals": self.__property_collection.already_achieved_goals,
                    "failure_stack": failure_stack,
                    "scheduled_keys": scheduled_keys}
+        # ---- AFTER -----------
         self.after_run(verdict, **details)
         return verdict, details
 
@@ -317,7 +320,7 @@ class Experiment(object):
         if check_initialization:
             self.assure_consistent_initilization()
         kwargs["check_verdict"] = False
-        verdict, results = self.run_experiment(**kwargs)
+        verdict, results = self.run(**kwargs)
         if verdict != CANCEL:
             verdict = OK if self.__world.is_finished() else NOT_OK
         return verdict, results
@@ -367,7 +370,7 @@ class SingleProcessExperimentRunner(ExperimentRunner):
         while should_continue:
             experiment.reset()
 
-            verdict, res = experiment.run_experiment(**kwargs)
+            verdict, res = experiment.run(**kwargs)
             trial_infos.append(res)
             if verdict == NONDET or verdict == CANCEL:
                 if verdict == CANCEL:

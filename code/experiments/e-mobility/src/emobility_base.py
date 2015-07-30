@@ -102,14 +102,14 @@ class EMobilityBase(Experiment):
         plcses = self.world.getDomain("plcs")
 
         for plcs in plcses:
-            self.world.setFluentValue("plcsReservations", [plcs.id], [])
-            self.world.setFluentValue("freeSlotsL", [plcs.id], None)
+            self.world.set_fluent_value("plcsReservations", [plcs.id], [])
+            self.world.set_fluent_value("freeSlotsL", [plcs.id], None)
 
         for vehicle in vehicles:
-            self.world.setFluentValue("currentPLCS", [vehicle.id], None)
-            self.world.setFluentValue("currentTargetPLCS", [vehicle.id], None)
-            self.world.setFluentValue("currentTargetPOI", [vehicle.id], None)
-            self.world.setFluentValue("currentRoute", [vehicle.id], [])
+            self.world.set_fluent_value("currentPLCS", [vehicle.id], None)
+            self.world.set_fluent_value("currentTargetPLCS", [vehicle.id], None)
+            self.world.set_fluent_value("currentTargetPOI", [vehicle.id], None)
+            self.world.set_fluent_value("currentRoute", [vehicle.id], [])
 
     def __log(self, msg):
         print(msg)

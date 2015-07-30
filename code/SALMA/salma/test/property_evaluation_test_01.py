@@ -50,7 +50,7 @@ class PropertyEvaluationTest01(BaseWorldTest):
         experiment.step_listeners.append(lambda world, **args: print(world.get_fluent_value("xpos", ["rob1"])))
         experiment.property_collection.register_property("f", f, INVARIANT, time_limit=time_limit,
                                                          x_prop_goal=x_prop_goal)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         world.printState()
@@ -109,7 +109,7 @@ class PropertyEvaluationTest01(BaseWorldTest):
 forall([r,robot], until({}, xpos(r) > {}, xpos(r) > {}))
 """.format(timelimit, px, qx)
         experiment.property_collection.register_property("g", g_str, INVARIANT)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         return verdict, results

@@ -56,7 +56,7 @@ class PropertyEvaluationTest02(BaseWorldTest):
         experiment.step_listeners.append(logger)
         experiment.property_collection.register_property("g", g_str, INVARIANT)
         experiment.property_collection.register_property("h", "xpos(rob1) >= {}".format(goal_pos), ACHIEVE)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         return verdict, results
@@ -119,7 +119,7 @@ forall(r:robot,
         experiment = Experiment(world)
         experiment.property_collection.register_property("f", f_str, INVARIANT)
         experiment.property_collection.register_property("g", g_str, ACHIEVE)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         # : :type: timedelta
@@ -201,7 +201,7 @@ forall(r:robot,
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
-        world.setFluentValue("xpos", ["rob1"], 5)
+        world.set_fluent_value("xpos", ["rob1"], 5)
 
         g_str = """
 forall(r:robot,
@@ -218,7 +218,7 @@ forall(r:robot,
         experiment = Experiment(world)
         experiment.property_collection.register_property("g", g_str, INVARIANT)
         experiment.property_collection.register_property("h", "forall(r:robot, xpos(r) >= 50)", ACHIEVE)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         # : :type: timedelta
@@ -272,7 +272,7 @@ forall(r:robot,
         experiment = Experiment(world)
         experiment.property_collection.register_property("f", f_str, INVARIANT)
         experiment.property_collection.register_property("g", g_str, ACHIEVE)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         # print("Results: " + str(results))
         #print(world.logic_engine().format_failure_stack(results["failure_stack"]))
@@ -313,7 +313,7 @@ forall(r : robot,
 
         e = Experiment(world)
         e.property_collection.register_property("f", f_str, INVARIANT)
-        verdict, results = e.run_experiment(maxSteps=25)
+        verdict, results = e.run(maxSteps=25)
         return verdict, results
 
     @withHeader()

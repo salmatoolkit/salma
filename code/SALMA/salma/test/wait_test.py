@@ -47,8 +47,8 @@ class WaitTest(BaseWorldTest):
         world.addAgent(agent)
 
         world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 15)
+        world.set_fluent_value("xpos", ["rob1"], 10)
+        world.set_fluent_value("ypos", ["rob1"], 15)
         self.initialize_robot("rob1", 10, 15, 0, 0)
         self.setNoOneCarriesAnything()
         print("INIT:")
@@ -96,8 +96,8 @@ class WaitTest(BaseWorldTest):
         world.addAgent(agent)
 
         world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 15)
+        world.set_fluent_value("xpos", ["rob1"], 10)
+        world.set_fluent_value("ypos", ["rob1"], 15)
         self.initialize_robot("rob1", 10, 15, 0, 0)
         self.setNoOneCarriesAnything()
         print("INIT:")

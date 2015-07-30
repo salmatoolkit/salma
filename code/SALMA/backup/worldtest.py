@@ -76,11 +76,11 @@ class WorldTest(BaseWorldTest):
         world.addAgent(agent2)
         world.initialize(False)
 
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 10)
+        world.set_fluent_value("xpos", ["rob1"], 10)
+        world.set_fluent_value("ypos", ["rob1"], 10)
 
-        world.setFluentValue("xpos", ["rob2"], 20)
-        world.setFluentValue("ypos", ["rob2"], 20)
+        world.set_fluent_value("xpos", ["rob2"], 20)
+        world.set_fluent_value("ypos", ["rob2"], 20)
 
         self.setNoOneCarriesAnything()
         verdict, info = world.runUntilFinished()
@@ -159,17 +159,17 @@ class WorldTest(BaseWorldTest):
         world.addAgent(agent3)
         world.initialize(False)
 
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 20)
-        world.setFluentValue("active", ["rob1"], True)
+        world.set_fluent_value("xpos", ["rob1"], 10)
+        world.set_fluent_value("ypos", ["rob1"], 20)
+        world.set_fluent_value("active", ["rob1"], True)
 
-        world.setFluentValue("xpos", ["rob2"], 110)
-        world.setFluentValue("ypos", ["rob2"], 20)
-        world.setFluentValue("active", ["rob2"], True)
+        world.set_fluent_value("xpos", ["rob2"], 110)
+        world.set_fluent_value("ypos", ["rob2"], 20)
+        world.set_fluent_value("active", ["rob2"], True)
 
-        world.setFluentValue("xpos", ["rob3"], 10)
-        world.setFluentValue("ypos", ["rob3"], 50)
-        world.setFluentValue("active", ["rob3"], True)
+        world.set_fluent_value("xpos", ["rob3"], 10)
+        world.set_fluent_value("ypos", ["rob3"], 50)
+        world.set_fluent_value("active", ["rob3"], True)
 
         world.runUntilFinished()
         world.printState()
@@ -205,9 +205,9 @@ class WorldTest(BaseWorldTest):
         world.initialize(False)
 
         self.place_agents_in_column()
-        world.setFluentValue("carrying", ["rob1", "coffee"], True)
-        world.setFluentValue("xpos", ["rob1"], world.get_fluent_value("xpos", ["rob2"]))
-        world.setFluentValue("ypos", ["rob1"], world.get_fluent_value("ypos", ["rob2"]))
+        world.set_fluent_value("carrying", ["rob1", "coffee"], True)
+        world.set_fluent_value("xpos", ["rob1"], world.get_fluent_value("xpos", ["rob2"]))
+        world.set_fluent_value("ypos", ["rob1"], world.get_fluent_value("ypos", ["rob2"]))
 
         print('BEFORE:')
         world.printState()
@@ -403,7 +403,7 @@ class WorldTest(BaseWorldTest):
         world.initialize(False)
         self.setNoOneCarriesAnything()
         for item in items:
-            world.setFluentValue("painted", [item.id], False)
+            world.set_fluent_value("painted", [item.id], False)
 
         world.runUntilFinished()
         world.printState()
@@ -435,7 +435,7 @@ class WorldTest(BaseWorldTest):
         world.initialize(False)
         self.setNoOneCarriesAnything()
         for item in items:
-            world.setFluentValue("painted", [item.id], False)
+            world.set_fluent_value("painted", [item.id], False)
 
         world.runUntilFinished()
         world.printState()
@@ -462,7 +462,7 @@ class WorldTest(BaseWorldTest):
         self.setNoOneCarriesAnything()
         items = world.getDomain('item')
         for item in items:
-            world.setFluentValue("painted", [item.id], False)
+            world.set_fluent_value("painted", [item.id], False)
 
         world.runUntilFinished()
         world.printState()
@@ -636,7 +636,7 @@ class WorldTest(BaseWorldTest):
         for f in default_false_fluent_instances:
             self.assertFalse(world.get_fluent_value(f[0], f[1]))
 
-        world.setFluentValue('xpos', ['rob1'], 10)
+        world.set_fluent_value('xpos', ['rob1'], 10)
         expected_fluents.remove(("xpos", ["rob1"]))
         l1, l2 = world.check_fluent_initialization()
         for e in expected_fluents:
@@ -647,7 +647,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(len(l2), 2)
 
 
-        world.setConstantValue('gravity', [], 9.81)
+        world.set_constant_value('gravity', [], 9.81)
         expected_constants.remove(("gravity", []))
         l1, l2 = world.check_fluent_initialization()
         for e in expected_fluents:
@@ -657,7 +657,7 @@ class WorldTest(BaseWorldTest):
         self.assertEqual(len(l1), 2)
         self.assertEqual(len(l2), 1)
 
-        world.setConstantValue('robot_radius', ['rob1'], 20.0)
+        world.set_constant_value('robot_radius', ['rob1'], 20.0)
         expected_constants.remove(("robot_radius", ["rob1"]))
         l1, l2 = world.check_fluent_initialization()
         for e in expected_fluents:

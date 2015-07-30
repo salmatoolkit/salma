@@ -192,7 +192,7 @@ class EMobilityScenario3(EMobilityBase):
         plcses = world.getDomain("plcs")
 
         for plcs in plcses:
-            world.setConstantValue("maxCapacty", [plcs.id], 10)
+            world.set_constant_value("maxCapacty", [plcs.id], 10)
 
         for vehicle in vehicles:
             start = random.choice(starts)
@@ -200,10 +200,10 @@ class EMobilityScenario3(EMobilityBase):
             target_poi = random.choice(target_pois)
             #target_pois.remove(target_poi)
 
-            world.setFluentValue("vehiclePosition", [vehicle.id], ("pos", start.id, start.id, 0))
-            world.setFluentValue("vehicleSpeed", [vehicle.id], 10)
-            world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
-            world.setConstantValue("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
+            world.set_fluent_value("vehiclePosition", [vehicle.id], ("pos", start.id, start.id, 0))
+            world.set_fluent_value("vehicleSpeed", [vehicle.id], 10)
+            world.set_fluent_value("currentTargetPOI", [vehicle.id], target_poi.id)
+            world.set_constant_value("calendar", [vehicle.id], [("cal", target_poi.id, 100, 100)])
 
         world.get_exogenous_action(
             "exchange_PLCSSAM_Vehicle").config.set_probability(0.2)
@@ -227,7 +227,7 @@ class EMobilityScenario3(EMobilityBase):
         if log:
             self.__print_info(world)
 
-        #verdict, results = self.run_experiment(world, world_map, log=False, visualize=False)
+        #verdict, results = self.run(world, world_map, log=False, visualize=False)
         # print("Verdict: {}\nResults:\n{}".format(verdict, results))
         #results, infos = world.run_repetitions(100)
 
