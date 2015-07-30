@@ -9,11 +9,13 @@ from salma.mathutils import min_robust
 import time
 import datetime
 from collections.abc import Callable
+from salma.smcutils import verdict_and
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_MAX_TIME_DELTA_PER_STEP = 100000
 DEFAULT_MAX_TRIALS = 500
+
 
 class Experiment(object):
     """
@@ -178,6 +180,7 @@ class Experiment(object):
 
         step_num = 0
         verdict = NONDET if check_verdict else None
+        verdicts_by_step_listeners = []
         self.__property_collection.reset()
         failed_critical_actions = []
         c1 = c2 = time.clock()
@@ -191,7 +194,7 @@ class Experiment(object):
         # ---- BEFORE -----------
         self.before_run(**kwargs)
 
-        while (not self.__world.is_finished()) and (not check_verdict or verdict == NONDET):
+        while (not self.__world.is_finished()) and ((not check_verdict and verdict is None) or verdict == NONDET):
             current_time = self.__world.getTime()
             # only use default maximum time delta if no other bound was specified
             if max_time_delta_per_step is not None:
@@ -216,6 +219,7 @@ class Experiment(object):
             delta_t = c2 - c1
             should_continue = True
             break_reason = None
+            verdicts_by_step_listeners.clear()
             for sl in self.step_listeners:
                 sl_res = sl(self.__world,
                             verdict=verdict,
@@ -233,14 +237,21 @@ class Experiment(object):
                     break_reason_from_listener = sl_res
                 elif isinstance(sl_res, bool):
                     continue_from_listener = sl_res
-                    break_reason_from_listener = None if continue_from_listener else "n/a"
+                    break_reason_from_listener = (
+                        None if continue_from_listener else "cancelled by step listener {}".format(
+                            sl.__name__))
                 elif isinstance(sl_res, tuple) and len(sl_res) == 2 and isinstance(sl_res[0], bool):
                     continue_from_listener = sl_res[0]
                     break_reason_from_listener = str(sl_res[1])
+                elif sl_res in [OK, NOT_OK, NONDET]:
+                    verdict = verdict_and(verdict, sl_res)
+                    continue_from_listener = True  # the loop will be left due to while condition
+                    break_reason_from_listener = None
+                    verdicts_by_step_listeners.append((sl_res, sl))
                 else:
                     raise SALMAException("Invalid return value from step listener {}: {}".format(sl, sl_res))
                 should_continue &= continue_from_listener
-                if break_reason is None and not continue_from_listener:
+                if break_reason is None:
                     break_reason = break_reason_from_listener
             # note that reason of step listener gets precedence over other reasons
             if not should_continue:
@@ -298,7 +309,8 @@ class Experiment(object):
                    "failed_sustain_goals": failed_sustain_goals,
                    "achieved_goals": self.__property_collection.already_achieved_goals,
                    "failure_stack": failure_stack,
-                   "scheduled_keys": scheduled_keys}
+                   "scheduled_keys": scheduled_keys,
+                   "verdicts_by_step_listeners": verdicts_by_step_listeners}
         # ---- AFTER -----------
         self.after_run(verdict, **details)
         return verdict, details

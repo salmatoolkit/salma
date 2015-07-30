@@ -3,6 +3,7 @@ import logging
 from logging import FileHandler
 import logging.config
 from math import sqrt
+from salma.constants import OK, NOT_OK
 from salma.experiment import Experiment, SingleProcessExperimentRunner
 from salma.model.core import Entity, translate_entities
 from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, GeometricDistribution, \
@@ -54,14 +55,14 @@ def break_when_all_delivered(world: World, **kwargs):
     for i in world.getDomain("item"):
         if i.delivered_to is None:
             return None
-    return "all items delivered"
+    return OK
 
 
 def break_when_all_broken(world: World, **kwargs):
     for r in world.getDomain("robot"):
         if r.broken is False:
             return None
-    return "all robots broken"
+    return NOT_OK
 
 
 class Experiment01(Experiment):
@@ -237,5 +238,6 @@ if __name__ == '__main__':
         experiment.step_listeners.append(create_step_logger(f))
         experiment.step_listeners.append(break_when_all_delivered)
         experiment.step_listeners.append(break_when_all_broken)
-        _, res, trial_infos = runner.run_trials(experiment, number_of_trials=1, max_steps=3000, max_retrials=0)
+        #_, res, trial_infos = runner.run_trials(experiment, number_of_trials=1, max_steps=3000, max_retrials=0)
+        experiment.run(max_steps=3000)
     experiment.world.printState()
