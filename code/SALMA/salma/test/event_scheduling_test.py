@@ -264,7 +264,5 @@ class EventSchedulingTest(unittest.TestCase):
         print(reclist)
 
 
-
-
 if __name__ == '__main__':
     unittest.main()
