@@ -531,7 +531,10 @@ class World(Entity, WorldDeclaration):
         :type entity: Entity
         """
         if entity.id in self.__entities:
-            raise SALMAException("Trying to register entity whose id is already used: {}".format(entity.id))
+            raise SALMAException("Trying to register an entity whose id is already used: {}".format(entity.id))
+        if not isinstance(entity, Entity):
+            raise SALMAException("Trying to register an entity object that is not an instance of Entity: {}".format(
+                str(entity)))
         self.__entities[entity.id] = entity
         if isinstance(entity, Agent):
             self.__agents[entity.id] = entity
@@ -546,6 +549,9 @@ class World(Entity, WorldDeclaration):
         Adds the given agent to the entity registry and set this world instance as the agent's evaluation context.
         :type agent: Agent
         """
+        if not isinstance(agent, Agent):
+            raise SALMAException("Trying to register an agent object that is not an instance of Agent: {}".format(
+                str(agent)))
         self.addEntity(agent)
         agent.world_declaration = self
 
