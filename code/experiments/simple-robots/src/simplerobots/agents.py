@@ -64,9 +64,7 @@ def select_item(rob: Agent, ctx: EvaluationContext=None, **kwargs):
 
 
 def select_item2(station: Entity, ctx: EvaluationContext=None, **kwargs):
-    # determine closest robot
     dist = lambda r: np.sqrt((r.xpos - station.stationX) ** 2 + (r.ypos - station.stationY) ** 2)
-
     robot_distances = [(dist(r), r) for r in ctx.getDomain("robot") if r.unassigned]
     if len(robot_distances) == 0:
         return None, None
@@ -97,7 +95,7 @@ def create_coordinator_clever():
     r, i, ws = makevars(("r", "robot"), ("i", "item"), ("ws", "workstation"))
     p = Procedure([
         Iterate("self.request_queue", [ws], [
-            Assign((r, i), select_item2, [ws]),
+            Assign([r, i], select_item2, [ws]),
             If("i != None and r != None",
                Act("assign_task", [SELF, r, i, ws]))])
     ])

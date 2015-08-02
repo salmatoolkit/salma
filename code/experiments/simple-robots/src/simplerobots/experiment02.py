@@ -225,8 +225,8 @@ if __name__ == '__main__':
     logger = logging.getLogger(MODULE_LOGGER_NAME)
     logger.setLevel(logging.INFO)
 
-    # experiment = Experiment02(experiment_path, Path("config_3r_20i_5s_200x200.json"))
-    # experiment = Experiment02(experiment_path)
+    # experiment = Experiment03(experiment_path, Path("config_3r_20i_5s_200x200.json"))
+    # experiment = Experiment03(experiment_path)
 
     num_exp = 1
     runner = SingleProcessExperimentRunner()
