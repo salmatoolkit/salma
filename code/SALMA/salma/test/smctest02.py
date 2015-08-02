@@ -6,10 +6,12 @@ import json
 
 from statsmodels.stats import proportion
 from scipy.stats import geom
+import sys
 
 from salma.experiment import SingleProcessExperimentRunner
 from salma.statistics import SPRT
 from salma.test.smctest_base_experiment_2 import SMCTestBaseExperiment2
+from datetime import datetime
 
 MODULE_LOGGER_NAME = 'salma'
 logging.config.fileConfig("smctest02.logging.conf")
@@ -60,7 +62,8 @@ class SMCTest02(TestCase):
         all_successes = 0
         report_lines = []
         """:type : list[dict]"""
-        with open("smctest02_ci.csv", "w") as f:
+        fname = "smctest02_ci_{}.csv".format(datetime.now().strftime("%Y%m%d-%H_%M_%S_%f"))
+        with open(fname, "w") as f:
             f.write("I;SUCCESSES;TRIALS\n")
             f.flush()
             for i in range(0, samples):
@@ -145,3 +148,4 @@ class SMCTest02(TestCase):
 
     def test_calc_prob(self):
         print("real probability: {:}".format(round(self.calc_real_prob(), 6)))
+        print("argv:", sys.argv)
