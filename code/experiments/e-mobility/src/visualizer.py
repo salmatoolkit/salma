@@ -45,7 +45,7 @@ class Visualizer(object):
         edges_with_vehicles = dict()
 
         for vehicle in self.world.getDomain("vehicle"):
-            pos = self.world.getFluentValue("vehiclePosition", [vehicle.id])
+            pos = self.world.get_fluent_value("vehiclePosition", [vehicle.id])
             assert isinstance(pos, Term)
             if pos.functor == "l":
                 if pos.params[0] not in nodes_with_vehicles:
@@ -103,10 +103,10 @@ class Visualizer(object):
         vids = [v.id for v in self.world.getDomain("vehicle")]
 
         for vid in sorted(vids):
-            pos = self.world.getFluentValue("vehiclePosition", [vid])
+            pos = self.world.get_fluent_value("vehiclePosition", [vid])
             assert isinstance(pos, Term)
-            poi = self.world.getFluentValue("currentTargetPOI", [vid])
-            plcs = self.world.getFluentValue("currentTargetPLCS", [vid])
+            poi = self.world.get_fluent_value("currentTargetPOI", [vid])
+            plcs = self.world.get_fluent_value("currentTargetPLCS", [vid])
             poslabels.append("{}:({}) --> {}|{}".format(vid, pos.params[0], plcs, poi))
         time = self.world.getTime()
         poslabel = ", ".join(poslabels)

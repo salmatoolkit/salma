@@ -90,7 +90,7 @@ class EvaluationContext(object):
         # TODO: document
         raise NotImplementedError()
 
-    def getFluentValue(self, fluentName, *params):
+    def get_fluent_value(self, fluentName, *params):
         """
         Returns the current value of the given fluent with the given parameters.
         If no value for the given fluent instance is defined, None is returned.
@@ -118,6 +118,9 @@ class EvaluationContext(object):
         """
         raise NotImplementedError()
 
+    def get_constant_value(self, constant_name, params):
+        raise NotImplementedError()
+
     def set_fluent_value(self, fluent_name, params, value):
         """
         Sets the current value of the given fluent instance.
@@ -130,6 +133,9 @@ class EvaluationContext(object):
         :param value:
         :return:
         """
+        raise NotImplementedError()
+
+    def set_constant_value(self, constant_name, params, value):
         raise NotImplementedError()
 
     def create_message(self, connector, agent, msg_type, params):
@@ -177,6 +183,13 @@ class EvaluationContext(object):
     def resolve(self, *terms, **kwargs):
         """
         Evaluates each term in terms and returns a list with the collected results.
+        """
+        raise NotImplementedError()
+
+    def lookup_entities(self, term):
+        """
+        Replaces every entity id string in the given "term" by its entity object.
+        :param term: the term to translate
         """
         raise NotImplementedError()
 

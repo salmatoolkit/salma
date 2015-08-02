@@ -34,7 +34,7 @@ exogenous_action(asteroid_hit, [r:robot], [size:float]).
 
 exogenous_action_choice(disaster, [r:robot], [lightning_strike, asteroid_hit]).
 
-exogenous_action(welcome_message, [r:robot], [code:int]).
+exogenous_action(welcome_message, [r:robot], [code:integer]).
 
 
 exogenous_action(wall_alert, [r:robot], []).
@@ -85,11 +85,7 @@ schedulable(disaster(Rob), S) :-
 	ypos(Rob, Y, S),
 	Y > 100.
 
-schedulable(welcome_message(Rob, _), S) :-
-	ypos(Rob, Y, S),
-	Y > 50,
-	xpos(Rob, X, S),
-	X >= 1000.
+schedulable(welcome_message(Rob, _), S) :- true.
 
 
 effect(xpos(Robot), tick(Steps), OldX, X, S) :-

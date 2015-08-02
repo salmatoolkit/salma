@@ -50,13 +50,13 @@ class PropertyEvaluationTest02(BaseWorldTest):
 """.format(min_pos)
 
         def logger(world, **info):
-            print("X = {}".format(world.getFluentValue("xpos", ["rob1"])))
+            print("X = {}".format(world.get_fluent_value("xpos", ["rob1"])))
 
         experiment = Experiment(world)
         experiment.step_listeners.append(logger)
         experiment.property_collection.register_property("g", g_str, INVARIANT)
         experiment.property_collection.register_property("h", "xpos(rob1) >= {}".format(goal_pos), ACHIEVE)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         return verdict, results
@@ -66,16 +66,16 @@ class PropertyEvaluationTest02(BaseWorldTest):
         self.assertEqual(verdict, OK)
         world = World.instance()
         world.printState()
-        self.assertTrue(world.getFluentValue("painted", ["item1"]))
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 20)
+        self.assertTrue(world.get_fluent_value("painted", ["item1"]))
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 20)
 
     def test_property_3_fail(self):
         verdict, results = self.perform_property_3_test("item1", 13, 15, 20)
         self.assertEqual(verdict, NOT_OK)
         world = World.instance()
         world.printState()
-        self.assertTrue(world.getFluentValue("painted", ["item1"]))
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 13)
+        self.assertTrue(world.get_fluent_value("painted", ["item1"]))
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 13)
 
     def create_periodic_agent(self, agent_id, item_id, target_x=40, start=0, period=6, delta=3):
         p1 = OneShotProcess([
@@ -119,7 +119,7 @@ forall(r:robot,
         experiment = Experiment(world)
         experiment.property_collection.register_property("f", f_str, INVARIANT)
         experiment.property_collection.register_property("g", g_str, ACHIEVE)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         # : :type: timedelta
@@ -201,7 +201,7 @@ forall(r:robot,
         world.initialize(False)
         self.setNoOneCarriesAnything()
         self.place_agents_in_column(x=10)
-        world.setFluentValue("xpos", ["rob1"], 5)
+        world.set_fluent_value("xpos", ["rob1"], 5)
 
         g_str = """
 forall(r:robot,
@@ -218,7 +218,7 @@ forall(r:robot,
         experiment = Experiment(world)
         experiment.property_collection.register_property("g", g_str, INVARIANT)
         experiment.property_collection.register_property("h", "forall(r:robot, xpos(r) >= 50)", ACHIEVE)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         print("Results: " + str(results))
         # : :type: timedelta
@@ -272,7 +272,7 @@ forall(r:robot,
         experiment = Experiment(world)
         experiment.property_collection.register_property("f", f_str, INVARIANT)
         experiment.property_collection.register_property("g", g_str, ACHIEVE)
-        verdict, results = experiment.run_experiment()
+        verdict, results = experiment.run()
         print("Verdict: " + str(verdict))
         # print("Results: " + str(results))
         #print(world.logic_engine().format_failure_stack(results["failure_stack"]))
@@ -313,7 +313,7 @@ forall(r : robot,
 
         e = Experiment(world)
         e.property_collection.register_property("f", f_str, INVARIANT)
-        verdict, results = e.run_experiment(maxSteps=25)
+        verdict, results = e.run(maxSteps=25)
         return verdict, results
 
     @withHeader()

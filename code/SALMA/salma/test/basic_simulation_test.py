@@ -5,7 +5,7 @@ from salma.model.agent import Agent
 from salma.model.core import Entity
 from salma.experiment import Experiment
 from salma.model.process import OneShotProcess
-from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
+from salma.model.selectionstrategy import OutcomeSelectionStrategy, NonDeterministic
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Statement, While, Act, Wait, Procedure, Sequence, Assign, FunctionStatement, Variable
 from salma.model.world import World
@@ -20,18 +20,21 @@ def print_value(value):
 class MySelectionStrategy(OutcomeSelectionStrategy):
     def __init__(self):
         super().__init__()
+        self.record = []
+        self.next_option = "land_on"
 
     def select_outcome(self, evaluation_context, param_values):
         """
         :type evaluation_context: EvaluationContext
         :type param_values: list
         """
-        x = evaluation_context.getFluentValue('xpos', param_values[0])
-        height = param_values[1]
-        if x > 100 or height > 50:
-            return self.options["crash"]
+        self.record.append(param_values)
+        option = self.next_option
+        if self.next_option == "land_on":
+            self.next_option = "crash"
         else:
-            return self.options["land_on"]
+            self.next_option = "land_on"
+        return self.options[option]
 
 
 class BasicSimulationTest(BaseWorldTest):
@@ -54,10 +57,10 @@ class BasicSimulationTest(BaseWorldTest):
         print("\n\n----\n\n")
         world.printState()
         self.assertEqual(world.getTime(), 5)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 10)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 10)
-        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 1)
-        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 10)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 10)
+        self.assertEqual(world.get_fluent_value("vx", ["rob1"]), 1)
+        self.assertEqual(world.get_fluent_value("vy", ["rob1"]), 0)
 
         world.step(100)
 
@@ -67,20 +70,20 @@ class BasicSimulationTest(BaseWorldTest):
         world.printState()
 
         self.assertEqual(world.getTime(), 10)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 10)
-        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
-        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 1)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 10)
+        self.assertEqual(world.get_fluent_value("vx", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("vy", ["rob1"]), 1)
         world.step(100)
         print("\n\n----\n\n")
         print("AFTER STEP 3:")
         print("\n\n----\n\n")
         world.printState()
         self.assertEqual(world.getTime(), 11)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
-        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("vx", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("vy", ["rob1"]), 0)
 
     def test_world_run_until_end(self):
         world = World.instance()
@@ -99,10 +102,10 @@ class BasicSimulationTest(BaseWorldTest):
         print("\n\n----\n\n")
         world.printState()
         print(results)
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("ypos", ["rob1"]), 11)
-        self.assertEqual(world.getFluentValue("vx", ["rob1"]), 0)
-        self.assertEqual(world.getFluentValue("vy", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("ypos", ["rob1"]), 11)
+        self.assertEqual(world.get_fluent_value("vx", ["rob1"]), 0)
+        self.assertEqual(world.get_fluent_value("vy", ["rob1"]), 0)
         self.assertTrue(world.is_finished())
         self.assertEqual(world.getTime(), 11)
 
@@ -130,7 +133,7 @@ class BasicSimulationTest(BaseWorldTest):
         world.printState()
         print("----\n\n")
 
-        self.assertEqual(world.getFluentValue("xpos", ["rob1"]), 100)
+        self.assertEqual(world.get_fluent_value("xpos", ["rob1"]), 100)
         self.assertEqual(verdict, constants.OK)
         self.assertTrue(450 <= world.getTime() <= 452)
         self.assertTrue(world.is_finished())
@@ -154,8 +157,8 @@ class BasicSimulationTest(BaseWorldTest):
                   ])
         seq.add_child(w)
         proc1 = OneShotProcess(Procedure(seq))
-        agent = Agent("rob1", "robot", [proc1])
-        world.addAgent(agent)
+        rob1 = Agent("rob1", "robot", [proc1])
+        world.addAgent(rob1)
 
         world.initialize(False)
 
@@ -181,15 +184,29 @@ class BasicSimulationTest(BaseWorldTest):
             Assign("z6", "dist_from_origin(rob1)"),
             While("z < y - params[0]", [3],
                   [
-                      Assign("z", "z + 1")])
+                      Assign("z", "z + 1")]),
+            Assign("z7", "rob1.xpos * rob1.robot_radius"),
+            Assign("z8", "rob1.partner.ypos * 2"),
+            Assign("z9", "rob1.dist_from_origin"),
+            Assign("partner", "rob1.partner"),
+            Assign("z10", "partner.ypos"),
+            Assign("z11", "item1.marking[0].xpos + item1.marking[1].xpos")
+        ])
+        proc2 = OneShotProcess([
+
         ])
 
-        agent = Agent("rob1", "robot", [proc1])
-        world.addAgent(agent)
+        rob1 = Agent("rob1", "robot", [proc1])
+        rob2 = Agent("rob2", "robot", [proc2])
+        item1 = Entity("item1", "item")
+        world.add(rob1, rob2, item1)
 
         world.initialize(False)
-        self.initialize_robot("rob1", 10, 15, 0, 0)
-
+        self.initialize_robot("rob1", 10, 15, 0, 0, radius=3)
+        self.initialize_robot("rob2", 100, 150, 0, 0, radius=5)
+        rob1.partner = rob2
+        rob1.partner.xpos = 120
+        item1.marking = [rob1, rob2]
         world.printState()
 
         experiment = Experiment(world)
@@ -201,11 +218,18 @@ class BasicSimulationTest(BaseWorldTest):
         self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z2"))[0], 25)
         self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z3"))[0], 25)
         self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z4"))[0], 3)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z7"))[0], 30)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z8"))[0], 300)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z10"))[0], 150)
+        self.assertEqual(proc1.current_evaluation_context.resolve(Variable("z11"))[0], 130)
 
         v = proc1.current_evaluation_context.resolve(Variable("z5"))[0]
         self.assertAlmostEqual(98.1, v)
         v2 = proc1.current_evaluation_context.resolve(Variable("z6"))[0]
-        self.assertAlmostEqual(math.sqrt(10 * 10 + 15 * 15), v2)
+        dist = math.sqrt(10 * 10 + 15 * 15)
+        self.assertAlmostEqual(dist, v2)
+        self.assertAlmostEqual(dist, proc1.current_evaluation_context.resolve(Variable("z9"))[0])
+
 
     def test_evaluate_python_function(self):
         world = World.instance()
@@ -270,7 +294,7 @@ class BasicSimulationTest(BaseWorldTest):
 
         jump_action = world.get_stochastic_action("jump")
         self.generate_outcomes(jump_action)
-        jump_action.selection_strategy = Uniform()
+        jump_action.selection_strategy = NonDeterministic()
 
         self.initialize_robot("rob1", 10, 20, 0, 0)
 
@@ -278,9 +302,13 @@ class BasicSimulationTest(BaseWorldTest):
         self.__crash_count = 0
         self.__land_on_count = 0
         experiment = Experiment(world)
-        experiment.run_until_finished(step_listeners=[self.record_outcomes])
+        experiment.step_listeners.append(self.record_outcomes)
+        experiment.run_until_finished()
         world.printState()
         print("crash: {} - land on: {}".format(self.__crash_count, self.__land_on_count))
+        self.assertTrue(self.__crash_count > 40)
+        self.assertTrue(self.__land_on_count > 40)
+        self.assertEqual(self.__crash_count + self.__land_on_count, 100)
         # TODO: test hypothesis for uniform distribution
 
     def generate_outcomes(self, jump_action):
@@ -302,3 +330,37 @@ class BasicSimulationTest(BaseWorldTest):
     def test_failed_intentional_actions_lead_to_cancel(self):
         # TODO write test
         pass
+
+    def test_custom_selection_strategy(self):
+        world = World.instance()
+
+        seq = Sequence([
+            Act("jump", [Entity.SELF, 42])
+        ])
+
+        seq2 = Sequence([
+            Act("jump", [Entity.SELF, 100])
+        ])
+
+        rob1 = Agent("rob1", "robot", Procedure(seq))
+        rob2 = Agent("rob2", "robot", Procedure(seq2))
+        world.add(rob1, rob2)
+        world.initialize(False)
+
+        jump_action = world.get_stochastic_action("jump")
+        self.generate_outcomes(jump_action)
+        selsttat = MySelectionStrategy()
+        jump_action.selection_strategy = selsttat
+
+        self.initialize_robot("rob1", 10, 20, 0, 0)
+        self.initialize_robot("rob2", 30, 20, 0, 0)
+        self.__crash_count = 0
+        self.__land_on_count = 0
+        world.printState()
+        experiment = Experiment(world)
+        experiment.step_listeners.append(self.record_outcomes)
+        experiment.run_until_finished()
+        print("crash: {} - land on: {}".format(self.__crash_count, self.__land_on_count))
+        print(selsttat.record)
+        self.assertTrue((rob1, 42) in selsttat.record)
+        self.assertTrue((rob2, 100) in selsttat.record)

@@ -1,5 +1,4 @@
 from unittest.case import TestCase
-import unittest
 import logging
 import logging.config
 import json
@@ -24,10 +23,10 @@ def report_step(world, step=None, actions=None, **kwargs):
     """
     print("Step {}: {}".format(step, actions))
     for r in world.getDomain("robot"):
-        carrying = [it.id for it in world.getDomain("item") if world.getFluentValue("carrying", [r.id, it.id])]
+        carrying = [it.id for it in world.getDomain("item") if world.get_fluent_value("carrying", [r.id, it.id])]
         print("   {}({}, {}) carries {}".format(r.id,
-                                                world.getFluentValue("xpos", [r.id]),
-                                                world.getFluentValue("ypos", [r.id]),
+                                                world.get_fluent_value("xpos", [r.id]),
+                                                world.get_fluent_value("ypos", [r.id]),
                                                 carrying))
 
 

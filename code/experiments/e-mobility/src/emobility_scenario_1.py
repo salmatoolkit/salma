@@ -5,7 +5,7 @@ from salma.constants import ACHIEVE, INVARIANT
 from salma.model.data import Term
 from salma.model.distributions import NormalDistribution, \
     ConstantDistribution, Distribution, OptionalDistribution, UniformDistribution
-from salma.model.selectionstrategy import Stepwise
+from salma.model.selectionstrategy import Categorical
 from salma.model.world import World
 from emobility_base import EMobilityBase
 from vehicle import create_vehicles
@@ -138,8 +138,8 @@ class EMobilityScenario1(EMobilityBase):
         # Simulation config
         # -------------------------------
         for plcs in plcses:
-            self.world.setConstantValue("maxCapacity", [plcs.id], self.__plcs_capacity)
-            self.world.setConstantValue("plcsChargeRate", [plcs.id], 0.05)
+            self.world.set_constant_value("maxCapacity", [plcs.id], self.__plcs_capacity)
+            self.world.set_constant_value("plcsChargeRate", [plcs.id], 0.05)
             plcs.initialize_connector_processes(default_sense_period=10, default_remote_sensor_send_period=30)
 
         for vehicle in vehicles:
@@ -147,11 +147,11 @@ class EMobilityScenario1(EMobilityBase):
             # starts.remove(start)
             target_poi = random.choice(target_pois)
             # target_pois.remove(target_poi)
-            self.world.setFluentValue("vehiclePosition", [vehicle.id], Term("l", start.id))
-            self.world.setFluentValue("batteryLevel", [vehicle.id], 100.0)
-            self.world.setConstantValue("baseDischargeRate", [vehicle.id], 0.01)
-            self.world.setFluentValue("currentTargetPOI", [vehicle.id], target_poi.id)
-            self.world.setConstantValue("calendar", [vehicle.id], [Term("cal", target_poi.id, 0, 0)])
+            self.world.set_fluent_value("vehiclePosition", [vehicle.id], Term("l", start.id))
+            self.world.set_fluent_value("batteryLevel", [vehicle.id], 100.0)
+            self.world.set_constant_value("baseDischargeRate", [vehicle.id], 0.01)
+            self.world.set_fluent_value("currentTargetPOI", [vehicle.id], target_poi.id)
+            self.world.set_constant_value("calendar", [vehicle.id], [Term("cal", target_poi.id, 0, 0)])
             vehicle.initialize_connector_processes(default_sense_period=10, default_remote_sensor_send_period=30)
         for sam in sams:
             sam.initialize_connector_processes(default_sense_period=10, default_remote_sensor_send_period=30)
@@ -174,10 +174,10 @@ class EMobilityScenario1(EMobilityBase):
         transfer_fails.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
 
         message_start = self.world.get_exogenous_action_choice("message_start")
-        message_start.selection_strategy = Stepwise(transferStarts=0.9, transferFails=0.1)
+        message_start.selection_strategy = Categorical(transferStarts=0.9, transferFails=0.1)
 
         message_end = self.world.get_exogenous_action_choice("message_end")
-        message_end.selection_strategy = Stepwise(transferEnds=0.8, transferFails=0.2)
+        message_end.selection_strategy = Categorical(transferEnds=0.8, transferFails=0.2)
 
         enterNextRoad = self.world.get_exogenous_action("enterNextRoad")
         enterNextRoad.config.occurrence_distribution = UniformDistribution("integer",

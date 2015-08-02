@@ -1,15 +1,16 @@
 import logging
 import heapq
+import random
+from collections.abc import Iterable
 
 from salma.engine import Engine
+from salma.model.core import translate_entities
 from salma.model.actions import *
 from salma.model.distributions import NEVER, DONT_OCCUR
 from salma.model.events import ExogenousActionChoice
 from salma.model.events import ExogenousAction, EventOccurrence
 from salma.model.evaluationcontext import EvaluationContext
 from salma.mathutils import min_robust
-import random
-from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ class EventSchedule:
         for pe in self.__possible_event_schedule:
 
             if (pe.time_point == current_time
-                    and pe not in self.__already_processed_events):
+                and pe not in self.__already_processed_events):
                 if isinstance(pe.event, ExogenousAction):
                     if pe not in self.__event_schedule:
                         if pe.event.should_happen(evaluation_context, pe.params):
@@ -127,7 +128,7 @@ class EventSchedule:
 
         for se in self.__schedulable_event_schedule:
             if (se.time_point == current_time
-                    and se not in self.__already_processed_events):
+                and se not in self.__already_processed_events):
                 ev_src = se.event
                 if isinstance(ev_src, ExogenousAction):
                     event = ev_src
@@ -172,18 +173,19 @@ class EventSchedule:
         if scan:
             self.__possible_event_schedule.clear()
             self.__schedulable_event_schedule.clear()
-            processed = self.__translate_event_instances_to_raw(self.__already_processed_events)
-            sched = self.__translate_event_instances_to_raw(self.__event_schedule)
+            processed = self.__translate_event_instances_to_raw(self.__already_processed_events, evaluation_context)
+            sched = self.__translate_event_instances_to_raw(self.__event_schedule, evaluation_context)
 
             # check whether new event instances are possible
             poss_events = self.__logics_engine.get_next_possible_ad_hoc_event_instances(scan_start, scan_time_limit,
                                                                                         processed)
-            self.__translate_event_instances_from_raw(poss_events, self.__possible_event_schedule)
+            self.__translate_event_instances_from_raw(poss_events, self.__possible_event_schedule, evaluation_context)
 
             # check whether new event instances can be scheduled
             schedulable_events = self.__logics_engine.get_next_schedulable_event_instances(
                 scan_start, scan_time_limit, sched, processed)
-            self.__translate_event_instances_from_raw(schedulable_events, self.__schedulable_event_schedule)
+            self.__translate_event_instances_from_raw(schedulable_events, self.__schedulable_event_schedule,
+                                                      evaluation_context)
 
     def progress_interleaved(self, evaluation_context, action_instances):
         """
@@ -230,7 +232,7 @@ class EventSchedule:
                     performed_actions.extend(act_seq)
                     failed.extend(fa)
                     act_seq.clear()
-                action_name, args = act.generate_outcome(ai[2], ai[1])
+                action_name, args = act.generate_outcome(ai[2], evaluation_context.lookup_entities(ai[1]))
             else:
                 raise SALMAException("Unsupported action instance: {}".format(type(act)))
             act_seq.append((action_name, args))
@@ -245,13 +247,14 @@ class EventSchedule:
             logger.debug("  Progressed: %s, failed: %s", performed_actions, failed_intentional_actions)
         return performed_actions, failed_intentional_actions
 
-    def __translate_event_instances_from_raw(self, raw_event_instances, schedule):
+    def __translate_event_instances_from_raw(self, raw_event_instances, schedule, evaluation_context):
         """
         Translates event tuples retrieved from the logics engine to tuples that refer to ExogenousAction entries.
 
         :param list[(int, str, tuple)] raw_event_instances: the event instances gathered by the engine
         :param list[EventOccurrence] schedule: the event schedule heap
             in which the translated event instances will be pushed.
+        :param EvaluationContext evaluation_context: the evaluation context
         """
         for rev in raw_event_instances:
             ev_name = rev[1]
@@ -261,15 +264,18 @@ class EventSchedule:
                 ea = self.__exogenous_action_chooices[ev_name]
             else:
                 raise SALMAException("Unregistered exogenous action (choice): {}".format(ev_name))
-            heapq.heappush(schedule, EventOccurrence(rev[0], ea, rev[2]))
+            entity_params = evaluation_context.lookup_entities(rev[2])
+
+            heapq.heappush(schedule, EventOccurrence(rev[0], ea, entity_params))
 
     # noinspection PyMethodMayBeStatic
-    def __translate_event_instances_to_raw(self, schedule):
+    def __translate_event_instances_to_raw(self, schedule, evaluation_context):
         """
         Translates a generator for conversion of the current event schedule to a list of event tuples of form
         (time, action_name param_values).
 
         :param Iterable[EventOccurrence] schedule: the event schedule.
+        :param EvaluationContext evaluation_context: the evaluation context
         :rtype: list[(int, str, tuple)]
         """
         result = []
@@ -280,7 +286,7 @@ class EventSchedule:
             else:
                 assert isinstance(event, ExogenousActionChoice)
                 name = event.choice_name
-            result.append((entry.time_point, name, entry.params))
+            result.append((entry.time_point, name, translate_entities(entry.params)))
         return result
 
     def check_exogenous_action_initialization(self):
@@ -301,6 +307,10 @@ class EventSchedule:
         return problematic_exogenous_actions
 
     def deactivate_all_events(self):
+        """
+        Equips all registered exogenous actions with distributions NEVER and DONT_OCCUR
+        :return:
+        """
         for exo_action in self.__exogenous_actions.values():
             assert isinstance(exo_action, ExogenousAction)
             if exo_action.scheduling_type in [ExogenousAction.SCHEDULABLE, ExogenousAction.CHOICE_OPTION,
@@ -381,4 +391,3 @@ class EventSchedule:
             return self.__event_schedule[0]
         else:
             return None
-

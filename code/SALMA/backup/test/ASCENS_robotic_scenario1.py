@@ -63,26 +63,26 @@ class Robot(Agent):
 
     def initialize(self, overwriteFluents=False):
         world = World.instance()
-        world.setConstantValue('object_radius', [self.id], self.__radius)
+        world.set_constant_value('object_radius', [self.id], self.__radius)
 
         if overwriteFluents:
-            world.setFluentValue('xpos', [self.id], self.__initX)
-            world.setFluentValue('ypos', [self.id], self.__initY)
-            world.setFluentValue('velocity', [self.id], self.__initVelocity)
-            world.setFluentValue('direction', [self.id], self.__initDirection)
+            world.set_fluent_value('xpos', [self.id], self.__initX)
+            world.set_fluent_value('ypos', [self.id], self.__initY)
+            world.set_fluent_value('velocity', [self.id], self.__initVelocity)
+            world.set_fluent_value('direction', [self.id], self.__initDirection)
 
         lightSensors = world.getDomain('light_sensor')
         distanceSensors = world.getDomain('distance_sensor')
         for l in lightSensors:
-            world.setFluentValue('light_sensor_value', [self.id, l.id], 0.0)
+            world.set_fluent_value('light_sensor_value', [self.id, l.id], 0.0)
         for d in distanceSensors:
-            world.setFluentValue('distance_sensor_value', [self.id, d.id], 0.0)
+            world.set_fluent_value('distance_sensor_value', [self.id, d.id], 0.0)
 
     def getMainFluents(self):
         world = World.instance()
         mf = dict()
-        mf['xpos'] = world.getFluentValue('xpos', [self.id])
-        mf['ypos'] = world.getFluentValue('ypos', [self.id])
+        mf['xpos'] = world.get_fluent_value('xpos', [self.id])
+        mf['ypos'] = world.get_fluent_value('ypos', [self.id])
         return mf
 
 
@@ -193,9 +193,9 @@ class RoboticScenario(unittest.TestCase):
         row = [str(step)]
         robots = world.getDomain('robot')
         for r in robots:
-            x = world.getFluentValue('xpos', [r.id])
-            y = world.getFluentValue('ypos', [r.id])
-            direction = world.getFluentValue('direction', [r.id])
+            x = world.get_fluent_value('xpos', [r.id])
+            y = world.get_fluent_value('ypos', [r.id])
+            direction = world.get_fluent_value('direction', [r.id])
             row.append("{:.5f}".format(x))
             row.append("{:.5f}".format(y))
             row.append("{:.5f}".format(direction))
@@ -226,29 +226,29 @@ class RoboticScenario(unittest.TestCase):
         for i in range(1, 25):
             ls_id = 'ls' + str(i)
             ds_id = 'ds' + str(i)
-            world.setConstantValue('sensor_angle', [ls_id],
+            world.set_constant_value('sensor_angle', [ls_id],
                                    (i - 1) * 2 * math.pi / 24)
-            world.setConstantValue('sensor_angle', [ds_id],
+            world.set_constant_value('sensor_angle', [ds_id],
                                    (i - 1) * 2 * math.pi / 24)
 
-        world.setConstantValue('rectangle_width', ['worldbounds'], 500.0)
-        world.setConstantValue('rectangle_height', ['worldbounds'], 500.0)
+        world.set_constant_value('rectangle_width', ['worldbounds'], 500.0)
+        world.set_constant_value('rectangle_height', ['worldbounds'], 500.0)
 
-        world.setFluentValue('xpos', ['worldbounds'], 0.0)
-        world.setFluentValue('ypos', ['worldbounds'], 0.0)
+        world.set_fluent_value('xpos', ['worldbounds'], 0.0)
+        world.set_fluent_value('ypos', ['worldbounds'], 0.0)
 
-        world.setConstantValue('light_sensor_count', [], 24)
-        world.setConstantValue('distance_sensor_count', [], 24)
-        world.setConstantValue('max_light_sensor_range', [], 300.0)
-        world.setConstantValue('max_light_sensor_angle', [], math.pi * 0.5)
-        world.setConstantValue('max_distance_sensor_range', [], 20.0)
-        world.setConstantValue('max_distance_sensor_angle', [], math.pi * 0.5)
-        world.setConstantValue('max_light_sensor_intensity', [], 5.0)
+        world.set_constant_value('light_sensor_count', [], 24)
+        world.set_constant_value('distance_sensor_count', [], 24)
+        world.set_constant_value('max_light_sensor_range', [], 300.0)
+        world.set_constant_value('max_light_sensor_angle', [], math.pi * 0.5)
+        world.set_constant_value('max_distance_sensor_range', [], 20.0)
+        world.set_constant_value('max_distance_sensor_angle', [], math.pi * 0.5)
+        world.set_constant_value('max_light_sensor_intensity', [], 5.0)
 
         for i, ls in enumerate(lightSources):
             lsid = 'light_source_' + str(i + 1)
-            world.setFluentValue('xpos', [lsid], ls[0])
-            world.setFluentValue('ypos', [lsid], ls[1])
+            world.set_fluent_value('xpos', [lsid], ls[0])
+            world.set_fluent_value('ypos', [lsid], ls[1])
 
         robots = world.getDomain('robot')
         lights = world.getDomain('light_source')
@@ -259,7 +259,7 @@ class RoboticScenario(unittest.TestCase):
                 print("Initialized Robot {} : {}".format(r.id, r.getMainFluents()))
 
         for l in lights:
-            world.setConstantValue('object_radius', [l.id], 10.0)
+            world.set_constant_value('object_radius', [l.id], 10.0)
 
 
     #@unittest.skip
@@ -321,18 +321,18 @@ class RoboticScenario(unittest.TestCase):
         world.addAgent(rob1)
         self.initBasicScenario(0, False)
 
-        world.setFluentValue('xpos', [rob1.id], 20)
-        world.setFluentValue('ypos', [rob1.id], 470)
-        world.setFluentValue('direction', [rob1.id], math.radians(45))
-        world.setFluentValue('velocity', [rob1.id], 1)
-        world.setConstantValue('object_radius', [rob1.id], 10.0)
+        world.set_fluent_value('xpos', [rob1.id], 20)
+        world.set_fluent_value('ypos', [rob1.id], 470)
+        world.set_fluent_value('direction', [rob1.id], math.radians(45))
+        world.set_fluent_value('velocity', [rob1.id], 1)
+        world.set_constant_value('object_radius', [rob1.id], 10.0)
 
         lightSensors = world.getDomain('light_sensor')
         distanceSensors = world.getDomain('distance_sensor')
         for l in lightSensors:
-            world.setFluentValue('light_sensor_value', [rob1.id, l.id], 0.0)
+            world.set_fluent_value('light_sensor_value', [rob1.id, l.id], 0.0)
         for d in distanceSensors:
-            world.setFluentValue('distance_sensor_value', [rob1.id, d.id], 0.0)
+            world.set_fluent_value('distance_sensor_value', [rob1.id, d.id], 0.0)
 
         print("-" * 50)
         print("Before")
@@ -344,7 +344,7 @@ class RoboticScenario(unittest.TestCase):
         world.printState()
 
         print("New Direction: {}".format(
-            math.degrees(world.getFluentValue('direction', [rob1.id]))))
+            math.degrees(world.get_fluent_value('direction', [rob1.id]))))
 
         self.showSensors(rob1.id)
 
@@ -354,7 +354,7 @@ class RoboticScenario(unittest.TestCase):
         sensorValues = []
         for ds in distance_sensors:
             phi = world.getConstantValue('sensor_angle', [ds.id])
-            v = world.getFluentValue('distance_sensor_value', [robotId, ds.id])
+            v = world.get_fluent_value('distance_sensor_value', [robotId, ds.id])
             sensorValues.append((phi, ds.id, v))
         sensorValues.sort()
         for sv in sensorValues:

@@ -4,7 +4,7 @@ from salma.model.distributions import Distribution, ArgumentIdentityDistribution
     NormalDistribution, BernoulliDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.termutils import tuplify
-from salma.model.selectionstrategy import OutcomeSelectionStrategy, Uniform
+from salma.model.selectionstrategy import OutcomeSelectionStrategy, NonDeterministic
 
 
 class DeterministicAction(Action):
@@ -13,7 +13,7 @@ class DeterministicAction(Action):
     it will be progressed immediately in the simulation loop instead of being interleaved with others.
     """
 
-    def __init__(self, name, parameters, atomic, break_on_failure=False):
+    def __init__(self, name, parameters, atomic, break_on_failure=True):
         """
         Creates a deterministic action with the given name, parameters and atomicity setting.
 
@@ -271,7 +271,7 @@ class StochasticAction(Action):
         if selection_strategy is not None:
             self.selection_strategy = selection_strategy
         else:
-            self.selection_strategy = Uniform()
+            self.selection_strategy = NonDeterministic()
 
     @property
     def selection_strategy(self):

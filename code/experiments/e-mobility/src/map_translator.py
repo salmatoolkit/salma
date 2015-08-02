@@ -24,23 +24,23 @@ class MapTranslator(object):
                     self.__world.addAgent(Agent(node, "plcs", world_declaration=self.__world))
                 elif data["loctype"] == "crossing":
                     self.__world.addEntity(Entity(node, "crossing"))
-        self.__world.setConstantValue("locX", ["sam1"], 500)
-        self.__world.setConstantValue("locY", ["sam1"], 500)
-        self.__world.setConstantValue("responsiblePLCSSAM", ["sam1"], "sam1")
+        self.__world.set_constant_value("locX", ["sam1"], 500)
+        self.__world.set_constant_value("locY", ["sam1"], 500)
+        self.__world.set_constant_value("responsiblePLCSSAM", ["sam1"], "sam1")
 
         for node, data in self.__graph.nodes_iter(data=True):
             pos = data["scaled_pos"]
-            self.__world.setConstantValue("locX", [node], pos[0])
-            self.__world.setConstantValue("locY", [node], pos[1])
-            self.__world.setConstantValue("responsiblePLCSSAM", [node], "sam1")
+            self.__world.set_constant_value("locX", [node], pos[0])
+            self.__world.set_constant_value("locY", [node], pos[1])
+            self.__world.set_constant_value("responsiblePLCSSAM", [node], "sam1")
         road_num = 1
         for u, v, data in self.__graph.edges_iter(data=True):
             road_id = "r{}".format(road_num)
             road_num += 1
             self.__world.addEntity(Entity(road_id, "road"))
-            self.__world.setConstantValue("roadEnds", [road_id], Term("r", u, v))
-            self.__world.setConstantValue("roadlength", [road_id], data["weight"])
-            self.__world.setConstantValue("roadBaseSpeed", [road_id], 10)
+            self.__world.set_constant_value("roadEnds", [road_id], Term("r", u, v))
+            self.__world.set_constant_value("roadlength", [road_id], data["weight"])
+            self.__world.set_constant_value("roadBaseSpeed", [road_id], 10)
             self.__graph.edge[u][v]["road_id"] = road_id
 
     def get_position_from_node(self, node):

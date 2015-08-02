@@ -13,7 +13,7 @@
 % - PLCSSAM chooses best plcs and creates a reservation
 %	PLCS may not reject a request.
 % - should introduce "directly set fluents" that are
-%   set with setFluentValue
+%   set with set_fluent_value
 % 	- examples could be state flags, plans, etc.
 
 sorts([vehicle, plcs, plcssam, poi, crossing, location]).

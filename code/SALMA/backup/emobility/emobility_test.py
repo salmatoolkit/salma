@@ -46,32 +46,32 @@ class EMobilityTest(unittest.TestCase):
         plcses = world.getDomain("plcs")
 
         for sam in sams:
-            world.setFluentValue("plcssam_vehicle_reservationRequests", [sam.id], [])
-            world.setFluentValue("plcssam_vehicle_reservationResponses", [sam.id], [])
+            world.set_fluent_value("plcssam_vehicle_reservationRequests", [sam.id], [])
+            world.set_fluent_value("plcssam_vehicle_reservationResponses", [sam.id], [])
 
         for plcs in plcses:
-            world.setFluentValue("plcsReservations", [plcs.id], [])
-            world.setFluentValue("plcs_vehicle_reservationRequests", [plcs.id], [])
+            world.set_fluent_value("plcsReservations", [plcs.id], [])
+            world.set_fluent_value("plcs_vehicle_reservationRequests", [plcs.id], [])
 
         for vehicle in vehicles:
-            world.setFluentValue("vehicleSpeed", [vehicle.id], 0)
-            world.setFluentValue("currentPLCS", [vehicle.id], "none")
-            world.setFluentValue("currentTargetPLCS", [vehicle.id], "none")
-            world.setFluentValue("currentTargetPOI", [vehicle.id], "none")
-            world.setFluentValue("currentRoute", [vehicle.id], [])
+            world.set_fluent_value("vehicleSpeed", [vehicle.id], 0)
+            world.set_fluent_value("currentPLCS", [vehicle.id], "none")
+            world.set_fluent_value("currentTargetPLCS", [vehicle.id], "none")
+            world.set_fluent_value("currentTargetPOI", [vehicle.id], "none")
+            world.set_fluent_value("currentRoute", [vehicle.id], [])
 
             # initialize defaults for ensembles
             for sam in sams:
-                world.setFluentValue("vehicle_plcssam_reservationRequests", [vehicle.id, sam.id], [])
-                world.setFluentValue("vehicle_plcssam_reservationResponses", [vehicle.id, sam.id], [])
-                world.setFluentValue("ongoing_exchange_PLCSSAM_Vehicle", [vehicle.id, sam.id], False)
+                world.set_fluent_value("vehicle_plcssam_reservationRequests", [vehicle.id, sam.id], [])
+                world.set_fluent_value("vehicle_plcssam_reservationResponses", [vehicle.id, sam.id], [])
+                world.set_fluent_value("ongoing_exchange_PLCSSAM_Vehicle", [vehicle.id, sam.id], False)
 
             for plcs in plcses:
-                world.setFluentValue("vehicle_plcs_reservationRequests", [vehicle.id, plcs.id], [])
-                world.setFluentValue("plcs_vehicle_reservationResponses", [plcs.id, vehicle.id], [])
-                world.setFluentValue("ongoing_exchange_PLCS_Vehicle", [vehicle.id, plcs.id], False)
+                world.set_fluent_value("vehicle_plcs_reservationRequests", [vehicle.id, plcs.id], [])
+                world.set_fluent_value("plcs_vehicle_reservationResponses", [plcs.id, vehicle.id], [])
+                world.set_fluent_value("ongoing_exchange_PLCS_Vehicle", [vehicle.id, plcs.id], False)
 
-            world.setFluentValue("vehicle_plcs_reservationResponses", [vehicle.id], [])
+            world.set_fluent_value("vehicle_plcs_reservationResponses", [vehicle.id], [])
 
     def __log(self, msg):
         print(msg)
@@ -102,9 +102,9 @@ class EMobilityTest(unittest.TestCase):
             vehicles = world.getDomain("vehicle")
             all_finished = True
             for vehicle in vehicles:
-                pos = world.getFluentValue("vehiclePosition", [vehicle.id])
-                route = world.getFluentValue("currentRoute", [vehicle.id])
-                target = world.getFluentValue("currentTargetPLCS", [vehicle.id])
+                pos = world.get_fluent_value("vehiclePosition", [vehicle.id])
+                route = world.get_fluent_value("currentRoute", [vehicle.id])
+                target = world.get_fluent_value("currentTargetPLCS", [vehicle.id])
                 self.__log("{}: {} - {} - {}".format(vehicle.id,
                                                      pos, route, target))
 

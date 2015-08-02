@@ -11,8 +11,6 @@ from salma.test.world_test_base import BaseWorldTest
 from salma.model.evaluationcontext import EvaluationContext
 
 
-
-
 class WaitTest(BaseWorldTest):
     def __configure_events_default(self):
         world = World.instance()
@@ -49,8 +47,8 @@ class WaitTest(BaseWorldTest):
         world.addAgent(agent)
 
         world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 15)
+        world.set_fluent_value("xpos", ["rob1"], 10)
+        world.set_fluent_value("ypos", ["rob1"], 15)
         self.initialize_robot("rob1", 10, 15, 0, 0)
         self.setNoOneCarriesAnything()
         print("INIT:")
@@ -65,8 +63,8 @@ class WaitTest(BaseWorldTest):
         print("----\n\n")
         print("end_time: {}".format(end_time))
         self.assertEqual(12, end_time)
-        self.assertEqual(11, world.getFluentValue("xpos", ["rob1"]))
-        self.assertFalse(world.getFluentValue("moving", ["rob1"]))
+        self.assertEqual(11, world.get_fluent_value("xpos", ["rob1"]))
+        self.assertFalse(world.get_fluent_value("moving", ["rob1"]))
 
     def test_wakeup_timeout(self):
         self.__configure_events_default()
@@ -84,7 +82,7 @@ class WaitTest(BaseWorldTest):
             nonlocal end_time, moving_after_wait
             end_time = ctx.get_current_time()
 
-            moving_after_wait = ctx.getFluentValue("moving", agent)
+            moving_after_wait = ctx.get_fluent_value("moving", agent)
             print("Recorded time: {} - moving: {}".format(end_time, moving_after_wait))
 
         pmain = Procedure([
@@ -98,8 +96,8 @@ class WaitTest(BaseWorldTest):
         world.addAgent(agent)
 
         world.initialize(False)
-        world.setFluentValue("xpos", ["rob1"], 10)
-        world.setFluentValue("ypos", ["rob1"], 15)
+        world.set_fluent_value("xpos", ["rob1"], 10)
+        world.set_fluent_value("ypos", ["rob1"], 15)
         self.initialize_robot("rob1", 10, 15, 0, 0)
         self.setNoOneCarriesAnything()
         print("INIT:")
@@ -114,7 +112,7 @@ class WaitTest(BaseWorldTest):
         print("----\n\n")
         print("end_time: {}".format(end_time))
         self.assertEqual(5, end_time)
-        self.assertEqual(11, world.getFluentValue("xpos", ["rob1"]))
+        self.assertEqual(11, world.get_fluent_value("xpos", ["rob1"]))
         self.assertTrue(moving_after_wait)
         # the event should have happended anyway!
-        self.assertFalse(world.getFluentValue("moving", ["rob1"]))
+        self.assertFalse(world.get_fluent_value("moving", ["rob1"]))

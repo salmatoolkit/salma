@@ -33,16 +33,16 @@ class MyExperiment(Experiment):
         self.world.addAgent(agent)
 
     def initialize_robot(self, robot_id, x, y, vx, vy):
-        self.world.setFluentValue("xpos", [robot_id], x)
-        self.world.setFluentValue("ypos", [robot_id], y)
-        self.world.setFluentValue("vx", [robot_id], vx)
-        self.world.setFluentValue("vy", [robot_id], vy)
-        self.world.setConstantValue("robot_radius", [robot_id], 1)
-        self.world.setFluentValue("active", [robot_id], True)
-        self.world.setFluentValue("partner", [robot_id], None)
+        self.world.set_fluent_value("xpos", [robot_id], x)
+        self.world.set_fluent_value("ypos", [robot_id], y)
+        self.world.set_fluent_value("vx", [robot_id], vx)
+        self.world.set_fluent_value("vy", [robot_id], vy)
+        self.world.set_constant_value("robot_radius", [robot_id], 1)
+        self.world.set_fluent_value("active", [robot_id], True)
+        self.world.set_fluent_value("partner", [robot_id], None)
         items = self.world.getDomain('item')
         for i in items:
-            self.world.setFluentValue('carrying', [robot_id, i.id], False)
+            self.world.set_fluent_value('carrying', [robot_id, i.id], False)
 
     def setup_distributions(self):
         self.world.deactivate_info_transfer()
@@ -55,7 +55,7 @@ class MyExperiment(Experiment):
         collision.config.set_param_distribution("severity", NormalDistribution("integer", 10.0, 1.0))
 
     def create_initial_situation(self):
-        self.world.setConstantValue("gravity", [], 9.81)
+        self.world.set_constant_value("gravity", [], 9.81)
         self.initialize_robot("rob1", 10, 10, 0, 0)
 
 

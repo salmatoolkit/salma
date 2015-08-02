@@ -31,13 +31,13 @@ class Entity:
 class AddMethodTest(unittest.TestCase):
     def test_something(self):
         a1 = Agent("chris")
-        #print(str(a1))
-        #def foo(obj):
-        #    print(obj.name)
-        #Agent.dostuff = foo
-        #a1.dostuff()
-        #a1.x = 10
-        #print(a1.x)
+        print(str(a1))
+        def foo(obj):
+           print(obj.name)
+        Agent.dostuff = foo
+        a1.dostuff()
+        a1.x = 10
+        print(a1.x)
         print(a1.name)
 
 

@@ -3,6 +3,31 @@ from salma.model.distributions import Distribution, UniformDistribution
 from .evaluationcontext import EvaluationContext
 
 
+def create_set_attr():
+    def _sa(self, key, value):
+
+        # object.__setattr__(self, key, value)
+        print("sa", key, value)
+        if self.__own_fluents is not None and key in self.__own_fluents:
+            fl = self.__own_fluents[key]
+            if len(fl.parameters) > 1:
+                raise SALMAException("Trying to directly assign value to fluent instance {}.{} but need "
+                                     "more parameters: {}".format(self.id, fl.name, fl.parameters))
+            self.evaluation_context.set_fluent_value(fl.name, [self.id], value)
+        elif self.__own_constants is not None and key in self.__own_constants:
+            c = self.__own_constants[key]
+            if len(c.parameters) > 1:
+                raise SALMAException("Trying to directly assign value to constant {}.{} but need "
+                                     "more parameters: {}".format(self.id, c.name, c.parameters))
+            self.evaluation_context.set_constant_value(c.name, [self.id], value)
+        elif self.__own_derived_fluents is not None and key in self.__own_derived_fluents:
+            raise SALMAException("Trying to set value for derived fluent instance {}.{}".format(self.id, key))
+        else:
+            object.__setattr__(self, key, value)
+
+    return _sa
+
+
 class Entity(object):
     """
     Base class for all passive and active (agents) entities of the system. Stores an unique id and a sort name.
@@ -13,8 +38,45 @@ class Entity(object):
     def __init__(self, entity_id, sort_name):
         self.__id = entity_id
         self.__sortName = sort_name
+        self.__evaluation_context = None
+        self.__own_fluents = dict()
+        """:type : dict[str, Fluent]"""
+        self.__own_derived_fluents = dict()
+        """:type : dict[str, DerivedFluent]"""
+        self.__own_constants = dict()
+        """:type : dict[str, Constant]"""
+        self.__initialized = True
 
-    # TODO: et rid of deprecated access to get* -functions -> use properties
+    def __setattr__(self, key, value):
+        if self.__initialized:
+            if key in self.__own_fluents:
+                self.__require_context()
+                fl = self.__own_fluents[key]
+                if len(fl.parameters) > 1:
+                    raise SALMAException("Trying to directly assign value to fluent instance {}.{} but need "
+                                         "more parameters: {}".format(self.id, fl.name, fl.parameters))
+                pars = [] if len(fl.parameters) == 0 else [self.id]
+                self.evaluation_context.set_fluent_value(fl.name, pars, value)
+            elif key in self.__own_constants:
+                self.__require_context()
+                c = self.__own_constants[key]
+                if len(c.parameters) > 1:
+                    raise SALMAException("Trying to directly assign value to constant {}.{} but need "
+                                         "more parameters: {}".format(self.id, c.name, c.parameters))
+                pars = [] if len(c.parameters) == 0 else [self.id]
+                self.evaluation_context.set_constant_value(c.name, pars, value)
+            elif key in self.__own_derived_fluents:
+                raise SALMAException("Trying to set value for derived fluent instance {}.{}".format(self.id, key))
+            else:
+                object.__setattr__(self, key, value)
+        else:
+            object.__setattr__(self, key, value)
+
+    def __require_context(self):
+        if self.evaluation_context is None:
+            raise SALMAException(
+                "No evaluation context defined for entity {} of sort {}.".format(self.id, self.sortName))
+
     def getId(self):
         return self.__id
 
@@ -44,7 +106,154 @@ class Entity(object):
         The evaluation context used by this entity.
         :rtype: EvaluationContext
         """
-        return None
+        return self.__evaluation_context
+
+    @evaluation_context.setter
+    def evaluation_context(self, ctx):
+        """
+        :type ctx: EvaluationContext
+        """
+        self.__evaluation_context = ctx
+        if ctx is not None:
+            self.initialize_evaluation_context(ctx)
+
+    def initialize_evaluation_context(self, ctx: EvaluationContext):
+        pass
+
+    def get_own_fluent_value(self, fluent_name, *params):
+        if self.evaluation_context is None:
+            raise SALMAException("Calling get_own_fluent_value when no evaluation context is set.")
+
+        return self.evaluation_context.get_fluent_value(fluent_name, *([self.id] + list(params)))
+
+    def register_own_fluent(self, fluent):
+        self.__own_fluents[fluent.name] = fluent
+
+    def register_own_derived_fluent(self, derived_fluent):
+        self.__own_derived_fluents[derived_fluent.name] = derived_fluent
+
+    def register_own_constant(self, constant):
+        self.__own_constants[constant.name] = constant
+
+    def __handle_get_feature(self, item):
+
+        if item in self.__own_fluents:
+            fl = self.__own_fluents[item]
+            if len(fl.parameters) == 1:
+                return self.evaluation_context.get_fluent_value(fl.name, self.id)
+            elif len(fl.parameters) == 0:
+                return self.evaluation_context.get_fluent_value(fl.name)
+            else:
+                def __f(*params):
+                    return self.evaluation_context.get_fluent_value(fl.name, *([self.id] + list(params)))
+
+                return __f
+        elif item in self.__own_derived_fluents:
+            fl = self.__own_derived_fluents[item]
+            if len(fl.parameters) == 1:
+                return self.evaluation_context.get_derived_fluent_value(fl.name, [self.id])
+            elif len(fl.parameters) == 0:
+                return self.evaluation_context.get_derived_fluent_value(fl.name, [])
+            else:
+                def __f(*params):
+                    return self.evaluation_context.get_derived_fluent_value(fl.name, [self.id] + list(params))
+
+                return __f
+        elif item in self.__own_constants:
+            c = self.__own_constants[item]
+            if len(c.parameters) == 1:
+                return self.evaluation_context.get_constant_value(c.name, [self.id])
+            elif len(c.parameters) == 0:
+                return self.evaluation_context.get_constant_value(c.name, [])
+            else:
+                def __f(*params):
+                    return self.evaluation_context.get_constant_value(fl.name, [self.id] + list(params))
+
+                return __f
+        else:
+            raise SALMAException(
+                "Feature {} not defined for entity {} of sort {}.".format(item, self.id, self.sortName))
+
+    def __create_setter(self, fname):
+        if fname in self.__own_fluents:
+            fl = self.__own_fluents[fname]
+
+            def __f(*params):
+                if len(params) == 0:
+                    raise SALMAException("No value specified when trying to set fluent {}.{}".format(self.id, fname))
+                value = params[-1:][0]
+                if len(fl.parameters) > 0:
+                    pars = [self.id] + list(params[:-1])
+                else:
+                    pars = []
+                self.evaluation_context.set_fluent_value(fname, pars, value)
+
+            return __f
+        elif fname in self.__own_constants:
+            co = self.__own_constants[fname]
+
+            def __f(*params):
+                if len(params) == 0:
+                    raise SALMAException("No value specified when trying to set constant {}.{}".format(self.id, fname))
+                value = params[-1:][0]
+                if len(co.parameters) > 0:
+                    pars = [self.id] + list(params[:-1])
+                else:
+                    pars = []
+                self.evaluation_context.set_constant_value(fname, pars, value)
+
+            return __f
+        elif fname in self.__own_derived_fluents:
+            raise SALMAException("Trying to set value of derived fluent {}.{}".format(self.id, fname))
+        else:
+            raise SALMAException(
+                "Feature {} not defined for entity {} of sort {}.".format(fname, self.id, self.sortName))
+
+    def __getattr__(self, item):
+        item = str(item)
+        if item.endswith("__initialized"):
+            return False
+        if not self.__initialized:
+            return object.__getattribute__(self, item)
+
+        if item.startswith("set_"):
+            feature_name = item[len("set_"):]
+            return self.__create_setter(feature_name)
+        else:
+            return self.__handle_get_feature(item)
+
+    def __eq__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return self.id == other.id and self.sortName == other.sortName
+
+    def __lt__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return (self.sortName, self.id) < (other.sortName, other.id)
+
+    def __gt__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return (self.sortName, self.id) > (other.sortName, other.id)
+
+    def __le__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return not self.__gt__(other)
+
+    def __ne__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return not self.__eq__(other)
+
+    def __ge__(self, other):
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return not self.__lt__(other)
+
+    def __hash__(self):
+        return hash((self.sortName, self.id))
 
 
 class SituationDependentFunction(object):
@@ -118,7 +327,7 @@ class Fluent(SituationDependentFunction):
     """
     Represents a fluent.
     """
-    DEFAULT_RANGE = (0, 2**31)
+    DEFAULT_RANGE = (0, 2 ** 31)
 
     def __init__(self, name, fluent_type, params, value_range=DEFAULT_RANGE, distribution=None):
         """
@@ -200,7 +409,6 @@ class Constant(Fluent):
 
 
 class DerivedFluent(SituationDependentFunction):
-
     def __init__(self, name, fluent_type, params):
         super().__init__(name, fluent_type, params)
 
@@ -306,6 +514,34 @@ class FluentValue(object):
         s += " = " + str(self.__value)
         return s
 
+
 class ConstantValue(FluentValue):
     def __init__(self, constant_name, params, value):
         super().__init__(constant_name, params, value)
+
+
+def translate_entities(term):
+    """
+    Translates every entity entry to its id. Every other value will be passed trough.
+    """
+    if term is None:
+        return None
+    elif isinstance(term, Entity):
+        return term.id
+    elif isinstance(term, (list, tuple, set)):
+        translated = []
+        for t in term:
+            translated.append(translate_entities(t))
+        if isinstance(term, tuple):
+            return tuple(translated)
+        elif isinstance(term, set):
+            return set(translated)
+        else:
+            return translated
+    elif isinstance(term, dict):
+        translated = dict()
+        for k, v in term.items():
+            translated[k] = translate_entities(v)
+        return translated
+    else:
+        return term

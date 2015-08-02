@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     elif _MODE == VISUALIZE:
         print("Visualize")
-        verdict, info = sc1.run_experiment()
+        verdict, info = sc1.run()
 
         print("Verdict: {}".format(verdict))
         print("Info: {}".format(info))
