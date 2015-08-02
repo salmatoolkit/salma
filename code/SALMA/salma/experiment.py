@@ -167,7 +167,10 @@ class Experiment(object):
         :return: (verdict, result-map)
         :rtype: (int, dict[str, object])
         """
-        check_verdict = kwargs.get("check_verdict", True)
+        if len(self.property_collection.properties) > 0:
+            check_verdict = kwargs.get("check_verdict", True)
+        else:
+            check_verdict = False
 
         max_steps = kwargs.get("max_steps", None)
         max_real_time = kwargs.get("max_real_time", None)

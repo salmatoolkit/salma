@@ -1,0 +1,151 @@
+{
+  "items": {
+    "item4": {
+      "y": 94,
+      "x": 167,
+      "delivered_to": null
+    },
+    "item16": {
+      "y": 85,
+      "x": 1,
+      "delivered_to": null
+    },
+    "item9": {
+      "y": 23,
+      "x": 26,
+      "delivered_to": null
+    },
+    "item11": {
+      "y": 36,
+      "x": 87,
+      "delivered_to": null
+    },
+    "item2": {
+      "y": 60,
+      "x": 161,
+      "delivered_to": null
+    },
+    "item15": {
+      "y": 111,
+      "x": 112,
+      "delivered_to": null
+    },
+    "item1": {
+      "y": 160,
+      "x": 96,
+      "delivered_to": null
+    },
+    "item8": {
+      "y": 179,
+      "x": 145,
+      "delivered_to": null
+    },
+    "item18": {
+      "y": 36,
+      "x": 6,
+      "delivered_to": null
+    },
+    "item19": {
+      "y": 54,
+      "x": 56,
+      "delivered_to": null
+    },
+    "item7": {
+      "y": 42,
+      "x": 182,
+      "delivered_to": null
+    },
+    "item10": {
+      "y": 101,
+      "x": 78,
+      "delivered_to": null
+    },
+    "item6": {
+      "y": 106,
+      "x": 114,
+      "delivered_to": null
+    },
+    "item3": {
+      "y": 25,
+      "x": 39,
+      "delivered_to": null
+    },
+    "item14": {
+      "y": 80,
+      "x": 123,
+      "delivered_to": null
+    },
+    "item12": {
+      "y": 133,
+      "x": 99,
+      "delivered_to": null
+    },
+    "item5": {
+      "y": 37,
+      "x": 80,
+      "delivered_to": null
+    },
+    "item13": {
+      "y": 160,
+      "x": 114,
+      "delivered_to": null
+    },
+    "item17": {
+      "y": 118,
+      "x": 148,
+      "delivered_to": null
+    },
+    "item20": {
+      "y": 76,
+      "x": 22,
+      "delivered_to": null
+    }
+  },
+  "workstations": {
+    "ws3": {
+      "delivered_item_count": 0,
+      "y": 94,
+      "x": 38
+    },
+    "ws1": {
+      "delivered_item_count": 0,
+      "y": 89,
+      "x": 178
+    },
+    "ws4": {
+      "delivered_item_count": 0,
+      "y": 7,
+      "x": 195
+    },
+    "ws5": {
+      "delivered_item_count": 0,
+      "y": 38,
+      "x": 63
+    },
+    "ws2": {
+      "delivered_item_count": 0,
+      "y": 70,
+      "x": 40
+    }
+  },
+  "seed": 1438470243,
+  "coordinators": {
+    "coordinator1": {
+      "request_queue": []
+    }
+  },
+  "robots": {
+    "rob3": {
+      "y": 49,
+      "x": 184
+    },
+    "rob2": {
+      "y": 153,
+      "x": 102
+    },
+    "rob1": {
+      "y": 7,
+      "x": 80
+    }
+  }
+}

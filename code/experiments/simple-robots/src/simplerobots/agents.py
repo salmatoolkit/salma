@@ -1,5 +1,6 @@
 from salma.constants import SELF
 from salma.model.agent import Agent
+from salma.model.core import Entity
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.procedure import Variable, Act, While, Wait, If, Assign, makevars, Procedure, Iterate, Select, Switch, \
     Case
@@ -62,12 +63,41 @@ def select_item(rob: Agent, ctx: EvaluationContext=None, **kwargs):
     return closest_item
 
 
+def select_item2(station: Entity, ctx: EvaluationContext=None, **kwargs):
+    # determine closest robot
+    dist = lambda r: np.sqrt((r.xpos - station.stationX) ** 2 + (r.ypos - station.stationY) ** 2)
+
+    robot_distances = [(dist(r), r) for r in ctx.getDomain("robot") if r.unassigned]
+    if len(robot_distances) == 0:
+        return None, None
+    closest_robot = min(robot_distances)[1]
+
+    dist = lambda i: np.sqrt((i.xpos - closest_robot.xpos) ** 2 + (i.ypos - closest_robot.ypos) ** 2)
+    item_distances = [(dist(i), i) for i in ctx.getDomain("item") if i.undelivered]
+    if len(item_distances) == 0:
+        return None, None
+    closest_item = min(item_distances)[1]
+    return closest_robot, closest_item
+
+
 def create_coordinator():
     r, i, ws = makevars(("r", "robot"), ("i", "item"), ("ws", "workstation"))
     p = Procedure([
         Iterate("self.request_queue", [ws], [
             Select("unassigned", [r]),
             Assign(i, select_item, [r]),
+            If("i != None and r != None",
+               Act("assign_task", [SELF, r, i, ws]))])
+    ])
+    proc = PeriodicProcess(p, 50)
+    return Agent("coordinator1", "coordinator", [proc])
+
+
+def create_coordinator_clever():
+    r, i, ws = makevars(("r", "robot"), ("i", "item"), ("ws", "workstation"))
+    p = Procedure([
+        Iterate("self.request_queue", [ws], [
+            Assign((r, i), select_item2, [ws]),
             If("i != None and r != None",
                Act("assign_task", [SELF, r, i, ws]))])
     ])

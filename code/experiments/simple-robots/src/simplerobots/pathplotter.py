@@ -28,7 +28,10 @@ import matplotlib.animation as manimation
 #basepath = Path("experiment_results/20r_100i_10ws_500x500-no_collision")
 
 #basepath = Path("experiment_results/2015_07_22-19_56_23")
-basepath = Path("experiment_results/2015_07_25-01_23_49")
+#basepath = Path("experiment_results/2015_07_25-01_23_49")
+#basepath = Path("experiment_results/3r_20i_5s_200x200_normal")
+#basepath = Path("experiment_results/3r_20i_5s_200x200_clever")
+basepath = Path("experiment_results/thesis_candidates/20r_100i_10ws_500x500-normal")
 
 GRID_WIDTH = 500
 GRID_HEIGHT = 500
@@ -69,7 +72,7 @@ def draw_all_on_one(expsetup, df):
     ax.legend(loc="upper right")
     draw_locations(expsetup, ax)
     ax.grid(True)
-    fig.savefig(str(basepath.joinpath("paths_all_on_one.pdf")), bbox_inches="tight")
+    fig.savefig(str(basepath.joinpath("paths_all_on_one_clever.pdf")), bbox_inches="tight")
     plt.show()
 
 
