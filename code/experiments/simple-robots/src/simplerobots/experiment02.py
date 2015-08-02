@@ -7,7 +7,8 @@ from numpy import random
 from salma.constants import OK, NOT_OK
 from salma.experiment import Experiment, SingleProcessExperimentRunner
 from salma.model.core import Entity, translate_entities
-from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, GeometricDistribution, \
+from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, \
+    GeometricDistribution, \
     CustomDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.selectionstrategy import NonDeterministic, Categorical
@@ -26,7 +27,7 @@ GRID_HEIGHT = 500
 N_SLOTS = 5
 P_SLOT = 0.01
 COLLISION_PROB = 1.0
-#SEED = int(datetime.now().timestamp())
+# SEED = int(datetime.now().timestamp())
 SEED = 1438470243
 
 
@@ -178,7 +179,8 @@ class Experiment02(Experiment):
             p_tot = 1 - (1 - P_SLOT) ** n_free
             return None if p_tot == 0 else np.random.geometric(p_tot)
 
-        request_event.config.occurrence_distribution = CustomDistribution("integer", request_distrib)
+        request_event.config.occurrence_distribution = CustomDistribution("integer",
+                                                                          request_distrib)
 
     def after_run(self, verdict, **kwargs):
         columns = [self.num_exp, self.num_robots, self.clever]
@@ -195,6 +197,8 @@ class Experiment02(Experiment):
         columns.append(wscountsum)
         self.expfile.write(";".join(list(map(str, columns))) + "\n")
         self.expfile.flush()
+        logger = logging.getLogger(MODULE_LOGGER_NAME)
+        logger.info("DONE!    broken: {:3}, delivered: {:3}".format(num_broken, wscountsum))
 
 
 def create_csv_header():
@@ -219,17 +223,17 @@ if __name__ == '__main__':
     # logging.config.fileConfig("experiment01.logging.conf")
     logging.basicConfig()
     logger = logging.getLogger(MODULE_LOGGER_NAME)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
-    #experiment = Experiment02(experiment_path, Path("config_3r_20i_5s_200x200.json"))
-    #experiment = Experiment02(experiment_path)
+    # experiment = Experiment02(experiment_path, Path("config_3r_20i_5s_200x200.json"))
+    # experiment = Experiment02(experiment_path)
 
     num_exp = 1
     runner = SingleProcessExperimentRunner()
 
     with experiment_path.joinpath("experiment.csv").open("w") as f:
         f.write(create_csv_header() + "\n")
-        for num_robots in range(10, 45, step=5):
+        for num_robots in range(45, 85, 5):
             for clever in [False, True]:
                 for i in range(10):
                     if experiment_path.joinpath("stop.txt").exists():
@@ -239,5 +243,9 @@ if __name__ == '__main__':
                         experiment.initialize()
                         experiment.step_listeners.append(break_when_all_delivered)
                         experiment.step_listeners.append(break_when_all_broken)
+                        logger.info(
+                            "Experiment #{:3} --  robots: {:3},  "
+                            "clever: {:>5} \t trial {:4}".format(
+                                num_exp, num_robots, str(clever), i))
                         experiment.run(max_steps=500)
                         num_exp += 1
