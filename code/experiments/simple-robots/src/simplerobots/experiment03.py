@@ -7,7 +7,8 @@ from numpy import random
 from salma.constants import OK, NOT_OK
 from salma.experiment import Experiment, SingleProcessExperimentRunner
 from salma.model.core import Entity, translate_entities
-from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, GeometricDistribution, \
+from salma.model.distributions import ConstantDistribution, Never, BernoulliDistribution, NEVER, \
+    GeometricDistribution, \
     CustomDistribution
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.selectionstrategy import NonDeterministic, Categorical
@@ -19,39 +20,15 @@ from pathlib import Path
 from datetime import datetime
 
 NUM_ROBOTS = 20
-NUM_ITEMS = 100
-NUM_STATIONS = 10
-GRID_WIDTH = 500
-GRID_HEIGHT = 500
+NUM_ITEMS = 30
+NUM_STATIONS = 5
+GRID_WIDTH = 200
+GRID_HEIGHT = 200
 N_SLOTS = 5
 P_SLOT = 0.01
-COLLISION_PROB = 0
-#SEED = int(datetime.now().timestamp())
+COLLISION_PROB = 1.0
+# SEED = int(datetime.now().timestamp())
 SEED = 1438470243
-
-def create_step_logger(fd: TextIOBase):
-    def __l(world: World, step=None, **kwargs):
-        positions = []
-        assignments = []
-        brokenstates = []
-        robots = sorted(world.getDomain("robot"))
-        for rob in robots:
-            positions.append((rob.xpos, rob.ypos))
-            assignments.append(rob.next_task)
-            brokenstates.append(rob.broken)
-        columns = [step, world.time]
-        for p in positions:
-            columns.extend(p)
-        columns.extend(assignments)
-        columns.extend(brokenstates)
-        for ws in sorted(world.getDomain("workstation")):
-            columns.append(ws.delivered_item_count)
-        coordinator = world.getEntityById("coordinator1")
-        columns.append(translate_entities(coordinator.request_queue))
-        fd.write(";".join(list(map(str, columns))) + "\n")
-        fd.flush()
-
-    return __l
 
 
 def break_when_all_delivered(world: World, **kwargs):
@@ -68,10 +45,14 @@ def break_when_all_broken(world: World, **kwargs):
     return NOT_OK
 
 
-class Experiment01(Experiment):
-    def __init__(self, logpath: Path, initpath: Path = None):
+class Experiment03(Experiment):
+    def __init__(self, num_exp, num_robots, clever,
+                 expfile: TextIOBase, initpath: Path=None):
         super().__init__("ecl-src/simple-robots-domaindesc.ecl")
-        self.logpath = logpath
+        self.num_exp = num_exp
+        self.num_robots = num_robots
+        self.clever = clever
+        self.expfile = expfile
         self.initpath = initpath
 
     def initialize(self):
@@ -147,10 +128,13 @@ class Experiment01(Experiment):
 
     def create_entities(self):
 
-        #coordinator1 = create_coordinator()
-        coordinator1 = create_coordinator_clever()
+        if self.clever:
+            coordinator1 = create_coordinator_clever()
+        else:
+            coordinator1 = create_coordinator()
+
         self.world.add(coordinator1)
-        for r in range(1, NUM_ROBOTS + 1):
+        for r in range(1, self.num_robots + 1):
             self.world.add(create_robot(r))
         for i in range(1, NUM_ITEMS + 1):
             self.world.add(Entity("item" + str(i), "item"))
@@ -184,7 +168,7 @@ class Experiment01(Experiment):
         collision_event = world.get_exogenous_action("collision")
         collision_event.config.occurrence_distribution = BernoulliDistribution(COLLISION_PROB)
 
-        collision_event.config.uniform_param("severity", value_range=(5, 10))
+        collision_event.config.uniform_param("severity", value_range=(1, 10))
 
         request_event = world.get_exogenous_action("request")
 
@@ -195,65 +179,33 @@ class Experiment01(Experiment):
             p_tot = 1 - (1 - P_SLOT) ** n_free
             return None if p_tot == 0 else np.random.geometric(p_tot)
 
-        request_event.config.occurrence_distribution = CustomDistribution("integer", request_distrib)
-
-    def __create_report(self):
-        report = dict()
-        report["seed"] = SEED
-        robots = dict()
-        for r in self.world.getDomain("robot"):
-            robots[r.id] = {
-                "x": r.xpos,
-                "y": r.ypos
-            }
-        report["robots"] = robots
-        items = dict()
-        for i in self.world.getDomain("item"):
-            items[i.id] = {
-                "x": i.xpos,
-                "y": i.ypos,
-                "delivered_to": translate_entities(i.delivered_to)
-            }
-        report["items"] = items
-        workstations = dict()
-        for ws in self.world.getDomain("workstation"):
-            workstations[ws.id] = {
-                "x": ws.stationX,
-                "y": ws.stationY,
-                "delivered_item_count": ws.delivered_item_count
-            }
-        report["workstations"] = workstations
-        coordinators = dict()
-        for c in self.world.getDomain("coordinator"):
-            coordinators[c.id] = {
-                "request_queue": translate_entities(c.request_queue)
-            }
-        report["coordinators"] = coordinators
-        return report
-
-    def before_run(self, **kwargs):
-        report = self.__create_report()
-        with self.logpath.joinpath("before.json").open("w") as fd:
-            json.dump(report, fd)
+        request_event.config.occurrence_distribution = CustomDistribution("integer",
+                                                                          request_distrib)
 
     def after_run(self, verdict, **kwargs):
-        report = self.__create_report()
-        with self.logpath.joinpath("after.json").open("w") as fd:
-            json.dump(report, fd)
+        columns = [self.num_exp, self.num_robots, self.clever]
+        num_broken = 0
+        for r in self.world.getDomain("robot"):
+            if r.broken:
+                num_broken += 1
+        columns.append(num_broken)
+        wscountsum = 0
+        for ws in sorted(self.world.getDomain("workstation")):
+            c = ws.delivered_item_count
+            columns.append(c)
+            wscountsum += c
+        columns.append(wscountsum)
+        self.expfile.write(";".join(list(map(str, columns))) + "\n")
+        self.expfile.flush()
+        logger = logging.getLogger(MODULE_LOGGER_NAME)
+        logger.info("DONE!    broken: {:3}, delivered: {:3}".format(num_broken, wscountsum))
 
 
 def create_csv_header():
-    columns = ["step", "time"]
-    for i in range(1, NUM_ROBOTS + 1):
-        columns.append("x" + str(i))
-        columns.append("y" + str(i))
-    for i in range(1, NUM_ROBOTS + 1):
-        columns.append("task" + str(i))
-    for i in range(1, NUM_ROBOTS + 1):
-        columns.append("broken" + str(i))
+    columns = ["expnum", "num_robots", "clever", "num_broken"]
     for i in range(1, NUM_STATIONS + 1):
         columns.append("wscount" + str(i))
-    columns.append("queue")
+    columns.append("wscountsum")
     return ";".join(columns)
 
 
@@ -261,33 +213,39 @@ if __name__ == '__main__':
     basepath = Path("experiment_results")
     now = datetime.now()
     timestamp = now.strftime("%Y_%m_%d-%H_%M_%S")
-    experiment_path = basepath.joinpath(timestamp)
+    experiment_path = basepath.joinpath("exp02-" + timestamp)
     num = 2
     while experiment_path.exists():
-        experiment_path = basepath.joinpath(timestamp + "_" + "v" + str(num))
+        experiment_path = basepath.joinpath("exp03-" + timestamp + "_" + "v" + str(num))
     experiment_path.mkdir()
 
     MODULE_LOGGER_NAME = 'salma'
     # logging.config.fileConfig("experiment01.logging.conf")
     logging.basicConfig()
     logger = logging.getLogger(MODULE_LOGGER_NAME)
-    logger.setLevel(logging.DEBUG)
-    fh = FileHandler(str(experiment_path / "experiment.log"))
-    fh.setLevel(logging.DEBUG)
-    logger.addHandler(fh)
+    logger.setLevel(logging.INFO)
 
-    #experiment = Experiment03(experiment_path, Path("config_3r_20i_5s_200x200.json"))
-    #experiment = Experiment03(experiment_path)
-    experiment = Experiment01(experiment_path, Path("config_20r_100i_10ws_500x500.json"))
-    experiment.initialize()
+    # experiment = Experiment03(experiment_path, Path("config_3r_20i_5s_200x200.json"))
+    # experiment = Experiment03(experiment_path)
+
+    num_exp = 1
     runner = SingleProcessExperimentRunner()
 
     with experiment_path.joinpath("experiment.csv").open("w") as f:
         f.write(create_csv_header() + "\n")
-        f.flush()
-        experiment.step_listeners.append(create_step_logger(f))
-        experiment.step_listeners.append(break_when_all_delivered)
-        experiment.step_listeners.append(break_when_all_broken)
-        #_, res, trial_infos = runner.run_trials(experiment, number_of_trials=1, max_steps=3000, max_retrials=0)
-        experiment.run(max_steps=500)
-    experiment.world.printState()
+        for num_robots in range(20, 25, 5):
+            for clever in [False, True]:
+                for i in range(1):
+                    if experiment_path.joinpath("stop.txt").exists():
+                        break
+                    else:
+                        experiment = Experiment03(num_exp, num_robots, clever, f)
+                        experiment.initialize()
+                        experiment.step_listeners.append(break_when_all_delivered)
+                        experiment.step_listeners.append(break_when_all_broken)
+                        logger.info(
+                            "Experiment #{:3} --  robots: {:3},  "
+                            "clever: {:>5} \t trial {:4}".format(
+                                num_exp, num_robots, str(clever), i))
+                        experiment.run(max_steps=1000)
+                        num_exp += 1
