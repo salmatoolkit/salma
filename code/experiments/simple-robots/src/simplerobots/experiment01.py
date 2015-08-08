@@ -289,5 +289,5 @@ if __name__ == '__main__':
         experiment.step_listeners.append(break_when_all_delivered)
         experiment.step_listeners.append(break_when_all_broken)
         #_, res, trial_infos = runner.run_trials(experiment, number_of_trials=1, max_steps=3000, max_retrials=0)
-        experiment.run(max_steps=500)
+        experiment.run(max_steps=5000)
     experiment.world.printState()
