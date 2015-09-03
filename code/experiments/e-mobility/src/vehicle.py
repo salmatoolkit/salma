@@ -10,7 +10,7 @@ from salma.model.infotransfer import ReceivedMessage
 def create_navigation_functions(world_map, mt):
     def possible_target_chooser(agent=None, currentTargetPOI=None, **ctx):
         target_poi = currentTargetPOI(agent.id)
-        x, y = mt.get_position_from_node(target_poi)
+        x, y = mt.get_position_from_node(target_poi.id)
         target = mt.find_k_closest_nodes(x, y, 3, loctype="plcs")
         return target
 
@@ -19,7 +19,7 @@ def create_navigation_functions(world_map, mt):
         assert isinstance(pos, Term)
         assert pos.functor == "l"
         target = currentTargetPLCS(agent.id)
-        r = nx.shortest_path(world_map, pos.params[0], target)
+        r = nx.shortest_path(world_map, pos.params[0], target.id)
         assert isinstance(world_map, Graph)
         if len(r) <= 1:
             return []

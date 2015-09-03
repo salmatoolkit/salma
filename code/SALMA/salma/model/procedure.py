@@ -586,7 +586,11 @@ class Iterate(Statement):
         :param EvaluationContext evaluation_context: the evaluation context
         :param ProcedureRegistry procedure_registry: the procedure registry
         """
-        source_type = evaluation_context.determine_source_type(self.source, self.params)
+        if isinstance(self.source, Variable):
+            rsource = evaluation_context.resolve(self.source)[0]
+        else:
+            rsource = self.source
+        source_type = evaluation_context.determine_source_type(rsource, self.params)
         result_list = evaluation_context.getCurrentResultList(self)
         result_index = evaluation_context.getCurrentResultListIndex(self)
 
@@ -594,7 +598,7 @@ class Iterate(Statement):
         if result_list is None:
             result_list = evaluation_context.selectAll(
                 source_type,
-                self.source,
+                rsource,
                 *self.params)
             result_index = 0
             evaluation_context.setCurrentResultList(self, result_list)
