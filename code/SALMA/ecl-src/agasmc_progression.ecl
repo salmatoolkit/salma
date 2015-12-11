@@ -18,7 +18,7 @@
 :- dynamic atomic_action/1.
 :- dynamic stochastic_action/3.
 % exogenous_action(name, qualifying-params, augmenting-params)
-:- dynamic exogenous_action/3.
+:- dynamic exogenous_action/3.				
 :- dynamic exogenous_action_choice/3.
 :- dynamic ad_hoc_event/2.
 :- dynamic schedulable_event/2.
