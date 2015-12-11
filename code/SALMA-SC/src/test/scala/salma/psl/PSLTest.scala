@@ -16,7 +16,8 @@ class PSLTest extends FunSuite {
     val act1 = Act("act1", 1)
     val act2 = Act("act2", 2)
 
-    sim.run(act1, 100)
+    val res1 = sim.run(act1, 100)
+    println(s"res1: ${res1}")
 
     println("---\n\n")
 
@@ -31,6 +32,9 @@ class PSLTest extends FunSuite {
         Act("act5")
       ))
 
-    sim.run(s, 100)
+    val res2 = sim.run(s, 100)
+    println(s"res2: ${res2}")
+    assertResult(Some(Number(15.0)))(res2.ctx.varMapping.get(y))
+
   }
 }
