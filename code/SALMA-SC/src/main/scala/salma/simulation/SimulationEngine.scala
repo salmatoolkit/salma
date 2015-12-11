@@ -32,8 +32,7 @@ class SimulationEngine {
 
   def handleActions(actions: List[ActionInstance], ctx: SimulationContext) = {
     for (a <- actions) {
-      val resolvedArgs = a.args.map(_ evaluate ctx)
-      println(s"perform: ${a.actionName}(${resolvedArgs.mkString(", ")})")
+      println(s"perform: ${a.action.name}(${a.args.mkString(", ")})")
     }
   }
 

@@ -11,5 +11,5 @@ object Implicits {
 
   implicit def wrapDouble(x: Double) = new NumberLiteral(x)
 
-
+  implicit def wrapBoolean(b : Boolean) = new BooleanLiteral(b)
 }

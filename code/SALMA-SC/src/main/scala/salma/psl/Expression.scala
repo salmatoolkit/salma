@@ -7,6 +7,7 @@ import salma.simulation.SimulationContext
   */
 trait Expression[+T] {
   def evaluate(ctx : SimulationContext) : T
+  def =:=[U >: T](other : Expression[U]) : BooleanExpression = new Equals(this, other)
 }
 
 

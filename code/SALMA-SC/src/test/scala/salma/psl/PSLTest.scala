@@ -1,6 +1,7 @@
 package salma.psl
 
 import org.scalatest.FunSuite
+import salma.model.{Parameter, Action}
 import salma.simulation.SimulationEngine
 import Implicits._
 
@@ -13,23 +14,21 @@ class PSLTest extends FunSuite {
     val sim = SimulationEngine()
 
     val x, y = NumericVar()
-    val act1 = Act("act1", 1)
-    val act2 = Act("act2", 2)
+    val a1 = Action("act1", Parameter("x", Int.getClass))
+    val a2 = Action("act2", Parameter("b", Boolean.getClass))
 
-    val res1 = sim.run(act1, 100)
+    val res1 = sim.run(Act(a1, 42), 100)
     println(s"res1: ${res1}")
 
     println("---\n\n")
 
     val s = Sequence(
-      act1,
-      act2,
       x := 5,
       y := x + 2 * x,
-      Act("act3", x),
+      Act(a1, x),
       Sequence(
-        Act("act4", y + 2),
-        Act("act5")
+        Act(a1, y + 2),
+        Act(a2, true)
       ))
 
     val res2 = sim.run(s, 100)
