@@ -9,7 +9,7 @@ class Assign[T](val v: Var[T], val exp: Expression[T]) extends ControlNode {
   def evaluate(context: SimulationContext): EvaluationResult = {
     val res = exp.evaluate(context)
     val newContext = context.copy(varMapping = context.varMapping + (v -> res))
-    EvaluationResult(newContext = newContext, nextNode = None, Nil)
+    EvaluationResult(newContext = newContext, nextNodes = Nil, Nil)
   }
 }
 

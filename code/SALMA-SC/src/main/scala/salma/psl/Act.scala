@@ -6,21 +6,13 @@ import salma.simulation.{EvaluationResult, SimulationContext}
 /**
   * Created by ckroiss on 09.12.15.
   */
-class Act(val action: Action, args: Expression[Any]*) extends ControlNode {
+private[salma] class Act(val action: Action, val args: Seq[Expression[Any]]) extends ControlNode {
 
   def evaluate(context: SimulationContext): EvaluationResult = {
-    val resolvedArgs = args.map(_ evaluate(context))
+    val resolvedArgs = args.map(_ evaluate context)
 
-    EvaluationResult(newContext = context, nextNode = None, actions = List(
+    EvaluationResult(newContext = context, nextNodes = Nil, actions = List(
       ActionInstance(action, Map((action.params zip resolvedArgs): _*))))
   }
-}
 
-object Act {
-  def apply(a: Action, p: Expression[Any]*) = {
-    if (a.params.length != p.length)
-      throw new RuntimeException(s"Wrong number of arguments: expected ${a.params.length} but got ${p.length}")
-
-    new Act(a, p: _*)
-  }
 }

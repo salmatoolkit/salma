@@ -29,6 +29,17 @@ val z = Var[Any]
 val m = List(1,2,3) zip List(4,5,6)
 val m2 = Map(m: _*)
 
+val o = Option(4)
+o.toList
+
+val o2 = None
+
+o2.toList
+o2 == Nil
+
+val o3 = List(1,2,3)
+val o4 = o3 ++ List(5,6) ++ Nil
+o4.head
 
 
 

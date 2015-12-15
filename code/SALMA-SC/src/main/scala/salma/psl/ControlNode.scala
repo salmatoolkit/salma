@@ -8,5 +8,7 @@ import salma.simulation.{EvaluationResult, SimulationContext}
   */
 trait ControlNode {
   def evaluate(context : SimulationContext) : EvaluationResult
+
+  def ::(next : ControlNode) = Sequence(this, next)
 }
 

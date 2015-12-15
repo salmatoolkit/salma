@@ -42,7 +42,7 @@ class SimulationEngine {
   final def step(ctx: SimulationContext, nodeStack: List[ControlNode], stepNum: Int, maxSteps: Int): StepResult = {
     if (stepNum <= maxSteps && nodeStack.nonEmpty) {
       val res = nodeStack.head.evaluate(ctx)
-      val newStack = if (res.nextNode.isDefined) res.nextNode.get :: nodeStack else nodeStack.tail
+      val newStack = res.nextNodes ++ nodeStack.tail
       if (res.actions.nonEmpty) {
         StepResult(stepNum, res.newContext, newStack, res.actions)
       } else {
