@@ -1,16 +1,17 @@
 package salma.model
 
-import salma.psl.Act
+import salma.psl.{AgentVar, ControlNode, Act}
 
 /**
   * Created by ckroiss on 15.12.15.
   */
-abstract class Agent[A <: Agent[A]](val id : String) {
+trait Agent {
 
+  def id : Symbol
   def sort : String
+  def proc : ControlNode
+  def self : AgentVar[this.type] = new AgentVar[this.type]('self)
 
-  def act[B <: A](a: ActionTemplate[B]) = {
-    new Act(a.action, a.args)
-  }
+  override def toString = s"Agent[${id}: ${sort}]"
 
 }

@@ -9,9 +9,9 @@ class If(val condition: BooleanExpression, val thenBody: ControlNode, val elseBo
 
   override def evaluate(context: SimulationContext): EvaluationResult = {
     if (condition.evaluate(context) == true) {
-      EvaluationResult(nextNodes = List(thenBody), newContext = context, actions = Nil)
+      EvaluationResult(varMapping = context.varMapping, nextNodes = List(thenBody), actions = Nil)
     } else {
-      EvaluationResult(nextNodes = elseBody.toList, newContext = context, actions = Nil)
+      EvaluationResult(varMapping = context.varMapping, nextNodes = elseBody.toList, actions = Nil)
     }
 
   }
@@ -20,7 +20,11 @@ class If(val condition: BooleanExpression, val thenBody: ControlNode, val elseBo
 }
 
 object If {
-  def apply(condition: BooleanExpression)(thenBody: ControlNode) = {
-    new If(condition, thenBody, None)
+  def apply(condition: BooleanExpression)(thenNodes: ControlNode*) = {
+    if (thenNodes.length == 1)
+      new If(condition, thenNodes(0), None)
+    else new If(condition, Sequence(thenNodes: _*), None)
   }
+
+
 }

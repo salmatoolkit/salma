@@ -8,8 +8,8 @@ import salma.simulation.{EvaluationResult, SimulationContext}
 class Assign[T](val v: Var[T], val exp: Expression[T]) extends ControlNode {
   def evaluate(context: SimulationContext): EvaluationResult = {
     val res = exp.evaluate(context)
-    val newContext = context.copy(varMapping = context.varMapping + (v -> res))
-    EvaluationResult(newContext = newContext, nextNodes = Nil, Nil)
+    val newMapping = context.varMapping + (v.name -> res)
+    EvaluationResult(newMapping, nextNodes = Nil, Nil)
   }
 }
 

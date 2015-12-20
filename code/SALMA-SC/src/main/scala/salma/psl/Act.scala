@@ -11,7 +11,7 @@ private[salma] class Act(val action: Action, val args: Seq[Expression[Any]]) ext
   def evaluate(context: SimulationContext): EvaluationResult = {
     val resolvedArgs = args.map(_ evaluate context)
 
-    EvaluationResult(newContext = context, nextNodes = Nil, actions = List(
+    EvaluationResult(context.varMapping, nextNodes = Nil, actions = List(
       ActionInstance(action, Map((action.params zip resolvedArgs): _*))))
   }
 

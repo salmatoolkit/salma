@@ -1,55 +1,70 @@
 package salma.simulation
 
-import salma.model.ActionInstance
+import salma.model.{Agent, World, ActionInstance}
 import salma.psl.ControlNode
 
 import scala.annotation.tailrec
+import scala.math.Ordered.orderingToOrdered
+import scala.util.Random
 
 /**
   * Created by ckroiss on 10.12.15.
   */
 class SimulationEngine {
 
-  case class SimulationResult(ctx: SimulationContext, stepNum: Int)
+  case class SimulationResult(scs: Map[Agent, SimulationContext], stepNum: Int)
+  val rnd = new Random()
 
-  def run(procedure: ControlNode, maxSteps: Int): SimulationResult = {
-    val ctx = SimulationContext(Map.empty)
-    val res = runInternal(ctx, List(procedure), 1, maxSteps)
-    SimulationResult(res.ctx, res.step)
+  def run(world: World, maxSteps: Int): SimulationResult = {
+    val scs = for {
+      agent <- world.all_agents
+      sc = SimulationContext(List(agent.proc), Map('self -> agent))
+    } yield (agent -> sc)
+    runInternal(Map(scs.toList: _*), 1, maxSteps)
   }
 
   @tailrec
-  final def runInternal(ctx: SimulationContext, nodeStack: List[ControlNode], stepNum: Int, maxSteps: Int): StepResult = {
-    if (stepNum <= maxSteps && nodeStack.nonEmpty) {
-      val res = step(ctx, nodeStack, stepNum, maxSteps)
-      if (res.actions.nonEmpty)
-        handleActions(res.actions, res.ctx)
-      runInternal(res.ctx, res.nodeStack, stepNum + 1, maxSteps)
+  final def runInternal(scs: Map[Agent, SimulationContext],
+                        stepNum: Int, maxSteps: Int): SimulationResult = {
+    if (stepNum <= maxSteps && scs.values.forall(_.nodeStack.nonEmpty)) {
+      val step_results = for {
+        (agent, sc) <- scs
+        res = step(agent, sc)
+      // todo: handle immediate action
+      } yield (agent -> res)
+
+      val all_actions = rnd.shuffle(step_results.values.flatMap(_.actions))
+      val newScs = step_results mapValues (sr => sr.ctx)
+
+      handleActions(all_actions)
+
+      runInternal(newScs, stepNum + 1, maxSteps)
     } else {
-      StepResult(stepNum, ctx, nodeStack, Nil)
+      SimulationResult(scs, stepNum)
     }
   }
 
-  def handleActions(actions: List[ActionInstance], ctx: SimulationContext) = {
+  def handleActions(actions: Iterable[ActionInstance]) = {
     for (a <- actions) {
       println(s"perform: ${a.action.name}(${a.args.mkString(", ")})")
     }
   }
 
-  case class StepResult(step: Int, ctx: SimulationContext, nodeStack: List[ControlNode], actions: List[ActionInstance])
+  case class StepResult(ctx: SimulationContext, actions: List[ActionInstance])
 
   @tailrec
-  final def step(ctx: SimulationContext, nodeStack: List[ControlNode], stepNum: Int, maxSteps: Int): StepResult = {
-    if (stepNum <= maxSteps && nodeStack.nonEmpty) {
-      val res = nodeStack.head.evaluate(ctx)
-      val newStack = res.nextNodes ++ nodeStack.tail
+  final def step(agent: Agent, ctx: SimulationContext): StepResult = {
+    if (ctx.nodeStack.nonEmpty) {
+      val res = ctx.nodeStack.head.evaluate(ctx)
+      val newStack = res.nextNodes ++ ctx.nodeStack.tail
+      val newCtx = SimulationContext(newStack, res.varMapping)
       if (res.actions.nonEmpty) {
-        StepResult(stepNum, res.newContext, newStack, res.actions)
+        StepResult(newCtx, res.actions)
       } else {
-        step(res.newContext, newStack, stepNum + 1, maxSteps)
+        step(agent, newCtx)
       }
     } else {
-      StepResult(stepNum, ctx, nodeStack, Nil)
+      StepResult(ctx, Nil)
     }
 
   }

@@ -5,5 +5,5 @@ import salma.psl.{Var, ControlNode}
 /**
   * Created by ckroiss on 09.12.15.
   */
-case class SimulationContext(varMapping : Map[Var[_], Any])
+case class SimulationContext(nodeStack: List[ControlNode], varMapping : Map[Symbol, Any])
 
