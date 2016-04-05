@@ -45,76 +45,99 @@ assertEquals(Expected, Actual) :-
         ;
         throw(assert_equal_failed(Expected, Actual)).
 
-test_1_ok :-
+runTest(F, Steps, Events, ExpectationsVerdict, ExpectationsSchedule) :-
         init,
-        F = forall([r,robot],
-                   forall([j,item],
-                          implies(
-                                     occur(grab(r,j)),
-                                     until(15,
-                                           carrying(r, j),
-                                           xpos(r) > 20
-                                          )
-                                 )
-                         )
-                  ),
         register_property(f, F, _),
-        grabAll,
-        (count(I,0,20) do
+        (count(I, 0, Steps), param(Events, ExpectationsVerdict, ExpectationsSchedule) do
+            findall(E, member(ev(I, E), Events), ToProgress),
+            (ToProgress \= [] -> progress(ToProgress) ; true),
             evstep(1, false, [VerdictNow : f], Sched),
             printf("%    d =  %w - %w\n", [I, VerdictNow, Sched]),
-            (I = 0 -> assertEquals(nondet, VerdictNow)
-            ;
-                      assertEquals(ok, VerdictNow)
+            (foreach(Exp, ExpectationsVerdict), param(I, VerdictNow) do 
+                Exp = expect(Start, End, ExpectedVerdict),
+                (I >= Start, I =< End ->
+                 (ExpectedVerdict = VerdictNow -> true
+                 ;
+                 throw(unexpected_verdict(I, VerdictNow, ExpectedVerdict))
+                 )
+                ;
+                 true
+                )
             ),
-            (
-                I = 0, assertEquals([], Sched), !
-            ;
-                I < 11, assertEquals([r(f, 5, [s(0, 0) : nondet], nondet)], Sched), !
-            ;
-                I = 11, assertEquals([r(f, 5, [s(0, 0) : ok], ok)], Sched), !
-            ;
-                assertEquals([], Sched)
+            (foreach(Exp, ExpectationsSchedule), param(I, Sched) do 
+                Exp = expect(Start, End, ExpectedGoals),
+                
+                (I >= Start, I =< End ->
+                 (length(Sched, Len1), length(ExpectedGoals, Len2),
+                  Len1 =:= Len2 ->
+                     true ; length(Sched, Len1), length(ExpectedGoals,
+                                                        Len2), throw(wrong_number_of_goals_in_schedule(I,
+                                                                                                       Len2, Len1))),
+                 (foreach(EG, ExpectedGoals), param(Sched, I) do
+                     (existsInSchedule(Sched, EG) -> true
+                     ;
+                      throw(expected_goal_not_found(I, EG, Sched))
+                     )
+                 )
+                ; 
+                 true
+                )
+                 
             )
+        
         ).
 
-test_2_not_ok_one_robot_drop :-
-        init,
-        F = forall([r,robot],
-                   forall([j,item],
+existsInSchedule(Sched, GoalSpec) :-
+        member(r(_, _, [GoalSpec], _), Sched).
+
+create_until_formula_two_robots(MaxT, TargetX, F) :-
+        F = forall(r:robot,
+                   forall(j:item,
                           implies(
                                      occur(grab(r,j)),
-                                     until(15,
+                                     until(MaxT,
                                            carrying(r, j),
-                                           xpos(r) > 20
+                                           xpos(r) > TargetX
                                           )
                                  )
                          )
-                  ),
-        register_property(f, F, _),
-        grabAll,
-        (count(I,0,20) do
-            (I =:= 5 -> progress( [drop(rob1, item1)] ) ; true),
-            
-            evstep(1, false, [VerdictNow : f], Sched),
-            printf("%d =  %w - %w\n", [I, VerdictNow, Sched]),
-            (I =:= 0 -> assertEquals(nondet, VerdictNow)
-            ;
-                      assertEquals(ok, VerdictNow)
-            ),
-            (
-                I =:= 0, assertEquals([], Sched), !
-            ;
-                I < 5, assertEquals([r(f, 5, [s(0, 0) : nondet],
-                                       nondet)], Sched), !
-            ;
-                I =:= 5, assertEquals([r(f, 5, [s(0, 0) : not_ok], not_ok)], Sched), !
-            ;
-                assertEquals([], Sched)
-            )
-        ).
+                  ).
+       
 
+until_ok_two_robots :-
+        create_until_formula_two_robots(15, 20, F),
+        runTest(F, 20, 
+                [ev(0, grab(rob1, item1)), 
+                 ev(3, grab(rob2, item2))], 
+                [expect(0, 0, nondet),
+                 expect(1, 2, ok),
+                 expect(3, 3, nondet),
+                 expect(4, 20, ok)],
+                [expect(1, 3, [s(0,0) : nondet]),
+                 expect(4, 10, [s(0,0) : nondet, s(3,3) : nondet]),
+                 expect(11, 11, [s(0,0) : ok, s(3,3) : ok]),
+                 expect(12, 20, [])]).
 
+until_not_ok_one_robot_drop :-
+        create_until_formula_two_robots(15, 20, F),
+        runTest(F, 20, 
+                [ev(0, grab(rob1, item1)), 
+                 ev(3, grab(rob2, item2)),
+                 ev(5, drop(rob1, item1))], 
+                
+                [expect(0, 0, nondet),
+                 expect(1, 2, ok),
+                 expect(3, 3, nondet),
+                 expect(4, 10, ok)],
+                
+                [expect(1, 3, [s(0,0) : nondet]),
+                 expect(4, 4, [s(0,0) : nondet, s(3,3) : nondet]),
+                 expect(5, 5, [s(0,0) : not_ok, s(3,3) : nondet]),
+                 expect(6, 10, [s(3,3) : nondet]),
+                 expect(11, 11, [s(3,3) : ok]),
+                 expect(12, 20, [])
+                ]).
+      
 pstep(Num) :-
         Period = 8,
         Delta = 3,

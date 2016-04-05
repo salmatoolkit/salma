@@ -12,17 +12,17 @@ from salma.model.distributions import ConstantDistribution, Never, BernoulliDist
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.selectionstrategy import NonDeterministic, Categorical
 from salma.model.world import World
-from src.simplerobots.agents import create_robot, create_coordinator, create_coordinator_clever
+from simplerobots.agents import create_robot, create_coordinator, create_coordinator_clever
 import numpy as np
 import json
 from pathlib import Path
 from datetime import datetime
 
-NUM_ROBOTS = 20
-NUM_ITEMS = 100
-NUM_STATIONS = 10
-GRID_WIDTH = 500
-GRID_HEIGHT = 500
+NUM_ROBOTS = 5
+NUM_ITEMS = 10
+NUM_STATIONS = 3
+GRID_WIDTH = 100
+GRID_HEIGHT = 100
 N_SLOTS = 5
 P_SLOT = 0.01
 COLLISION_PROB = 0

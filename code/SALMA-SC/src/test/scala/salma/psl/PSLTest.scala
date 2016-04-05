@@ -1,7 +1,9 @@
 package salma.psl
 
 import org.scalatest.FunSuite
-import salma.model.{Action, Agent, Parameter, World}
+import salma.model.World
+import salma.psl.Actions._
+import salma.psl.Agents._
 import salma.psl.Implicits._
 import salma.simulation.SimulationEngine
 
@@ -11,16 +13,7 @@ import salma.simulation.SimulationEngine
 class PSLTest extends FunSuite {
 
 
-  trait MovableAgent extends Agent {
-
-  }
-
-  trait SwimmingAgent extends Agent {
-
-  }
-
-  class Robot(val id: Symbol) extends MovableAgent {
-    def sort = "robot"
+  class SimpleRobot(val id: Symbol) extends Robot {
 
     def proc = {
       val x, y, z = NumericVar()
@@ -40,7 +33,7 @@ class PSLTest extends FunSuite {
         //,
         //self act swim(50, 50)
         , z := 0,
-        While(z < 10) (
+        While(z < 10)(
           self act raiseArm(z),
           z := z + 1
         )
@@ -49,38 +42,13 @@ class PSLTest extends FunSuite {
   }
 
 
-  val moveAction = Action("move", Parameter("self", "MovableAgent"), Parameter("dx", "int"), Parameter("dy", "int"))
-  val swimAction = Action("swim", Parameter("self", "SwimmingAgent"), Parameter("dx", "int"), Parameter("dy", "int"))
-  val raiseArmAction = Action("raiseArm", Parameter("self", "Robot"), Parameter("h", "int"))
-
-  case class move(dx: NumericExpression,
-                  dy: NumericExpression) extends ActionTemplate[MovableAgent] {
-    def action = moveAction
-
-    def args = Vector(dx, dy)
-  }
-
-  case class swim(self: AgentExpression[SwimmingAgent], dx: NumericExpression,
-                  dy: NumericExpression) extends ActionTemplate[SwimmingAgent] {
-    def action = swimAction
-
-    def args = Vector(dx, dy)
-  }
-
-  case class raiseArm(h: NumericExpression) extends ActionTemplate[Robot] {
-    def action = raiseArmAction
-
-    def args = Vector(h)
-  }
-
-
   test("Sequenz") {
 
     val sim = SimulationEngine()
 
-    val rob1 = new Robot('rob1)
-    val rob2 = new Robot('rob2)
-    val rob3 = new Robot('rob3)
+    val rob1 = new SimpleRobot('rob1)
+    val rob2 = new SimpleRobot('rob2)
+    val rob3 = new SimpleRobot('rob3)
 
     val world = World()
     world add rob1
