@@ -277,11 +277,43 @@ pstep(Num) :-
 
 
 
+simulate(F, Steps, Events, LogfilePath) :-
+        init,
+        register_property(f, F, _),
+        open(LogfilePath, write, Stream),
+        (count(I, 0, Steps), param(Events, Stream) do
+            findall(E, member(ev(I, E), Events), ToProgress),
+            (ToProgress \= [] -> progress(ToProgress) ; true),
+            loggedEvstep(Stream, 1, [VerdictNow : f], _, DTime),
+            printf("%    d (%.4f s) =  %w\n", [I, DTime, VerdictNow])
+        ),
+        close(Stream).
+
+
 evstep :-
         evstep(1, false, _, _).
 
 evstep(TimeDelta) :-
         evstep(TimeDelta, false, _, _).
+
+
+loggedEvstep(FileHandle, TimeDelta, ToplevelResults,
+             ScheduledResults, DTime) :-
+        current_time(T),
+        T2 is T + TimeDelta - 1,
+        statistics(hr_time, STime1),
+        evaluation_step(T2, ToplevelResults, ScheduledResults,
+                        PendingGoals, _),
+        statistics(hr_time, STime2),
+        DTime is STime2 - STime1,
+        length(ScheduledResults, L1),
+        length(PendingGoals, L2),
+        ToplevelResults = [VerdictNow : f],
+        printf(FileHandle, "%d;%.4f;%w;%d;%d\n",[T, DTime, VerdictNow, L1, L2]),
+        
+        moveAll,
+        progress([tick(TimeDelta)]).
+
 
 evstep(TimeDelta, Verbose, ToplevelResults, ScheduledResults) :-
         current_time(T),
@@ -325,4 +357,22 @@ run_all_tests :-
         eventually_var_ok,
         eventually_ok_1,
         nested_always_eventually_ok_1.
+
+simulate_1 :-
+        F = forall(r:robot,
+                   forall(j:item,                        
+                          implies(carrying(r, j),
+                                  let(maxX : xpos(r) + 2000,
+                                      eventually(2000, xpos(r) >
+                                                             maxX))))),
+        simulate(F, 1000, [ev(0, grab(rob1, item1)), 
+                 ev(0, grab(rob2, item2))], 'sim1.csv').
         
+
+simulate_2 :-
+        F = forall(r:robot,
+                   forall(j:item,                        
+                          implies(carrying(r, j),
+                                  eventually(2000, xpos(r) >  3000)))),
+        simulate(F, 1000, [ev(0, grab(rob1, item1)), 
+                 ev(0, grab(rob2, item2))], 'sim2.csv').
