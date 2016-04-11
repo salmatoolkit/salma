@@ -1,8 +1,10 @@
 :- ['../../ecl-src-instrumented/agasmc'].
-:- ['../domaindesc'].
+:- ['domaindesc'].
 :- ['test-suite-tools'].
 :- ['tests_until'].
 :- ['tests_always_eventually'].
+:- ['tests_quantifiers'].
+:- ['tests_calculations'].
 
 
 init :- 
@@ -138,15 +140,6 @@ maxxpos(XMax) :-
 
 
 
-run_all_tests :-
-        reset_coverage,
-        until_ok_two_robots,
-        until_not_ok_one_robot_drop,
-        until_not_ok_timeout,
-        eventually_var_ok,
-        eventually_ok_1,
-        nested_always_eventually_ok_1,
-        report_coverage('../../ecl-src-instrumented/positions.csv').
 
 simulate_1 :-
         F = forall(r:robot,

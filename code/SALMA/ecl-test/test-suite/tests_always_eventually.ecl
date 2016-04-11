@@ -5,7 +5,7 @@ create_eventually_formula_two_robots_with_var(MaxT, F) :-
                                   let(maxX : xpos(r) + 15,
                                       eventually(MaxT, xpos(r) > maxX))))).
  
-eventually_var_ok :- 
+testcase(eventually_var_ok) :- 
         create_eventually_formula_two_robots_with_var(30, F),
         runTest(F, 30, 
                 [ev(5, grab(rob1, item1)), 
@@ -34,7 +34,7 @@ create_eventually_formula_two_robots(MaxT, TargetX, F) :-
                           implies(carrying(r,j),
                                   eventually(MaxT, xpos(r) > TargetX)))).
  
-eventually_ok_1 :- 
+testcase(eventually_ok_1) :- 
         create_eventually_formula_two_robots(30, 25, F),
         runTest(F, 30, 
                 [ev(5, grab(rob1, item1)), 
@@ -68,7 +68,7 @@ create_nested_always_eventually_formula_two_robots(MaxT, TargetX, F) :-
                                                 carrying(r, j),
                                                 eventually(MaxT, xpos(r) > TargetX)))))).
  
-nested_always_eventually_ok_1 :- 
+testcase(nested_always_eventually_ok_1) :- 
         create_nested_always_eventually_formula_two_robots(20, 25, F),
         runTest(F, 30, 
                 [ev(5, grab(rob1, item1)), 

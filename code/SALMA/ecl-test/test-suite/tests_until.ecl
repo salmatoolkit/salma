@@ -12,7 +12,7 @@ create_until_formula_two_robots(MaxT, TargetX, F) :-
                   ).
 
 
-until_ok_two_robots :-
+testcase(until_ok_two_robots) :-
         create_until_formula_two_robots(15, 20, F),
         runTest(F, 20, 
                 [ev(0, grab(rob1, item1)), 
@@ -26,7 +26,7 @@ until_ok_two_robots :-
                  expect(11, 11, [s(0,0) : ok, s(3,3) : ok]),
                  expect(12, 20, [])]).
 
-until_not_ok_one_robot_drop :-
+testcase(until_not_ok_one_robot_drop) :-
         create_until_formula_two_robots(15, 20, F),
         runTest(F, 20, 
                 [ev(0, grab(rob1, item1)), 
@@ -46,7 +46,7 @@ until_not_ok_one_robot_drop :-
                  expect(12, 20, [])
                 ]).
 
-until_not_ok_timeout :-
+testcase(until_not_ok_timeout) :-
         create_until_formula_two_robots(15, 100, F),
         runTest(F, 20, 
                 [ev(0, grab(rob1, item1)), 

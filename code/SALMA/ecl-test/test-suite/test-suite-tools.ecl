@@ -1,3 +1,4 @@
+:- dynamic testcase/1.
 :- local store(coverage_map).
 
 reset_coverage :-
@@ -100,3 +101,38 @@ runTest(F, Steps, Events, ExpectationsVerdict, ExpectationsSchedule) :-
 existsInSchedule(Sched, GoalSpec) :-
         member(r(_, _, [GoalSpec], _), Sched).
 
+
+
+run_all_tests :-
+        reset_coverage,
+        findall(TestCase, clause(testcase(TestCase), _), TestCases),
+        print(TestCases), nl,
+        (foreach(TestCase, TestCases), foreach(Res, Results), 
+         fromto(0, FailCounterIn, FailCounterOut, FailCounter)  do
+            run_testcase(TestCase, Outcome : Exception),
+            Res = r(TestCase, Outcome, Exception),
+            (Outcome = success ->
+                FailCounterOut = FailCounterIn
+            ;
+                FailCounterOut is FailCounterIn + 1
+            )
+        ),
+        print(Results), nl,
+        report_coverage('../../ecl-src-instrumented/positions.csv'),
+        TotalCounter is length(Results),
+        SuccessCounter is length(Results) - FailCounter,
+        printf("Total test cases: %d\nSucess: %d\nFailure: %d\n", 
+               [TotalCounter, SuccessCounter, FailCounter]),
+        FailCounter =:= 0.
+
+
+run_testcase(TestCase, Result) :-
+        shelf_create(res/1, success : none, Shelf),
+        (
+            catch(testcase(TestCase), 
+                  Exception,
+                  shelf_set(Shelf, 1, failure : Exception)), !
+        ;
+            shelf_set(Shelf, 1, failure : none)
+        ),
+        shelf_get(Shelf, 1, Result).
