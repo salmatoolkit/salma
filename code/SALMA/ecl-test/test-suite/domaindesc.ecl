@@ -205,3 +205,4 @@ effect(partner(Rob), join(R1, R2), _, Partner, _) :-
 		
 init_domaindesc :- true.
         
+

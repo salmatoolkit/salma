@@ -67,15 +67,29 @@ pstep(Num) :-
 
 
 
-simulate(F, Steps, Events, LogfilePath) :-
+simulate(F, Steps, Events, LogfilePath, Verbose) :-
         init,
         register_property(f, F, _),
         open(LogfilePath, write, Stream),
-        (count(I, 0, Steps), param(Events, Stream) do
+        print(Stream, "Step;DeltaT;Verdict;LenSched;LenPending\n"),
+        (count(I, 0, Steps), param(Events, Stream, Verbose) do
             findall(E, member(ev(I, E), Events), ToProgress),
             (ToProgress \= [] -> progress(ToProgress) ; true),
             loggedEvstep(Stream, 1, [VerdictNow : f], _, DTime),
-            printf("%    d (%.4f s) =  %w\n", [I, DTime, VerdictNow])
+            printf("\n\n%    d (%.4f s) =  %w\n", [I, DTime,
+                                                   VerdictNow]),
+            (Verbose = true ->
+                print_scheduled_goals(stdout,4),
+                print("\n-------\n"),
+                print_formula_cache(stdout),
+                print("\n-------\n"),
+                print_cache_candidates(stdout)
+            ;
+                true
+            ),
+            flush(stdout),
+            flush(Stream)
+        
         ),
         close(Stream).
 
@@ -99,7 +113,7 @@ loggedEvstep(FileHandle, TimeDelta, ToplevelResults,
         length(ScheduledResults, L1),
         length(PendingGoals, L2),
         ToplevelResults = [VerdictNow : f],
-        printf(FileHandle, "%d;%.4f;%w;%d;%d\n",[T, DTime, VerdictNow, L1, L2]),
+        printf(FileHandle, "%d;%f;%w;%d;%d\n",[T, DTime, VerdictNow, L1, L2]),
         
         moveAll,
         progress([tick(TimeDelta)]).
@@ -159,3 +173,20 @@ simulate_2 :-
                                   eventually(2000, xpos(r) >  3000)))),
         simulate(F, 1000, [ev(0, grab(rob1, item1)), 
                  ev(0, grab(rob2, item2))], 'sim2.csv').
+
+simulate_3 :-
+        F = forall(r:robot,
+                   forall(j:item,                        
+                          implies(occur(grab(r, j)),
+                                  eventually(50, xpos(r) >  3000)))),
+        (fromto([], EvIn, EvOut, Events), count(Step, 0, 10) do 
+            (Step mod 2 =:= 0 ->
+                E2 = [ev(Step, grab(rob1, item1)), 
+                      ev(Step, grab(rob2, item2))]
+            ;
+                E2 = [ev(Step, drop(rob1, item1)), 
+                      ev(Step, drop(rob2, item2))]
+            ),
+            append(EvIn, E2, EvOut)
+        ),
+        simulate(F, 1000, Events, 'sim3.csv', false).

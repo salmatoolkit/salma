@@ -22,3 +22,4 @@ testcase(distance_1) :-
                 expect(7, 20, not_ok)],
                
                [expect(0, 20, [])]). 
+
