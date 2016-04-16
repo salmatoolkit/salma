@@ -4,3 +4,4 @@ doc/build
 smctest02.json
 smctest02.logging.conf
 smctest02.log
+ecl-src-instrumented

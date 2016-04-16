@@ -6,7 +6,7 @@ from emobility_scenario_1 import EMobilityScenario1, ESTIMATION, VISUALIZE, HYPT
 from emobility_base import print_timing_info
 
 
-_MODE = ESTIMATION
+_MODE = VISUALIZE
 NUM_REPETITIONS = 20
 
 if __name__ == '__main__':

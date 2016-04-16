@@ -1275,7 +1275,7 @@ class LocalEvaluationContext(EvaluationContext):
         Evaluates the given condition.
 
         :param int source_type: FLUENT, TRANSIENT_FLUENT, ECLP_FUNCTION or PYTHON_FUNCTION
-        :param object source: a python function, the name of a fluent, or a pothon expression
+        :param object source: a python function, the name of a fluent, or a python expression
         :param list params: parameters
         :returns: true if evaluation succeeded
         :rtype: bool

@@ -1,7 +1,5 @@
 import json
-
 import numpy as np
-
 from salma.SALMAException import SALMAException
 from salma.constants import SELF, INVARIANT, ACHIEVE
 from salma.model.agent import Agent
@@ -12,6 +10,7 @@ from salma.experiment import Experiment, SingleProcessExperimentRunner
 from salma.model.procedure import Act, While, Wait, If, Variable
 from salma.model.process import OneShotProcess
 from salma.psl.internaldsl import *
+import logging
 
 
 def generate_drop_delay_distribution(drop_probabilities):
@@ -147,8 +146,14 @@ forall(i:item, and(
 
 
 if __name__ == '__main__':
+    logging.basicConfig()
+    logger = logging.getLogger("salma")
+    logger.setLevel(logging.DEBUG)
+    logger.debug("Hey Robots!")
     experiment = Robots01()
     experiment.setup_properties()
     experiment.initialize()
     runner = SingleProcessExperimentRunner()
-    _, res, trial_infos = runner.run_trials(experiment, number_of_trials=100)
+    _, res, trial_infos = runner.run_trials(experiment, number_of_trials=5)
+    print("res: " + str(res))
+    print(trial_infos)

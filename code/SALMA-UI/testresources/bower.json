@@ -1,0 +1,26 @@
+{
+  "name": "reacttest2",
+  "authors": [
+    "ckroiss <christian.kroiss@codecentric.de>"
+  ],
+  "description": "test",
+  "main": "main.js",
+  "moduleType": [],
+  "keywords": [
+    "test"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.2.0",
+    "react": "~0.14.6"
+  }
+}
