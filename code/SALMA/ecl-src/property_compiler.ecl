@@ -135,6 +135,16 @@ gather_evaluations_term(T, Out, InList, OutList, Situation):-
         OutList = InList,
         Out = T, !
         ;
+        T = ?,
+        /* $D$ */ 
+        OutList = InList,
+        Out = _, !
+        ;
+        T = t_(Term), !,
+        /* $D$ */ 
+        subst_in_term(?, _, Term, Out),
+        OutList = InList
+        ;
         functor(T, Functor, N),	
         /* $D$ */ 
         (N > 0 ->
@@ -163,9 +173,9 @@ gather_evaluations_term(T, Out, InList, OutList, Situation):-
             % we might have a function, a constant, or an atom
             % if arity > 0 then it can't be an atom
             ((N > 0, /* $D$ */ ! ; 
-              % we could have a predicate that has only on one "return" argument
-              atom(Functor), is_predicate(Functor/1), /* $D$ */ !
-             ; constant(Functor, _, _) /* $DS$ */ ) ->
+              % we could have a predicate (including a constant) 
+              % that has only on one "return" argument
+              atom(Functor), is_predicate(Functor/1), /* $D$ */ !) ->
                 /* $D$ */ 
                 var(NewVar),
                 append(Subterms2, [NewVar], Subterms3),
@@ -219,13 +229,13 @@ compile_constraints_term(T, Out, Situation) :-
         %   this also means that we might encounter a variable that has been introduced during quantifier elimination
         % - The passed situation argument is important to handle change tests. In all cases except "change", it has to be 
         %   passed down to the recursion.
-        T = ?, /* $D$ */ 
+        T = ?, /* $D(IGNORE)$ */ 
         Out = _, !
         ;
-        var(T), /* $D$ */ 
+        var(T), /* $D(IGNORE)$ */ 
         Out = T, !
         ;
-        T = possible(GologProg), /* $D$ */ 
+        T = possible(GologProg), /* $D(IGNORE)$ */ 
         Out = possible(GologProg, Situation), !	
         ;		
         T = let(Var : Def, Body), /* $D$ */ 		
