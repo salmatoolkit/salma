@@ -3,6 +3,8 @@ from pandas import DataFrame
 
 from salma.experiment import SingleProcessExperimentRunner
 from emobility_scenario_1 import EMobilityScenario1, ESTIMATION
+import logging
+import sys
 
 
 def run_with_given_vehicle_number(vnum):
@@ -25,7 +27,13 @@ def run_with_given_vehicle_number(vnum):
 
 if __name__ == '__main__':
     rows = []
-    for i in range(1, 31):
+    logging.basicConfig()
+    logger = logging.getLogger("salma")
+    logger.setLevel(logging.INFO)
+
+    minVehicles, maxVehicles = map(int, sys.argv[1:3]) if len(sys.argv) >= 3 else (1, 31)
+    print("Increasing vehicle numbers from {} to {}".format(minVehicles, maxVehicles))
+    for i in range(minVehicles, maxVehicles):
         print("Num: {}".format(i))
         row = run_with_given_vehicle_number(i)
         print(row)
@@ -33,7 +41,7 @@ if __name__ == '__main__':
 
     df = DataFrame(rows)
 
-    df.to_csv("timetest.csv", sep=";")
+    df.to_csv("timetest_{}-to-{}.csv".format(minVehicles, maxVehicles), sep=";")
     print(df)
 
 

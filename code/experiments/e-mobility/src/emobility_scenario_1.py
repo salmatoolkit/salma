@@ -12,14 +12,14 @@ from vehicle import create_vehicles
 from plcs import create_plcs_processes
 from plcssam import create_plcssam
 
-
 HYPTEST, ESTIMATION, VISUALIZE, LOG = range(4)
-
 
 DEFAULT_NUM_OF_VEHICLES = 5
 DEFAULT_PLCS_CAPACITY = 10
 DEFAULT_VEHICLE_SPEED = 5
 DEFAULT_TIME_LIMIT = 110
+DEFAULT_TRANSFER_END_FAILURE = 0.2
+DEFAULT_TRANSFER_STARTS_FAILURE = 0.1
 
 
 class RoadTravelTimeDistribution(Distribution):
@@ -69,11 +69,12 @@ class MessageDelayDistribution(Distribution):
 
 
 class EMobilityScenario1(EMobilityBase):
-
     def __init__(self, mode, should_log, num_vehicles=DEFAULT_NUM_OF_VEHICLES,
                  plcs_capacity=DEFAULT_PLCS_CAPACITY,
                  vehicle_speed=DEFAULT_VEHICLE_SPEED,
-                 time_limit=DEFAULT_TIME_LIMIT):
+                 time_limit=DEFAULT_TIME_LIMIT,
+                 transfer_end_failure=DEFAULT_TRANSFER_END_FAILURE,
+                 transfer_starts_failure=DEFAULT_TRANSFER_STARTS_FAILURE):
         """
         Creates a new instance of the E-Mobility scenario.
 
@@ -84,6 +85,7 @@ class EMobilityScenario1(EMobilityBase):
         :param int vehicle_speed: the average number of road length units that a vehicle moves per time unit
         :param int time_limit: the time limit for each vehicle to receive a target PLCS assignment after
             it has sent a request.
+        :param float transfer_end_failure: the probability that a transfer end fails
         """
         super().__init__(should_log, mode == VISUALIZE)
         self.__mode = mode
@@ -91,6 +93,8 @@ class EMobilityScenario1(EMobilityBase):
         self.__plcs_capacity = plcs_capacity
         self.__vehicle_speed = vehicle_speed
         self.__time_limit = time_limit
+        self.__transfer_end_failure = transfer_end_failure
+        self.__transfer_starts_failure = transfer_starts_failure
 
     @staticmethod
     def __print_info(world):
@@ -174,10 +178,12 @@ class EMobilityScenario1(EMobilityBase):
         transfer_fails.config.occurrence_distribution = NormalDistribution("integer", 5, 1)
 
         message_start = self.world.get_exogenous_action_choice("message_start")
-        message_start.selection_strategy = Categorical(transferStarts=0.9, transferFails=0.1)
+        message_start.selection_strategy = Categorical(transferStarts=(1.0 - self.__transfer_starts_failure),
+                                                       transferFails=self.__transfer_starts_failure)
 
         message_end = self.world.get_exogenous_action_choice("message_end")
-        message_end.selection_strategy = Categorical(transferEnds=0.8, transferFails=0.2)
+        message_end.selection_strategy = Categorical(transferEnds=(1.0 - self.__transfer_end_failure),
+                                                     transferFails=self.__transfer_end_failure)
 
         enterNextRoad = self.world.get_exogenous_action("enterNextRoad")
         enterNextRoad.config.occurrence_distribution = UniformDistribution("integer",
