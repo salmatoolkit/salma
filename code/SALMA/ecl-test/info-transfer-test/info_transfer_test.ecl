@@ -117,7 +117,7 @@ test_multicast_channel :-
 	progress([requestTransfer(Msg)]),
 	print("\nAfter requestTransfer:\n--------------\n"),
 	print_all_messages,
-	progress([tick]),
+	progress([tick(1)]),
 	progress([transferStarts(Msg, 2)]),
 	print("\nAfter transferStarts:\n--------------\n"),
 	print_all_messages,
@@ -125,7 +125,7 @@ test_multicast_channel :-
 	print_channel(con2rob),
 	channel_in_queue(con2rob, [], s0),
 	channel_in_queue(rob2rob, [], s0),
-	progress([tick, tick]),
+	progress([tick(1), tick(1)]),
 	domain(message, Messages1),
 	get_dest_messages(Msg, Messages1, DestMessages1),
 	(foreach(DMsg, DestMessages1) do
@@ -133,7 +133,7 @@ test_multicast_channel :-
 		printf("\nAfter transferEnds(%d):\n--------------\n",[DMsg]),
 		print_all_messages,
 		print_channel(con2rob),
-		progress([tick])
+		progress([tick(1)])
 	),
 	assertEquals(length(domain(message)), 0, check_3),
 	channel_in_queue(con2rob, [msg(con2, con, rob2, r, 3, 46), msg(con2, con, rob3, r, 4, 46)], s0),
