@@ -5,6 +5,7 @@
 :- ['tests_always_eventually'].
 :- ['tests_quantifiers'].
 :- ['tests_calculations'].
+:- ['tests_constraints'].
 
 
 init :- 
@@ -22,6 +23,7 @@ init :-
         set_current(vy, [rob1], 0),
         set_current(vx, [rob2], 0),
         set_current(vy, [rob2], 0),
+        setConstant(gravity, [9.81]),
         domain(robot, D1),
         domain(item, D2),
         (foreach(R, D1), param(D2) do

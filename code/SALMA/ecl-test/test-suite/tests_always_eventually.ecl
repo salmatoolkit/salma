@@ -88,3 +88,13 @@ testcase(nested_always_eventually_ok_1) :-
                  expect(30, 30, [s(10,10) : ok]) ]).
 
 
+testcase(eventually_mean_dist) :-
+        F = eventually(5, mean_dist_from_origin([rob1, rob2]) > 21.5),
+         runTest(F, 10, [], [expect(0, 4, nondet), expect(5, 10, ok)],
+                 [expect(0, 0, []),
+                  expect(1, 1, [s(0,0) : nondet]),
+                  expect(2, 2, [s(0,1) : nondet]), 
+                  expect(3, 3, [s(0,2) : nondet]),
+                  expect(4, 4, [s(0,3) : nondet]),
+                  expect(5, 5, [s(0,4) : ok]),
+                  expect(6, 10, [])]).

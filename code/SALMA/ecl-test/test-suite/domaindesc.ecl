@@ -35,6 +35,9 @@ derived_fluent(moving, [r:robot], boolean).
 derived_fluent(futureX, [r:robot, deltaT:integer], integer).
 derived_fluent(futureY, [r:robot, deltaT:integer], integer).
 
+derived_fluent(mean_dist_from_origin, [robots:list], float).
+
+
 fluent(vx, [r:robot], integer).
 fluent(vy, [r:robot], integer).
 
@@ -107,6 +110,7 @@ fluent(active, [r:robot], boolean).
 % for now we just tread paint as a boolean attribute
 fluent(painted, [i:item], boolean).
 fluent(marking, [i:item], term).
+derived_fluent(hasMarking, [i:item, m1:term, m2:term], boolean).
 
 fluent(partner, [r:robot], robot).
 
@@ -176,6 +180,14 @@ dist_from_origin(Rob, Dist, S) :-
 	xpos(Rob, X, S),
 	ypos(Rob, Y, S),
 	Dist is sqrt(X*X + Y*Y).
+
+mean_dist_from_origin(Robots, MeanDist, S) :-
+        (foreach(R, Robots), fromto(0, DSumIn, DSumOut, DSum),
+         param(S) do
+            dist_from_origin(R, Dist, S),
+            DSumOut is DSumIn + Dist
+        ),
+        MeanDist is DSum / length(Robots).
 	
 futureX(Rob, DeltaT, Fx, S) :-
 	xpos(Rob, X, S),
@@ -199,6 +211,8 @@ effect(partner(Rob), join(R1, R2), _, Partner, _) :-
 	Rob = R2,
 	Partner = R1.
 	
+hasMarking(Item, M1, M2, S) :-
+        marking(Item, m(M1, M2), S).
 
 % partner(rob, partner, do2(a, s)) :-
 	% partner(rob, partner, s).
@@ -206,3 +220,4 @@ effect(partner(Rob), join(R1, R2), _, Partner, _) :-
 init_domaindesc :- true.
         
 
+get_earth_gravity(G) :- G = 9.81.
