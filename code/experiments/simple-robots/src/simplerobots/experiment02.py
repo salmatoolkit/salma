@@ -18,6 +18,7 @@ import numpy as np
 import json
 from pathlib import Path
 from datetime import datetime
+from datetime import datetime, timedelta
 
 NUM_ROBOTS = 20
 NUM_ITEMS = 100
@@ -182,8 +183,8 @@ class Experiment02(Experiment):
         request_event.config.occurrence_distribution = CustomDistribution("integer",
                                                                           request_distrib)
 
-    def after_run(self, verdict, **kwargs):
-        columns = [self.num_exp, self.num_robots, self.clever]
+    def after_run(self, verdict, time: timedelta=None, **kwargs):
+        columns = [self.num_exp, time.total_seconds(), self.num_robots, self.clever]
         num_broken = 0
         for r in self.world.getDomain("robot"):
             if r.broken:
@@ -198,11 +199,13 @@ class Experiment02(Experiment):
         self.expfile.write(";".join(list(map(str, columns))) + "\n")
         self.expfile.flush()
         logger = logging.getLogger(MODULE_LOGGER_NAME)
-        logger.info("DONE!    broken: {:3}, delivered: {:3}".format(num_broken, wscountsum))
+        logger.info(
+            "DONE ({:.4}!    broken: {:3}, delivered: {:3}".format(time.total_seconds(),
+                                                                   num_broken, wscountsum))
 
 
 def create_csv_header():
-    columns = ["expnum", "num_robots", "clever", "num_broken"]
+    columns = ["expnum", "duration", "num_robots", "clever", "num_broken"]
     for i in range(1, NUM_STATIONS + 1):
         columns.append("wscount" + str(i))
     columns.append("wscountsum")
@@ -233,7 +236,7 @@ if __name__ == '__main__':
 
     with experiment_path.joinpath("experiment.csv").open("w") as f:
         f.write(create_csv_header() + "\n")
-        for num_robots in range(45, 85, 5):
+        for num_robots in range(45, 50, 5):
             for clever in [False, True]:
                 for i in range(10):
                     if experiment_path.joinpath("stop.txt").exists():
