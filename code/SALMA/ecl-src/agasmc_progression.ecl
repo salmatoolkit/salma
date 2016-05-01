@@ -270,7 +270,7 @@ changed_domains(Sorts) :-
 % Actions contains a list of action terms.
 progress(Actions):-
 	get_situation_store(next_sit, S), 
-	% TODO: optimize?
+	% TODO: optimize
 	store_erase(S),
 	set_state_dirty(true),
 	(sort_hierarchy_unsynced -> init_sort_hierarchy(_) ; true),
@@ -284,6 +284,7 @@ progress(Actions):-
       param(Situation)
     do
     (
+        % enumerate all argument combinations by Prolog's backtracking machanism
      not (
 	  choose_arguments(F2, Args),
 	  fluent(F2,_,RType),

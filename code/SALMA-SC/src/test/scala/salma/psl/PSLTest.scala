@@ -42,7 +42,7 @@ class PSLTest extends FunSuite {
   }
 
 
-  test("Sequenz") {
+  test("Sequence") {
 
     val sim = SimulationEngine()
 
