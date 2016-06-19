@@ -75,19 +75,20 @@ runTest(F, Steps, Events, ExpectationsVerdict, ExpectationsSchedule) :-
                     true
                 )
             ),
-            (foreach(Exp, ExpectationsSchedule), param(I, Sched) do 
+            extract_schedule_entries(Sched, ExtractedScheduleEntries),
+            (foreach(Exp, ExpectationsSchedule), param(I, ExtractedScheduleEntries) do 
                 Exp = expect(Start, End, ExpectedGoals),
                 
                 (I >= Start, I =< End ->
-                 (length(Sched, Len1), length(ExpectedGoals, Len2),
+                 (length(ExtractedScheduleEntries, Len1), length(ExpectedGoals, Len2),
                   Len1 =:= Len2 ->
-                     true ; length(Sched, Len1), length(ExpectedGoals,
+                     true ; length(ExtractedScheduleEntries, Len1), length(ExpectedGoals,
                                                         Len2), throw(wrong_number_of_goals_in_schedule(I,
                                                                                                        Len2, Len1))),
-                 (foreach(EG, ExpectedGoals), param(Sched, I) do
-                     (existsInSchedule(Sched, EG) -> true
+                 (foreach(EG, ExpectedGoals), param(ExtractedScheduleEntries, I) do
+                     (existsInSchedule(ExtractedScheduleEntries, EG) -> true
                      ;
-                       throw(expected_goal_not_found(I, EG, Sched))
+                       throw(expected_goal_not_found(I, EG, ExtractedScheduleEntries))
                      )
                  )
                 ; 
@@ -98,8 +99,15 @@ runTest(F, Steps, Events, ExpectationsVerdict, ExpectationsSchedule) :-
         
         ).
 
+extract_schedule_entries(Sched, Extracted) :-
+        (foreach(SEntry, Sched), fromto([], E1, E2, Extracted) do
+            SEntry = r(_, _, Entries, _),
+            append(E1, Entries, E2)
+            ).   
+
 existsInSchedule(Sched, GoalSpec) :-
-        member(r(_, _, [GoalSpec], _), Sched).
+         % member(r(_, _, [GoalSpec], _), Sched).
+        member(GoalSpec, Sched).
 
 
 

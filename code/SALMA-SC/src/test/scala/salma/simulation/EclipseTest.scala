@@ -1,6 +1,8 @@
 package salma.simulation
 
-import com.parctechnologies.eclipse.{OutOfProcessEclipse, EmbeddedEclipse, EclipseEngineOptions}
+import java.io.File
+
+import com.parctechnologies.eclipse.{EclipseEngineOptions, EmbeddedEclipse, OutOfProcessEclipse, Varia}
 import org.scalatest.FunSuite
 
 /**
@@ -11,9 +13,13 @@ class EclipseTest extends FunSuite {
 
     val options = new EclipseEngineOptions()
     options.setUseQueues(false)
+    options.setEclipseDir(new File("/opt/eclipseclp"))
     val eclipse = new OutOfProcessEclipse(options)
-    val result = eclipse.rpc("write(output, 'hello world'), flush(output)")
-    println(result)
+    eclipse.rpc("X = 1")
+    (1 to 10) foreach { i =>
+      val result = eclipse.rpc("write(output, 'hello world'), flush(output)")
+      println(result)
+    }
     eclipse.destroy()
 
 

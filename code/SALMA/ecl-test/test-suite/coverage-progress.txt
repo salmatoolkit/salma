@@ -1,0 +1,45 @@
+
+Missed 157 of 484 decisions.
+    Coverage = 0.68
+    Total test cases: 18
+    Sucess: 18
+    Failure: 0
+
+Mon Jun 20 00:17:28 2016
+
+    Missed 155 of 484 decisions.
+    Coverage = 0.68
+    Total test cases: 19
+    Sucess: 19
+    Failure: 0
+
+Mon Jun 20 00:25:28 2016
+
+    Missed 154 of 484 decisions.
+    Coverage = 0.68
+    Total test cases: 20
+    Sucess: 20
+    Failure: 0
+
+Mon Jun 20 00:40:29 2016
+
+    Missed 149 of 484 decisions.
+    Coverage = 0.69
+    Total test cases: 21
+    Sucess: 21
+    Failure: 0
+
+Mon Jun 20 01:16:36 2016
+
+    Missed 141 of 484 decisions.
+    Coverage = 0.71
+    Total test cases: 23
+    Sucess: 23
+    Failure: 0
+
+Mon Jun 20 01:33:51 2016
+    Missed 129 of 473 decisions.
+    Coverage = 0.73
+    Total test cases: 24
+    Sucess: 24
+    Failure: 0

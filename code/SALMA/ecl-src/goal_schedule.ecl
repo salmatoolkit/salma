@@ -27,7 +27,7 @@ get_scheduled_goal_description(ScheduleId, Description) :-
 get_scheduled_intervals_within(PSchedId, Level,
                                Start, End, 
                                NondetIntervals, OkIntervals, NotOkIntervals) :-
-        /* $D$ */ 
+        /* $D(IGNORED)$ */ 
         (store_get(scheduled_goals, g(Level, PSchedId), 
                    i(NondetIntervalsAll, OkIntervalsAll, NotOkIntervalsAll, _)), !
         ; throw(unregistered_scheduled_goal(PSchedId))),
@@ -171,18 +171,18 @@ add_nondet_schedule_interval(ScheduleId, Level, StartTime, EvalEndTime) :-
 
 
 check_state_filter(StateVector, StateFilter) :-
-        StateFilter = all, /* $D$ */ !
+        StateFilter = all, /* $D(IGNORE)$ */ !
         ;
-        /* $D$ */ 
+        /* $D(IGNORE)$ */ 
         StateVector = i(NondetIntervals, OkIntervals, NotOkIntervals, _),
         (
-            StateFilter = nondet, /* $D$ */ !,
+            StateFilter = nondet, /* $D(IGNORE)$ */ !,
             length(NondetIntervals) > 0
         ;
-            StateFilter = ok, /* $D$ */ !,
+            StateFilter = ok, /* $D(IGNORE)$ */ !,
             length(OkIntervals) > 0
         ;
-            StateFilter = not_ok, /* $D$ */ !,
+            StateFilter = not_ok, /* $D(IGNORE)$ */ !,
             length(NotOkIntervals) > 0
         ).
 

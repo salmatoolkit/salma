@@ -2,7 +2,7 @@ compile_persistent_fluents :-
         /* $D$ */ 
         findall((N - F),persistent_fluent(N,F), L),
         (foreach(Entry, L) do
-            /* $D$ */ 
+            /* $D(IGNORE)$ */ 
             Entry = Name - Formula,
             compile_formula(Formula, CompiledFormula),
             store_set(persistent_fluents, Name, CompiledFormula)
@@ -10,36 +10,36 @@ compile_persistent_fluents :-
 	
 % TODO: rename to persistent_property
 query_persistent_fluent(Name, CurrentState, LastChanged) :-
-        /* $D$ */ 
-        (state_dirty -> /* $D$ */ update_persistent_fluents ; /* $D$ */ true),
+        /* $D(IGNORE)$ */ 
+        (state_dirty -> /* $D(IGNORE)$ */ update_persistent_fluents ; /* $D(IGNORE)$ */ true),
         internal_query_persistent_fluent(Name, CurrentState, LastChanged).
 
 internal_query_persistent_fluent(Name, CurrentState, LastChanged) :-
-        /* $D$ */ 
+        /* $D(IGNORE)$ */ 
         (store_get(persistent_fluent_states, Name, S) ->
-            /* $D$ */ 
+            /* $D(IGNORE)$ */ 
             S = CurrentState : LastChanged 
         ;
-            /* $D$ */ 
+            /* $D(IGNORE)$ */ 
             CurrentState = nondet,
             LastChanged = -1
         ).
 
 update_persistent_fluents :-
-        /* $D$ */ 
+        /* $D(IGNORE)$ */ 
         stored_keys_and_values(persistent_fluents, L),
         current_time(CurrentTime),		
         (foreach(Entry, L), param(CurrentTime) do
-            /* $D$ */ 
+            /* $D(IGNORE)$ */ 
             Entry = Name - Formula,
             internal_query_persistent_fluent(Name, CurrentState, _),
             evaluate_formula(null, [0], 0,
                              CurrentTime, CurrentTime, Formula, 0, Result, _, _, _),
             (Result \= CurrentState ->
-                /* $D$ */ 
+                /* $D(IGNORE)$ */ 
                 store_set(persistent_fluent_states, Name, Result : CurrentTime)
             ;
-                /* $D$ */ 
+                /* $D(IGNORE)$ */ 
                 true
             )
         ),

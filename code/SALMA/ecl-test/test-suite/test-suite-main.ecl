@@ -6,6 +6,8 @@
 :- ['tests_quantifiers'].
 :- ['tests_calculations'].
 :- ['tests_constraints'].
+:- ['tests_cache'].
+:- ['tests_intervals.ecl'].
 
 
 init :- 

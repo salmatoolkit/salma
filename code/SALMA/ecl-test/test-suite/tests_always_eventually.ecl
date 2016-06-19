@@ -98,3 +98,43 @@ testcase(eventually_mean_dist) :-
                   expect(4, 4, [s(0,3) : nondet]),
                   expect(5, 5, [s(0,4) : ok]),
                   expect(6, 10, [])]).
+
+testcase(nondet_schedule_with_gaps) :-
+        F = implies((mod(xpos(rob1), 5) =:= 0),
+                    eventually(100, xpos(rob1) > 100)),
+        runTest(F, 20, 
+                [],
+                [expect(0,0,nondet), expect(1,4,ok), 
+                 expect(5,5,nondet), expect(6,9,ok),
+                 expect(10,10,nondet), expect(11,14,ok),
+                 expect(15,15,nondet), expect(16,19,ok),
+                 expect(20,20,nondet)],
+                [expect(0,0,[]),
+                 expect(1, 5, [s(0,0) : nondet]),
+                 expect(6, 10, [s(0,0) : nondet, s(5,5) : nondet]),
+                 expect(11, 15, [s(0,0) : nondet, s(5,5) : nondet,
+                                 s(10,10) : nondet]),
+                 expect(16, 20, [s(0,0) : nondet, s(5,5) : nondet,
+                                 s(10,10) : nondet, s(15,15) :
+                                                             nondet])]).
+                
+                 
+                 
+testcase(nondet_schedule_with_gaps_negated) :-
+        F = implies((mod(xpos(rob1), 5) =:= 0),
+                    not(eventually(100, xpos(rob1) > 100))),
+        runTest(F, 20, 
+                [],
+                [expect(0,0,nondet), expect(1,4,ok), 
+                 expect(5,5,nondet), expect(6,9,ok),
+                 expect(10,10,nondet), expect(11,14,ok),
+                 expect(15,15,nondet), expect(16,19,ok),
+                 expect(20,20,nondet)],
+                [expect(0,0,[]),
+                 expect(1, 5, [s(0,0) : nondet]),
+                 expect(6, 10, [s(0,0) : nondet, s(5,5) : nondet]),
+                 expect(11, 15, [s(0,0) : nondet, s(5,5) : nondet,
+                                 s(10,10) : nondet]),
+                 expect(16, 20, [s(0,0) : nondet, s(5,5) : nondet,
+                                 s(10,10) : nondet, s(15,15) :
+                                                             nondet])]).                 
