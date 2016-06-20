@@ -8,6 +8,7 @@
 :- ['tests_constraints'].
 :- ['tests_cache'].
 :- ['tests_intervals.ecl'].
+:- ['tests_compiler.ecl'].
 
 
 init :- 

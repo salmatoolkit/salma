@@ -281,10 +281,10 @@ compile_constraints_term(T, Out, Situation) :-
                 % for a change test, create a variable to use as situation for all enclosed fluents
                 T =.. [_ | Subterms],
                 ( 
-                    ((Functor = start, /* $D$ */ ! ; Functor = end /* $DS$ */ ),
+                    ((Functor = start, /* $D(IGNORE)$ */ ! ; Functor = end /* $DS(IGNORE)$ */ ),
                      not((Subterms = [PFName], persistent_fluent(PFName, _)))
                     ) -> 
-                    /* $D$ */ 
+                    /* $D(IGNORE)$ */ 
                     compile_constraints_list(Subterms, HandledSubterms, s0),
                     compile_constraints_list(Subterms, HandledSubtermsLast, slast),
                     IsChangeEvent = true
@@ -318,26 +318,26 @@ compile_constraints_term(T, Out, Situation) :-
                 HandledSubterms = [Act],
                 Out =.. [occur, Act], !
             ;
-                Functor = start, /* $D$ */ 
+                Functor = start, /* $D(IGNORE)$ */ 
                 (IsChangeEvent ->
-                    /* $D$ */ 
+                    /* $D(IGNORE)$ */ 
                     HandledSubtermsLast = [P],
                     HandledSubterms = [Q],
                     Out =.. [changed, P, Q, ok]
                 ;
-                    /* $D$ */ 
+                    /* $D(IGNORE)$ */ 
                     HandledSubterms = [PFName],
                     Out =.. [pfswitch, PFName, ok]
                 ), !
             ;
-                Functor = end, /* $D$ */ 
+                Functor = end, /* $D(IGNORE)$ */ 
                 (IsChangeEvent ->
-                    /* $D$ */ 
+                    /* $D(IGNORE)$ */ 
                     HandledSubtermsLast = [P],
                     HandledSubterms = [Q],
                     Out =.. [changed, P, Q, not_ok]
                 ;
-                    /* $D$ */ 
+                    /* $D(IGNORE)$ */ 
                     HandledSubterms = [PFName],
                     Out =.. [pfswitch, PFName, not_ok]
                 ), !
@@ -418,10 +418,7 @@ build_complement(P, Compl) :-
         ; 
          /* $D$ */ 
          Compl = not(P)
-        ), !
-        ;
-        /* $D$ */ 
-	Compl = not(P).
+        ).
 	
 	
 	

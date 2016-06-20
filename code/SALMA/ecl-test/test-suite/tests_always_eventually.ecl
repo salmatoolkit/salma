@@ -138,3 +138,18 @@ testcase(nondet_schedule_with_gaps_negated) :-
                  expect(16, 20, [s(0,0) : nondet, s(5,5) : nondet,
                                  s(10,10) : nondet, s(15,15) :
                                                              nondet])]).                 
+testcase(eventually_with_match) :-
+        F = implies(occur(grab(rob1, ?)),
+                    match([i] : occur(grab(rob1, i)),
+                          eventually(10, not(carrying(rob1, i))))),
+        runTest(F, 10,
+                [ev(5, grab(rob1, item1)),
+                 ev(10, drop(rob1, item1))],
+                [expect(0, 4, ok), 
+                 expect(5, 5, nondet),
+                 expect(6, 10, ok)],
+                [expect(0, 5, []),
+                 expect(6, 9, [s(5,5) : nondet]),
+                 expect(10,10, [s(5,5) : ok])]).
+                 
+                          
