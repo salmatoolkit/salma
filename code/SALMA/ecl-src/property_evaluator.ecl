@@ -49,7 +49,7 @@ init_smc :-
 	setval(negated, 0),
 	erase_failure_stack,	
 	setval(current_failure_stack, failurestack),
-	compile_persistent_fluents,
+        compile_persistent_fluents,
 	set_properties_unsynced(false).
 	
 
@@ -96,8 +96,8 @@ get_referenced_failures(Ref, Failures) :-
 				
 
 reset_smc :-
-        /* $D$ */
-	store_erase(scheduled_goals),
+        /* $D(IGNORED)$ */
+        store_erase(scheduled_goals),
 	store_erase(goal_id_map),
 	store_erase(scheduled_goal_descriptions),
 	store_erase(persistent_fluent_states),
@@ -109,15 +109,15 @@ reset_smc :-
 	
 	
 set_properties_unsynced(IsUnsynced) :-
-        /* $D$ */
+        /* $D(IGNORED)$ */
 	(IsUnsynced = true ->
-            /* $D$ */
-		(not(properties_unsynced) -> /* $D$ */
-                    assert(properties_unsynced) ; /* $D$ */ true)
+            /* $D(IGNORED)$ */
+		(not(properties_unsynced) -> /* $D(IGNORED)$ */
+                    assert(properties_unsynced) ; /* $D(IGNORED)$ */ true)
 		;
-                /* $D$ */
-		(properties_unsynced -> /* $D$ */
-                    retract(properties_unsynced) ; /* $D$ */ true)
+                /* $D(IGNORED)$ */
+		(properties_unsynced -> /* $D(IGNORED)$ */
+                    retract(properties_unsynced) ; /* $D(IGNORED)$ */ true)
 	).	
 
 % erases all formula cache entries except the ones that are referenced by toplevel entries
