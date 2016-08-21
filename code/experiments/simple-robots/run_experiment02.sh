@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-echo "$DYLD_LIBRARY_PATH"
-export PYTHONPATH=./src:../../SALMA
+PYTHONPATH=$PYTHONPATH:./src:$SALMA_HOME
+export PYTHONPATH
 python3 src/simplerobots/experiment02.py $@
