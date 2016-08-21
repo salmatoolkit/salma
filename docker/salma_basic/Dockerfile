@@ -1,5 +1,8 @@
 FROM debian:jessie
 COPY etc/apt/sources.list /etc/apt/sources.list
+RUN mkdir /opt/salma
+COPY ../../code/SALMA/ /opt/salma
+
 RUN apt-get update && apt-get install -y wget less
 RUN mkdir /downloads
 
@@ -21,7 +24,7 @@ RUN rm jdk-8u65-linux-x64.tar.gz
 RUN mkdir /opt/eclipseclp
 RUN wget --no-cookies --no-check-certificate \
   --header "Cookie: oraclelicense=accept-securebackup-cookie" \
-  http://sunsite.informatik.rwth-aachen.de/ftp/pub/mirror/ECLiPSe-CLP/Current/6.1_216_x86_64_linux/eclipse_basic.tgz
+  http://sunsite.informatik.rwth-aachen.de/ftp/pub/mirror/ECLiPSe-CLP/Current/6.1_222_x86_64_linux/eclipse_basic.tgz
 WORKDIR /opt/eclipseclp
 RUN tar xzf /downloads/eclipse_basic.tgz
 RUN rm /downloads/eclipse_basic.tgz
