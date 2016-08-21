@@ -1,3 +1,4 @@
+import argparse
 from io import TextIOBase
 import logging
 from logging import FileHandler
@@ -13,23 +14,13 @@ from salma.model.distributions import ConstantDistribution, Never, BernoulliDist
 from salma.model.evaluationcontext import EvaluationContext
 from salma.model.selectionstrategy import NonDeterministic, Categorical
 from salma.model.world import World
-from src.simplerobots.agents import create_robot, create_coordinator, create_coordinator_clever
+from simplerobots.agents import create_robot, create_coordinator, create_coordinator_clever
 import numpy as np
 import json
 from pathlib import Path
 from datetime import datetime
 from datetime import datetime, timedelta
 
-NUM_ROBOTS = 20
-NUM_ITEMS = 100
-NUM_STATIONS = 10
-GRID_WIDTH = 500
-GRID_HEIGHT = 500
-N_SLOTS = 5
-P_SLOT = 0.01
-COLLISION_PROB = 1.0
-# SEED = int(datetime.now().timestamp())
-SEED = 1438470243
 
 
 def break_when_all_delivered(world: World, **kwargs):
@@ -55,11 +46,20 @@ class Experiment02(Experiment):
         self.clever = clever
         self.expfile = expfile
         self.initpath = initpath
+        self.num_collisions = 0
+        self.step_listeners.append(self.__count_collision)
 
     def initialize(self):
         np.random.seed(SEED)
         random.seed(SEED)
+        self.num_collisions = 0
         super().initialize()
+
+    def __count_collision(self, world: World, actions=None, **kwargs):
+        if actions is not None:
+            for a in actions:
+                if a[0] == "collision":
+                    self.num_collisions += 1
 
     def load_initial_situation(self):
         with self.initpath.open() as f:
@@ -189,6 +189,7 @@ class Experiment02(Experiment):
         for r in self.world.getDomain("robot"):
             if r.broken:
                 num_broken += 1
+        columns.append(self.num_collisions)
         columns.append(num_broken)
         wscountsum = 0
         for ws in sorted(self.world.getDomain("workstation")):
@@ -205,24 +206,26 @@ class Experiment02(Experiment):
 
 
 def create_csv_header():
-    columns = ["expnum", "duration", "num_robots", "clever", "num_broken"]
+    columns = ["expnum", "duration", "num_robots", "clever", "num_collisions", "num_broken"]
     for i in range(1, NUM_STATIONS + 1):
         columns.append("wscount" + str(i))
     columns.append("wscountsum")
     return ";".join(columns)
 
 
-if __name__ == '__main__':
-    basepath = Path("experiment_results")
+def start(resultdir: str, min_robots: int, max_robots: int, simulations_per_config: int, robots_inc: int,
+          max_steps: int):
+    basepath = Path(resultdir)
     now = datetime.now()
     timestamp = now.strftime("%Y_%m_%d-%H_%M_%S")
-    experiment_path = basepath.joinpath("exp02-" + timestamp)
+    experiment_path = basepath.joinpath("exp02-{}_{}-{}".format(timestamp, min_robots, max_robots))
+
     num = 2
     while experiment_path.exists():
         experiment_path = basepath.joinpath("exp02-" + timestamp + "_" + "v" + str(num))
     experiment_path.mkdir()
 
-    MODULE_LOGGER_NAME = 'salma'
+
     # logging.config.fileConfig("experiment01.logging.conf")
     logging.basicConfig()
     logger = logging.getLogger(MODULE_LOGGER_NAME)
@@ -236,9 +239,9 @@ if __name__ == '__main__':
 
     with experiment_path.joinpath("experiment.csv").open("w") as f:
         f.write(create_csv_header() + "\n")
-        for num_robots in range(45, 50, 5):
+        for num_robots in range(min_robots, max_robots + 1, robots_inc):
             for clever in [False, True]:
-                for i in range(10):
+                for i in range(simulations_per_config):
                     if experiment_path.joinpath("stop.txt").exists():
                         break
                     else:
@@ -250,5 +253,33 @@ if __name__ == '__main__':
                             "Experiment #{:3} --  robots: {:3},  "
                             "clever: {:>5} \t trial {:4}".format(
                                 num_exp, num_robots, str(clever), i))
-                        experiment.run(max_steps=500)
+                        experiment.run(max_steps=max_steps)
                         num_exp += 1
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Simple Delivery Robots Experiment 2")
+
+    parser.add_argument('--resultdir', type=str, help='the directory in which experiment results will be stored',
+                        default="experiment_results")
+
+    parser.add_argument('min_robots', type=int, help='minimum robots')
+    parser.add_argument('max_robots', type=int, help='maximum robots')
+    parser.add_argument('--robots_inc', type=int, help='increment for number of robots', default=5)
+    parser.add_argument('--simulations_per_config', type=int, help='simulations per config', default=10)
+    parser.add_argument('--max_steps', type=int, help='maximum steps', default=500)
+
+    args = parser.parse_args()
+    print(args)
+    MODULE_LOGGER_NAME = 'salma'
+    NUM_ITEMS = 100
+    NUM_STATIONS = 10
+    GRID_WIDTH = 500
+    GRID_HEIGHT = 500
+    N_SLOTS = 5
+    P_SLOT = 0.01
+    COLLISION_PROB = 1.0
+    # SEED = int(datetime.now().timestamp())
+    SEED = 1438470243
+    start(args.resultdir, args.min_robots, args.max_robots, args.simulations_per_config, args.robots_inc,
+          args.max_steps)

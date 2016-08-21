@@ -17,17 +17,8 @@ import numpy as np
 import json
 from pathlib import Path
 from datetime import datetime
+import argparse
 
-NUM_ROBOTS = 5
-NUM_ITEMS = 10
-NUM_STATIONS = 3
-GRID_WIDTH = 100
-GRID_HEIGHT = 100
-N_SLOTS = 5
-P_SLOT = 0.01
-COLLISION_PROB = 0
-#SEED = int(datetime.now().timestamp())
-SEED = 1438470243
 
 def create_step_logger(fd: TextIOBase):
     def __l(world: World, step=None, **kwargs):
@@ -146,9 +137,13 @@ class Experiment01(Experiment):
             ws.delivered_item_count = 0
 
     def create_entities(self):
+        if STRATEGY == "simple":
+            coordinator1 = create_coordinator()
+        elif STRATEGY == "clever":
+            coordinator1 = create_coordinator_clever()
+        else:
+            raise RuntimeError("Unsupported strategy: %s" % STRATEGY)
 
-        #coordinator1 = create_coordinator()
-        coordinator1 = create_coordinator_clever()
         self.world.add(coordinator1)
         for r in range(1, NUM_ROBOTS + 1):
             self.world.add(create_robot(r))
@@ -188,7 +183,7 @@ class Experiment01(Experiment):
 
         request_event = world.get_exogenous_action("request")
 
-        def request_distrib(ws, c, ctx: EvaluationContext=None, **kwargs):
+        def request_distrib(ws, c, ctx: EvaluationContext = None, **kwargs):
             ws_in_queue = c.request_queue.count(ws)
             assigned_robots = len([r for r in ctx.getDomain("robot") if r.task_workstation == ws])
             n_free = N_SLOTS - assigned_robots - ws_in_queue
@@ -257,11 +252,13 @@ def create_csv_header():
     return ";".join(columns)
 
 
-if __name__ == '__main__':
-    basepath = Path("experiment_results")
+def start(resultdir: str, configfile: str):
+    basepath = Path(resultdir)
+    print(("storing results in {}".format(basepath)))
+
     now = datetime.now()
     timestamp = now.strftime("%Y_%m_%d-%H_%M_%S")
-    experiment_path = basepath.joinpath(timestamp)
+    experiment_path = basepath.joinpath(timestamp + "_" + STRATEGY)
     num = 2
     while experiment_path.exists():
         experiment_path = basepath.joinpath(timestamp + "_" + "v" + str(num))
@@ -276,9 +273,7 @@ if __name__ == '__main__':
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
 
-    #experiment = Experiment03(experiment_path, Path("config_3r_20i_5s_200x200.json"))
-    #experiment = Experiment03(experiment_path)
-    experiment = Experiment01(experiment_path, Path("config_20r_100i_10ws_500x500.json"))
+    experiment = Experiment01(experiment_path, Path(configfile))
     experiment.initialize()
     runner = SingleProcessExperimentRunner()
 
@@ -288,6 +283,32 @@ if __name__ == '__main__':
         experiment.step_listeners.append(create_step_logger(f))
         experiment.step_listeners.append(break_when_all_delivered)
         experiment.step_listeners.append(break_when_all_broken)
-        #_, res, trial_infos = runner.run_trials(experiment, number_of_trials=1, max_steps=3000, max_retrials=0)
+        # _, res, trial_infos = runner.run_trials(experiment, number_of_trials=1, max_steps=3000, max_retrials=0)
         experiment.run(max_steps=5000)
     experiment.world.printState()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Simple Delivery Robots Experiment 1')
+    parser.add_argument('configfile', type=str, help='the JSON configuration file')
+
+    parser.add_argument('--resultdir', type=str, help='the directory in which experiment results will be stored',
+                        default="experiment_results")
+
+    parser.add_argument('--strategy', type=str, help="the coordinator's strategy,", choices=["simple", "clever"],
+                        default="simple")
+
+    args = parser.parse_args()
+    print(args)
+    NUM_ROBOTS = 3
+    NUM_ITEMS = 20
+    NUM_STATIONS = 5
+    GRID_WIDTH = 200
+    GRID_HEIGHT = 200
+    N_SLOTS = 5
+    P_SLOT = 0.01
+    COLLISION_PROB = 0
+    # SEED = int(datetime.now().timestamp())
+    SEED = 1438470243
+    STRATEGY = args.strategy
+    start(args.resultdir, args.configfile)

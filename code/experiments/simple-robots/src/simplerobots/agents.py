@@ -56,7 +56,7 @@ def select_item(rob: Agent, ctx: EvaluationContext=None, **kwargs):
     min_dist = None
     for item in ctx.getDomain("item"):
         if item.undelivered:
-            dist = np.sqrt((rob.xpos - item.xpos) ** 2 + (rob.ypos - item.ypos) ** 2)
+            dist = np.abs(rob.xpos - item.xpos) + np.abs(rob.ypos - item.ypos)
             if min_dist is None or dist < min_dist:
                 closest_item = item
                 min_dist = dist
@@ -64,13 +64,13 @@ def select_item(rob: Agent, ctx: EvaluationContext=None, **kwargs):
 
 
 def select_item2(station: Entity, ctx: EvaluationContext=None, **kwargs):
-    dist = lambda r: np.sqrt((r.xpos - station.stationX) ** 2 + (r.ypos - station.stationY) ** 2)
+    dist = lambda r: np.abs(r.xpos - station.stationX) + np.abs(r.ypos - station.stationY)
     robot_distances = [(dist(r), r) for r in ctx.getDomain("robot") if r.unassigned]
     if len(robot_distances) == 0:
         return None, None
     closest_robot = min(robot_distances)[1]
 
-    dist = lambda i: np.sqrt((i.xpos - closest_robot.xpos) ** 2 + (i.ypos - closest_robot.ypos) ** 2)
+    dist = lambda i: np.abs(i.xpos - closest_robot.xpos) + np.abs(i.ypos - closest_robot.ypos)
     item_distances = [(dist(i), i) for i in ctx.getDomain("item") if i.undelivered]
     if len(item_distances) == 0:
         return None, None

@@ -1,9 +1,11 @@
+import argparse
+
 from matplotlib.axes._axes import Axes
 import numpy as np
 
 import pandas as pd
 import matplotlib
-#matplotlib.use("Agg")
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from pathlib import Path
 
@@ -11,6 +13,7 @@ import matplotlib.patches as patches
 
 import json
 import matplotlib.animation as manimation
+
 
 # 3 robots, 10 items
 # basepath = Path("experiment_results/2015_07_20-15_53_25")
@@ -25,17 +28,12 @@ import matplotlib.animation as manimation
 # basepath = Path("experiment_results/2015_07_21-11_27_24")
 
 # basepath = Path("experiment_results/20r_100i_10ws_500x500-collision_impossible")
-#basepath = Path("experiment_results/20r_100i_10ws_500x500-no_collision")
+# basepath = Path("experiment_results/20r_100i_10ws_500x500-no_collision")
 
-#basepath = Path("experiment_results/2015_07_22-19_56_23")
-#basepath = Path("experiment_results/2015_07_25-01_23_49")
-#basepath = Path("experiment_results/3r_20i_5s_200x200_normal")
-#basepath = Path("experiment_results/3r_20i_5s_200x200_clever")
-basepath = Path("experiment_results/thesis_candidates/20r_100i_10ws_500x500-normal")
-
-GRID_WIDTH = 500
-GRID_HEIGHT = 500
-MARGIN = 100
+# basepath = Path("experiment_results/2015_07_22-19_56_23")
+# basepath = Path("experiment_results/2015_07_25-01_23_49")
+# basepath = Path("experiment_results/3r_20i_5s_200x200_normal")
+# basepath = Path("experiment_results/3r_20i_5s_200x200_clever")
 
 
 def draw_locations(expsetup, ax):
@@ -72,7 +70,7 @@ def draw_all_on_one(expsetup, df):
     ax.legend(loc="upper right")
     draw_locations(expsetup, ax)
     ax.grid(True)
-    fig.savefig(str(basepath.joinpath("paths_all_on_one_clever.pdf")), bbox_inches="tight")
+    fig.savefig(str(basepath.joinpath("paths_all_on_one.pdf")), bbox_inches="tight")
     plt.show()
 
 
@@ -102,7 +100,6 @@ def draw_on_subfigures(expsetup, df):
 
 
 def create_movie(expsetup, df, path):
-
     metadata = dict(title='Deliveryy Robots', artist='The SALMA toolkit',
                     comment='')
     print(manimation.writers.list())
@@ -124,7 +121,7 @@ def create_movie(expsetup, df, path):
         ax.add_patch(rc)
         lines.append((i, xarr, yarr, l, rc))
 
-    #frames = len(df)
+    # frames = len(df)
     frames = 500
     print("Frames: ", frames)
     with writer.saving(fig, path, 200):
@@ -138,9 +135,33 @@ def create_movie(expsetup, df, path):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('datapath', type=str, help='the path of the directory that contains the experiment data')
+
+    parser.add_argument('--mode', type=str, help='the drawing mode',
+                        choices=["all_on_one", "subfigures", "create_movie"],
+                        default="all_on_one")
+
+    parser.add_argument("--width", type=int, help="the grid width", default=200)
+    parser.add_argument("--height", type=int, help="the grid height", default=200)
+    parser.add_argument("--margin", type=int, help="the grid margin", default=100)
+    args = parser.parse_args()
+
+    print(args)
+    GRID_WIDTH = args.width
+    GRID_HEIGHT = args.height
+    MARGIN = args.margin
+
+    basepath = Path(args.datapath)
     with basepath.joinpath("before.json").open() as fd:
         expsetup = json.load(fd)
     df = pd.read_csv(str(basepath.joinpath("experiment.csv")), sep=";")
-    draw_all_on_one(expsetup, df)
-    #draw_on_subfigures(expsetup, df)
-    #create_movie(expsetup, df, str(basepath.joinpath("movie.mp4")))
+
+    if args.mode == "all_on_one":
+        draw_all_on_one(expsetup, df)
+    elif args.mode == "subfigures":
+        draw_on_subfigures(expsetup, df)
+    elif args.mode == "create_movie":
+        create_movie(expsetup, df, str(basepath.joinpath("movie.mp4")))
+    else:
+        raise ValueError("Unsipported mode: %s" % args.mode)

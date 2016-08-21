@@ -1,0 +1,176 @@
+{
+  "seed": 1438470243,
+  "coordinators": {
+    "coordinator1": {
+      "request_queue": [
+        "ws3",
+        "ws1",
+        "ws5",
+        "ws4",
+        "ws2",
+        "ws4",
+        "ws5",
+        "ws3",
+        "ws2",
+        "ws5",
+        "ws4",
+        "ws4",
+        "ws4",
+        "ws2",
+        "ws5",
+        "ws5",
+        "ws3",
+        "ws3",
+        "ws2",
+        "ws3",
+        "ws2",
+        "ws1",
+        "ws1",
+        "ws1"
+      ]
+    }
+  },
+  "workstations": {
+    "ws5": {
+      "x": 63,
+      "delivered_item_count": 4,
+      "y": 38
+    },
+    "ws4": {
+      "x": 195,
+      "delivered_item_count": 2,
+      "y": 7
+    },
+    "ws3": {
+      "x": 38,
+      "delivered_item_count": 4,
+      "y": 94
+    },
+    "ws1": {
+      "x": 178,
+      "delivered_item_count": 6,
+      "y": 89
+    },
+    "ws2": {
+      "x": 40,
+      "delivered_item_count": 4,
+      "y": 70
+    }
+  },
+  "robots": {
+    "rob3": {
+      "x": 178,
+      "y": 89
+    },
+    "rob1": {
+      "x": 178,
+      "y": 89
+    },
+    "rob2": {
+      "x": 178,
+      "y": 89
+    }
+  },
+  "items": {
+    "item12": {
+      "x": 178,
+      "delivered_to": "ws1",
+      "y": 89
+    },
+    "item15": {
+      "x": 38,
+      "delivered_to": "ws3",
+      "y": 94
+    },
+    "item18": {
+      "x": 38,
+      "delivered_to": "ws3",
+      "y": 94
+    },
+    "item4": {
+      "x": 178,
+      "delivered_to": "ws1",
+      "y": 89
+    },
+    "item10": {
+      "x": 38,
+      "delivered_to": "ws3",
+      "y": 94
+    },
+    "item13": {
+      "x": 178,
+      "delivered_to": "ws1",
+      "y": 89
+    },
+    "item16": {
+      "x": 40,
+      "delivered_to": "ws2",
+      "y": 70
+    },
+    "item2": {
+      "x": 195,
+      "delivered_to": "ws4",
+      "y": 7
+    },
+    "item5": {
+      "x": 40,
+      "delivered_to": "ws2",
+      "y": 70
+    },
+    "item7": {
+      "x": 178,
+      "delivered_to": "ws1",
+      "y": 89
+    },
+    "item8": {
+      "x": 178,
+      "delivered_to": "ws1",
+      "y": 89
+    },
+    "item1": {
+      "x": 63,
+      "delivered_to": "ws5",
+      "y": 38
+    },
+    "item14": {
+      "x": 63,
+      "delivered_to": "ws5",
+      "y": 38
+    },
+    "item11": {
+      "x": 63,
+      "delivered_to": "ws5",
+      "y": 38
+    },
+    "item3": {
+      "x": 63,
+      "delivered_to": "ws5",
+      "y": 38
+    },
+    "item19": {
+      "x": 195,
+      "delivered_to": "ws4",
+      "y": 7
+    },
+    "item17": {
+      "x": 178,
+      "delivered_to": "ws1",
+      "y": 89
+    },
+    "item20": {
+      "x": 38,
+      "delivered_to": "ws3",
+      "y": 94
+    },
+    "item9": {
+      "x": 40,
+      "delivered_to": "ws2",
+      "y": 70
+    },
+    "item6": {
+      "x": 40,
+      "delivered_to": "ws2",
+      "y": 70
+    }
+  }
+}

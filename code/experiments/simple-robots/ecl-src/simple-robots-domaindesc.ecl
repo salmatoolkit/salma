@@ -183,7 +183,7 @@ dist_from_station(Rob, Station, Dist, S) :-
 	xpos(Rob, X, S),
 	ypos(Rob, Y, S),
 	stationX(Station, Sx), stationY(Station, Sy),
-	Dist is sqrt((X - Sx)^2 + (Y - Sy)^2).
+	Dist is abs(X - Sx) + abs(Y - Sy).
 	
 
 moving(Rob, S) :-
