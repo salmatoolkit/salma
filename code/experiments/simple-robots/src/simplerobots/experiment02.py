@@ -39,12 +39,12 @@ def break_when_all_broken(world: World, **kwargs):
 
 class Experiment02(Experiment):
     def __init__(self, num_exp, num_robots, clever,
-                 expfile: TextIOBase, initpath: Path=None):
+                 expfilepath: Path, initpath: Path=None):
         super().__init__("ecl-src/simple-robots-domaindesc.ecl")
         self.num_exp = num_exp
         self.num_robots = num_robots
         self.clever = clever
-        self.expfile = expfile
+        self.expfile = expfilepath
         self.initpath = initpath
         self.num_collisions = 0
         self.step_listeners.append(self.__count_collision)
@@ -197,8 +197,10 @@ class Experiment02(Experiment):
             columns.append(c)
             wscountsum += c
         columns.append(wscountsum)
-        self.expfile.write(";".join(list(map(str, columns))) + "\n")
-        self.expfile.flush()
+        with self.expfile.open(mode="a") as f:
+            f.write(";".join(list(map(str, columns))) + "\n")
+            f.flush()
+
         logger = logging.getLogger(MODULE_LOGGER_NAME)
         logger.info(
             "DONE ({:.4}!    broken: {:3}, delivered: {:3}".format(time.total_seconds(),
@@ -214,7 +216,7 @@ def create_csv_header():
 
 
 def start(resultdir: str, min_robots: int, max_robots: int, simulations_per_config: int, robots_inc: int,
-          max_steps: int):
+          max_steps: int, skip_first_simple: bool):
     basepath = Path(resultdir)
     now = datetime.now()
     timestamp = now.strftime("%Y_%m_%d-%H_%M_%S")
@@ -237,24 +239,27 @@ def start(resultdir: str, min_robots: int, max_robots: int, simulations_per_conf
     num_exp = 1
     runner = SingleProcessExperimentRunner()
 
-    with experiment_path.joinpath("experiment.csv").open("w") as f:
+    experiment_file_path = experiment_path.joinpath("experiment.csv")
+    with experiment_file_path.open("w") as f:
         f.write(create_csv_header() + "\n")
-        for num_robots in range(min_robots, max_robots + 1, robots_inc):
-            for clever in [False, True]:
-                for i in range(simulations_per_config):
-                    if experiment_path.joinpath("stop.txt").exists():
-                        break
-                    else:
-                        experiment = Experiment02(num_exp, num_robots, clever, f)
-                        experiment.initialize()
-                        experiment.step_listeners.append(break_when_all_delivered)
-                        experiment.step_listeners.append(break_when_all_broken)
-                        logger.info(
-                            "Experiment #{:3} --  robots: {:3},  "
-                            "clever: {:>5} \t trial {:4}".format(
-                                num_exp, num_robots, str(clever), i))
-                        experiment.run(max_steps=max_steps)
-                        num_exp += 1
+
+    for num_robots in range(min_robots, max_robots + 1, robots_inc):
+        choices_strategy = [True] if skip_first_simple and num_robots == min_robots else [False, True]
+        for clever in choices_strategy:
+            for i in range(simulations_per_config):
+                if experiment_path.joinpath("stop.txt").exists():
+                    return
+                else:
+                    experiment = Experiment02(num_exp, num_robots, clever, experiment_file_path)
+                    experiment.initialize()
+                    experiment.step_listeners.append(break_when_all_delivered)
+                    experiment.step_listeners.append(break_when_all_broken)
+                    logger.info(
+                        "Experiment #{:3} --  robots: {:3},  "
+                        "clever: {:>5} \t trial {:4}".format(
+                            num_exp, num_robots, str(clever), i))
+                    experiment.run(max_steps=max_steps)
+                    num_exp += 1
 
 
 if __name__ == '__main__':
@@ -268,6 +273,8 @@ if __name__ == '__main__':
     parser.add_argument('--robots_inc', type=int, help='increment for number of robots', default=5)
     parser.add_argument('--simulations_per_config', type=int, help='simulations per config', default=10)
     parser.add_argument('--max_steps', type=int, help='maximum steps', default=500)
+    parser.add_argument('--skip-first-simple', const=True, action='store_const', default=False,
+                        help='skip first run of simulations with simple strategy')
 
     args = parser.parse_args()
     print(args)
@@ -282,4 +289,4 @@ if __name__ == '__main__':
     # SEED = int(datetime.now().timestamp())
     SEED = 1438470243
     start(args.resultdir, args.min_robots, args.max_robots, args.simulations_per_config, args.robots_inc,
-          args.max_steps)
+          args.max_steps, args.skip_first_simple)

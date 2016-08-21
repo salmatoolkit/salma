@@ -1,7 +1,5 @@
 FROM debian:jessie
 COPY etc/apt/sources.list /etc/apt/sources.list
-RUN mkdir /opt/salma
-COPY ../../code/SALMA/ /opt/salma
 
 RUN apt-get update && apt-get install -y wget less
 RUN mkdir /downloads
@@ -51,4 +49,9 @@ RUN cat ~/.ssh/id_dsa.pub >> ~/.ssh/authorized_keys
 RUN service ssh start
 
 RUN apt-get install -y net-tools
+
+# SALMA
+RUN mkdir /opt/salma
+COPY distrib /opt/salma
+ENV SALMA_HOME=/opt/salma
 
