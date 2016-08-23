@@ -8,6 +8,7 @@ import matplotlib
 # matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from pathlib import Path
+from matplotlib import rc
 
 import matplotlib.patches as patches
 
@@ -57,6 +58,8 @@ def draw_path(ax, df, robot, expsetup):
 
 def draw_all_on_one(expsetup, df):
     fig = plt.figure(figsize=(20, 20))
+    rc("font", size=24.0)
+    rc("lines", linewidth=1.5)
     ax = fig.gca()
     ax.set_aspect("equal")
     """:type : plt.Axes"""
@@ -65,13 +68,15 @@ def draw_all_on_one(expsetup, df):
     for i in range(1, len(expsetup["robots"]) + 1):
         draw_path(ax, df, i, expsetup)
 
-    ax.set_xlabel("xpos")
-    ax.set_ylabel("ypos")
+    ax.set_xlabel("xpos", fontweight="bold")
+    ax.set_ylabel("ypos", fontweight="bold")
     ax.legend(loc="upper right")
     draw_locations(expsetup, ax)
     ax.grid(True)
     fig.savefig(str(basepath.joinpath("paths_all_on_one.pdf")), bbox_inches="tight")
-    plt.show()
+    fig.savefig(str(basepath.joinpath("paths_all_on_one.png")), bbox_inches="tight")
+    print(matplotlib.rcParams)
+    #plt.show()
 
 
 def draw_on_subfigures(expsetup, df):

@@ -273,7 +273,7 @@ def start(resultdir: str, configfile: str):
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
 
-    experiment = Experiment01(experiment_path, Path(configfile))
+    experiment = Experiment01(experiment_path, None if configfile is None else Path(configfile))
     experiment.initialize()
     runner = SingleProcessExperimentRunner()
 
@@ -290,7 +290,7 @@ def start(resultdir: str, configfile: str):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Simple Delivery Robots Experiment 1')
-    parser.add_argument('configfile', type=str, help='the JSON configuration file')
+    parser.add_argument('--configfile', type=str, help='the JSON configuration file', required=False)
 
     parser.add_argument('--resultdir', type=str, help='the directory in which experiment results will be stored',
                         default="experiment_results")
@@ -308,7 +308,7 @@ if __name__ == '__main__':
     N_SLOTS = 5
     P_SLOT = 0.01
     COLLISION_PROB = 0
-    # SEED = int(datetime.now().timestamp())
-    SEED = 1438470243
+    SEED = int(datetime.now().timestamp())
+    #SEED = 1438470243
     STRATEGY = args.strategy
     start(args.resultdir, args.configfile)

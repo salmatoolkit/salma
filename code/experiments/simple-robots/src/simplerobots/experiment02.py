@@ -228,10 +228,13 @@ def start(resultdir: str, min_robots: int, max_robots: int, simulations_per_conf
     experiment_path.mkdir()
 
 
-    # logging.config.fileConfig("experiment01.logging.conf")
+    #logging.config.fileConfig("experiment02.logging.conf")
     logging.basicConfig()
     logger = logging.getLogger(MODULE_LOGGER_NAME)
     logger.setLevel(logging.INFO)
+    fh = FileHandler(str(experiment_path / "experiment.log"))
+    fh.setLevel(logging.INFO)
+    logger.addHandler(fh)
 
     # experiment = Experiment03(experiment_path, Path("config_3r_20i_5s_200x200.json"))
     # experiment = Experiment03(experiment_path)
