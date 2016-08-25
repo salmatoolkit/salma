@@ -293,7 +293,7 @@ if __name__ == '__main__':
     NUM_STATIONS = 10
     GRID_WIDTH = 500
     GRID_HEIGHT = 500
-    N_SLOTS = 5
+    N_SLOTS = 100
     P_SLOT = 0.01
     COLLISION_PROB = 1.0
     # SEED = int(datetime.now().timestamp())
