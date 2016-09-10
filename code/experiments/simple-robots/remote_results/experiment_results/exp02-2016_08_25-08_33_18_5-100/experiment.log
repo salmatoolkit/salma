@@ -1,0 +1,80 @@
+Experiment #  1 --  robots:   5,  clever: False 	 trial    0
+DONE (40.92)   collisions:   0, broken:   0, delivered:   0
+Experiment #  2 --  robots:   5,  clever:  True 	 trial    0
+DONE (61.98)   collisions:   0, broken:   0, delivered:   3
+Experiment #  3 --  robots:  10,  clever:  True 	 trial    0
+DONE (131.3)   collisions:   3, broken:   2, delivered:  11
+Experiment #  4 --  robots:  10,  clever: False 	 trial    0
+DONE (82.28)   collisions:   0, broken:   0, delivered:   2
+Experiment #  5 --  robots:  15,  clever:  True 	 trial    0
+DONE (235.2)   collisions:  12, broken:   4, delivered:   9
+Experiment #  6 --  robots:  15,  clever: False 	 trial    0
+DONE (121.1)   collisions:   0, broken:   0, delivered:   0
+Experiment #  7 --  robots:  20,  clever:  True 	 trial    0
+DONE (392.3)   collisions:   0, broken:   0, delivered:  10
+Experiment #  8 --  robots:  20,  clever: False 	 trial    0
+DONE (117.0)   collisions:   0, broken:   0, delivered:   0
+Experiment #  9 --  robots:  25,  clever:  True 	 trial    0
+DONE (536.0)   collisions:  13, broken:   2, delivered:  15
+Experiment # 10 --  robots:  25,  clever: False 	 trial    0
+DONE (141.0)   collisions:   0, broken:   0, delivered:   1
+Experiment # 11 --  robots:  30,  clever:  True 	 trial    0
+DONE (734.0)   collisions:  13, broken:   6, delivered:  25
+Experiment # 12 --  robots:  30,  clever: False 	 trial    0
+DONE (213.9)   collisions:   0, broken:   0, delivered:   2
+Experiment # 13 --  robots:  35,  clever:  True 	 trial    0
+DONE (1.051e+03)   collisions:  23, broken:   9, delivered:  26
+Experiment # 14 --  robots:  35,  clever: False 	 trial    0
+DONE (240.7)   collisions:   0, broken:   0, delivered:   3
+Experiment # 15 --  robots:  40,  clever:  True 	 trial    0
+DONE (1.372e+03)   collisions:  28, broken:   6, delivered:  28
+Experiment # 16 --  robots:  40,  clever: False 	 trial    0
+DONE (283.7)   collisions:   0, broken:   0, delivered:   0
+Experiment # 17 --  robots:  45,  clever:  True 	 trial    0
+DONE (1.698e+03)   collisions:  30, broken:   6, delivered:  31
+Experiment # 18 --  robots:  45,  clever: False 	 trial    0
+DONE (422.1)   collisions:   0, broken:   0, delivered:   1
+Experiment # 19 --  robots:  50,  clever:  True 	 trial    0
+DONE (2.191e+03)   collisions:  40, broken:  15, delivered:  37
+Experiment # 20 --  robots:  50,  clever: False 	 trial    0
+DONE (331.3)   collisions:   0, broken:   0, delivered:   0
+Experiment # 21 --  robots:  55,  clever:  True 	 trial    0
+DONE (2.407e+03)   collisions:  31, broken:  10, delivered:  40
+Experiment # 22 --  robots:  55,  clever: False 	 trial    0
+DONE (392.9)   collisions:   0, broken:   0, delivered:   0
+Experiment # 23 --  robots:  60,  clever:  True 	 trial    0
+DONE (2.919e+03)   collisions:  45, broken:  16, delivered:  39
+Experiment # 24 --  robots:  60,  clever: False 	 trial    0
+DONE (476.2)   collisions:   0, broken:   0, delivered:   1
+Experiment # 25 --  robots:  65,  clever:  True 	 trial    0
+DONE (3.404e+03)   collisions:  50, broken:  14, delivered:  46
+Experiment # 26 --  robots:  65,  clever: False 	 trial    0
+DONE (543.3)   collisions:   0, broken:   0, delivered:   0
+Experiment # 27 --  robots:  70,  clever:  True 	 trial    0
+DONE (4.125e+03)   collisions:  27, broken:  11, delivered:  38
+Experiment # 28 --  robots:  70,  clever: False 	 trial    0
+DONE (603.6)   collisions:   0, broken:   0, delivered:   2
+Experiment # 29 --  robots:  75,  clever:  True 	 trial    0
+DONE (4.841e+03)   collisions:  57, broken:  12, delivered:  38
+Experiment # 30 --  robots:  75,  clever: False 	 trial    0
+DONE (656.4)   collisions:   0, broken:   0, delivered:   1
+Experiment # 31 --  robots:  80,  clever:  True 	 trial    0
+DONE (5.258e+03)   collisions:  29, broken:   8, delivered:  36
+Experiment # 32 --  robots:  80,  clever: False 	 trial    0
+DONE (636.4)   collisions:   1, broken:   0, delivered:   1
+Experiment # 33 --  robots:  85,  clever:  True 	 trial    0
+DONE (4.963e+03)   collisions:  44, broken:  14, delivered:  40
+Experiment # 34 --  robots:  85,  clever: False 	 trial    0
+DONE (627.9)   collisions:   0, broken:   0, delivered:   2
+Experiment # 35 --  robots:  90,  clever:  True 	 trial    0
+DONE (4.813e+03)   collisions:  40, broken:  17, delivered:  54
+Experiment # 36 --  robots:  90,  clever: False 	 trial    0
+DONE (557.8)   collisions:   0, broken:   0, delivered:   2
+Experiment # 37 --  robots:  95,  clever:  True 	 trial    0
+DONE (5.24e+03)   collisions:  63, broken:  22, delivered:  35
+Experiment # 38 --  robots:  95,  clever: False 	 trial    0
+DONE (615.3)   collisions:   1, broken:   2, delivered:   0
+Experiment # 39 --  robots: 100,  clever:  True 	 trial    0
+DONE (5.778e+03)   collisions:  24, broken:   8, delivered:  45
+Experiment # 40 --  robots: 100,  clever: False 	 trial    0
+DONE (570.7)   collisions:   1, broken:   2, delivered:   1

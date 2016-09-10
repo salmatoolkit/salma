@@ -1,0 +1,3 @@
+expnum;duration;num_robots;clever;num_collisions;num_broken;wscount1;wscount2;wscount3;wscount4;wscount5;wscount6;wscount7;wscount8;wscount9;wscount10;wscountsum
+1;25.616273;5;False;0;0;0;0;0;0;0;0;0;0;1;0;1
+2;31.971068;5;True;0;0;0;0;1;0;1;0;0;0;0;0;2

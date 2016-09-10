@@ -1,0 +1,4 @@
+Experiment #  1 --  robots:   5,  clever: False 	 trial    0
+DONE (25.18)   collisions:   0, broken:   0, delivered:   1
+Experiment #  2 --  robots:   5,  clever:  True 	 trial    0
+DONE (33.13)   collisions:   0, broken:   0, delivered:   0

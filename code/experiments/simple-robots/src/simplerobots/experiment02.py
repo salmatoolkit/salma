@@ -252,6 +252,8 @@ def start(resultdir: str, min_robots: int, max_robots: int, simulations_per_conf
                 choices_strategy.append(False)
             if not skip_first_clever:
                 choices_strategy.append(True)
+        else:
+        	choices_strategy = [True, False]
 
         for clever in choices_strategy:
             for i in range(simulations_per_config):

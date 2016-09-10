@@ -7,5 +7,5 @@ do
 	docker-machine create --driver digitalocean --digitalocean-access-token $DOTOKEN $NODE
 	eval $(docker-machine env sim$i)
 	docker run -d -v /experiment_results:/simulations/simple-robots/experiment_results \
-		ckroiss/simple_robots --simulations_per_config 1 $1 $1
+		ckroiss/simple_robots --simulations_per_config 1 5 100
 done
